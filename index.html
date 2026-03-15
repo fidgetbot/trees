@@ -35,22 +35,106 @@
       <section class="right-panel panel game-panel hidden" id="hud-panel">
         <div class="hud-header">
           <h2>Status</h2>
-          <span id="phase-indicator" class="phase-pill">Resource Phase</span>
+          <span id="phase-indicator" class="phase-pill">Action Phase</span>
         </div>
         <div id="species-badge" class="species-badge"></div>
-        <div class="stat-grid">
-          <div><span class="stat-icon">☀</span> Sunlight</div><div id="sunlight">0</div>
-          <div><span class="stat-icon">💧</span> Water</div><div id="water">0</div>
-          <div><span class="stat-icon">🌱</span> Nutrients</div><div id="nutrients">0</div>
-          <div><span class="stat-icon">⚡</span> Actions</div><div id="actions">0</div>
-          <div><span class="stat-icon">🍃</span> Leaf Clusters</div><div id="leaf-clusters">0</div>
-          <div><span class="stat-icon">🌿</span> Root Zones</div><div id="root-zones">0</div>
-          <div><span class="stat-icon">🌳</span> Branches</div><div id="branches">0</div>
-          <div><span class="stat-icon">🪵</span> Trunk</div><div id="trunk">0</div>
-          <div><span class="stat-icon">🌸</span> Flowers</div><div id="flowers">0</div>
-          <div><span class="stat-icon">🌰</span> Seeds</div><div id="seeds">0</div>
-          <div><span class="stat-icon">🤝</span> Allies</div><div id="allies">0</div>
-          <div><span class="stat-icon">❤️</span> Health</div><div id="health">0</div>
+        
+        <!-- Actions Remaining Banner -->
+        <div id="actions-banner" class="actions-banner">
+          <span class="actions-count" id="actions-remaining">3 actions remaining</span>
+        </div>
+        
+        <!-- Grouped Stats -->
+        <div class="stats-container">
+          <div class="stat-group" data-group="resources">
+            <h4 class="stat-group-title">📊 Resources</h4>
+            <div class="stat-group-content">
+              <div class="stat-row" data-stat="sunlight" data-help="Leaves gather sunlight each turn. More leaves = more sunlight.">
+                <span class="stat-icon">☀️</span>
+                <span class="stat-name">Sunlight</span>
+                <span class="stat-value" id="sunlight">0</span>
+              </div>
+              <div class="stat-row" data-stat="water" data-help="Roots gather water from the soil. More roots = more water.">
+                <span class="stat-icon">💧</span>
+                <span class="stat-name">Water</span>
+                <span class="stat-value" id="water">0</span>
+              </div>
+              <div class="stat-row" data-stat="nutrients" data-help="Roots absorb nutrients. Allies boost nutrient gathering through fungal networks.">
+                <span class="stat-icon">🌱</span>
+                <span class="stat-name">Nutrients</span>
+                <span class="stat-value" id="nutrients">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-group" data-group="structure">
+            <h4 class="stat-group-title">🌳 Structure</h4>
+            <div class="stat-group-content">
+              <div class="stat-row" data-stat="trunk" data-help="Thicker trunk increases max health and storm resistance.">
+                <span class="stat-icon">🪵</span>
+                <span class="stat-name">Trunk</span>
+                <span class="stat-value" id="trunk">0</span>
+              </div>
+              <div class="stat-row" data-stat="branches" data-help="More branches support more leaf clusters.">
+                <span class="stat-icon">🌿</span>
+                <span class="stat-name">Branches</span>
+                <span class="stat-value" id="branches">0</span>
+              </div>
+              <div class="stat-row" data-stat="leaf-clusters" data-help="Leaf clusters gather sunlight. Exposed leaves gather more.">
+                <span class="stat-icon">🍃</span>
+                <span class="stat-name">Leaves</span>
+                <span class="stat-value" id="leaf-clusters">0</span>
+              </div>
+              <div class="stat-row" data-stat="root-zones" data-help="Root zones gather water and nutrients.">
+                <span class="stat-icon">🌾</span>
+                <span class="stat-name">Roots</span>
+                <span class="stat-value" id="root-zones">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-group" data-group="reproduction">
+            <h4 class="stat-group-title">🌸 Reproduction</h4>
+            <div class="stat-group-content">
+              <div class="stat-row compact" data-stat="flowers" data-help="Flowers may become pollinated by insects, producing seeds.">
+                <span class="stat-icon">🌸</span>
+                <span class="stat-name">Flowers</span>
+                <span class="stat-value" id="flowers">0</span>
+              </div>
+              <div class="stat-row compact" data-stat="pollinated" data-help="Pollinated flowers will develop into fruit and seeds.">
+                <span class="stat-icon">🐝</span>
+                <span class="stat-name">Pollinated</span>
+                <span class="stat-value" id="pollinated">0</span>
+              </div>
+              <div class="stat-row compact" data-stat="developing" data-help="Developing fruit will become viable seeds.">
+                <span class="stat-icon">🍎</span>
+                <span class="stat-name">Fruit</span>
+                <span class="stat-value" id="developing">0</span>
+              </div>
+              <div class="stat-row compact" data-stat="seeds" data-help="Seeds become viable in Spring and contribute to your score.">
+                <span class="stat-icon">🌰</span>
+                <span class="stat-name">Seeds</span>
+                <span class="stat-value" id="seeds">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-group" data-group="ecology">
+            <h4 class="stat-group-title">🤝 Ecology</h4>
+            <div class="stat-group-content">
+              <div class="stat-row" data-stat="allies" data-help="Fungal allies boost nutrient gathering and provide other benefits.">
+                <span class="stat-icon">🍄</span>
+                <span class="stat-name">Allies</span>
+                <span class="stat-value" id="allies">0</span>
+              </div>
+              <div class="stat-row" data-stat="health" data-help="Health decreases from damage. At 0, your tree dies (but offspring may continue).">
+                <span class="stat-icon">❤️</span>
+                <span class="stat-name">Health</span>
+                <span class="stat-value" id="health">0</span>
+                <span class="stat-max" id="max-health">/ 0</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <h3>Actions</h3>
@@ -61,6 +145,12 @@
       </section>
     </main>
   </div>
+
+  <!-- Floating Feedback Container -->
+  <div id="feedback-container" class="feedback-container"></div>
+
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip hidden"></div>
 
   <div id="modal" class="modal hidden">
     <div class="modal-card">

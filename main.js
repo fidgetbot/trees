@@ -23,13 +23,13 @@ const SPECIES = {
   },
 };
 
+// Updated actions - removed fruit/seeds as manual actions
 const ACTIONS = [
   { key: 'growBranch', name: 'Grow Branch', cost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
   { key: 'extendRoot', name: 'Extend Root', cost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
   { key: 'growLeaves', name: 'Grow Leaves', cost: { sunlight: 1, water: 1, nutrients: 1 }, effect: s => { s.leafClusters += 1; } },
   { key: 'flower', name: 'Produce Flower', cost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
-  { key: 'fruit', name: 'Produce Seed/Fruit', cost: { sunlight: 4, water: 2, nutrients: 2 }, prereq: s => s.flowers > 0, effect: s => { s.flowers -= 1; s.seeds += 1; } },
-  { key: 'thicken', name: 'Thicken Trunk', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; } },
+  { key: 'thicken', name: 'Thicken Trunk', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
   { key: 'defense', name: 'Chemical Defense', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; } },
   { key: 'repair', name: 'Repair Damage', cost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.health = Math.min(s.maxHealth, s.health + 2); } },
   { key: 'share', name: 'Share Resources With Allies', cost: { sunlight: 1, water: 1, nutrients: 1 }, prereq: s => s.allies > 0, effect: s => { s.sharedThisTurn = true; } },
@@ -52,6 +52,8 @@ const state = {
   leafClusters: 0,
   trunk: 0,
   flowers: 0,
+  pollinated: 0,  // New: pollinated flowers
+  developing: 0,  // New: developing fruit
   seeds: 0,
   viableSeeds: 0,
   allies: 0,
@@ -80,9 +82,67 @@ const els = {
   modalButton: document.getElementById('modal-button'),
   actionsList: document.getElementById('actions-list'),
   log: document.getElementById('log'),
+  feedbackContainer: document.getElementById('feedback-container'),
+  tooltip: document.getElementById('tooltip'),
+  actionsBanner: document.getElementById('actions-banner'),
+  actionsRemaining: document.getElementById('actions-remaining'),
 };
 
 const ctx = els.canvas.getContext('2d');
+
+// Floating feedback system
+function showFeedback(message, type = 'success') {
+  const feedback = document.createElement('div');
+  feedback.className = `feedback ${type}`;
+  feedback.textContent = message;
+  els.feedbackContainer.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 3000);
+}
+
+// Tooltip system
+function initTooltips() {
+  const statRows = document.querySelectorAll('.stat-row[data-help]');
+  
+  statRows.forEach(row => {
+    row.addEventListener('mouseenter', (e) => {
+      const helpText = row.dataset.help;
+      els.tooltip.textContent = helpText;
+      els.tooltip.classList.remove('hidden');
+      
+      const rect = row.getBoundingClientRect();
+      const tooltipRect = els.tooltip.getBoundingClientRect();
+      
+      let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+      let top = rect.top - tooltipRect.height - 8;
+      
+      // Keep in viewport
+      left = Math.max(10, Math.min(left, window.innerWidth - tooltipRect.width - 10));
+      top = Math.max(10, top);
+      
+      els.tooltip.style.left = `${left}px`;
+      els.tooltip.style.top = `${top}px`;
+    });
+    
+    row.addEventListener('mouseleave', () => {
+      els.tooltip.classList.add('hidden');
+    });
+  });
+}
+
+// Collapsible stat groups
+function initCollapsibleGroups() {
+  const groupTitles = document.querySelectorAll('.stat-group-title');
+  
+  groupTitles.forEach(title => {
+    title.addEventListener('click', () => {
+      const group = title.closest('.stat-group');
+      group.classList.toggle('collapsed');
+    });
+  });
+}
 
 function initSpeciesSelect() {
   Object.entries(SPECIES).forEach(([name, spec]) => {
@@ -117,6 +177,8 @@ function startGame() {
     leafClusters: spec.branches,
     trunk: spec.trunk,
     flowers: 0,
+    pollinated: 0,
+    developing: 0,
     seeds: 0,
     viableSeeds: 0,
     allies: spec.startAllies,
@@ -131,6 +193,11 @@ function startGame() {
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
   els.hudPanel.classList.remove('hidden');
+  
+  // Initialize UI features
+  initTooltips();
+  initCollapsibleGroups();
+  
   updateUI();
   showResourcePhase();
 }
@@ -166,17 +233,26 @@ function showModal(title, body, onContinue) {
 function showResourcePhase() {
   if (state.gameOver) return;
   const gains = collectResources();
-  addLog(`Collected +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.`);
+  addLog(`Your tree awakens and gathers from the world around it...`);
   updateUI();
   render();
 
   const season = currentSeason();
   const exposure = Math.round(exposureFactor() * 100);
 
-  showModal('Resource Phase', `
+  // Themed resource phase description
+  const seasonDescriptions = {
+    'Spring': 'Spring rains awaken the soil. Buds swell with potential.',
+    'Summer': 'The sun climbs high. Your leaves drink in the long light.',
+    'Autumn': 'The air cools. Your tree prepares for the coming dormancy.',
+    'Winter': 'The world sleeps. Your roots still reach for what they can find.',
+  };
+
+  showModal('Your Tree Gathers...', `
+    <p style="color: var(--muted); margin-bottom: 16px; font-style: italic;">${seasonDescriptions[season.name]}</p>
     <div class="resource-summary">
       <div class="res-line">
-        <span class="res-icon">☀</span>
+        <span class="res-icon">☀️</span>
         <span class="res-name">Sunlight</span>
         <span class="res-value">+${gains.sunlightGain}</span>
         <span class="res-detail">${state.leafClusters} leaves × ${exposure}% exposure × ${season.factorSun} season</span>
@@ -204,26 +280,41 @@ function showResourcePhase() {
 }
 
 function canAfford(cost) {
-  return state.sunlight >= cost.sunlight && state.water >= cost.water && state.nutrients >= cost.nutrients && state.actions > 0;
+  return state.sunlight >= (cost.sunlight || 0) && 
+         state.water >= (cost.water || 0) && 
+         state.nutrients >= (cost.nutrients || 0) && 
+         state.actions > 0;
 }
 
 function spend(cost) {
-  state.sunlight -= cost.sunlight;
-  state.water -= cost.water;
-  state.nutrients -= cost.nutrients;
+  state.sunlight -= (cost.sunlight || 0);
+  state.water -= (cost.water || 0);
+  state.nutrients -= (cost.nutrients || 0);
   state.actions -= 1;
 }
 
 function attemptConnection(s) {
   if (state.selectedSpecies === 'Oak') {
     const roll = Math.random();
-    if (roll < 0.4) { s.allies += 1; addLog('Another tree accepted your fungal approach.'); }
-    else if (roll < 0.8) { addLog('Another tree ignored your fungal approach.'); }
-    else { s.health -= 1; addLog('A neighboring tree rejected you and turned hostile.'); }
+    if (roll < 0.4) { 
+      s.allies += 1; 
+      addLog('Another tree accepted your fungal approach.');
+      showFeedback('New fungal ally connected!', 'success');
+    }
+    else if (roll < 0.8) { 
+      addLog('Another tree ignored your fungal approach.');
+      showFeedback('The fungal approach was ignored', 'info');
+    }
+    else { 
+      s.health -= 1; 
+      addLog('A neighboring tree rejected you and turned hostile.');
+      showFeedback('A tree rejected your connection!', 'error');
+    }
     return;
   }
   s.allies += 1;
   addLog('Your roots reached a new fungal ally.');
+  showFeedback('New fungal ally connected!', 'success');
 }
 
 const neighborTrees = [
@@ -251,13 +342,40 @@ function getNeighborTree(idx) {
   return base;
 }
 
+function getAffordableActions() {
+  return ACTIONS.filter(action => {
+    const prereqOk = action.prereq ? action.prereq(state) : true;
+    const affordable = canAfford(action.cost);
+    return prereqOk && affordable;
+  });
+}
+
 function renderActions() {
   els.actionsList.innerHTML = '';
 
   const phaseIndicator = document.createElement('div');
   phaseIndicator.className = 'phase-indicator';
-  phaseIndicator.innerHTML = `<span class="phase-badge action-phase">ACTION PHASE</span> <span class="phase-hint">${state.actions} action${state.actions !== 1 ? 's' : ''} remaining</span>`;
+  phaseIndicator.innerHTML = `<span class="phase-badge action-phase">ACTION PHASE</span> <span class="phase-hint">Choose your actions wisely</span>`;
   els.actionsList.appendChild(phaseIndicator);
+
+  // Check if anything is affordable
+  const affordableActions = getAffordableActions();
+  const hasPrereqIssues = ACTIONS.some(action => {
+    const prereqOk = action.prereq ? action.prereq(state) : true;
+    const affordable = canAfford(action.cost);
+    return !prereqOk && affordable; // Has resources but missing prereq
+  });
+  
+  if (state.actions > 0 && affordableActions.length === 0) {
+    const warning = document.createElement('div');
+    warning.className = 'nothing-affordable';
+    if (hasPrereqIssues) {
+      warning.innerHTML = `<strong>⚠️ Actions Available But Locked</strong>You have resources but some actions need prerequisites (like flowers for reproduction).`;
+    } else {
+      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>You have ${state.actions} action${state.actions !== 1 ? 's' : ''} but not enough resources for any action. You can finish your turn early.`;
+    }
+    els.actionsList.appendChild(warning);
+  }
 
   ACTIONS.forEach(action => {
     const card = document.createElement('div');
@@ -265,146 +383,417 @@ function renderActions() {
     const affordable = canAfford(action.cost);
     const disabled = !prereqOk || !affordable || state.actions <= 0;
 
-    const sunClass = state.sunlight >= action.cost.sunlight ? 'res-ok' : 'res-low';
-    const waterClass = state.water >= action.cost.water ? 'res-ok' : 'res-low';
-    const nutClass = state.nutrients >= action.cost.nutrients ? 'res-ok' : 'res-low';
+    // Resource display with current amounts
+    const sunRequired = action.cost.sunlight || 0;
+    const waterRequired = action.cost.water || 0;
+    const nutRequired = action.cost.nutrients || 0;
+    
+    const sunClass = state.sunlight >= sunRequired ? 'res-sun' : 'res-sun res-low';
+    const waterClass = state.water >= waterRequired ? 'res-water' : 'res-water res-low';
+    const nutClass = state.nutrients >= nutRequired ? 'res-nutrient' : 'res-nutrient res-low';
 
     card.className = `action-card ${disabled ? 'disabled' : ''}`;
+    
+    let costsHtml = '<div class="action-costs">';
+    if (sunRequired > 0) {
+      costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired} <span class="current">(${state.sunlight})</span></span>`;
+    }
+    if (waterRequired > 0) {
+      costsHtml += `<span class="cost ${waterClass}">💧${waterRequired} <span class="current">(${state.water})</span></span>`;
+    }
+    if (nutRequired > 0) {
+      costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired} <span class="current">(${state.nutrients})</span></span>`;
+    }
+    costsHtml += '</div>';
+    
     card.innerHTML = `
       <div class="action-header">
         <h4>${action.name}</h4>
-        ${prereqOk ? '' : '<span class="prereq-missing">Requires flower</span>'}
+        ${!prereqOk ? '<span class="prereq-missing">Locked</span>' : ''}
       </div>
-      <div class="action-costs">
-        <span class="cost ${sunClass}">☀ ${action.cost.sunlight}</span>
-        <span class="cost ${waterClass}">💧 ${action.cost.water}</span>
-        <span class="cost ${nutClass}">🌱 ${action.cost.nutrients}</span>
-      </div>`;
+      ${costsHtml}`;
 
     const btn = document.createElement('button');
     btn.textContent = disabled ? (prereqOk ? 'Insufficient Resources' : 'Locked') : 'Use Action';
     btn.disabled = disabled;
     btn.onclick = () => {
+      if (disabled) return;
+      
       spend(action.cost);
       action.effect(state);
-      if (state.selectedSpecies === 'Plum' && action.key === 'fruit') {
-        state.allies = Math.max(state.allies, Math.min(3, state.seeds));
+      
+      // Show success feedback
+      showFeedback(`${action.name} succeeded!`, 'success');
+      
+      if (state.selectedSpecies === 'Plum' && action.key === 'flower') {
+        // Plum family network bonus
       }
+      
       addLog(`Action: ${action.name}`);
       updateScore();
       updateUI();
       render();
       renderActions();
-      if (state.actions <= 0) showEventPhase();
+      
+      if (state.actions <= 0) {
+        setTimeout(() => showEventPhase(), 500);
+      }
     };
     card.appendChild(btn);
     els.actionsList.appendChild(card);
   });
 
-  const endBtn = document.createElement('button');
-  endBtn.className = 'finish-turn-btn';
-  endBtn.textContent = 'Finish Turn Early →';
-  endBtn.onclick = showEventPhase;
-  els.actionsList.appendChild(endBtn);
+  // Only show finish turn button when actions remain (optional skip)
+  if (state.actions > 0) {
+    const endBtn = document.createElement('button');
+    endBtn.className = 'finish-turn-btn';
+    endBtn.textContent = 'Finish Turn Early →';
+    endBtn.onclick = () => {
+      showFeedback('Turn ended early', 'info');
+      showEventPhase();
+    };
+    els.actionsList.appendChild(endBtn);
+  }
 }
 
+// Expanded event pool with real botany/ecology inspiration
+const MAJOR_EVENTS = [
+  {
+    key: 'Drought',
+    name: 'Drought',
+    icon: '☀️',
+    desc: 'The soil dries and cracks. Your roots must reach deeper for moisture.',
+    severity: 'bad',
+    apply: (s) => {
+      s.eventModifiers.drought = 0.3;
+      s.health -= 1;
+      return ['Water collection reduced by 70%', 'Health -1 from water stress'];
+    }
+  },
+  {
+    key: 'InsectSwarm',
+    name: 'Insect Swarm',
+    icon: '🐛',
+    desc: 'A wave of herbivores descends on the canopy, hungry for tender leaves.',
+    severity: 'bad',
+    apply: (s) => {
+      const damage = Math.max(1, 2 - s.defense);
+      const prevLeaves = s.leafClusters;
+      s.leafClusters = Math.max(1, s.leafClusters - damage);
+      s.health -= 1;
+      const lost = prevLeaves - s.leafClusters;
+      return [`${lost} leaf cluster${lost !== 1 ? 's' : ''} eaten by insects`, 'Health -1 from stress', s.defense > 0 ? 'Chemical defense reduced damage' : 'No chemical defense!'];
+    }
+  },
+  {
+    key: 'Storm',
+    name: 'Autumn Storm',
+    icon: '⛈️',
+    desc: 'Fierce winds test your structure. Flexibility and strength determine survival.',
+    severity: 'bad',
+    apply: (s) => {
+      const prevBranches = s.branches;
+      s.branches = Math.max(1, s.branches - 1);
+      const damage = Math.max(0, 2 - s.trunk);
+      s.health -= damage;
+      const lost = prevBranches - s.branches;
+      const effects = [`${lost} branch snapped by wind`];
+      if (damage > 0) effects.push(`Health -${damage} (trunk too thin)`);
+      else effects.push('Thick trunk resisted damage');
+      return effects;
+    }
+  },
+  {
+    key: 'Fire',
+    name: 'Wildfire',
+    icon: '🔥',
+    desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.',
+    severity: 'critical',
+    apply: (s) => {
+      const spec = SPECIES[s.selectedSpecies];
+      const damage = Math.max(0, 4 - Math.floor((spec.fireResist || 0) * 4) - s.trunk);
+      s.health -= damage;
+      const effects = [];
+      if (damage === 0) {
+        effects.push('Thick bark completely protected you!');
+      } else {
+        effects.push(`Health -${damage} from fire damage`);
+      }
+      if (spec.fireResist >= 0.5) {
+        effects.push('Fire adaptation reduced damage');
+      }
+      return effects;
+    }
+  },
+  {
+    key: 'LateFrost',
+    name: 'Late Frost',
+    icon: '❄️',
+    desc: 'An unexpected freeze damages new growth and tender flowers.',
+    severity: 'bad',
+    apply: (s) => {
+      const effects = [];
+      if (s.flowers > 0) {
+        const lost = Math.min(s.flowers, 1);
+        s.flowers -= lost;
+        effects.push(`${lost} flower${lost !== 1 ? 's' : ''} killed by frost`);
+      }
+      if (s.leafClusters > 3) {
+        s.leafClusters -= 1;
+        effects.push('1 leaf cluster damaged by frost');
+      }
+      s.health -= 1;
+      effects.push('Health -1 from cold stress');
+      return effects;
+    }
+  },
+  {
+    key: 'FungalBlight',
+    name: 'Fungal Blight',
+    icon: '🍄',
+    desc: 'A pathogen spreads through the fungal network, affecting connected trees.',
+    severity: 'bad',
+    apply: (s) => {
+      s.eventModifiers.disease = 0.6;
+      const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
+      if (s.allies > 0) {
+        s.allies = Math.max(0, s.allies - 1);
+        effects.push('Lost 1 ally to the blight');
+      }
+      return effects;
+    }
+  },
+  {
+    key: 'Beaver',
+    name: 'Beaver Activity',
+    icon: '🦫',
+    desc: 'A beaver colony has moved into the watershed, changing water patterns.',
+    severity: 'neutral',
+    apply: (s) => {
+      const effects = [];
+      if (Math.random() < 0.5) {
+        s.water += 3;
+        effects.push('Dam raised water table: +3 water');
+      } else {
+        s.water = Math.max(0, s.water - 2);
+        effects.push('Dam diverted water: -2 water');
+      }
+      return effects;
+    }
+  },
+  {
+    key: 'MycorrhizalBloom',
+    name: 'Mycorrhizal Bloom',
+    icon: '✨',
+    desc: 'The fungal network flourishes, sharing nutrients generously.',
+    severity: 'good',
+    apply: (s) => {
+      s.nutrients += 3;
+      if (s.allies > 0) {
+        s.nutrients += s.allies;
+        return [`+${3 + s.allies} nutrients from fungal bloom`, 'Allies boosted the bonus!'];
+      }
+      return ['+3 nutrients from fungal bloom'];
+    }
+  },
+  {
+    key: 'BirdDispersal',
+    name: 'Bird Dispersal',
+    icon: '🐦',
+    desc: 'Migratory birds arrive, carrying seeds and nutrients from distant forests.',
+    severity: 'good',
+    apply: (s) => {
+      s.nutrients += 2;
+      if (s.flowers > 0) {
+        const pollinated = Math.min(s.flowers, Math.floor(Math.random() * 2) + 1);
+        s.pollinated += pollinated;
+        s.flowers -= pollinated;
+        return [`+2 nutrients from bird droppings`, `${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated by visiting birds`];
+      }
+      return ['+2 nutrients from bird droppings'];
+    }
+  },
+];
+
 function rollMajorEvent() {
-  const pool = ['Drought', 'Insect Swarm', 'Storm', 'Fire'];
-  const weights = [0.35, 0.3, 0.25, 0.1];
-  const r = Math.random();
+  // Higher chance of events in later turns
+  const baseChance = 0.4 + (state.turnInSeason * 0.15);
+  if (Math.random() > baseChance) return null;
+  
+  const weights = MAJOR_EVENTS.map(e => {
+    if (e.severity === 'critical') return 0.05;
+    if (e.severity === 'bad') return 0.25;
+    if (e.severity === 'neutral') return 0.2;
+    return 0.15; // good
+  });
+  
+  const total = weights.reduce((a, b) => a + b, 0);
+  const r = Math.random() * total;
   let sum = 0;
-  for (let i = 0; i < pool.length; i++) {
+  for (let i = 0; i < MAJOR_EVENTS.length; i++) {
     sum += weights[i];
-    if (r <= sum) return pool[i];
+    if (r <= sum) return MAJOR_EVENTS[i];
   }
-  return 'Storm';
+  return MAJOR_EVENTS[0];
 }
 
 function rollMinorEvents() {
   const events = [];
-  if (Math.random() < 0.35 && state.flowers > 0) events.push('Pollinators visited your flowers.');
-  if (Math.random() < 0.25) events.push('Forest animals left nitrogen-rich gifts near your trunk.');
-  if (Math.random() < 0.25) events.push('A passing rain shower refreshed the soil.');
-  if (Math.random() < 0.2) events.push('A sharp wind snapped a tender branch.');
+  
+  // Pollination chance based on flowers and season
+  if (state.flowers > 0) {
+    const pollinatorChance = currentSeason().name === 'Spring' ? 0.5 : 
+                            currentSeason().name === 'Summer' ? 0.4 : 0.2;
+    if (Math.random() < pollinatorChance) {
+      const pollinated = Math.min(state.flowers, Math.floor(Math.random() * 2) + 1);
+      state.pollinated += pollinated;
+      state.flowers -= pollinated;
+      events.push({
+        text: `Pollinators visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated.`,
+        effect: 'pollinated'
+      });
+    }
+  }
+  
+  // Nitrogen from animals
+  if (Math.random() < 0.25) {
+    state.nutrients += 1;
+    events.push({
+      text: 'Forest animals left nitrogen-rich gifts near your trunk.',
+      effect: 'nutrients'
+    });
+  }
+  
+  // Rain shower
+  if (Math.random() < 0.25) {
+    state.water += 2;
+    state.eventModifiers.rainChain += 1;
+    events.push({
+      text: 'A passing rain shower refreshed the soil.',
+      effect: 'rain'
+    });
+    if (state.eventModifiers.rainChain >= 3) {
+      state.health -= 1;
+      events.push({
+        text: 'Too much rain caused mild root rot.',
+        effect: 'damage'
+      });
+    }
+  } else {
+    state.eventModifiers.rainChain = 0;
+  }
+  
+  // Wind damage
+  if (Math.random() < 0.15) {
+    if (state.branches > 1) {
+      state.branches -= 1;
+      events.push({
+        text: 'A sharp wind snapped a tender branch.',
+        effect: 'damage'
+      });
+    }
+  }
+  
+  // Fruit development
+  if (state.pollinated > 0 && Math.random() < 0.3) {
+    const developing = Math.min(state.pollinated, 1);
+    state.developing += developing;
+    state.pollinated -= developing;
+    events.push({
+      text: `${developing} pollinated flower${developing !== 1 ? 's' : ''} began developing into fruit.`,
+      effect: 'growth'
+    });
+  }
+  
+  // Seed maturation
+  if (state.developing > 0 && Math.random() < 0.25) {
+    const matured = Math.min(state.developing, 1);
+    state.seeds += matured;
+    state.developing -= matured;
+    events.push({
+      text: `${matured} fruit${matured !== 1 ? 's' : ''} matured into seed${matured !== 1 ? 's' : ''}.`,
+      effect: 'growth'
+    });
+  }
+  
   return events;
 }
 
 function applyEventEffects(major, minors) {
+  // Reset modifiers
   state.eventModifiers.drought = 1;
   state.eventModifiers.disease = 1;
-  if (major === 'Drought') {
-    state.eventModifiers.drought = 0.3;
-    state.health -= 1;
+  
+  const consequences = [];
+  
+  if (major) {
+    const majorEffects = major.apply(state);
+    consequences.push(...majorEffects);
   }
-  if (major === 'Insect Swarm') {
-    const damage = Math.max(1, 2 - state.defense);
-    state.leafClusters = Math.max(1, state.leafClusters - damage);
-    state.health -= 1;
-  }
-  if (major === 'Storm') {
-    state.branches = Math.max(1, state.branches - 1);
-    state.health -= Math.max(0, 2 - state.trunk);
-  }
-  if (major === 'Fire') {
-    const damage = Math.max(0, 4 - Math.floor((SPECIES[state.selectedSpecies].fireResist || 0) * 4) - state.trunk);
-    state.health -= damage;
-  }
+  
   minors.forEach(event => {
-    if (event.includes('Pollinators')) {
-      state.score += 10;
-      state.viableSeeds += 1;
+    if (event.effect === 'pollinated') {
+      state.score += 5;
     }
-    if (event.includes('nitrogen')) state.nutrients += 1;
-    if (event.includes('rain')) {
-      state.water += 2;
-      state.eventModifiers.rainChain += 1;
-      if (state.eventModifiers.rainChain >= 3) {
-        state.health -= 1;
-        addLog('Too much rain in a row caused mild root rot.');
-      }
-    } else {
-      state.eventModifiers.rainChain = 0;
-    }
-    if (event.includes('wind')) state.branches = Math.max(1, state.branches - 1);
   });
+  
   if (state.sharedThisTurn && state.allies > 0) {
     state.score += 5 * state.allies;
     state.sharedThisTurn = false;
   }
-  state.health = Math.min(state.maxHealth, state.health);
+  
+  state.health = Math.min(state.maxHealth, Math.max(0, state.health));
+  
+  return consequences;
 }
 
-const EVENT_DESCRIPTIONS = {
-  'Drought': { icon: '☀️', desc: 'The soil dries out. Water collection reduced for the next season.', severity: 'bad' },
-  'Insect Swarm': { icon: '🐛', desc: 'Pests attack your leaves! Leaf clusters damaged.', severity: 'bad' },
-  'Storm': { icon: '⛈️', desc: 'High winds snap branches. Trunk strength helps resist damage.', severity: 'bad' },
-  'Fire': { icon: '🔥', desc: 'A wildfire sweeps through! Fire resistance and thick bark determine survival.', severity: 'critical' },
-  'No major event': { icon: '✓', desc: 'The forest is calm this turn.', severity: 'good' }
-};
-
 function showEventPhase() {
-  const major = state.turnInSeason === 3 ? rollMajorEvent() : 'No major event';
+  const major = state.turnInSeason === 3 ? rollMajorEvent() : null;
   const minors = rollMinorEvents();
-  applyEventEffects(major, minors);
+  const consequences = applyEventEffects(major, minors);
   updateScore();
   updateUI();
   render();
 
-  const majorInfo = EVENT_DESCRIPTIONS[major] || EVENT_DESCRIPTIONS['No major event'];
-  const majorClass = majorInfo.severity === 'critical' ? 'event-critical' : majorInfo.severity === 'bad' ? 'event-bad' : 'event-good';
+  let majorHtml = '';
+  if (major) {
+    const majorClass = major.severity === 'critical' ? 'event-critical' : 
+                       major.severity === 'bad' ? 'event-bad' : 
+                       major.severity === 'neutral' ? 'event-neutral' : 'event-good';
+    
+    majorHtml = `
+      <div class="event-major ${majorClass}">
+        <div class="event-icon">${major.icon}</div>
+        <div class="event-content">
+          <h3>${major.name}</h3>
+          <p>${major.desc}</p>
+          ${consequences.length ? `
+            <div class="event-consequences">
+              <strong>Effects:</strong>
+              <ul>${consequences.map(c => `<li>${c}</li>`).join('')}</ul>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  } else {
+    majorHtml = `
+      <div class="event-major event-good">
+        <div class="event-icon">🌙</div>
+        <div class="event-content">
+          <h3>Quiet Night</h3>
+          <p>The forest is still. Your tree rests.</p>
+        </div>
+      </div>
+    `;
+  }
 
   const minorHtml = minors.length
-    ? `<div class="minor-events"><h4>Minor Events</h4><ul>${minors.map(e => `<li>${e}</li>`).join('')}</ul></div>`
-    : '<p class="no-events">No minor events this turn.</p>';
+    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => `<li>${e.text}</li>`).join('')}</ul></div>`
+    : '<p class="no-events">The forest sleeps quietly this turn.</p>';
 
-  showModal('Event Phase', `
-    <div class="event-major ${majorClass}">
-      <div class="event-icon">${majorInfo.icon}</div>
-      <div class="event-content">
-        <h3>${major}</h3>
-        <p>${majorInfo.desc}</p>
-      </div>
-    </div>
+  showModal('Night Falls...', `
+    ${majorHtml}
     ${minorHtml}
   `, advanceTurn);
 }
@@ -418,8 +807,12 @@ function handleSpringViability() {
   }
   state.viableSeeds += viable;
   state.offspringPool += viable;
+  const prevSeeds = state.seeds;
   state.seeds = 0;
-  addLog(`${viable} seeds proved viable this spring.`);
+  addLog(`${viable} of ${prevSeeds} seeds proved viable this spring.`);
+  if (viable > 0) {
+    showFeedback(`${viable} seeds became viable!`, 'success');
+  }
 }
 
 function advanceTurn() {
@@ -450,7 +843,11 @@ function handleDeath() {
     state.rootZones = Math.max(1, Math.floor(state.rootZones * 0.6));
     state.leafClusters = Math.max(1, Math.floor(state.leafClusters * 0.6));
     state.trunk = Math.max(1, Math.floor(state.trunk * 0.6));
+    state.flowers = 0;
+    state.pollinated = 0;
+    state.developing = 0;
     addLog('Your current tree died, but a viable offspring continues the lineage.');
+    showFeedback('Your tree died, but offspring continues...', 'warning');
     showModal('Succession', '<p>Your tree has died, but one offspring survives. You continue through the lineage.</p>', () => {
       updateScore(); updateUI(); render(); showResourcePhase();
     });
@@ -472,15 +869,29 @@ function updateUI() {
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
   document.getElementById('nutrients').textContent = state.nutrients;
-  document.getElementById('actions').textContent = state.actions;
   document.getElementById('leaf-clusters').textContent = state.leafClusters;
   document.getElementById('root-zones').textContent = state.rootZones;
   document.getElementById('branches').textContent = state.branches;
   document.getElementById('trunk').textContent = state.trunk;
   document.getElementById('flowers').textContent = state.flowers;
+  document.getElementById('pollinated').textContent = state.pollinated;
+  document.getElementById('developing').textContent = state.developing;
   document.getElementById('seeds').textContent = state.seeds;
   document.getElementById('allies').textContent = state.allies;
   document.getElementById('health').textContent = state.health;
+  document.getElementById('max-health').textContent = `/ ${state.maxHealth}`;
+  
+  // Update actions banner
+  if (els.actionsRemaining) {
+    if (state.actions > 0) {
+      els.actionsRemaining.textContent = `${state.actions} action${state.actions !== 1 ? 's' : ''} remaining`;
+      els.actionsBanner.classList.remove('no-actions');
+    } else {
+      els.actionsRemaining.textContent = 'No actions remaining';
+      els.actionsBanner.classList.add('no-actions');
+    }
+  }
+  
   els.log.innerHTML = state.log.map(line => `<div class="log-entry">${line}</div>`).join('');
 
   const phasePill = document.getElementById('phase-indicator');
@@ -613,6 +1024,18 @@ function drawTree(x, groundY, isPlayer, neighbor) {
     ctx.strokeStyle = isPlayer ? '#1a1a1a' : '#222';
     ctx.lineWidth = 2;
     ctx.stroke();
+  }
+
+  // Draw flowers if player has them
+  if (isPlayer && state.flowers > 0) {
+    ctx.fillStyle = '#ffb6c1';
+    for (let i = 0; i < Math.min(state.flowers, 5); i++) {
+      const fx = x + (i - 2) * 8;
+      const fy = groundY - trunkH - canopyR * 0.3 - 10;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   if (!isPlayer && neighbor) {
