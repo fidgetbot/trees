@@ -5,6 +5,54 @@ const SEASONS = [
   { name: 'Winter', factorSun: 0.2, factorWater: 0.4, top: '#D3D3D3', bottom: '#F0F8FF' },
 ];
 
+// Life stages with score thresholds
+const LIFE_STAGES = [
+  { name: 'Seed', threshold: 0, unlocks: ['growBranch', 'extendRoot'], damageMult: 3 },
+  { name: 'Sprout', threshold: 100, unlocks: ['growLeaves'], damageMult: 2 },
+  { name: 'Seedling', threshold: 300, unlocks: ['connect'], damageMult: 1.5 },
+  { name: 'Sapling', threshold: 600, unlocks: ['defense'], damageMult: 1.2 },
+  { name: 'Small Tree', threshold: 1000, unlocks: ['flower'], damageMult: 1 },
+  { name: 'Mature Tree', threshold: 2000, unlocks: ['thicken'], damageMult: 0.8 },
+  { name: 'Ancient', threshold: 5000, unlocks: ['victory'], damageMult: 0.5 },
+];
+
+// Seasonal action locks
+const SEASONAL_ACTIONS = {
+  flower: ['Spring'],
+  fruit: ['Summer'],
+  seed: ['Autumn'],
+};
+
+// Diplomacy system
+const RELATIONSHIP_STATES = {
+  ALLY: { min: 50, name: 'Ally', color: '#4CAF50' },
+  FRIENDLY: { min: 10, name: 'Friendly', color: '#8BC34A' },
+  NEUTRAL: { min: -10, name: 'Neutral', color: '#9E9E9E' },
+  RIVAL: { min: -50, name: 'Rival', color: '#FF9800' },
+  HOSTILE: { min: -100, name: 'Hostile', color: '#F44336' },
+};
+
+function getRelationshipState(score) {
+  if (score >= 50) return RELATIONSHIP_STATES.ALLY;
+  if (score >= 10) return RELATIONSHIP_STATES.FRIENDLY;
+  if (score >= -10) return RELATIONSHIP_STATES.NEUTRAL;
+  if (score >= -50) return RELATIONSHIP_STATES.RIVAL;
+  return RELATIONSHIP_STATES.HOSTILE;
+}
+
+function getLifeStage(score) {
+  for (let i = LIFE_STAGES.length - 1; i >= 0; i--) {
+    if (score >= LIFE_STAGES[i].threshold) {
+      return LIFE_STAGES[i];
+    }
+  }
+  return LIFE_STAGES[0];
+}
+
+function getNeighborStage(score) {
+  return getLifeStage(score);
+}
+
 const SPECIES = {
   Redwood: {
     description: 'Slow, ancient, clonal, fire-adapted.',
@@ -22,6 +70,15 @@ const SPECIES = {
     growthRate: 1.0, fireResist: 0.5, startAllies: 0, familyNetwork: false, persuade: true,
   },
 };
+
+// Neighbor trees with progression and relationships
+const NEIGHBOR_TREES = [
+  { species: 'Redwood', score: 800, relationship: 60 },
+  { species: 'Oak', score: 400, relationship: -20 },
+  null, // Player position
+  { species: 'Plum', score: 200, relationship: 0 },
+  { species: 'Redwood', score: 1200, relationship: 40 },
+];
 
 // Updated actions - removed fruit/seeds as manual actions
 const ACTIONS = [
@@ -43,6 +100,7 @@ const state = {
   seasonIndex: 0,
   turnInSeason: 1,
   score: 0,
+  lifeStage: LIFE_STAGES[0],
   sunlight: 0,
   water: 0,
   nutrients: 0,
@@ -52,8 +110,8 @@ const state = {
   leafClusters: 0,
   trunk: 0,
   flowers: 0,
-  pollinated: 0,  // New: pollinated flowers
-  developing: 0,  // New: developing fruit
+  pollinated: 0,
+  developing: 0,
   seeds: 0,
   viableSeeds: 0,
   allies: 0,
@@ -67,6 +125,9 @@ const state = {
   minorEvent: null,
   sharedThisTurn: false,
   gameOver: false,
+  victoryAchieved: false,
+  // Diplomacy tracking
+  neighborRelations: [60, -20, 0, 40], // Relations with trees at positions 0,1,3,4
 };
 
 const els = {
@@ -168,6 +229,7 @@ function startGame() {
     seasonIndex: 0,
     turnInSeason: 1,
     score: 0,
+    lifeStage: LIFE_STAGES[0],
     sunlight: 6,
     water: 6,
     nutrients: 6,
@@ -189,6 +251,8 @@ function startGame() {
     log: [],
     eventModifiers: { drought: 1, disease: 1, storms: 0, rainChain: 0 },
     gameOver: false,
+    victoryAchieved: false,
+    neighborRelations: [60, -20, 0, 40],
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -381,7 +445,13 @@ function renderActions() {
     const card = document.createElement('div');
     const prereqOk = action.prereq ? action.prereq(state) : true;
     const affordable = canAfford(action.cost);
-    const disabled = !prereqOk || !affordable || state.actions <= 0;
+    
+    // Check seasonal locks
+    const currentSeasonName = currentSeason().name;
+    const allowedSeasons = SEASONAL_ACTIONS[action.key];
+    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
+    
+    const disabled = !prereqOk || !affordable || state.actions <= 0 || seasonLocked;
 
     // Resource display with current amounts
     const sunRequired = action.cost.sunlight || 0;
@@ -414,7 +484,15 @@ function renderActions() {
       ${costsHtml}`;
 
     const btn = document.createElement('button');
-    btn.textContent = disabled ? (prereqOk ? 'Insufficient Resources' : 'Locked') : 'Use Action';
+    let buttonText = 'Use Action';
+    if (seasonLocked) {
+      buttonText = `Locked until ${allowedSeasons.join('/')}`;
+    } else if (!prereqOk) {
+      buttonText = 'Locked';
+    } else if (!affordable) {
+      buttonText = 'Insufficient Resources';
+    }
+    btn.textContent = disabled ? buttonText : 'Use Action';
     btn.disabled = disabled;
     btn.onclick = () => {
       if (disabled) return;
@@ -858,7 +936,28 @@ function handleDeath() {
 }
 
 function updateScore() {
+  const oldStage = state.lifeStage;
   state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
+  state.lifeStage = getLifeStage(state.score);
+  
+  // Check for stage advancement
+  if (state.lifeStage.threshold > oldStage.threshold) {
+    addLog(`You have grown! You are now a ${state.lifeStage.name}!`);
+    showFeedback(`Stage up: ${state.lifeStage.name}!`, 'success');
+  }
+  
+  // Check for victory
+  if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
+    state.victoryAchieved = true;
+    showModal('Victory!', `
+      <h2>🌳 You have become Ancient! 🌳</h2>
+      <p>Your roots run deep. Your canopy towers above the forest.</p>
+      <p>You have successfully established yourself in the ecosystem.</p>
+      <p><em>Your offspring will flourish here and provide shade for generations to come.</em></p>
+      <p>Final Score: <strong>${state.score}</strong></p>
+      <p><small>Continue playing to see how long your lineage lasts...</small></p>
+    `, () => {});
+  }
 }
 
 function updateUI() {
@@ -866,6 +965,13 @@ function updateUI() {
   document.getElementById('year').textContent = state.year;
   document.getElementById('season').textContent = currentSeason().name;
   document.getElementById('turn').textContent = state.turnInSeason;
+  
+  // Update life stage display
+  const stageEl = document.getElementById('life-stage');
+  if (stageEl) {
+    stageEl.textContent = state.lifeStage.name;
+    stageEl.style.color = state.lifeStage.name === 'Ancient' ? '#FFD700' : '#4CAF50';
+  }
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
   document.getElementById('nutrients').textContent = state.nutrients;
