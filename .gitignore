@@ -1,0 +1,9 @@
+# Exclude sub-repos and temporary files
+mudchat/
+trees/
+~/
+1
+.openclaw/
+*.pyc
+__pycache__/
+.DS_Store
