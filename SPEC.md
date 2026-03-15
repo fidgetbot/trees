@@ -43,11 +43,12 @@ Certain actions are restricted by season to reflect real tree biology:
 
 | Action | Available Seasons | Notes |
 |--------|-------------------|-------|
-| **Produce flower** | Spring only | Trees flower in spring |
-| **Produce seed/fruit** | Summer (fruit), Autumn (seeds) | Fruit ripens in summer, seeds drop in autumn |
-| **All other actions** | All seasons | Year-round growth possible |
+| **Produce flower** | Spring only | Only available at Small Tree stage or above |
+| **All other actions** | All seasons | Year-round growth possible if unlocked by life stage |
 
 **UI:** Off-season actions appear grayed out with tooltip explaining the seasonal restriction.
+
+## Action Economy
 
 - **Base Actions:** 3 per turn
 - **Bonus Actions:** +1 for every 5 total resources collected
@@ -59,7 +60,6 @@ Certain actions are restricted by season to reflect real tree biology:
 | Extend root | 1 | 0 | 0 | Adds root zone |
 | Grow leaves | 1 | 1 | 1 | On existing branch |
 | Produce flower | 3 | 2 | 2 | Prerequisite for fruit |
-| Produce seed/fruit | 4 | 2 | 2 | Requires flower first |
 | Thicken trunk | 5 | 2 | 2 | Increases strength |
 | Chemical defense | 3 | 1 | 2 | Allelopathy/toxins |
 | Repair damage | 2-5 | 1-3 | 1-3 | Scales with severity |
@@ -234,17 +234,23 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 - **Competition warning:** Neighbor growing fast, shading increasing
 - **Alliance offer:** Neighbor requests formal alliance
 - **Chemical truce:** Rival offers to de-escalate
-- **Rain:** Extra water (consecutive = root rot risk)
-- **Lightning/Wind:** Branch damage
+- **Spring seed fate:** Each seed may be eaten, lost in shade, dispersed poorly, or sprout successfully
+- **Offspring trouble:** Young offspring may face aphids or drought and ask for help
 - **(More from real forest ecology)**
 
 ## Win/Loss & Succession
 
 **Offspring Flow:**
-1. Produce flower (costs resources)
-2. Produce seed/fruit (costs resources, requires flower)
-3. **Spring:** All seeds roll for viability
-4. Viable seeds = offspring options for succession
+1. **Spring / Small Tree+**: Player may spend resources to produce flowers
+2. **Spring/Summer**: Pollinator events may convert flowers into pollinated flowers
+3. **Summer**: Pollinated flowers automatically become fruit
+4. **Summer warning events**: Humans, birds, or chewing animals may threaten fruit before seed maturity
+5. **Player response window**: Chemical Defense can reduce fruit loss
+6. **Autumn**: Each surviving fruit becomes exactly one seed
+7. **Spring**: Each seed rolls through dispersal, landing, and germination fate
+8. Successfully sprouted seeds become visible offspring trees and succession options
+
+**Design Rule:** Important reproductive threats should usually appear as **warning → response → outcome** chains rather than surprise losses.
 
 **Succession:**
 - On death, pick one viable offspring to continue as

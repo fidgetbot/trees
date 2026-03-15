@@ -19,8 +19,6 @@ const LIFE_STAGES = [
 // Seasonal action locks
 const SEASONAL_ACTIONS = {
   flower: ['Spring'],
-  fruit: ['Summer'],
-  seed: ['Autumn'],
 };
 
 // Diplomacy system
@@ -71,15 +69,6 @@ const SPECIES = {
   },
 };
 
-// Neighbor trees with progression and relationships
-const NEIGHBOR_TREES = [
-  { species: 'Redwood', score: 800, relationship: 60 },
-  { species: 'Oak', score: 400, relationship: -20 },
-  null, // Player position
-  { species: 'Plum', score: 200, relationship: 0 },
-  { species: 'Redwood', score: 1200, relationship: 40 },
-];
-
 // Updated actions - removed fruit/seeds as manual actions
 const ACTIONS = [
   { key: 'growBranch', name: 'Grow Branch', cost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
@@ -87,7 +76,7 @@ const ACTIONS = [
   { key: 'growLeaves', name: 'Grow Leaves', cost: { sunlight: 1, water: 1, nutrients: 1 }, effect: s => { s.leafClusters += 1; } },
   { key: 'flower', name: 'Produce Flower', cost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
   { key: 'thicken', name: 'Thicken Trunk', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
-  { key: 'defense', name: 'Chemical Defense', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; } },
+  { key: 'defense', name: 'Chemical Defense', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
   { key: 'repair', name: 'Repair Damage', cost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.health = Math.min(s.maxHealth, s.health + 2); } },
   { key: 'share', name: 'Share Resources With Allies', cost: { sunlight: 1, water: 1, nutrients: 1 }, prereq: s => s.allies > 0, effect: s => { s.sharedThisTurn = true; } },
   { key: 'connect', name: 'Seek Root Connection', cost: { sunlight: 1, water: 0, nutrients: 1 }, effect: s => attemptConnection(s) },
@@ -119,6 +108,10 @@ const state = {
   maxHealth: 0,
   offspringPool: 0,
   defense: 0,
+  fruitDefense: 0,
+  offspringTrees: 0,
+  pendingFruitThreat: null,
+  pendingOffspringThreat: false,
   log: [],
   eventModifiers: { drought: 1, disease: 1, storms: 0, rainChain: 0 },
   majorEvent: null,
@@ -248,6 +241,10 @@ function startGame() {
     maxHealth: spec.health,
     offspringPool: 0,
     defense: 0,
+    fruitDefense: 0,
+    offspringTrees: 0,
+    pendingFruitThreat: null,
+    pendingOffspringThreat: false,
     log: [],
     eventModifiers: { drought: 1, disease: 1, storms: 0, rainChain: 0 },
     gameOver: false,
@@ -391,6 +388,20 @@ const neighborTrees = [
 
 function getNeighborTree(idx) {
   if (idx === 2) return null;
+  if (idx === 0 && state.offspringTrees > 0) {
+    const childStage = getLifeStage(Math.max(120, state.score * 0.2));
+    return {
+      species: state.selectedSpecies || 'Plum',
+      age: Math.max(0.25, childStage.threshold / 2000),
+      health: 0.8,
+      branches: Math.max(1, Math.min(4, Math.floor(childStage.threshold / 300) + 1)),
+      roots: Math.max(2, Math.min(4, Math.floor(childStage.threshold / 300) + 2)),
+      trunk: Math.max(1, Math.min(3, Math.floor(childStage.threshold / 800) + 1)),
+      ally: true,
+      offspring: true,
+      stageName: childStage.name,
+    };
+  }
   const base = neighborTrees[idx];
   if (!base) {
     return {
@@ -406,11 +417,16 @@ function getNeighborTree(idx) {
   return base;
 }
 
+function isActionUnlocked(actionKey) {
+  return state.lifeStage.unlocks.includes(actionKey) || ['repair', 'share'].includes(actionKey);
+}
+
 function getAffordableActions() {
   return ACTIONS.filter(action => {
     const prereqOk = action.prereq ? action.prereq(state) : true;
     const affordable = canAfford(action.cost);
-    return prereqOk && affordable;
+    const unlocked = isActionUnlocked(action.key);
+    return prereqOk && affordable && unlocked;
   });
 }
 
@@ -445,13 +461,14 @@ function renderActions() {
     const card = document.createElement('div');
     const prereqOk = action.prereq ? action.prereq(state) : true;
     const affordable = canAfford(action.cost);
+    const unlocked = isActionUnlocked(action.key);
     
     // Check seasonal locks
     const currentSeasonName = currentSeason().name;
     const allowedSeasons = SEASONAL_ACTIONS[action.key];
     const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
     
-    const disabled = !prereqOk || !affordable || state.actions <= 0 || seasonLocked;
+    const disabled = !prereqOk || !affordable || state.actions <= 0 || seasonLocked || !unlocked;
 
     // Resource display with current amounts
     const sunRequired = action.cost.sunlight || 0;
@@ -485,7 +502,9 @@ function renderActions() {
 
     const btn = document.createElement('button');
     let buttonText = 'Use Action';
-    if (seasonLocked) {
+    if (!unlocked) {
+      buttonText = `Unlocks at ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'later stage'}`;
+    } else if (seasonLocked) {
       buttonText = `Locked until ${allowedSeasons.join('/')}`;
     } else if (!prereqOk) {
       buttonText = 'Locked';
@@ -693,6 +712,112 @@ const MAJOR_EVENTS = [
   },
 ];
 
+function resolveFruitThreats(events) {
+  if (!state.pendingFruitThreat) return;
+
+  const threat = state.pendingFruitThreat;
+  const defensePower = state.defense + state.fruitDefense;
+  let losses = 0;
+  let saved = 0;
+
+  for (let i = 0; i < state.developing; i++) {
+    let lossChance = threat.baseLoss;
+    if (threat.type === 'human') lossChance -= 0.12 * defensePower;
+    if (threat.type === 'bird') lossChance -= 0.08 * defensePower;
+    if (threat.type === 'chewer') lossChance -= 0.1 * defensePower;
+    lossChance = Math.max(0.05, Math.min(0.95, lossChance));
+    if (Math.random() < lossChance) losses += 1;
+    else saved += 1;
+  }
+
+  state.developing = Math.max(0, state.developing - losses);
+  if (losses > 0) {
+    events.push({ text: threat.outcome(losses, saved, defensePower > 0), effect: 'fruit-loss' });
+  } else {
+    events.push({ text: threat.safeText, effect: 'fruit-safe' });
+  }
+
+  state.pendingFruitThreat = null;
+  state.fruitDefense = Math.max(0, state.fruitDefense - 1);
+}
+
+function processSeasonalReproduction(events) {
+  const season = currentSeason().name;
+
+  if (season === 'Summer' && state.pollinated > 0) {
+    const ripened = state.pollinated;
+    state.developing += ripened;
+    state.pollinated = 0;
+    events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun.`, effect: 'growth' });
+  }
+
+  if (season === 'Summer' && state.developing > 0 && !state.pendingFruitThreat && Math.random() < 0.45) {
+    const threats = [
+      {
+        type: 'human',
+        warning: 'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.',
+        baseLoss: 0.45,
+        outcome: (losses, saved, defended) => defended
+          ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.`
+          : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`,
+        safeText: 'Your fruits ripened untouched despite the curious humans.'
+      },
+      {
+        type: 'bird',
+        warning: 'Bright birds gather near your canopy, watching the ripening fruit.',
+        baseLoss: 0.35,
+        outcome: (losses, saved, defended) => defended
+          ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.`
+          : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`,
+        safeText: 'Most birds lost interest before doing any serious damage.'
+      },
+      {
+        type: 'chewer',
+        warning: 'Gnawing animals are scouting your branches for easy meals.',
+        baseLoss: 0.4,
+        outcome: (losses, saved, defended) => defended
+          ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.`
+          : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`,
+        safeText: 'The animals passed by without ruining your fruits.'
+      },
+    ];
+    state.pendingFruitThreat = threats[Math.floor(Math.random() * threats.length)];
+    events.push({ text: `${state.pendingFruitThreat.warning} You could invest in Chemical Defense before the danger peaks.`, effect: 'warning' });
+  }
+
+  if (season === 'Summer' && state.pendingFruitThreat) {
+    resolveFruitThreats(events);
+  }
+
+  if (season === 'Autumn' && state.developing > 0) {
+    const matured = state.developing;
+    state.seeds += matured;
+    state.developing = 0;
+    events.push({ text: `${matured} surviving fruit${matured !== 1 ? 's' : ''} hardened into ${matured} seed${matured !== 1 ? 's' : ''}.`, effect: 'growth' });
+  }
+}
+
+function resolveSeedFate(seedCount) {
+  const results = [];
+  let sprouted = 0;
+
+  for (let i = 0; i < seedCount; i++) {
+    const r = Math.random();
+    if (r < 0.22) results.push('A seed was eaten outright before it could travel.');
+    else if (r < 0.42) results.push('A seed landed in deep shade and failed to establish.');
+    else if (r < 0.62) results.push('A bird carried one of your seeds away, but dropped it on poor ground.');
+    else if (r < 0.82) {
+      sprouted += 1;
+      results.push('A seed reached promising soil and sprouted into offspring.');
+    } else {
+      sprouted += 1;
+      results.push('An animal carried a seed to open ground, where it sprouted successfully.');
+    }
+  }
+
+  return { sprouted, results };
+}
+
 function rollMajorEvent() {
   // Higher chance of events in later turns
   const baseChance = 0.4 + (state.turnInSeason * 0.15);
@@ -720,78 +845,57 @@ function rollMinorEvents() {
   
   // Pollination chance based on flowers and season
   if (state.flowers > 0) {
-    const pollinatorChance = currentSeason().name === 'Spring' ? 0.5 : 
-                            currentSeason().name === 'Summer' ? 0.4 : 0.2;
+    const pollinatorChance = currentSeason().name === 'Spring' ? 0.55 : 
+                            currentSeason().name === 'Summer' ? 0.4 : 0.1;
     if (Math.random() < pollinatorChance) {
       const pollinated = Math.min(state.flowers, Math.floor(Math.random() * 2) + 1);
       state.pollinated += pollinated;
       state.flowers -= pollinated;
       events.push({
-        text: `Pollinators visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated.`,
+        text: `Pollinators visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated.`,
         effect: 'pollinated'
       });
     }
   }
+
+  processSeasonalReproduction(events);
   
-  // Nitrogen from animals
   if (Math.random() < 0.25) {
     state.nutrients += 1;
-    events.push({
-      text: 'Forest animals left nitrogen-rich gifts near your trunk.',
-      effect: 'nutrients'
-    });
+    events.push({ text: 'Forest animals left nitrogen-rich gifts near your trunk.', effect: 'nutrients' });
   }
   
-  // Rain shower
   if (Math.random() < 0.25) {
     state.water += 2;
     state.eventModifiers.rainChain += 1;
-    events.push({
-      text: 'A passing rain shower refreshed the soil.',
-      effect: 'rain'
-    });
+    events.push({ text: 'A passing rain shower refreshed the soil.', effect: 'rain' });
     if (state.eventModifiers.rainChain >= 3) {
       state.health -= 1;
-      events.push({
-        text: 'Too much rain caused mild root rot.',
-        effect: 'damage'
-      });
+      events.push({ text: 'Too much rain caused mild root rot.', effect: 'damage' });
     }
   } else {
     state.eventModifiers.rainChain = 0;
   }
-  
-  // Wind damage
-  if (Math.random() < 0.15) {
-    if (state.branches > 1) {
-      state.branches -= 1;
-      events.push({
-        text: 'A sharp wind snapped a tender branch.',
-        effect: 'damage'
-      });
+
+  if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.threshold >= 600) {
+    state.branches -= 1;
+    events.push({ text: 'A sharp wind snapped a tender branch.', effect: 'damage' });
+  }
+
+  if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) {
+    state.pendingOffspringThreat = true;
+    events.push({ text: 'Your young offspring is under aphid pressure. Spending resources on Chemical Defense could help protect it this turn.', effect: 'warning' });
+  } else if (state.pendingOffspringThreat) {
+    state.pendingOffspringThreat = false;
+    if (state.defense > 0 || state.fruitDefense > 0) {
+      events.push({ text: 'You shielded your offspring with defensive chemistry. It survives the aphid attack.', effect: 'offspring-safe' });
+    } else if (Math.random() < 0.5) {
+      state.offspringTrees = Math.max(0, state.offspringTrees - 1);
+      state.offspringPool = Math.max(0, state.offspringPool - 1);
+      events.push({ text: 'A young offspring succumbed to aphids before it could establish itself.', effect: 'offspring-loss' });
+    } else {
+      events.push({ text: 'Your offspring weathered the aphids on its own, but only barely.', effect: 'offspring-safe' });
     }
-  }
-  
-  // Fruit development
-  if (state.pollinated > 0 && Math.random() < 0.3) {
-    const developing = Math.min(state.pollinated, 1);
-    state.developing += developing;
-    state.pollinated -= developing;
-    events.push({
-      text: `${developing} pollinated flower${developing !== 1 ? 's' : ''} began developing into fruit.`,
-      effect: 'growth'
-    });
-  }
-  
-  // Seed maturation
-  if (state.developing > 0 && Math.random() < 0.25) {
-    const matured = Math.min(state.developing, 1);
-    state.seeds += matured;
-    state.developing -= matured;
-    events.push({
-      text: `${matured} fruit${matured !== 1 ? 's' : ''} matured into seed${matured !== 1 ? 's' : ''}.`,
-      effect: 'growth'
-    });
   }
   
   return events;
@@ -876,21 +980,24 @@ function showEventPhase() {
   `, advanceTurn);
 }
 
-function handleSpringViability() {
-  if (state.seeds <= 0) return;
-  let viable = 0;
-  for (let i = 0; i < state.seeds; i++) {
-    const chance = state.selectedSpecies === 'Plum' ? 0.65 : state.selectedSpecies === 'Oak' ? 0.45 : 0.35;
-    if (Math.random() < chance) viable += 1;
-  }
-  state.viableSeeds += viable;
-  state.offspringPool += viable;
+function handleSpringViability(onContinue) {
+  if (state.seeds <= 0) return false;
   const prevSeeds = state.seeds;
+  const fate = resolveSeedFate(state.seeds);
+  state.viableSeeds += fate.sprouted;
+  state.offspringPool += fate.sprouted;
+  state.offspringTrees += fate.sprouted;
   state.seeds = 0;
-  addLog(`${viable} of ${prevSeeds} seeds proved viable this spring.`);
-  if (viable > 0) {
-    showFeedback(`${viable} seeds became viable!`, 'success');
+  addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+  if (fate.sprouted > 0) {
+    showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
   }
+  showModal('Spring Seed Fate', `
+    <p>${prevSeeds} seed${prevSeeds !== 1 ? 's' : ''} faced the hazards of dispersal and germination.</p>
+    <ul>${fate.results.map(r => `<li>${r}</li>`).join('')}</ul>
+    <p><strong>${fate.sprouted}</strong> offspring successfully sprouted.</p>
+  `, () => onContinue?.());
+  return true;
 }
 
 function advanceTurn() {
@@ -904,7 +1011,17 @@ function advanceTurn() {
       state.seasonIndex = 0;
       state.year += 1;
     }
-    if (currentSeason().name === 'Spring') handleSpringViability();
+    if (currentSeason().name === 'Spring') {
+      updateScore();
+      updateUI();
+      render();
+      if (handleSpringViability(() => {
+        updateScore();
+        updateUI();
+        render();
+        showResourcePhase();
+      })) return;
+    }
   }
   updateScore();
   updateUI();
@@ -1148,7 +1265,7 @@ function drawTree(x, groundY, isPlayer, neighbor) {
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    const label = neighbor.ally ? `${neighbor.species} (ally)` : neighbor.species;
+    const label = neighbor.offspring ? `${neighbor.species} offspring (${neighbor.stageName})` : (neighbor.ally ? `${neighbor.species} (ally)` : neighbor.species);
     ctx.fillText(label, x, groundY + 110);
   }
 }
