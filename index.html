@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trees</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <h1>Trees</h1>
+        <p class="subtitle">A tree-life survival strategy prototype</p>
+      </div>
+      <div class="scorebox">
+        <div>Score: <span id="score">0</span></div>
+        <div>Year: <span id="year">1</span></div>
+        <div>Season: <span id="season">Spring</span></div>
+        <div>Turn: <span id="turn">1</span>/3</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="left-panel panel" id="species-panel">
+        <h2>Choose Your Tree</h2>
+        <div id="species-list" class="species-list"></div>
+        <button id="start-game" disabled>Start Game</button>
+      </section>
+
+      <section class="center-panel panel game-panel hidden" id="game-panel">
+        <canvas id="game-canvas" width="900" height="600"></canvas>
+      </section>
+
+      <section class="right-panel panel game-panel hidden" id="hud-panel">
+        <div class="hud-header">
+          <h2>Status</h2>
+          <span id="phase-indicator" class="phase-pill">Resource Phase</span>
+        </div>
+        <div id="species-badge" class="species-badge"></div>
+        <div class="stat-grid">
+          <div><span class="stat-icon">☀</span> Sunlight</div><div id="sunlight">0</div>
+          <div><span class="stat-icon">💧</span> Water</div><div id="water">0</div>
+          <div><span class="stat-icon">🌱</span> Nutrients</div><div id="nutrients">0</div>
+          <div><span class="stat-icon">⚡</span> Actions</div><div id="actions">0</div>
+          <div><span class="stat-icon">🍃</span> Leaf Clusters</div><div id="leaf-clusters">0</div>
+          <div><span class="stat-icon">🌿</span> Root Zones</div><div id="root-zones">0</div>
+          <div><span class="stat-icon">🌳</span> Branches</div><div id="branches">0</div>
+          <div><span class="stat-icon">🪵</span> Trunk</div><div id="trunk">0</div>
+          <div><span class="stat-icon">🌸</span> Flowers</div><div id="flowers">0</div>
+          <div><span class="stat-icon">🌰</span> Seeds</div><div id="seeds">0</div>
+          <div><span class="stat-icon">🤝</span> Allies</div><div id="allies">0</div>
+          <div><span class="stat-icon">❤️</span> Health</div><div id="health">0</div>
+        </div>
+
+        <h3>Actions</h3>
+        <div id="actions-list" class="actions-list"></div>
+
+        <h3>Log</h3>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h2 id="modal-title">Message</h2>
+      <div id="modal-body"></div>
+      <button id="modal-button">Continue</button>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
