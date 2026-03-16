@@ -38,13 +38,9 @@
           <span id="phase-indicator" class="phase-pill">Action Phase</span>
         </div>
         <div id="species-badge" class="species-badge"></div>
-        
-        <!-- Actions Remaining Banner -->
         <div id="actions-banner" class="actions-banner">
           <span class="actions-count" id="actions-remaining">3 actions remaining</span>
         </div>
-        
-        <!-- Grouped Stats -->
         <div class="stats-container">
           <div class="stat-group" data-group="resources">
             <h4 class="stat-group-title">📊 Resources</h4>
@@ -54,7 +50,7 @@
                 <span class="stat-name">Sunlight</span>
                 <span class="stat-value" id="sunlight">0</span>
               </div>
-              <div class="stat-row" data-stat="water" data-help="Roots gather water from the soil. More roots = more water.">
+              <div class="stat-row" data-stat="water" data-help="Trunk size determines water storage. Roots support uptake, stability, and networking.">
                 <span class="stat-icon">💧</span>
                 <span class="stat-name">Water</span>
                 <span class="stat-value" id="water">0</span>
@@ -70,7 +66,7 @@
           <div class="stat-group" data-group="structure">
             <h4 class="stat-group-title">🌳 Structure</h4>
             <div class="stat-group-content">
-              <div class="stat-row" data-stat="trunk" data-help="Thicker trunk increases max health and storm resistance.">
+              <div class="stat-row" data-stat="trunk" data-help="Thicker trunk increases max health, water storage, and drought resistance.">
                 <span class="stat-icon">🪵</span>
                 <span class="stat-name">Trunk</span>
                 <span class="stat-value" id="trunk">0</span>
@@ -85,7 +81,7 @@
                 <span class="stat-name">Leaves</span>
                 <span class="stat-value" id="leaf-clusters">0</span>
               </div>
-              <div class="stat-row" data-stat="root-zones" data-help="Root zones gather water and nutrients.">
+              <div class="stat-row" data-stat="root-zones" data-help="Root zones improve nutrient uptake, storm stability, and fungal connection chances.">
                 <span class="stat-icon">🌾</span>
                 <span class="stat-name">Roots</span>
                 <span class="stat-value" id="root-zones">0</span>
@@ -103,7 +99,7 @@
               </div>
               <div class="stat-row compact" data-stat="pollinated" data-help="Pollinated flowers will develop into fruit and seeds.">
                 <span class="stat-icon">🐝</span>
-                <span class="stat-name">Pollinated</span>
+                <span class="stat-name">Flowers Pollinated</span>
                 <span class="stat-value" id="pollinated">0</span>
               </div>
               <div class="stat-row compact" data-stat="developing" data-help="Developing fruit will become viable seeds.">
@@ -146,10 +142,7 @@
     </main>
   </div>
 
-  <!-- Floating Feedback Container -->
   <div id="feedback-container" class="feedback-container"></div>
-
-  <!-- Tooltip -->
   <div id="tooltip" class="tooltip hidden"></div>
 
   <div id="modal" class="modal hidden">
@@ -160,9 +153,8 @@
     </div>
   </div>
 
-  <script src="main.js"></script>
-</body>
-</html>?ts=' + Date.now())
+  <script>
+    fetch('./version.json?ts=' + Date.now())
       .then(r => r.json())
       .then(data => {
         const el = document.getElementById('build-version');
