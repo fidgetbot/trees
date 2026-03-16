@@ -10,7 +10,7 @@ const SEASONS = [
 const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
   { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 2, popup: 'Your shell cracks. You push outward into the unknown.' },
-  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
+  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
   { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
   { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
   { name: 'Mature Tree', rank: 5, threshold: 2000, unlocks: ['thicken'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
@@ -71,7 +71,7 @@ function currentStageRequirements() {
       ];
     case 'Sprout':
       return [
-        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= 3 },
+        { key: 'time', label: 'Live through 1 turn as a sprout', met: state.turnsInStage >= 1 },
         { key: 'roots', label: 'Reach 2 root zones', met: state.rootZones >= 2 },
         { key: 'leaves', label: 'Grow 2 leaf clusters', met: state.leafClusters >= 2 },
       ];
@@ -217,6 +217,7 @@ const ACTIONS = [
   { key: 'thicken', name: 'Thicken Trunk', help: 'Stores more water, improves health, and helps survive drought and storms.', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
   { key: 'defense', name: 'Chemical Defense', help: 'Makes leaves and fruit less appealing to pests, animals, and rivals.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
   { key: 'connect', name: 'Seek Root Connection', help: 'Attempt underground friendship with a chosen neighboring tree.', cost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
+  { key: 'requestHelp', name: 'Request Help from Allies', help: 'Call on allied trees to send resources and resilience through the network.', cost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1, effect: s => requestHelpFromAllies(s) },
 ];
 
 const state = {
@@ -262,6 +263,7 @@ const state = {
   majorEventsSurvivedInStage: 0,
   growthNudgeCooldown: 3,
   hasProducedFruit: false,
+  milestones: {},
 };
 
 const els = {
@@ -394,6 +396,7 @@ function startGame() {
     majorEventsSurvivedInStage: 0,
     growthNudgeCooldown: 3 + Math.floor(Math.random() * 2),
     hasProducedFruit: false,
+    milestones: {},
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -571,6 +574,51 @@ function showRelationshipChangeModal(species, oldState, newState, onContinue) {
   showModal(`Relationship Shift: ${species}`, `<p><em>${relationshipFlavorChange(oldState, newState, species)}</em></p><p>Status changed from <strong>${oldState}</strong> to <strong>${newState}</strong>.</p>`, onContinue);
 }
 
+function maybeShowMilestone(key, title, body, onContinue) {
+  if (state.milestones[key]) return false;
+  state.milestones[key] = true;
+  showModal(title, `<p><em>${body}</em></p>`, onContinue);
+  return true;
+}
+
+function maybeTriggerActionMilestone(actionKey) {
+  if (actionKey === 'extendRoot' && state.rootZones === 1) {
+    return maybeShowMilestone('firstRoot', 'First Root', 'Your first root slips into the soil, tasting darkness, moisture, and promise.', () => {
+      updateUI(); render(); renderActions();
+    });
+  }
+  if (actionKey === 'growLeaves' && state.leafClusters === 1) {
+    return maybeShowMilestone('firstLeaf', 'First Leaves', 'Your first leaves unfurl into the light. The sun is no longer a rumor but a source of life.', () => {
+      updateUI(); render(); renderActions();
+    });
+  }
+  if (actionKey === 'growLeaves' && state.leafClusters === 2) {
+    return maybeShowMilestone('fullCrown', 'A Wider Reach', 'More green spreads above you. You are no longer merely surviving; you are beginning to claim space.', () => {
+      updateUI(); render(); renderActions();
+    });
+  }
+  return false;
+}
+
+function requestHelpFromAllies(s) {
+  const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
+  const allyStrength = alliedNeighbors.reduce((sum, n) => sum + (getNeighborStage(n.stageScore).rank + 1), 0) + state.offspringTrees;
+  const heal = Math.max(1, Math.floor(Math.random() * Math.max(2, allyStrength)) + alliedNeighbors.length);
+  const actualHeal = Math.max(0, Math.min(heal, state.maxHealth - state.health));
+  state.health += actualHeal;
+  const allyNames = alliedNeighbors.map(n => n.species).join(', ');
+  const line = actualHeal > 0
+    ? `Help comes through the fungal dark. ${allyNames || 'Your allies'} send strength into your roots, restoring ${actualHeal} health. They will remember the bond and expect friendship in return.`
+    : `Your allies answer your call, steadying you with quiet support. You were already near full strength, but the favor is now owed.`;
+  addLog(line);
+  showModal('Allies Come to Your Aid', `<p>${line}</p>`, () => {
+    updateScore();
+    updateUI();
+    render();
+    renderActions();
+  });
+}
+
 function attemptConnection(s) {
   chooseNeighborModal((neighbor) => {
     const rootBonus = Math.min(0.35, Math.max(0, state.rootZones - 2) * 0.08);
@@ -709,22 +757,53 @@ function getAffordableActions() {
 function renderActions() {
   els.actionsList.innerHTML = '';
 
-  // Check if anything is affordable
-  const affordableActions = getAffordableActions();
-  const hasPrereqIssues = ACTIONS.some(action => {
+  const availableActions = [];
+  const futureActions = [];
+
+  ACTIONS.forEach(action => {
     const prereqOk = action.prereq ? action.prereq(state) : true;
     const affordable = canAfford(action.cost);
-    return !prereqOk && affordable; // Has resources but missing prereq
+    const unlocked = isActionUnlocked(action.key);
+    const currentSeasonName = currentSeason().name;
+    const allowedSeasons = SEASONAL_ACTIONS[action.key];
+    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
+    const usable = prereqOk && affordable && state.actions > 0 && !seasonLocked && unlocked;
+
+    const sunRequired = action.cost.sunlight || 0;
+    const waterRequired = action.cost.water || 0;
+    const nutRequired = action.cost.nutrients || 0;
+    const sunEnough = state.sunlight >= sunRequired;
+    const waterEnough = state.water >= waterRequired;
+    const nutEnough = state.nutrients >= nutRequired;
+    const sunClass = sunEnough ? 'res-sun' : 'res-sun res-low';
+    const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
+    const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
+
+    let costsHtml = '<div class="action-costs">';
+    if (sunRequired > 0) costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired} <span class="current">(${state.sunlight})</span></span>`;
+    if (waterRequired > 0) costsHtml += `<span class="cost ${waterClass}">💧${waterRequired} <span class="current">(${state.water})</span></span>`;
+    if (nutRequired > 0) costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired} <span class="current">(${state.nutrients})</span></span>`;
+    costsHtml += '</div>';
+
+    if (usable) {
+      availableActions.push({ action, costsHtml });
+    } else {
+      let reason = 'Unavailable';
+      if (!unlocked) reason = `Unlocks at ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'later stage'}`;
+      else if (seasonLocked) reason = `Only available in ${allowedSeasons.join('/')}`;
+      else if (!prereqOk) {
+        if (action.key === 'connect') reason = 'Needs 3 root zones';
+        else if (action.key === 'requestHelp') reason = 'Needs at least 1 ally';
+        else reason = 'Prerequisites not met';
+      } else if (!affordable || state.actions <= 0) reason = 'Not enough resources right now';
+      futureActions.push({ action, costsHtml, reason });
+    }
   });
-  
-  if (state.actions > 0 && affordableActions.length === 0) {
+
+  if (state.actions > 0 && availableActions.length === 0) {
     const warning = document.createElement('div');
     warning.className = 'nothing-affordable';
-    if (hasPrereqIssues) {
-      warning.innerHTML = `<strong>⚠️ Actions Available But Locked</strong>You have resources but some actions need prerequisites.`;
-    } else {
-      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>No action is currently possible. The season will advance automatically.`;
-    }
+    warning.innerHTML = `<strong>⚠️ Nothing Usable</strong>No action is currently possible. The season will advance automatically.`;
     els.actionsList.appendChild(warning);
     setTimeout(() => {
       if (state.actions > 0 && getAffordableActions().length === 0 && els.modal.classList.contains('hidden')) {
@@ -733,105 +812,62 @@ function renderActions() {
     }, 700);
   }
 
-  ACTIONS.forEach(action => {
+  availableActions.forEach(({ action, costsHtml }) => {
     const card = document.createElement('div');
-    const prereqOk = action.prereq ? action.prereq(state) : true;
-    const affordable = canAfford(action.cost);
-    const unlocked = isActionUnlocked(action.key);
-    
-    // Check seasonal locks
-    const currentSeasonName = currentSeason().name;
-    const allowedSeasons = SEASONAL_ACTIONS[action.key];
-    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
-    
-    const disabled = !prereqOk || !affordable || state.actions <= 0 || seasonLocked || !unlocked;
-
-    // Resource display with current amounts
-    const sunRequired = action.cost.sunlight || 0;
-    const waterRequired = action.cost.water || 0;
-    const nutRequired = action.cost.nutrients || 0;
-    
-    const sunEnough = state.sunlight >= sunRequired;
-    const waterEnough = state.water >= waterRequired;
-    const nutEnough = state.nutrients >= nutRequired;
-
-    const sunClass = sunEnough ? 'res-sun' : 'res-sun res-low';
-    const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
-    const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
-
-    card.className = `action-card ${disabled ? 'disabled' : ''}`;
-    
-    let costsHtml = '<div class="action-costs">';
-    if (sunRequired > 0) {
-      costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired} <span class="current">(${state.sunlight})</span></span>`;
-    }
-    if (waterRequired > 0) {
-      costsHtml += `<span class="cost ${waterClass}">💧${waterRequired} <span class="current">(${state.water})</span></span>`;
-    }
-    if (nutRequired > 0) {
-      costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired} <span class="current">(${state.nutrients})</span></span>`;
-    }
-    costsHtml += '</div>';
-    
-    let lockBadge = '';
-    if (!unlocked || seasonLocked || !prereqOk) {
-      lockBadge = '<span class="prereq-missing">Locked</span>';
-    }
-
+    card.className = 'action-card';
     card.innerHTML = `
       <div class="action-header">
         <h4>${action.name}</h4>
-        ${lockBadge}
       </div>
       <p class="action-help">${action.help}</p>
       ${costsHtml}`;
-
     const btn = document.createElement('button');
-    let buttonText = 'Use Action';
-    if (!unlocked) {
-      buttonText = `Unlocks at ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'later stage'}`;
-    } else if (seasonLocked) {
-      buttonText = `Locked until ${allowedSeasons.join('/')}`;
-    } else if (!prereqOk) {
-      buttonText = 'Locked';
-    } else if (!affordable) {
-      buttonText = 'Insufficient Resources';
-    }
-    btn.textContent = disabled ? buttonText : 'Use Action';
-    btn.disabled = disabled;
+    btn.textContent = 'Use Action';
     btn.onclick = () => {
-      if (disabled) return;
-      
       spend(action.cost);
       action.effect(state);
-
-      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') {
-        state.firstRootActionTaken = true;
-      }
-      
-      // Show success feedback
+      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
       showFeedback(`${action.name} succeeded!`, 'success');
-      
-      if (state.selectedSpecies === 'Plum' && action.key === 'flower') {
-        // Plum family network bonus
-      }
-      
       addLog(`Action: ${action.name}`);
       updateScore();
       updateUI();
       render();
-      renderActions();
-      
-      if (state.actions <= 0) {
-        setTimeout(() => showEventPhase(), 500);
+      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
+        if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
       }
+      if (maybeTriggerActionMilestone(action.key)) return;
+      if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
+      renderActions();
+      if (state.actions <= 0) setTimeout(() => showEventPhase(), 500);
     };
     card.appendChild(btn);
     els.actionsList.appendChild(card);
   });
 
-  // Only show finish turn button when actions remain (optional skip)
-  if (state.actions > 0 && affordableActions.length > 0) {
+  if (futureActions.length > 0) {
+    const details = document.createElement('details');
+    details.className = 'future-actions';
+    details.innerHTML = `<summary>Future Growth (${futureActions.length})</summary>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'future-actions-list';
+    futureActions.forEach(({ action, costsHtml, reason }) => {
+      const card = document.createElement('div');
+      card.className = 'action-card disabled';
+      card.innerHTML = `
+        <div class="action-header">
+          <h4>${action.name}</h4>
+          <span class="prereq-missing">Locked</span>
+        </div>
+        <p class="action-help">${action.help}</p>
+        ${costsHtml}
+        <p class="future-reason">${reason}</p>`;
+      wrap.appendChild(card);
+    });
+    details.appendChild(wrap);
+    els.actionsList.appendChild(details);
+  }
+
+  if (state.actions > 0 && availableActions.length > 0) {
     const endBtn = document.createElement('button');
     endBtn.className = 'finish-turn-btn';
     endBtn.textContent = 'Finish Turn Early →';
@@ -842,7 +878,6 @@ function renderActions() {
     els.actionsList.appendChild(endBtn);
   }
 }
-
 // Expanded event pool with real botany/ecology inspiration
 const MAJOR_EVENTS = [
   {
