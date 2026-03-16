@@ -211,19 +211,18 @@ function initCollapsibleGroups() {
 }
 
 function initSpeciesSelect() {
-  Object.entries(SPECIES).forEach(([name, spec]) => {
-    const card = document.createElement('div');
-    card.className = 'species-card';
-    card.innerHTML = `<h3>${name}</h3><p>${spec.description}</p>
-      <small>Branches ${spec.branches} · Roots ${spec.rootZones} · Health ${spec.health}</small>`;
-    card.onclick = () => {
-      state.selectedSpecies = name;
-      [...els.speciesList.children].forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      els.startGame.disabled = false;
-    };
-    els.speciesList.appendChild(card);
-  });
+  const names = Object.keys(SPECIES);
+  const chosen = names[Math.floor(Math.random() * names.length)];
+  state.selectedSpecies = chosen;
+  const spec = SPECIES[chosen];
+  els.speciesList.innerHTML = `
+    <div class="species-card selected">
+      <h3>Your tree will be a ${chosen}</h3>
+      <p>${spec.description}</p>
+      <small>This identity is assigned at random for flavor in the current build.</small>
+    </div>`;
+  els.startGame.disabled = false;
+  els.startGame.textContent = `Begin as a ${chosen} seed`;
 }
 
 function startGame() {
@@ -235,14 +234,14 @@ function startGame() {
     turnInSeason: 1,
     score: 0,
     lifeStage: LIFE_STAGES[0],
-    sunlight: 6,
-    water: 6,
-    nutrients: 6,
-    actions: 3,
-    branches: spec.branches,
-    rootZones: spec.rootZones,
-    leafClusters: spec.branches,
-    trunk: spec.trunk,
+    sunlight: 3,
+    water: 3,
+    nutrients: 3,
+    actions: 1,
+    branches: 0,
+    rootZones: 1,
+    leafClusters: 0,
+    trunk: 0,
     flowers: 0,
     pollinated: 0,
     developing: 0,
@@ -271,6 +270,7 @@ function startGame() {
   initTooltips();
   initCollapsibleGroups();
   
+  addLog('You begin as a seed, buried in the dark soil.');
   updateUI();
   showResourcePhase();
 }
@@ -482,6 +482,7 @@ function getNeighborTree(idx) {
 }
 
 function isActionUnlocked(actionKey) {
+  if (state.lifeStage.name === 'Seed') return actionKey === 'extendRoot';
   return state.lifeStage.unlocks.includes(actionKey);
 }
 
@@ -497,11 +498,6 @@ function getAffordableActions() {
 function renderActions() {
   els.actionsList.innerHTML = '';
 
-  const phaseIndicator = document.createElement('div');
-  phaseIndicator.className = 'phase-indicator';
-  phaseIndicator.innerHTML = `<span class="phase-badge action-phase">ACTION PHASE</span> <span class="phase-hint">Choose your actions wisely</span>`;
-  els.actionsList.appendChild(phaseIndicator);
-
   // Check if anything is affordable
   const affordableActions = getAffordableActions();
   const hasPrereqIssues = ACTIONS.some(action => {
@@ -514,11 +510,16 @@ function renderActions() {
     const warning = document.createElement('div');
     warning.className = 'nothing-affordable';
     if (hasPrereqIssues) {
-      warning.innerHTML = `<strong>⚠️ Actions Available But Locked</strong>You have resources but some actions need prerequisites (like flowers for reproduction).`;
+      warning.innerHTML = `<strong>⚠️ Actions Available But Locked</strong>You have resources but some actions need prerequisites.`;
     } else {
-      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>You have ${state.actions} action${state.actions !== 1 ? 's' : ''} left, but no action is currently possible with your resources.`;
+      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>No action is currently possible. The season will advance automatically.`;
     }
     els.actionsList.appendChild(warning);
+    setTimeout(() => {
+      if (state.actions > 0 && getAffordableActions().length === 0 && els.modal.classList.contains('hidden')) {
+        showEventPhase();
+      }
+    }, 700);
   }
 
   ACTIONS.forEach(action => {
@@ -1133,6 +1134,9 @@ function updateScore() {
   const oldStage = state.lifeStage;
   state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
   state.lifeStage = getLifeStage(state.score);
+  if (oldStage.name === 'Seed' && state.rootZones >= 2) {
+    state.lifeStage = LIFE_STAGES[1];
+  }
   
   // Check for stage advancement
   if (state.lifeStage.threshold > oldStage.threshold) {
@@ -1285,49 +1289,64 @@ function drawFungalNetwork(positions, groundY) {
 }
 
 function drawTree(x, groundY, isPlayer, neighbor) {
-  const spec = isPlayer ? SPECIES[state.selectedSpecies] : (neighbor ? SPECIES[neighbor.species] : SPECIES.Plum);
   const scale = isPlayer ? 1 + state.trunk * 0.08 : (neighbor ? neighbor.age * 1.2 : 0.8);
-
   const leafClusters = isPlayer ? state.leafClusters : (neighbor ? neighbor.branches : 2);
   const trunk = isPlayer ? state.trunk : (neighbor ? neighbor.trunk : 1);
   const branches = isPlayer ? state.branches : (neighbor ? neighbor.branches : 2);
   const rootZones = isPlayer ? state.rootZones : (neighbor ? neighbor.roots : 2);
+  const stageName = isPlayer ? state.lifeStage.name : (neighbor?.stageName || 'Sapling');
 
-  const canopyR = (18 + leafClusters * 2) * scale;
-  const trunkH = (60 + trunk * 10) * scale;
-  const trunkW = (14 + trunk * 2) * scale;
-
+  const canopyR = (18 + Math.max(0, leafClusters) * 2) * scale;
+  const trunkH = stageName === 'Seed' ? 0 : stageName === 'Sprout' ? 14 : (60 + trunk * 10) * scale;
+  const trunkW = stageName === 'Seed' ? 0 : stageName === 'Sprout' ? 6 : (14 + trunk * 2) * scale;
   const treeColor = isPlayer ? '#1a1a1a' : (neighbor && neighbor.ally ? '#2a2a2a' : '#151515');
-  ctx.fillStyle = treeColor;
-  ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
 
-  for (let i = 0; i < Math.max(1, Math.min(branches, 8)); i++) {
-    const y = groundY - trunkH + 20 + i * 8;
-    const dir = i % 2 === 0 ? -1 : 1;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + dir * (24 + i * 4) * scale, y - (10 + i * 2) * scale);
-    ctx.strokeStyle = treeColor;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-  }
-
-  ctx.beginPath();
-  ctx.ellipse(x, groundY - trunkH - canopyR * 0.3, canopyR, canopyR * 0.9, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (let i = 0; i < Math.max(2, Math.min(rootZones, 8)); i++) {
+  for (let i = 0; i < Math.max(1, Math.min(rootZones, 8)); i++) {
     const dir = i % 2 === 0 ? -1 : 1;
     ctx.beginPath();
     ctx.moveTo(x, groundY);
-    ctx.lineTo(x + dir * (18 + i * 10) * scale, groundY + (25 + i * 16) * scale);
+    ctx.lineTo(x + dir * (12 + i * 9) * scale, groundY + (18 + i * 12) * scale);
     ctx.strokeStyle = isPlayer ? '#1a1a1a' : '#222';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
 
-  // Draw flowers if player has them
-  if (isPlayer && state.flowers > 0) {
+  ctx.fillStyle = treeColor;
+  if (stageName === 'Seed') {
+    ctx.beginPath();
+    ctx.ellipse(x, groundY - 4, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
+    if (stageName === 'Sprout') {
+      ctx.strokeStyle = '#3b7a3d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, groundY - trunkH);
+      ctx.quadraticCurveTo(x - 8, groundY - trunkH - 10, x - 14, groundY - trunkH - 6);
+      ctx.moveTo(x, groundY - trunkH);
+      ctx.quadraticCurveTo(x + 8, groundY - trunkH - 10, x + 14, groundY - trunkH - 6);
+      ctx.stroke();
+    } else {
+      for (let i = 0; i < Math.max(1, Math.min(branches, 8)); i++) {
+        const y = groundY - trunkH + 20 + i * 8;
+        const dir = i % 2 === 0 ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + dir * (24 + i * 4) * scale, y - (10 + i * 2) * scale);
+        ctx.strokeStyle = treeColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      if (leafClusters > 0) {
+        ctx.beginPath();
+        ctx.ellipse(x, groundY - trunkH - canopyR * 0.3, canopyR, canopyR * 0.9, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  if (isPlayer && state.flowers > 0 && stageName !== 'Seed' && stageName !== 'Sprout') {
     ctx.fillStyle = '#ffb6c1';
     for (let i = 0; i < Math.min(state.flowers, 5); i++) {
       const fx = x + (i - 2) * 8;
