@@ -264,6 +264,8 @@ const state = {
   growthNudgeCooldown: 3,
   hasProducedFruit: false,
   milestones: {},
+  healthWarningLevel: 0,
+  lastDamageCause: 'decline',
 };
 
 const els = {
@@ -397,6 +399,8 @@ function startGame() {
     growthNudgeCooldown: 3 + Math.floor(Math.random() * 2),
     hasProducedFruit: false,
     milestones: {},
+    healthWarningLevel: 0,
+    lastDamageCause: 'decline',
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -654,6 +658,7 @@ function attemptConnection(s) {
         neighbor.relation = Math.max(-100, neighbor.relation - 15);
         message = `The ${neighbor.species} interprets your reach as intrusion and releases a bitter pulse through the soil.`;
         state.health = Math.max(0, state.health - 1);
+        recordDamage(1, 'chemicals');
         feedback = { text: `${neighbor.species} rebuffed you`, type: 'error' };
       }
     } else if (oldState === 'Rival') {
@@ -665,6 +670,7 @@ function attemptConnection(s) {
         neighbor.relation = Math.max(-100, neighbor.relation - 12);
         message = `The ${neighbor.species} answers with defensive chemistry, warning you that the rivalry is still alive.`;
         state.health = Math.max(0, state.health - 1);
+        recordDamage(1, 'chemicals');
         state.nutrients = Math.max(0, state.nutrients - 1);
         feedback = { text: `${neighbor.species} retaliated`, type: 'error' };
       }
@@ -677,6 +683,7 @@ function attemptConnection(s) {
         neighbor.relation = Math.max(-100, neighbor.relation - 8);
         message = `The ${neighbor.species} reacts at once, flooding the soil with hostile chemicals. Your tissues burn with the warning.`;
         state.health = Math.max(0, state.health - 2);
+        recordDamage(2, 'chemicals');
         state.water = Math.max(0, state.water - 1);
         state.nutrients = Math.max(0, state.nutrients - 1);
         feedback = { text: `${neighbor.species} struck back violently`, type: 'error' };
@@ -806,7 +813,7 @@ function renderActions() {
     warning.innerHTML = `<strong>⚠️ Nothing Usable</strong>No action is currently possible. The season will advance automatically.`;
     els.actionsList.appendChild(warning);
     setTimeout(() => {
-      if (state.actions > 0 && getAffordableActions().length === 0 && els.modal.classList.contains('hidden')) {
+      if (els.modal.classList.contains('hidden')) {
         showEventPhase();
       }
     }, 700);
@@ -838,7 +845,7 @@ function renderActions() {
       if (maybeTriggerActionMilestone(action.key)) return;
       if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
       renderActions();
-      if (state.actions <= 0) setTimeout(() => showEventPhase(), 500);
+      if (state.actions <= 0) { showEventPhase(); return; }
     };
     card.appendChild(btn);
     els.actionsList.appendChild(card);
@@ -890,6 +897,7 @@ const MAJOR_EVENTS = [
       s.eventModifiers.drought = Math.max(0.15, 0.55 - (s.trunk * 0.08));
       const thirst = Math.max(1, 3 - s.trunk);
       s.health -= thirst;
+      recordDamage(thirst, 'drought');
       return [`Water collection reduced sharply`, `Health -${thirst} from thirst and water stress`];
     }
   },
@@ -919,6 +927,7 @@ const MAJOR_EVENTS = [
       s.branches = Math.max(1, s.branches - 1);
       const damage = Math.max(0, 3 - s.trunk - Math.floor(s.rootZones / 2));
       s.health -= damage;
+      recordDamage(damage, 'storm');
       const lost = prevBranches - s.branches;
       const effects = [`${lost} branch snapped by wind`];
       if (damage > 0) effects.push(`Health -${damage} (roots and trunk were not strong enough)`);
@@ -936,7 +945,9 @@ const MAJOR_EVENTS = [
       const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
       const damage = Math.max(1, 4 - barkProtection);
       s.health -= damage;
+      recordDamage(damage, 'storm');
       const effects = [];
+      recordDamage(damage, 'fire');
       if (damage === 0) {
         effects.push('Thick bark completely protected you!');
       } else {
@@ -966,6 +977,7 @@ const MAJOR_EVENTS = [
         effects.push('1 leaf cluster damaged by frost');
       }
       s.health -= 1;
+      recordDamage(1, 'frost');
       effects.push('Health -1 from cold stress');
       return effects;
     }
@@ -1194,6 +1206,7 @@ function rollMinorEvents() {
     events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
     if (state.eventModifiers.rainChain >= 3) {
       state.health -= 1;
+      recordDamage(1, 'blight');
       events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' });
     }
   } else {
@@ -1235,6 +1248,68 @@ function rollMinorEvents() {
   }
   
   return events;
+}
+
+function recordDamage(amount, cause) {
+  if (amount > 0) state.lastDamageCause = cause || 'decline';
+}
+
+function healthWarningBand() {
+  const ratio = state.maxHealth > 0 ? state.health / state.maxHealth : 1;
+  if (ratio <= 0.10) return 4;
+  if (ratio <= 0.25) return 3;
+  if (ratio <= 0.45) return 2;
+  if (ratio <= 0.70) return 1;
+  return 0;
+}
+
+function healthWarningContent(level) {
+  const content = {
+    1: {
+      title: 'Wounded',
+      body: 'Something is wrong. Your tissues ache, and your leaves hang heavy. You can still recover, but the forest has begun to press against you.'
+    },
+    2: {
+      title: 'Struggling',
+      body: 'Stress spreads through you. Water and strength are no longer reaching every branch. What was once discomfort is becoming danger.'
+    },
+    3: {
+      title: 'Critical',
+      body: 'You are failing. Your roots weaken, your crown dims, and death presses close. Immediate relief is no longer optional.'
+    },
+    4: {
+      title: 'Near Death',
+      body: 'Your life is slipping away. Sap slows, tissues fail, and the forest waits in silence. Without help, this season may be your last.'
+    }
+  };
+  return content[level];
+}
+
+function maybeShowHealthWarning(onContinue) {
+  const level = healthWarningBand();
+  if (level > state.healthWarningLevel) {
+    state.healthWarningLevel = level;
+    const warning = healthWarningContent(level);
+    showModal(warning.title, `<p><em>${warning.body}</em></p>`, onContinue);
+    return true;
+  }
+  if (level === 0) state.healthWarningLevel = 0;
+  else if (level < state.healthWarningLevel) state.healthWarningLevel = level;
+  return false;
+}
+
+function deathFlavor(cause) {
+  const map = {
+    drought: 'The soil gave less and less, until at last there was nothing left to draw. You dried where you stood.',
+    fire: 'Flame climbed your bark and ran your crown in a single bright hunger. By morning, only blackened wood remained.',
+    blight: 'Rot spread quietly through your tissues, turning strength to weakness until you could no longer hold yourself together.',
+    storm: 'Wind found every weakness in your form. When the storm passed, you could not rise from what it had broken.',
+    insects: 'Too many mouths found you tender. Piece by piece, stress and hunger hollowed out your strength.',
+    frost: 'Cold entered the living places within you and would not leave. By thaw, too much had already died.',
+    chemicals: 'Hostile compounds burned through the delicate balance that kept you alive. The soil itself became an enemy.',
+    decline: 'Season by season, loss outweighed recovery. At last, your strength failed, and the forest closed over your absence.'
+  };
+  return map[cause] || map.decline;
 }
 
 function applyEventEffects(major, minors) {
@@ -1310,7 +1385,10 @@ function showEventPhase() {
   showModal('Night Falls...', `
     ${majorHtml}
     ${minorHtml}
-  `, advanceTurn);
+  `, () => {
+    if (maybeShowHealthWarning(advanceTurn)) return;
+    advanceTurn();
+  });
 }
 
 function handleSpringViability(onContinue) {
@@ -1392,7 +1470,8 @@ function handleDeath() {
     });
   } else {
     state.gameOver = true;
-    showModal('Game Over', `<p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p>`, () => {});
+    const flavor = deathFlavor(state.lastDamageCause);
+    showModal('Game Over', `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p>`, () => {});
   }
 }
 
@@ -1459,7 +1538,7 @@ function updateUI() {
       els.actionsRemaining.textContent = `${state.actions} action${state.actions !== 1 ? 's' : ''} remaining`;
       els.actionsBanner.classList.remove('no-actions');
     } else {
-      els.actionsRemaining.textContent = 'No actions remaining';
+      els.actionsRemaining.textContent = state.actions > 0 ? 'No usable actions' : 'No actions remaining';
       els.actionsBanner.classList.add('no-actions');
     }
   }
