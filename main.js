@@ -481,8 +481,9 @@ function getNeighborTree(idx) {
 }
 
 function isActionUnlocked(actionKey) {
-  if (state.lifeStage.name === 'Seed') return actionKey === 'extendRoot';
-  return state.lifeStage.unlocks.includes(actionKey);
+  const currentIndex = LIFE_STAGES.findIndex(stage => stage.name === state.lifeStage.name);
+  if (currentIndex === -1) return false;
+  return LIFE_STAGES.slice(0, currentIndex + 1).some(stage => stage.unlocks.includes(actionKey));
 }
 
 function getAffordableActions() {
@@ -562,12 +563,7 @@ function renderActions() {
     costsHtml += '</div>';
     
     let lockBadge = '';
-    if (!unlocked) {
-      const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'Later';
-      lockBadge = `<span class="prereq-missing">Locked: ${unlockStage}</span>`;
-    } else if (seasonLocked) {
-      lockBadge = `<span class="prereq-missing">Locked: ${allowedSeasons.join('/')}</span>`;
-    } else if (!prereqOk) {
+    if (!unlocked || seasonLocked || !prereqOk) {
       lockBadge = '<span class="prereq-missing">Locked</span>';
     }
 
