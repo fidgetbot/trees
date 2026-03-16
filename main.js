@@ -539,9 +539,13 @@ function renderActions() {
     const waterRequired = action.cost.water || 0;
     const nutRequired = action.cost.nutrients || 0;
     
-    const sunClass = state.sunlight >= sunRequired ? 'res-sun' : 'res-sun res-low';
-    const waterClass = state.water >= waterRequired ? 'res-water' : 'res-water res-low';
-    const nutClass = state.nutrients >= nutRequired ? 'res-nutrient' : 'res-nutrient res-low';
+    const sunEnough = state.sunlight >= sunRequired;
+    const waterEnough = state.water >= waterRequired;
+    const nutEnough = state.nutrients >= nutRequired;
+
+    const sunClass = sunEnough ? 'res-sun' : 'res-sun res-low';
+    const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
+    const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
 
     card.className = `action-card ${disabled ? 'disabled' : ''}`;
     
