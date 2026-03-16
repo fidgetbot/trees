@@ -561,10 +561,12 @@ function renderActions() {
     }
     costsHtml += '</div>';
     
+    const lockBadge = (!unlocked || seasonLocked || !prereqOk) ? '<span class="prereq-missing">Locked</span>' : '';
+
     card.innerHTML = `
       <div class="action-header">
         <h4>${action.name}</h4>
-        ${!prereqOk ? '<span class="prereq-missing">Locked</span>' : ''}
+        ${lockBadge}
       </div>
       <p class="action-help">${action.help}</p>
       ${costsHtml}`;
