@@ -561,7 +561,15 @@ function renderActions() {
     }
     costsHtml += '</div>';
     
-    const lockBadge = (!unlocked || seasonLocked || !prereqOk) ? '<span class="prereq-missing">Locked</span>' : '';
+    let lockBadge = '';
+    if (!unlocked) {
+      const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'Later';
+      lockBadge = `<span class="prereq-missing">Locked: ${unlockStage}</span>`;
+    } else if (seasonLocked) {
+      lockBadge = `<span class="prereq-missing">Locked: ${allowedSeasons.join('/')}</span>`;
+    } else if (!prereqOk) {
+      lockBadge = '<span class="prereq-missing">Locked</span>';
+    }
 
     card.innerHTML = `
       <div class="action-header">
