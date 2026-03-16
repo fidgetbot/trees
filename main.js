@@ -51,6 +51,29 @@ function getNeighborStage(score) {
   return getLifeStage(score);
 }
 
+function computeCurrentLifeStage() {
+  let computedStage = getLifeStage(state.score);
+
+  if (state.rootZones >= 2 && computedStage.threshold < LIFE_STAGES[1].threshold) {
+    computedStage = LIFE_STAGES[1];
+  }
+  if (state.leafClusters >= 1 && computedStage.threshold < LIFE_STAGES[2].threshold) {
+    computedStage = LIFE_STAGES[2];
+  }
+  if (state.branches >= 1 && computedStage.threshold < LIFE_STAGES[3].threshold) {
+    computedStage = LIFE_STAGES[3];
+  }
+  if ((state.trunk >= 1 && state.branches >= 1 && state.leafClusters >= 2) && computedStage.threshold < LIFE_STAGES[4].threshold) {
+    computedStage = LIFE_STAGES[4];
+  }
+
+  if (state.lifeStage && computedStage.threshold < state.lifeStage.threshold) {
+    computedStage = state.lifeStage;
+  }
+  return computedStage;
+}
+
+
 const SPECIES = {
   Plum: {
     description: 'Fast-growing plum tree with abundant blossoms and soft fruit.',
@@ -482,8 +505,9 @@ function getNeighborTree(idx) {
 
 function isActionUnlocked(actionKey) {
   const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(actionKey));
-  if (!unlockStage) return false;
-  return state.lifeStage.threshold >= unlockStage.threshold;
+  const currentStage = computeCurrentLifeStage();
+  if (!unlockStage || !currentStage) return false;
+  return currentStage.threshold >= unlockStage.threshold;
 }
 
 function getAffordableActions() {
@@ -1143,20 +1167,7 @@ function updateScore() {
   const oldStage = state.lifeStage;
   state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
 
-  let computedStage = getLifeStage(state.score);
-
-  // Early-game progression is growth-based, and stages should never regress.
-  if (state.rootZones >= 2 && computedStage.threshold < LIFE_STAGES[1].threshold) {
-    computedStage = LIFE_STAGES[1]; // Sprout after first real root extension
-  }
-  if (state.leafClusters >= 1 && computedStage.threshold < LIFE_STAGES[2].threshold) {
-    computedStage = LIFE_STAGES[2]; // Seedling once leaves exist
-  }
-
-  if (computedStage.threshold < oldStage.threshold) {
-    computedStage = oldStage;
-  }
-
+  const computedStage = computeCurrentLifeStage();
   state.lifeStage = computedStage;
   
   // Check for stage advancement
@@ -1187,8 +1198,9 @@ function updateUI() {
   // Update life stage display
   const stageEl = document.getElementById('life-stage');
   if (stageEl) {
-    stageEl.textContent = state.lifeStage.name;
-    stageEl.style.color = state.lifeStage.name === 'Ancient' ? '#FFD700' : '#4CAF50';
+    const currentStage = computeCurrentLifeStage();
+    stageEl.textContent = currentStage.name;
+    stageEl.style.color = currentStage.name === 'Ancient' ? '#FFD700' : '#4CAF50';
   }
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
@@ -1310,7 +1322,7 @@ function drawFungalNetwork(positions, groundY) {
 }
 
 function drawTree(x, groundY, isPlayer, neighbor) {
-  const stageName = isPlayer ? state.lifeStage.name : (neighbor?.stageName || 'Sapling');
+  const stageName = isPlayer ? computeCurrentLifeStage().name : (neighbor?.stageName || 'Sapling');
   const stageScaleMap = { Seed: 0.18, Sprout: 0.28, Seedling: 0.45, Sapling: 0.7, 'Small Tree': 1.0, 'Mature Tree': 1.35, Ancient: 1.7 };
   const baseScale = stageScaleMap[stageName] || 0.8;
   const scale = isPlayer ? Math.max(baseScale, baseScale + state.trunk * 0.05) : baseScale;
