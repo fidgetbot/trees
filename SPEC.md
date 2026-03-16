@@ -4,22 +4,37 @@ A browser-based game where you play as a tree, balancing growth, reproduction, a
 
 ## Life Stages
 
-Trees progress through stages based on total score. Each stage unlocks new capabilities and changes vulnerability to threats.
+Trees progress automatically through stages based on in-game time and activity. When all conditions are met, a popup announces your growth — trees don't decide to grow, they simply become.
 
-| Stage | Score Threshold | Unlocks | Vulnerabilities |
-|-------|-----------------|---------|-----------------|
-| **Seed** | 0 | Basic growth only | All threats fatal |
-| **Sprout** | 100 | First leaves, basic photosynthesis | Drought, herbivory |
-| **Seedling** | 300 | Root extension, fungal connections | Aphids, browsing animals |
-| **Sapling** | 600 | Branch growth, chemical defense | Wind, competition |
-| **Small Tree** | 1000 | Flowers, reproduction | Lightning, disease |
-| **Mature Tree** | 2000 | Full canopy, ally support | Fire, beetle swarms |
-| **Ancient** | 5000 | Victory condition | None (resilient) |
+| Stage | Requirements | Growth Popup | Unlocks | Vulnerabilities |
+|-------|--------------|--------------|---------|-----------------|
+| **Seed** | — | — | Basic growth only | All threats fatal |
+| **Sprout** | After first action (grow roots) | *"Your shell cracks. You push outward into the unknown."* | First leaves, basic photosynthesis | Drought, herbivory |
+| **Seedling** | 1 season + 2 root zones + 2 leaf growths | *"Your taproot finds rich soil. You feel sturdy."* | Root extension, fungal connections | Aphids, browsing animals |
+| **Sapling** | 4 seasons + survive 1 major event | *"Your woody fibers harden. You have become a Sapling!"* | Branch growth, chemical defense | Wind, competition |
+| **Small Tree** | 4 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
+| **Mature Tree** | 5 years + first fruit | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms |
+| **Ancient** | 10 years + survive 3 major events + 2 allies | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
 
 **Stage Effects:**
 - **Seed/Sprout/Seedling:** Underground focus, no canopy competition, vulnerable to surface events
 - **Sapling/Small Tree:** Enter canopy wars, shading competition begins, chemical warfare unlocks
 - **Mature/Ancient:** Established position, can support allies, immune to most minor threats
+
+### Growth Nudges
+
+When you're close to growth (2 of 3 conditions met), occasional flavor text hints at the change to come:
+
+| Missing Requirement | Nudge Message |
+|---------------------|---------------|
+| More time needed | *"Your roots feel restless... something shifts slowly within."* |
+| Need deeper roots | *"Your taproot probes deeper, seeking something it cannot name."* |
+| Need survival event | *"You sense storms approaching. Endurance will bring change."* |
+| Need branches | *"Your crown yearns skyward. Space awaits above."* |
+| Need fruit | *"Flowers spent, your branches await the weight of purpose."* |
+| Need allies | *"Your roots touch others in the dark. Connection calls."* |
+
+Nudges appear randomly every 3–4 turns until growth occurs.
 
 ## Platform & Format
 
