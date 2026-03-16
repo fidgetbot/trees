@@ -481,9 +481,9 @@ function getNeighborTree(idx) {
 }
 
 function isActionUnlocked(actionKey) {
-  const currentIndex = LIFE_STAGES.findIndex(stage => stage.name === state.lifeStage.name);
-  if (currentIndex === -1) return false;
-  return LIFE_STAGES.slice(0, currentIndex + 1).some(stage => stage.unlocks.includes(actionKey));
+  const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(actionKey));
+  if (!unlockStage) return false;
+  return state.lifeStage.threshold >= unlockStage.threshold;
 }
 
 function getAffordableActions() {
