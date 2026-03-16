@@ -551,34 +551,110 @@ function chooseNeighborModal(onPick) {
   });
 }
 
+function relationshipFlavorChange(oldState, newState, species) {
+  const key = `${oldState}->${newState}`;
+  const lines = {
+    'Neutral->Friendly': `The ${species} no longer treats you as a stranger. Your roots are noticed now.`,
+    'Friendly->Ally': `The ${species} welcomes you fully. Beneath the soil, you are allies now.`,
+    'Rival->Neutral': `The bitterness in the soil eases. The ${species} no longer treats you as a rival.`,
+    'Hostile->Rival': `The ${species} still resents you, but the first fury has cooled into rivalry.`,
+    'Hostile->Neutral': `The chemical war subsides. The ${species} withdraws its hatred and turns wary instead.`,
+    'Friendly->Neutral': `The ${species} grows more guarded. The bond between you weakens.`,
+    'Neutral->Rival': `The ${species} begins to contest your place in the forest.`,
+    'Rival->Hostile': `The ${species} turns openly hostile. The soil itself feels poisonous.`,
+  };
+  return lines[key] || `Your standing with the ${species} changes: ${oldState} → ${newState}.`;
+}
+
+function showRelationshipChangeModal(species, oldState, newState, onContinue) {
+  if (oldState === newState) return onContinue?.();
+  showModal(`Relationship Shift: ${species}`, `<p><em>${relationshipFlavorChange(oldState, newState, species)}</em></p><p>Status changed from <strong>${oldState}</strong> to <strong>${newState}</strong>.</p>`, onContinue);
+}
+
 function attemptConnection(s) {
   chooseNeighborModal((neighbor) => {
     const rootBonus = Math.min(0.35, Math.max(0, state.rootZones - 2) * 0.08);
-    const relationState = getRelationshipState(neighbor.relation).name;
-    let acceptChance = 0.25 + rootBonus + (relationState === 'Friendly' ? 0.2 : 0) + (relationState === 'Hostile' ? -0.15 : 0);
-    let insultChance = 0.18 + (relationState === 'Hostile' ? 0.15 : 0);
+    const oldState = getRelationshipState(neighbor.relation).name;
     const roll = Math.random();
+    let message = '';
+    let feedback = { text: '', type: 'info' };
 
-    if (roll < acceptChance) {
-      neighbor.relation = Math.min(100, neighbor.relation + 35);
-      addLog(`The ${neighbor.species} tree accepted your underground friendship.`);
-      showFeedback(`${neighbor.species} accepted your root connection!`, 'success');
-    } else if (roll < acceptChance + insultChance) {
-      neighbor.relation = Math.max(-100, neighbor.relation - 25);
-      addLog(`The ${neighbor.species} tree was insulted and released inhibiting chemicals.`);
-      state.health -= 1;
-      showFeedback(`${neighbor.species} rejected you harshly`, 'error');
-    } else {
-      neighbor.relation = Math.min(100, neighbor.relation + 5);
-      addLog(`The ${neighbor.species} tree does not see you as worthy of connection at this time.`);
-      showFeedback(`${neighbor.species} remained distant`, 'info');
+    if (oldState === 'Ally') {
+      neighbor.relation = Math.min(100, neighbor.relation + 10);
+      message = `Your roots find the familiar touch of the ${neighbor.species}. Resources and signals pass warmly between you.`;
+      feedback = { text: `${neighbor.species} strengthens your alliance`, type: 'success' };
+    } else if (oldState === 'Friendly') {
+      if (roll < 0.7 + rootBonus) {
+        neighbor.relation = Math.min(100, neighbor.relation + 20);
+        message = `The ${neighbor.species} answers your overture with quiet warmth, opening more of its root network to you.`;
+        feedback = { text: `${neighbor.species} welcomed your roots`, type: 'success' };
+      } else {
+        neighbor.relation = Math.max(-100, neighbor.relation - 5);
+        message = `The ${neighbor.species} hesitates. It does not reject you, but keeps part of itself withheld.`;
+        feedback = { text: `${neighbor.species} grew cautious`, type: 'info' };
+      }
+    } else if (oldState === 'Neutral') {
+      if (roll < 0.35 + rootBonus) {
+        neighbor.relation = Math.min(100, neighbor.relation + 20);
+        message = `The ${neighbor.species} pauses, then accepts your tentative underground greeting.`;
+        feedback = { text: `${neighbor.species} responded cautiously`, type: 'success' };
+      } else if (roll < 0.75) {
+        neighbor.relation = Math.min(100, neighbor.relation + 2);
+        message = `The ${neighbor.species} senses you, but offers little in return. For now, the soil remains politely quiet.`;
+        feedback = { text: `${neighbor.species} mostly ignored you`, type: 'info' };
+      } else {
+        neighbor.relation = Math.max(-100, neighbor.relation - 15);
+        message = `The ${neighbor.species} interprets your reach as intrusion and releases a bitter pulse through the soil.`;
+        state.health = Math.max(0, state.health - 1);
+        feedback = { text: `${neighbor.species} rebuffed you`, type: 'error' };
+      }
+    } else if (oldState === 'Rival') {
+      if (roll < 0.18 + rootBonus) {
+        neighbor.relation = Math.min(100, neighbor.relation + 18);
+        message = `After a tense silence, the ${neighbor.species} relents. The rivalry softens, if only a little.`;
+        feedback = { text: `${neighbor.species} softened`, type: 'success' };
+      } else {
+        neighbor.relation = Math.max(-100, neighbor.relation - 12);
+        message = `The ${neighbor.species} answers with defensive chemistry, warning you that the rivalry is still alive.`;
+        state.health = Math.max(0, state.health - 1);
+        state.nutrients = Math.max(0, state.nutrients - 1);
+        feedback = { text: `${neighbor.species} retaliated`, type: 'error' };
+      }
+    } else if (oldState === 'Hostile') {
+      if (roll < 0.08 + rootBonus) {
+        neighbor.relation = Math.min(100, neighbor.relation + 30);
+        message = `Against all expectation, the ${neighbor.species} does not strike. Its hatred cools, though distrust still lingers.`;
+        feedback = { text: `${neighbor.species} cooled slightly`, type: 'success' };
+      } else {
+        neighbor.relation = Math.max(-100, neighbor.relation - 8);
+        message = `The ${neighbor.species} reacts at once, flooding the soil with hostile chemicals. Your tissues burn with the warning.`;
+        state.health = Math.max(0, state.health - 2);
+        state.water = Math.max(0, state.water - 1);
+        state.nutrients = Math.max(0, state.nutrients - 1);
+        feedback = { text: `${neighbor.species} struck back violently`, type: 'error' };
+      }
     }
 
-    neighbor.ally = getRelationshipState(neighbor.relation).name === 'Ally';
+    const newState = getRelationshipState(neighbor.relation).name;
+    neighbor.ally = newState === 'Ally';
+    addLog(message);
+    showFeedback(feedback.text, feedback.type);
     updateAlliesCount();
+    updateScore();
     updateUI();
     render();
     renderActions();
+
+    showModal(`Root Contact: ${neighbor.species}`, `<p>${message}</p><p><strong>Current relationship:</strong> ${newState}</p>`, () => {
+      updateUI();
+      render();
+      renderActions();
+      showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
+        updateUI();
+        render();
+        renderActions();
+      });
+    });
   });
 }
 
