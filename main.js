@@ -1132,10 +1132,22 @@ function handleDeath() {
 function updateScore() {
   const oldStage = state.lifeStage;
   state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
-  state.lifeStage = getLifeStage(state.score);
-  if (oldStage.name === 'Seed' && state.rootZones >= 2) {
-    state.lifeStage = LIFE_STAGES[1];
+
+  let computedStage = getLifeStage(state.score);
+
+  // Early-game progression is growth-based, and stages should never regress.
+  if (state.rootZones >= 2 && computedStage.threshold < LIFE_STAGES[1].threshold) {
+    computedStage = LIFE_STAGES[1]; // Sprout after first real root extension
   }
+  if (state.leafClusters >= 1 && computedStage.threshold < LIFE_STAGES[2].threshold) {
+    computedStage = LIFE_STAGES[2]; // Seedling once leaves exist
+  }
+
+  if (computedStage.threshold < oldStage.threshold) {
+    computedStage = oldStage;
+  }
+
+  state.lifeStage = computedStage;
   
   // Check for stage advancement
   if (state.lifeStage.threshold > oldStage.threshold) {
