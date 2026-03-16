@@ -149,9 +149,20 @@ function maybeShowGrowthNudge() {
   showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
     updateUI();
     render();
-    showResourcePhase();
+    if (state.phase === 'event') showResourcePhase();
+    else resumeTurnFlow();
   });
   return true;
+}
+
+function resumeTurnFlow() {
+  updateScore();
+  updateUI();
+  render();
+  renderActions();
+  if (state.actions <= 0) {
+    showEventPhase();
+  }
 }
 
 function tryAdvanceLifeStage(onContinue) {
@@ -167,7 +178,8 @@ function tryAdvanceLifeStage(onContinue) {
       updateScore();
       updateUI();
       render();
-      onContinue?.();
+      if (onContinue) onContinue();
+      else resumeTurnFlow();
     });
     return true;
   }
@@ -588,17 +600,17 @@ function maybeShowMilestone(key, title, body, onContinue) {
 function maybeTriggerActionMilestone(actionKey) {
   if (actionKey === 'extendRoot' && state.rootZones === 1) {
     return maybeShowMilestone('firstRoot', 'First Root', 'Your first root slips into the soil, tasting darkness, moisture, and promise.', () => {
-      updateUI(); render(); renderActions();
+      resumeTurnFlow();
     });
   }
   if (actionKey === 'growLeaves' && state.leafClusters === 1) {
     return maybeShowMilestone('firstLeaf', 'First Leaves', 'Your first leaves unfurl into the light. The sun is no longer a rumor but a source of life.', () => {
-      updateUI(); render(); renderActions();
+      resumeTurnFlow();
     });
   }
   if (actionKey === 'growLeaves' && state.leafClusters === 2) {
     return maybeShowMilestone('fullCrown', 'A Wider Reach', 'More green spreads above you. You are no longer merely surviving; you are beginning to claim space.', () => {
-      updateUI(); render(); renderActions();
+      resumeTurnFlow();
     });
   }
   return false;
@@ -840,10 +852,10 @@ function renderActions() {
       updateUI();
       render();
       if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
-        if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
+        if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
       }
       if (maybeTriggerActionMilestone(action.key)) return;
-      if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
+      if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
       renderActions();
       if (state.actions <= 0) { showEventPhase(); return; }
     };
@@ -1435,7 +1447,7 @@ function advanceTurn() {
         updateUI();
         render();
         updateAlliesCount();
-        if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
+        if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
         if (maybeShowGrowthNudge()) return;
         showResourcePhase();
       })) return;
