@@ -7,11 +7,11 @@ const SEASONS = [
 
 // Life stages with score thresholds
 const LIFE_STAGES = [
-  { name: 'Seed', threshold: 0, unlocks: ['growBranch', 'extendRoot'], damageMult: 3 },
+  { name: 'Seed', threshold: 0, unlocks: ['extendRoot'], damageMult: 3 },
   { name: 'Sprout', threshold: 100, unlocks: ['growLeaves'], damageMult: 2 },
-  { name: 'Seedling', threshold: 300, unlocks: ['connect'], damageMult: 1.5 },
-  { name: 'Sapling', threshold: 600, unlocks: ['defense'], damageMult: 1.2 },
-  { name: 'Small Tree', threshold: 1000, unlocks: ['flower'], damageMult: 1 },
+  { name: 'Seedling', threshold: 300, unlocks: ['defense'], damageMult: 1.5 },
+  { name: 'Sapling', threshold: 600, unlocks: ['growBranch'], damageMult: 1.2 },
+  { name: 'Small Tree', threshold: 1000, unlocks: ['connect', 'flower'], damageMult: 1 },
   { name: 'Mature Tree', threshold: 2000, unlocks: ['thicken'], damageMult: 0.8 },
   { name: 'Ancient', threshold: 5000, unlocks: ['victory'], damageMult: 0.5 },
 ];
@@ -687,8 +687,8 @@ const MAJOR_EVENTS = [
     desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.',
     severity: 'critical',
     apply: (s) => {
-      const spec = SPECIES[s.selectedSpecies];
-      const damage = Math.max(0, 4 - Math.floor((spec.fireResist || 0) * 4) - s.trunk);
+      const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
+      const damage = Math.max(1, 4 - barkProtection);
       s.health -= damage;
       const effects = [];
       if (damage === 0) {
@@ -696,8 +696,8 @@ const MAJOR_EVENTS = [
       } else {
         effects.push(`Health -${damage} from fire damage`);
       }
-      if (spec.fireResist >= 0.5) {
-        effects.push('Fire adaptation reduced damage');
+      if (barkProtection > 0) {
+        effects.push('Thicker trunk reduced some fire damage');
       }
       return effects;
     }
@@ -1314,25 +1314,26 @@ function drawFungalNetwork(positions, groundY) {
 }
 
 function drawTree(x, groundY, isPlayer, neighbor) {
-  const scale = isPlayer ? 1 + state.trunk * 0.08 : (neighbor ? neighbor.age * 1.2 : 0.8);
+  const stageName = isPlayer ? state.lifeStage.name : (neighbor?.stageName || 'Sapling');
+  const stageScaleMap = { Seed: 0.18, Sprout: 0.28, Seedling: 0.45, Sapling: 0.7, 'Small Tree': 1.0, 'Mature Tree': 1.35, Ancient: 1.7 };
+  const baseScale = stageScaleMap[stageName] || 0.8;
+  const scale = isPlayer ? Math.max(baseScale, baseScale + state.trunk * 0.05) : baseScale;
   const leafClusters = isPlayer ? state.leafClusters : (neighbor ? neighbor.branches : 2);
   const trunk = isPlayer ? state.trunk : (neighbor ? neighbor.trunk : 1);
   const branches = isPlayer ? state.branches : (neighbor ? neighbor.branches : 2);
   const rootZones = isPlayer ? state.rootZones : (neighbor ? neighbor.roots : 2);
-  const stageName = isPlayer ? state.lifeStage.name : (neighbor?.stageName || 'Sapling');
 
-  const canopyR = (18 + Math.max(0, leafClusters) * 2) * scale;
-  const trunkH = stageName === 'Seed' ? 0 : stageName === 'Sprout' ? 14 : (60 + trunk * 10) * scale;
-  const trunkW = stageName === 'Seed' ? 0 : stageName === 'Sprout' ? 6 : (14 + trunk * 2) * scale;
-  const treeColor = isPlayer ? '#1a1a1a' : (neighbor && neighbor.ally ? '#2a2a2a' : '#151515');
+  const canopyR = (14 + Math.max(0, leafClusters) * 2) * scale;
+  const treeColor = isPlayer ? '#2f8f46' : (neighbor && neighbor.ally ? '#2a2a2a' : '#151515');
+  const rootColor = isPlayer ? '#256f39' : '#222';
 
   for (let i = 0; i < Math.max(1, Math.min(rootZones, 8)); i++) {
     const dir = i % 2 === 0 ? -1 : 1;
     ctx.beginPath();
     ctx.moveTo(x, groundY);
-    ctx.lineTo(x + dir * (12 + i * 9) * scale, groundY + (18 + i * 12) * scale);
-    ctx.strokeStyle = isPlayer ? '#1a1a1a' : '#222';
-    ctx.lineWidth = 2;
+    ctx.lineTo(x + dir * (10 + i * 8) * scale, groundY + (14 + i * 10) * scale);
+    ctx.strokeStyle = rootColor;
+    ctx.lineWidth = Math.max(1.5, 2 * scale);
     ctx.stroke();
   }
 
@@ -1341,33 +1342,43 @@ function drawTree(x, groundY, isPlayer, neighbor) {
     ctx.beginPath();
     ctx.ellipse(x, groundY - 4, 8, 5, 0, 0, Math.PI * 2);
     ctx.fill();
-  } else {
+  } else if (stageName === 'Sprout') {
+    const trunkH = 14;
+    const trunkW = 6;
     ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
-    if (stageName === 'Sprout') {
-      ctx.strokeStyle = '#3b7a3d';
-      ctx.lineWidth = 2;
+    ctx.strokeStyle = treeColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, groundY - trunkH);
+    ctx.quadraticCurveTo(x - 8, groundY - trunkH - 10, x - 14, groundY - trunkH - 6);
+    ctx.moveTo(x, groundY - trunkH);
+    ctx.quadraticCurveTo(x + 8, groundY - trunkH - 10, x + 14, groundY - trunkH - 6);
+    ctx.stroke();
+  } else if (stageName === 'Seedling') {
+    const trunkH = 28;
+    const trunkW = 7;
+    ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
+    ctx.beginPath();
+    ctx.ellipse(x, groundY - trunkH - 6, 12, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const trunkH = (48 + trunk * 14) * scale;
+    const trunkW = (10 + trunk * 3) * scale;
+    ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
+    for (let i = 0; i < Math.max(1, Math.min(branches, 8)); i++) {
+      const y = groundY - trunkH + 18 + i * 8 * scale;
+      const dir = i % 2 === 0 ? -1 : 1;
       ctx.beginPath();
-      ctx.moveTo(x, groundY - trunkH);
-      ctx.quadraticCurveTo(x - 8, groundY - trunkH - 10, x - 14, groundY - trunkH - 6);
-      ctx.moveTo(x, groundY - trunkH);
-      ctx.quadraticCurveTo(x + 8, groundY - trunkH - 10, x + 14, groundY - trunkH - 6);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + dir * (18 + i * 5) * scale, y - (8 + i * 3) * scale);
+      ctx.strokeStyle = treeColor;
+      ctx.lineWidth = Math.max(2, 2.5 * scale);
       ctx.stroke();
-    } else {
-      for (let i = 0; i < Math.max(1, Math.min(branches, 8)); i++) {
-        const y = groundY - trunkH + 20 + i * 8;
-        const dir = i % 2 === 0 ? -1 : 1;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + dir * (24 + i * 4) * scale, y - (10 + i * 2) * scale);
-        ctx.strokeStyle = treeColor;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-      if (leafClusters > 0) {
-        ctx.beginPath();
-        ctx.ellipse(x, groundY - trunkH - canopyR * 0.3, canopyR, canopyR * 0.9, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    }
+    if (leafClusters > 0) {
+      ctx.beginPath();
+      ctx.ellipse(x, groundY - trunkH - canopyR * 0.25, canopyR, canopyR * 0.85, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
