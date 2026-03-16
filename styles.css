@@ -35,6 +35,13 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   display: flex; justify-content: space-between; align-items: start; gap: 20px;
 }
 .subtitle { color: var(--muted); margin-top: 4px; }
+.build-stamp {
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.85;
+}
 .layout {
   display: grid;
   grid-template-columns: 280px 1fr 340px;
