@@ -217,12 +217,11 @@ function initSpeciesSelect() {
   const spec = SPECIES[chosen];
   els.speciesList.innerHTML = `
     <div class="species-card selected">
-      <h3>Your tree will be a ${chosen}</h3>
+      <h3>You are a ${chosen} tree.</h3>
       <p>${spec.description}</p>
-      <small>This identity is assigned at random for flavor in the current build.</small>
     </div>`;
   els.startGame.disabled = false;
-  els.startGame.textContent = `Begin as a ${chosen} seed`;
+  els.startGame.textContent = 'Begin';
 }
 
 function startGame() {
