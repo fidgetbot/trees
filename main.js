@@ -1158,7 +1158,6 @@ function updateUI() {
   document.getElementById('score').textContent = state.score;
   document.getElementById('year').textContent = state.year;
   document.getElementById('season').textContent = currentSeason().name;
-  document.getElementById('turn').textContent = state.turnInSeason;
   
   // Update life stage display
   const stageEl = document.getElementById('life-stage');
