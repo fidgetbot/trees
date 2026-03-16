@@ -516,7 +516,7 @@ function renderActions() {
     if (hasPrereqIssues) {
       warning.innerHTML = `<strong>⚠️ Actions Available But Locked</strong>You have resources but some actions need prerequisites (like flowers for reproduction).`;
     } else {
-      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>You have ${state.actions} action${state.actions !== 1 ? 's' : ''} but not enough resources for any action. You can finish your turn early.`;
+      warning.innerHTML = `<strong>⚠️ Nothing Affordable</strong>You have ${state.actions} action${state.actions !== 1 ? 's' : ''} left, but no action is currently possible with your resources.`;
     }
     els.actionsList.appendChild(warning);
   }
@@ -606,7 +606,7 @@ function renderActions() {
   });
 
   // Only show finish turn button when actions remain (optional skip)
-  if (state.actions > 0) {
+  if (state.actions > 0 && affordableActions.length > 0) {
     const endBtn = document.createElement('button');
     endBtn.className = 'finish-turn-btn';
     endBtn.textContent = 'Finish Turn Early →';
@@ -814,7 +814,7 @@ function processSeasonalReproduction(events) {
     const ripened = state.pollinated;
     state.developing += ripened;
     state.pollinated = 0;
-    events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun.`, effect: 'growth' });
+    events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
 
   if (season === 'Summer' && state.developing > 0 && !state.pendingFruitThreat && Math.random() < 0.45) {
@@ -859,7 +859,7 @@ function processSeasonalReproduction(events) {
     const matured = state.developing;
     state.seeds += matured;
     state.developing = 0;
-    events.push({ text: `${matured} surviving fruit${matured !== 1 ? 's' : ''} hardened into ${matured} seed${matured !== 1 ? 's' : ''}.`, effect: 'growth' });
+    events.push({ text: `${matured} surviving fruit${matured !== 1 ? 's' : ''} hardened into ${matured} seed${matured !== 1 ? 's' : ''}. (+${matured} seed${matured !== 1 ? 's' : ''})`, effect: 'growth' });
   }
 }
 
@@ -918,7 +918,7 @@ function rollMinorEvents() {
       state.pollinated += pollinated;
       state.flowers -= pollinated;
       events.push({
-        text: `${SPECIES[state.selectedSpecies].pollinators[Math.floor(Math.random() * SPECIES[state.selectedSpecies].pollinators.length)]} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated.`,
+        text: `${SPECIES[state.selectedSpecies].pollinators[Math.floor(Math.random() * SPECIES[state.selectedSpecies].pollinators.length)]} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated. (+${pollinated} flowers pollinated)`,
         effect: 'pollinated'
       });
     }
@@ -928,16 +928,16 @@ function rollMinorEvents() {
   
   if (Math.random() < 0.25) {
     state.nutrients += 1;
-    events.push({ text: 'Forest animals left nitrogen-rich gifts near your trunk.', effect: 'nutrients' });
+    events.push({ text: 'Forest animals left nitrogen-rich gifts near your trunk. (+1 nutrient)', effect: 'nutrients' });
   }
   
   if (Math.random() < 0.25) {
     state.water += 2;
     state.eventModifiers.rainChain += 1;
-    events.push({ text: 'A passing rain shower refreshed the soil.', effect: 'rain' });
+    events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
     if (state.eventModifiers.rainChain >= 3) {
       state.health -= 1;
-      events.push({ text: 'Too much rain caused mild root rot.', effect: 'damage' });
+      events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' });
     }
   } else {
     state.eventModifiers.rainChain = 0;
@@ -945,7 +945,7 @@ function rollMinorEvents() {
 
   if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.threshold >= 600) {
     state.branches -= 1;
-    events.push({ text: 'A sharp wind snapped a tender branch.', effect: 'damage' });
+    events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' });
   }
 
   const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
@@ -963,17 +963,17 @@ function rollMinorEvents() {
 
   if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) {
     state.pendingOffspringThreat = true;
-    events.push({ text: 'Your young offspring is under aphid pressure. Spending resources on Chemical Defense could help protect it this turn.', effect: 'warning' });
+    events.push({ text: 'Your young offspring is under aphid pressure. Chemical Defense this turn may save it.', effect: 'warning' });
   } else if (state.pendingOffspringThreat) {
     state.pendingOffspringThreat = false;
     if (state.defense > 0 || state.fruitDefense > 0) {
-      events.push({ text: 'You shielded your offspring with defensive chemistry. It survives the aphid attack.', effect: 'offspring-safe' });
+      events.push({ text: 'You shielded your offspring with defensive chemistry. It survives the aphid attack. (+offspring survives)', effect: 'offspring-safe' });
     } else if (Math.random() < 0.5) {
       state.offspringTrees = Math.max(0, state.offspringTrees - 1);
       state.offspringPool = Math.max(0, state.offspringPool - 1);
-      events.push({ text: 'A young offspring succumbed to aphids before it could establish itself.', effect: 'offspring-loss' });
+      events.push({ text: 'A young offspring succumbed to aphids before it could establish itself. (-1 offspring)', effect: 'offspring-loss' });
     } else {
-      events.push({ text: 'Your offspring weathered the aphids on its own, but only barely.', effect: 'offspring-safe' });
+      events.push({ text: 'Your offspring weathered the aphids on its own, but only barely. (+offspring survives)', effect: 'offspring-safe' });
     }
   }
   
@@ -1182,7 +1182,8 @@ function updateUI() {
   
   // Update actions banner
   if (els.actionsRemaining) {
-    if (state.actions > 0) {
+    const affordableActions = getAffordableActions();
+    if (state.actions > 0 && affordableActions.length > 0) {
       els.actionsRemaining.textContent = `${state.actions} action${state.actions !== 1 ? 's' : ''} remaining`;
       els.actionsBanner.classList.remove('no-actions');
     } else {
