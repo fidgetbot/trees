@@ -62,7 +62,6 @@ Certain actions are restricted by season to reflect real tree biology:
 | Produce flower | 3 | 2 | 2 | Prerequisite for fruit |
 | Thicken trunk | 5 | 2 | 2 | Increases strength |
 | Chemical defense | 3 | 1 | 2 | Allelopathy/toxins |
-| Repair damage | 2-5 | 1-3 | 1-3 | Scales with severity |
 
 ## Resources
 
@@ -92,46 +91,40 @@ Nutrients = RootZones + (0.2 × AlliedRootZones)
 
 ## Species
 
-### Redwood
-- **Starting network:** Yes (other redwoods nearby)
-- **Network behavior:** Clonal, automatic allies
-- **Starting branches:** 2
-- **Starting roots:** 3
-- **Growth rate:** Slow (×0.7)
-- **Max height:** Very high
-- **Lifespan:** 500+ years
-- **Fire resistance:** High (thick bark, serotiny)
-- **Reproduction:** Late, few seeds (fire-dependent)
-- **Special:** Serotiny (seeds need fire to germinate)
+Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood should return later with distinct reproduction systems.
 
 ### Plum
-- **Starting network:** No
-- **Network behavior:** Family networks (offspring connect automatically)
-- **Starting branches:** 1
-- **Starting roots:** 2
-- **Growth rate:** Fast (×1.3)
-- **Max height:** Medium
-- **Lifespan:** 30-50 years
-- **Fire resistance:** Low
-- **Reproduction:** Early, many seeds
-- **Special:** Animal-dispersed fruits, high viability
+- Fast-growing and prolific
+- Soft fruit, high reproduction potential
+- Moderate drought resilience
+- Pollinators: bumblebees, mason bees, hoverflies
 
-### Oak
-- **Starting network:** No
-- **Network behavior:** Must persuade others
-- **Starting branches:** 1
-- **Starting roots:** 2
-- **Growth rate:** Medium (×1.0)
-- **Max height:** High
-- **Lifespan:** 200-300 years
-- **Fire resistance:** Medium
-- **Reproduction:** Mid, mast years (variable)
-- **Special:** Allelopathy (chemical warfare)
+### Peach
+- Tender but productive
+- Benefits from careful defense of fruit
+- Pollinators: honeybees, bumblebees, butterflies
 
-**Oak Network Persuasion:**
-- 40%: Accept connection
-- 40%: Ignore (can retry)
-- 20%: Reject and become hostile
+### Apricot
+- Early-blooming and frost-sensitive
+- Can reproduce quickly if spring goes well
+- Pollinators: mason bees, honeybees, beetles
+
+### Pear
+- Slower, steadier, more durable wood
+- Better drought tolerance through sturdier structure
+- Pollinators: hoverflies, honeybees, solitary bees
+
+### Citrus
+- Water-hungry but flavorful
+- Fragrant blossoms and vulnerable fruit
+- Pollinators: honeybees, small native bees, hoverflies
+
+### Cherry
+- Graceful, showy blossoms
+- Fruit attracts birds strongly
+- Pollinators: bumblebees, mason bees, butterflies
+
+Neighbor tree species are randomized from these fruiting trees at game start.
 
 ## Tree Diplomacy & Competition
 
@@ -147,15 +140,13 @@ The 4 neighboring trees are persistent characters with evolving relationships.
 ### Diplomatic Actions
 | Action | Cost | Effect |
 |--------|------|--------|
-| **Send resources** | Variable | +10 relationship, ally gains resources |
-| **Chemical help** | 3/1/2 | +20 relationship, ally gains defense |
-| **Shade competitor** | Passive | -5 relationship per turn, reduces their sunlight |
-| **Release allelopathy** | 4/2/2 | -20 relationship, damages rival's roots |
+| **Seek root connection** | 1/0/1 | Attempt underground friendship with a chosen neighboring tree |
+| **Chemical defense** | 3/1/2 | Protect fruit, leaves, and offspring; may also deter hostility |
 
 ### Diplomatic Events
-- **Ally under attack:** "The Plum faces aphids! Help with chemicals?" (+20 relation, -3/1/2 cost)
-- **Rival aggression:** "The Oak is shading your leaves!" (-10% sunlight, choose: endure, grow taller, or chemical counter)
-- **Competition warning:** "The Redwood is growing fast — 30% of your leaves now shaded"
+- **Targeted connection:** Choose a named neighboring fruit tree and risk acceptance, indifference, or hostility
+- **Ally in trouble:** Contextual events ask whether to help an ally tree with chemistry or support
+- **Hostile shading:** Hostile trees can worsen your light exposure over time
 
 ### Neighbor Progression
 Neighboring trees also advance through life stages, creating dynamic difficulty:
@@ -185,10 +176,10 @@ Neighboring trees also advance through life stages, creating dynamic difficulty:
 
 ## Fungal Network
 
-- **Establish:** Grow roots until they touch another tree's roots
-- **Shared:** Resources + action plans (what they're planning)
-- **Mutual Aid:** Can send resources to help allies (disease, drought)
-- **Sever:** Free, but roll for hostility (former ally may become hostile)
+- **Establish:** Only available after enough root growth
+- **Targeted:** Player chooses which neighboring tree to approach
+- **Chance-based:** Deeper roots improve acceptance odds
+- **Tense outcomes:** Trees may accept, ignore, or become insulted and hostile
 
 ## Events
 
@@ -272,10 +263,10 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 
 ## MVP Scope
 
-- 3 species (Redwood, Plum, Oak)
+- 6 fruit-tree identities with shared mechanics
 - Basic geometric visuals (silhouettes)
 - Core resource/action/event loop
-- Fungal network (connect, share, sever)
+- Fungal network through targeted connection attempts
 - Major events: Fire, drought, insect swarm
 - Minor events: Pollinators, rain, animals, lightning
 - Succession system
