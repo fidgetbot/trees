@@ -5,16 +5,19 @@ const SEASONS = [
   { name: 'Winter', factorSun: 0.2, factorWater: 0.4, top: '#D3D3D3', bottom: '#F0F8FF' },
 ];
 
-// Life stages with score thresholds
+// Life stages use automatic growth requirements for the player.
+// Legacy threshold values remain only for neighbor visualization/scaling.
 const LIFE_STAGES = [
-  { name: 'Seed', threshold: 0, unlocks: ['extendRoot'], damageMult: 3 },
-  { name: 'Sprout', threshold: 100, unlocks: ['growLeaves'], damageMult: 2 },
-  { name: 'Seedling', threshold: 300, unlocks: ['defense'], damageMult: 1.5 },
-  { name: 'Sapling', threshold: 600, unlocks: ['growBranch'], damageMult: 1.2 },
-  { name: 'Small Tree', threshold: 1000, unlocks: ['connect', 'flower'], damageMult: 1 },
-  { name: 'Mature Tree', threshold: 2000, unlocks: ['thicken'], damageMult: 0.8 },
-  { name: 'Ancient', threshold: 5000, unlocks: ['victory'], damageMult: 0.5 },
+  { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
+  { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 2, popup: 'Your shell cracks. You push outward into the unknown.' },
+  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
+  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
+  { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
+  { name: 'Mature Tree', rank: 5, threshold: 2000, unlocks: ['thicken'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
+  { name: 'Ancient', rank: 6, threshold: 5000, unlocks: ['victory'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you.' },
 ];
+
+const STAGE_BY_NAME = Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, stage]));
 
 // Seasonal action locks
 const SEASONAL_ACTIONS = {
@@ -52,25 +55,123 @@ function getNeighborStage(score) {
 }
 
 function computeCurrentLifeStage() {
-  let computedStage = getLifeStage(state.score);
+  return state.lifeStage || LIFE_STAGES[0];
+}
 
-  if (state.rootZones >= 2 && computedStage.threshold < LIFE_STAGES[1].threshold) {
-    computedStage = LIFE_STAGES[1];
-  }
-  if (state.leafClusters >= 1 && computedStage.threshold < LIFE_STAGES[2].threshold) {
-    computedStage = LIFE_STAGES[2];
-  }
-  if (state.branches >= 1 && computedStage.threshold < LIFE_STAGES[3].threshold) {
-    computedStage = LIFE_STAGES[3];
-  }
-  if ((state.trunk >= 1 && state.branches >= 1 && state.leafClusters >= 2) && computedStage.threshold < LIFE_STAGES[4].threshold) {
-    computedStage = LIFE_STAGES[4];
-  }
+function turnsForYears(years) {
+  return years * 12;
+}
 
-  if (state.lifeStage && computedStage.threshold < state.lifeStage.threshold) {
-    computedStage = state.lifeStage;
+function currentStageRequirements() {
+  const stage = computeCurrentLifeStage().name;
+  switch (stage) {
+    case 'Seed':
+      return [
+        { key: 'firstRoot', label: 'Take your first action: grow roots', met: state.firstRootActionTaken },
+      ];
+    case 'Sprout':
+      return [
+        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= 3 },
+        { key: 'roots', label: 'Reach 2 root zones', met: state.rootZones >= 2 },
+        { key: 'leaves', label: 'Grow 2 leaf clusters', met: state.leafClusters >= 2 },
+      ];
+    case 'Seedling':
+      return [
+        { key: 'time', label: 'Live through 4 seasons', met: state.turnsInStage >= 12 },
+        { key: 'major', label: 'Survive 1 major event', met: state.majorEventsSurvivedInStage >= 1 },
+      ];
+    case 'Sapling':
+      return [
+        { key: 'time', label: 'Live 4 years', met: state.turnsInStage >= turnsForYears(4) },
+        { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
+      ];
+    case 'Small Tree':
+      return [
+        { key: 'time', label: 'Live 5 years', met: state.turnsInStage >= turnsForYears(5) },
+        { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
+      ];
+    case 'Mature Tree':
+      return [
+        { key: 'time', label: 'Live 10 years', met: state.turnsInStage >= turnsForYears(10) },
+        { key: 'major', label: 'Survive 3 major events', met: state.majorEventsSurvivedInStage >= 3 },
+        { key: 'allies', label: 'Have 2 allies', met: state.allies >= 2 },
+      ];
+    default:
+      return [];
   }
-  return computedStage;
+}
+
+function getNextStage() {
+  const current = computeCurrentLifeStage();
+  return LIFE_STAGES.find(stage => stage.rank === current.rank + 1) || null;
+}
+
+function resetStageProgressCounters() {
+  state.turnsInStage = 0;
+  state.majorEventsSurvivedInStage = 0;
+  state.growthNudgeCooldown = 3 + Math.floor(Math.random() * 2);
+}
+
+function maybeShowGrowthNudge() {
+  const reqs = currentStageRequirements();
+  if (reqs.length !== 3) return false;
+  const met = reqs.filter(r => r.met);
+  const missing = reqs.filter(r => !r.met);
+  if (met.length !== 2 || missing.length !== 1) return false;
+  if (state.growthNudgeCooldown > 0) return false;
+
+  const nudgeMap = {
+    time: [
+      'Your roots feel restless... something shifts slowly within.',
+      'The seasons work on you in silence. Change is coming.',
+    ],
+    roots: [
+      'Your taproot probes deeper, seeking something it cannot name.',
+      'The soil below still holds something you need.',
+    ],
+    leaves: [
+      'You feel an ache for wider green, for more light to hold.',
+      'Your small crown longs to unfurl further into the air.',
+    ],
+    major: [
+      'You sense storms approaching. Endurance will bring change.',
+      'Hard weather will teach your fibers what they must become.',
+    ],
+    allies: [
+      'Your roots touch others in the dark. Connection calls.',
+      'The forest would know you better if you reached outward.',
+    ],
+  };
+
+  const options = nudgeMap[missing[0].key] || ['Something in you strains toward its next form.'];
+  const message = options[Math.floor(Math.random() * options.length)];
+  state.growthNudgeCooldown = 3 + Math.floor(Math.random() * 2);
+  showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
+    updateUI();
+    render();
+    showResourcePhase();
+  });
+  return true;
+}
+
+function tryAdvanceLifeStage(onContinue) {
+  const next = getNextStage();
+  if (!next) return false;
+  const reqs = currentStageRequirements();
+  if (!reqs.length || reqs.every(r => r.met)) {
+    state.lifeStage = next;
+    resetStageProgressCounters();
+    addLog(`You have grown. You are now a ${next.name}.`);
+    showFeedback(`You are now a ${next.name}!`, 'success');
+    showModal(next.name, `<p><em>${next.popup}</em></p>`, () => {
+      updateScore();
+      updateUI();
+      render();
+      onContinue?.();
+    });
+    return true;
+  }
+  return false;
 }
 
 
@@ -156,6 +257,11 @@ const state = {
   victoryAchieved: false,
   // Diplomacy tracking
   neighbors: [],
+  firstRootActionTaken: false,
+  turnsInStage: 0,
+  majorEventsSurvivedInStage: 0,
+  growthNudgeCooldown: 3,
+  hasProducedFruit: false,
 };
 
 const els = {
@@ -261,7 +367,7 @@ function startGame() {
     nutrients: 3,
     actions: 1,
     branches: 0,
-    rootZones: 1,
+    rootZones: 0,
     leafClusters: 0,
     trunk: 0,
     flowers: 0,
@@ -283,6 +389,11 @@ function startGame() {
     gameOver: false,
     victoryAchieved: false,
     neighbors: makeStartingNeighbors(),
+    firstRootActionTaken: false,
+    turnsInStage: 0,
+    majorEventsSurvivedInStage: 0,
+    growthNudgeCooldown: 3 + Math.floor(Math.random() * 2),
+    hasProducedFruit: false,
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -507,7 +618,7 @@ function isActionUnlocked(actionKey) {
   const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(actionKey));
   const currentStage = computeCurrentLifeStage();
   if (!unlockStage || !currentStage) return false;
-  return currentStage.threshold >= unlockStage.threshold;
+  return currentStage.rank >= unlockStage.rank;
 }
 
 function getAffordableActions() {
@@ -617,6 +728,10 @@ function renderActions() {
       
       spend(action.cost);
       action.effect(state);
+
+      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') {
+        state.firstRootActionTaken = true;
+      }
       
       // Show success feedback
       showFeedback(`${action.name} succeeded!`, 'success');
@@ -848,6 +963,7 @@ function processSeasonalReproduction(events) {
     const ripened = state.pollinated;
     state.developing += ripened;
     state.pollinated = 0;
+    if (ripened > 0) state.hasProducedFruit = true;
     events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
 
@@ -919,10 +1035,6 @@ function resolveSeedFate(seedCount) {
 }
 
 function rollMajorEvent() {
-  // Higher chance of events in later turns
-  const baseChance = 0.4 + (state.turnInSeason * 0.15);
-  if (Math.random() > baseChance) return null;
-  
   const weights = MAJOR_EVENTS.map(e => {
     if (e.severity === 'critical') return 0.05;
     if (e.severity === 'bad') return 0.25;
@@ -977,7 +1089,7 @@ function rollMinorEvents() {
     state.eventModifiers.rainChain = 0;
   }
 
-  if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.threshold >= 600) {
+  if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) {
     state.branches -= 1;
     events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' });
   }
@@ -1025,6 +1137,7 @@ function applyEventEffects(major, minors) {
   if (major) {
     const majorEffects = major.apply(state);
     consequences.push(...majorEffects);
+    if (state.health > 0) state.majorEventsSurvivedInStage += 1;
   }
   
   minors.forEach(event => {
@@ -1111,6 +1224,10 @@ function handleSpringViability(onContinue) {
 
 function advanceTurn() {
   if (state.health <= 0) return handleDeath();
+
+  state.turnsInStage += 1;
+  if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
+
   if (state.turnInSeason < 3) {
     state.turnInSeason += 1;
   } else {
@@ -1128,6 +1245,9 @@ function advanceTurn() {
         updateScore();
         updateUI();
         render();
+        updateAlliesCount();
+        if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); renderActions(); })) return;
+        if (maybeShowGrowthNudge()) return;
         showResourcePhase();
       })) return;
     }
@@ -1137,6 +1257,8 @@ function advanceTurn() {
   updateScore();
   updateUI();
   render();
+  if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return;
+  if (maybeShowGrowthNudge()) return;
   showResourcePhase();
 }
 
@@ -1164,19 +1286,8 @@ function handleDeath() {
 }
 
 function updateScore() {
-  const oldStage = state.lifeStage;
   state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
 
-  const computedStage = computeCurrentLifeStage();
-  state.lifeStage = computedStage;
-  
-  // Check for stage advancement
-  if (state.lifeStage.threshold > oldStage.threshold) {
-    addLog(`You have grown! You are now a ${state.lifeStage.name}!`);
-    showFeedback(`Stage up: ${state.lifeStage.name}!`, 'success');
-  }
-  
-  // Check for victory
   if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
     state.victoryAchieved = true;
     showModal('Victory!', `
@@ -1201,6 +1312,19 @@ function updateUI() {
     const currentStage = computeCurrentLifeStage();
     stageEl.textContent = currentStage.name;
     stageEl.style.color = currentStage.name === 'Ancient' ? '#FFD700' : '#4CAF50';
+  }
+
+  const growthHint = document.getElementById('growth-hint');
+  if (growthHint) {
+    const reqs = currentStageRequirements();
+    const missing = reqs.filter(r => !r.met);
+    if (!reqs.length || state.lifeStage.name === 'Ancient') {
+      growthHint.textContent = 'Fully grown.';
+    } else if (missing.length === 0) {
+      growthHint.textContent = 'Growth is imminent.';
+    } else {
+      growthHint.textContent = `Next growth: ${missing.map(r => r.label).join(' · ')}`;
+    }
   }
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
