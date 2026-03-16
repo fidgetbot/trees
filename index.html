@@ -12,7 +12,7 @@
       <div>
         <h1>Trees</h1>
         <p class="subtitle">A tree-life survival strategy prototype</p>
-        <p class="build-stamp">Build time <span id="build-version">2026-03-15 19:42 PDT</span></p>
+        <p class="build-stamp">Version <span id="build-version">loading…</span></p>
       </div>
       <div class="scorebox">
         <div>Score: <span id="score">0</span></div>
@@ -160,6 +160,19 @@
     </div>
   </div>
 
+  <script src="main.js"></script>
+</body>
+</html>?ts=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const el = document.getElementById('build-version');
+        if (el && typeof data.version !== 'undefined') el.textContent = data.version;
+      })
+      .catch(() => {
+        const el = document.getElementById('build-version');
+        if (el) el.textContent = 'unknown';
+      });
+  </script>
   <script src="main.js"></script>
 </body>
 </html>
