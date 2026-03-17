@@ -1554,46 +1554,97 @@ function queueChemicalDefenseThreat(events) {
                            state.water >= DEFENSE_COST.water &&
                            state.nutrients >= DEFENSE_COST.nutrients;
 
-  const threats = [
-    {
-      title: 'Mite Surge',
-      warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
-      defend: () => {
-        state.defense += 1;
-        return 'You flood your tissues with bitter compounds. The mites retreat before they can do serious harm.';
+  const currentStage = computeCurrentLifeStage().name;
+  let threats;
+
+  if (currentStage === 'Seedling') {
+    // Seedling-appropriate threats (surface-level, no bark/fruit yet)
+    threats = [
+      {
+        title: 'Aphid Cluster',
+        warning: 'Tiny aphids gather on your tender stem, piercing and sucking at your sap.',
+        defend: () => {
+          state.defense += 1;
+          return 'You release sticky compounds that trap the aphids. They fall away, unable to feed.';
+        },
+        ignore: () => {
+          state.leafClusters = Math.max(0, state.leafClusters - 1);
+          state.health = Math.max(0, state.health - 1);
+          recordDamage(1, 'insects');
+          return 'The aphids feast unchecked, draining your strength. You lose 1 leaf cluster and 1 health.';
+        }
       },
-      ignore: () => {
-        state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects');
-        return 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.';
-      }
-    },
-    {
-      title: 'Hungry Browsers',
-      warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and fruit.',
-      defend: () => {
-        state.fruitDefense += 1;
-        return 'You turn your tissues bitter. The browsers recoil and move on.';
+      {
+        title: 'Surface Crawlers',
+        warning: 'Small insects swarm the soil surface around your base, nibbling at your tender roots.',
+        defend: () => {
+          state.defense += 1;
+          return 'You release defensive compounds into the soil. The crawlers retreat from your roots.';
+        },
+        ignore: () => {
+          state.rootZones = Math.max(0, state.rootZones - 1);
+          state.health = Math.max(0, state.health - 1);
+          recordDamage(1, 'insects');
+          return 'The insects damage your shallow roots. You lose 1 root zone and 1 health.';
+        }
       },
-      ignore: () => {
-        const lost = Math.min(2, Math.max(1, state.developing > 0 ? 2 : 1));
-        state.developing = Math.max(0, state.developing - lost);
-        state.leafClusters = Math.max(0, state.leafClusters - 1);
-        return `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lost} fruit.`;
+      {
+        title: 'Damp Rot',
+        warning: 'The soil around you stays too wet. Mold creeps up your tender stem.',
+        defend: () => {
+          state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9);
+          return 'You mobilize protective chemistry. The mold cannot take hold on your tissues.';
+        },
+        ignore: () => {
+          state.health = Math.max(0, state.health - 2);
+          recordDamage(2, 'blight');
+          return 'The damp rot spreads. You lose 2 health as your stem weakens.';
+        }
       }
-    },
-    {
-      title: 'Spores on the Damp Air',
-      warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
-      defend: () => {
-        state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9);
-        return 'You mobilize defensive chemistry before the infection can take hold.';
+    ];
+  } else {
+    // Sapling+ threats (bark, canopy, fruit)
+    threats = [
+      {
+        title: 'Mite Surge',
+        warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
+        defend: () => {
+          state.defense += 1;
+          return 'You flood your tissues with bitter compounds. The mites retreat before they can do serious harm.';
+        },
+        ignore: () => {
+          state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects');
+          return 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.';
+        }
       },
-      ignore: () => {
-        state.health = Math.max(0, state.health - 2); recordDamage(2, 'blight');
-        return 'Blight takes hold. You lose 2 health to spreading infection.';
+      {
+        title: 'Hungry Browsers',
+        warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and fruit.',
+        defend: () => {
+          state.fruitDefense += 1;
+          return 'You turn your tissues bitter. The browsers recoil and move on.';
+        },
+        ignore: () => {
+          const lost = Math.min(2, Math.max(1, state.developing > 0 ? 2 : 1));
+          state.developing = Math.max(0, state.developing - lost);
+          state.leafClusters = Math.max(0, state.leafClusters - 1);
+          return `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lost} fruit.`;
+        }
+      },
+      {
+        title: 'Spores on the Damp Air',
+        warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
+        defend: () => {
+          state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9);
+          return 'You mobilize defensive chemistry before the infection can take hold.';
+        },
+        ignore: () => {
+          state.health = Math.max(0, state.health - 2); recordDamage(2, 'blight');
+          return 'Blight takes hold. You lose 2 health to spreading infection.';
+        }
       }
-    }
-  ];
+    ];
+  }
   const threat = threats[Math.floor(Math.random() * threats.length)];
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
   const affordText = canAffordDefense ? '(You have enough)' : '(Not enough resources!)';
@@ -1708,14 +1759,40 @@ function rollMinorEvents() {
     queueChemicalDefenseThreat(events);
   }
   if (Math.random() < 0.12) {
-    const flavor = [
-      'Two hopeful crows have chosen your branches to make a nest for their young.',
-      'A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.',
-      'Bees drift lazily through your flowers, dusted gold with pollen.',
-      'A fox sleeps for an afternoon in the shade you cast.',
-      'Robins tug worms from the damp soil near your roots.'
-    ];
-    events.push({ text: flavor[Math.floor(Math.random() * flavor.length)], effect: 'flavor' });
+    const currentStage = computeCurrentLifeStage().name;
+    let flavor;
+    if (currentStage === 'Seed' || currentStage === 'Sprout' || currentStage === 'Seedling') {
+      // Early stage flavor (underground/surface focus)
+      const earlyFlavor = [
+        'A beetle trundles past your seed, unaware of the life within.',
+        'Earthworms turn the soil nearby, aerating the ground you will soon reach for.',
+        'A gentle rain soaks the earth above you, promising moisture to come.',
+        'Ants march in lines across the soil surface, busy with their own purposes.',
+        'The soil shifts slightly as a mole tunnels past, deep below.',
+      ];
+      flavor = earlyFlavor[Math.floor(Math.random() * earlyFlavor.length)];
+    } else if (currentStage === 'Sapling' || currentStage === 'Small Tree') {
+      // Mid stage flavor (growing canopy, no flowers yet for Sapling)
+      const midFlavor = [
+        'Two hopeful crows have chosen your branches to make a nest for their young.',
+        'A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.',
+        'A fox sleeps for an afternoon in the small shade you cast.',
+        'Robins tug worms from the damp soil near your roots.',
+        'A gentle breeze rustles your new leaves.',
+      ];
+      flavor = midFlavor[Math.floor(Math.random() * midFlavor.length)];
+    } else {
+      // Late stage flavor (full canopy, flowers, fruit)
+      const lateFlavor = [
+        'Two hopeful crows have chosen your branches to make a nest for their young.',
+        'A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.',
+        'Bees drift lazily through your flowers, dusted gold with pollen.',
+        'A fox sleeps for an afternoon in the shade you cast.',
+        'Robins tug worms from the damp soil near your roots.',
+      ];
+      flavor = lateFlavor[Math.floor(Math.random() * lateFlavor.length)];
+    }
+    events.push({ text: flavor, effect: 'flavor' });
   }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) {
     events.push({ text: 'Squirrels dart through your canopy, carrying some seeds away and burying others. A few may be forgotten in good soil.', effect: 'helper' });
