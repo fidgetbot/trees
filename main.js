@@ -169,6 +169,13 @@ function tryAdvanceLifeStage(onContinue) {
   const next = getNextStage();
   if (!next) return false;
   const reqs = currentStageRequirements();
+  // Debug logging for all stages
+  const currentName = computeCurrentLifeStage().name;
+  if (['Sapling', 'Small Tree', 'Mature Tree'].includes(currentName)) {
+    const allMet = reqs.every(r => r.met);
+    const unmet = reqs.filter(r => !r.met).map(r => r.key).join(',');
+    addLog(`DEBUG: ${currentName} - turns:${state.turnsInStage}, branches:${state.branches}, reqsMet:${allMet}, unmet:[${unmet}]`);
+  }
   if (!reqs.length || reqs.every(r => r.met)) {
     state.lifeStage = next;
     resetStageProgressCounters();
