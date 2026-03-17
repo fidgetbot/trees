@@ -278,6 +278,7 @@ const state = {
   milestones: {},
   healthWarningLevel: 0,
   lastDamageCause: 'decline',
+  pendingInteractions: [],
 };
 
 const els = {
@@ -413,6 +414,7 @@ function startGame() {
     milestones: {},
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
+    pendingInteractions: [],
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -455,6 +457,35 @@ function showModal(title, body, onContinue) {
     els.modal.classList.add('hidden');
     onContinue?.();
   };
+}
+
+
+function showChoiceModal(title, body, choices) {
+  els.modalTitle.textContent = title;
+  els.modalBody.innerHTML = body;
+  els.modal.classList.remove('hidden');
+  els.modalButton.style.display = 'none';
+  els.modalButton.onclick = null;
+  const wrap = document.createElement('div');
+  wrap.className = 'neighbor-choices';
+  choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'neighbor-choice';
+    btn.textContent = choice.label;
+    btn.onclick = () => {
+      els.modal.classList.add('hidden');
+      els.modalButton.style.display = '';
+      choice.onChoose?.();
+    };
+    wrap.appendChild(btn);
+  });
+  els.modalBody.appendChild(wrap);
+}
+
+function processPendingInteractions(onDone) {
+  if (!state.pendingInteractions.length) return onDone?.();
+  const interaction = state.pendingInteractions.shift();
+  interaction(() => processPendingInteractions(onDone));
 }
 
 function showResourcePhase() {
@@ -535,6 +566,11 @@ function makeStartingNeighbors() {
       stageScore: stage.threshold + Math.floor(Math.random() * 160),
       hostile: false,
       ally: false,
+      helpGivenToThem: 0,
+      helpRefusedToThem: 0,
+      helpReceivedFromThem: 0,
+      timesAskedThemForHelp: 0,
+      lastAidMemory: '',
     };
   });
 }
@@ -556,18 +592,14 @@ function growNeighbors() {
   });
 }
 
-function chooseNeighborModal(onPick) {
-  const options = state.neighbors.map((n, idx) => {
-    const rel = getRelationshipState(n.relation).name.toLowerCase();
-    return `<button class="neighbor-choice" data-neighbor-index="${idx}">${n.species} (${rel})</button>`;
-  }).join('');
-  showModal('Choose a neighboring tree', `<p>Your roots probe the soil for a possible connection.</p><div class="neighbor-choices">${options}</div>`, () => {});
-  document.querySelectorAll('[data-neighbor-index]').forEach(btn => {
-    btn.onclick = () => {
-      els.modal.classList.add('hidden');
-      onPick(state.neighbors[Number(btn.dataset.neighborIndex)]);
-    };
-  });
+function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.') {
+  const choices = state.neighbors
+    .filter(filterFn)
+    .map(n => {
+      const rel = getRelationshipState(n.relation).name.toLowerCase();
+      return { label: `${n.species} (${rel})`, onChoose: () => onPick(n) };
+    });
+  showChoiceModal(title, `<p>${body}</p>`, choices);
 }
 
 function relationshipFlavorChange(oldState, newState, species) {
@@ -617,22 +649,45 @@ function maybeTriggerActionMilestone(actionKey) {
 }
 
 function requestHelpFromAllies(s) {
-  const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
-  const allyStrength = alliedNeighbors.reduce((sum, n) => sum + (getNeighborStage(n.stageScore).rank + 1), 0) + state.offspringTrees;
-  const heal = Math.max(1, Math.floor(Math.random() * Math.max(2, allyStrength)) + alliedNeighbors.length);
-  const actualHeal = Math.max(0, Math.min(heal, state.maxHealth - state.health));
-  state.health += actualHeal;
-  const allyNames = alliedNeighbors.map(n => n.species).join(', ');
-  const line = actualHeal > 0
-    ? `Help comes through the fungal dark. ${allyNames || 'Your allies'} send strength into your roots, restoring ${actualHeal} health. They will remember the bond and expect friendship in return.`
-    : `Your allies answer your call, steadying you with quiet support. You were already near full strength, but the favor is now owed.`;
-  addLog(line);
-  showModal('Allies Come to Your Aid', `<p>${line}</p>`, () => {
-    updateScore();
-    updateUI();
-    render();
-    renderActions();
-  });
+  const allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
+  if (!allies.length) {
+    showFeedback('No allies are close enough to help', 'warning');
+    resumeTurnFlow();
+    return;
+  }
+  chooseNeighborModal((neighbor) => {
+    neighbor.timesAskedThemForHelp += 1;
+    const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
+    const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
+    const rawHeal = 2 + Math.floor(Math.random() * 4) + Math.max(0, stageBonus > 2 ? 1 : 0);
+    const heal = Math.max(2, Math.min(5, rawHeal));
+    const actualHeal = Math.min(heal, state.maxHealth - state.health);
+
+    let relationShift = 6;
+    let tone = `The ${neighbor.species} sends strength through the fungal dark.`;
+    if (favorBalance < -2) {
+      relationShift = -4;
+      tone = `The ${neighbor.species} answers, but coolly. You have asked much of it lately, and given little in return.`;
+    } else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) {
+      relationShift = 10;
+      tone = `The ${neighbor.species} remembers that you answered its need before. It sends help with warmth.`;
+    }
+
+    state.health += actualHeal;
+    neighbor.helpReceivedFromThem += 1;
+    const oldState = getRelationshipState(neighbor.relation).name;
+    neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + relationShift));
+    const newState = getRelationshipState(neighbor.relation).name;
+    neighbor.lastAidMemory = actualHeal > 0 ? 'helped-you' : 'could-not-help';
+    addLog(`${tone} You recover ${actualHeal} health from ${neighbor.species}.`);
+    showModal('Allied Aid', `<p>${tone}</p><p><strong>${neighbor.species}</strong> gives you <strong>${actualHeal} health</strong>.</p>`, () => {
+      updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
+      showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
+        updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
+        if (state.actions <= 0) showEventPhase();
+      });
+    });
+  }, n => getRelationshipState(n.relation).name === 'Ally', 'Ask an ally for help', 'Choose which allied tree you are asking to support you.');
 }
 
 function attemptConnection(s) {
@@ -1169,6 +1224,177 @@ function resolveSeedFate(seedCount) {
   return { sprouted, results };
 }
 
+
+function compareConflictPower(neighbor) {
+  const yourPower = state.defense + state.rootZones + state.branches + state.trunk + Math.floor(state.leafClusters / 2);
+  const neighborStage = getNeighborStage(neighbor.stageScore).rank + 1;
+  const theirPower = neighborStage * 2 + Math.max(0, Math.floor(-neighbor.relation / 20));
+  return { yourPower, theirPower };
+}
+
+function queueHostileTreeThreat(neighbor, events) {
+  events.push({ text: `The hostile ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+  state.pendingInteractions.push((done) => {
+    showChoiceModal('Hostile Encroachment', `<p><em>A hostile ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p><p>Will you answer with chemical battle?</p>`, [
+      {
+        label: 'Engage in chemical battle',
+        onChoose: () => {
+          const oldState = getRelationshipState(neighbor.relation).name;
+          const { yourPower, theirPower } = compareConflictPower(neighbor);
+          const swing = yourPower - theirPower + Math.floor(Math.random() * 5) - 2;
+          let body = '';
+          if (swing >= 2) {
+            const stolenSun = Math.max(1, Math.min(3, Math.floor(Math.random() * 3) + 1));
+            const stolenWater = Math.max(0, Math.min(2, Math.floor(Math.random() * 2)));
+            const stolenNutrients = Math.max(1, Math.min(3, Math.floor(Math.random() * 3) + 1));
+            state.sunlight += stolenSun; state.water += stolenWater; state.nutrients += stolenNutrients;
+            neighbor.stageScore = Math.max(0, neighbor.stageScore - 40);
+            neighbor.relation = Math.max(-100, neighbor.relation - 6);
+            body = `Your chemistry turns the contested ground against the ${neighbor.species}. You siphon <strong>${stolenSun} sunlight</strong>, <strong>${stolenWater} water</strong>, and <strong>${stolenNutrients} nutrients</strong>.`;
+          } else if (swing <= -2) {
+            const lostSun = Math.min(state.sunlight, Math.max(1, Math.floor(Math.random() * 3) + 1));
+            const lostWater = Math.min(state.water, Math.max(0, Math.floor(Math.random() * 2)));
+            const lostNutrients = Math.min(state.nutrients, Math.max(1, Math.floor(Math.random() * 3) + 1));
+            state.sunlight -= lostSun; state.water -= lostWater; state.nutrients -= lostNutrients;
+            neighbor.stageScore += 40;
+            neighbor.relation = Math.max(-100, neighbor.relation - 8);
+            body = `The ${neighbor.species} overpowers you in the soil-war, stripping away <strong>${lostSun} sunlight</strong>, <strong>${lostWater} water</strong>, and <strong>${lostNutrients} nutrients</strong>.`;
+          } else {
+            neighbor.relation = Math.max(-100, neighbor.relation - 2);
+            body = `The struggle poisons the ground between you, but neither of you yields. You repel the ${neighbor.species}, for now.`;
+          }
+          const newState = getRelationshipState(neighbor.relation).name;
+          showModal('Chemical Battle', `<p>${body}</p><p><strong>Your resources now:</strong> ☀️ ${state.sunlight} · 💧 ${state.water} · 🌱 ${state.nutrients}</p>`, () => {
+            updateAlliesCount(); updateScore(); updateUI(); render();
+            showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+          });
+        }
+      },
+      {
+        label: 'Endure and conserve strength',
+        onChoose: () => {
+          state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
+          const lostSun = Math.min(state.sunlight, 2);
+          state.sunlight -= lostSun;
+          neighbor.relation = Math.max(-100, neighbor.relation - 4);
+          showModal('Space Lost', `<p>You hold back. The ${neighbor.species} steals some of your light while your roots yield ground.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`, () => {
+            updateScore(); updateUI(); render(); done();
+          });
+        }
+      }
+    ]);
+  });
+}
+
+function queueAllyAidRequest(neighbor, events) {
+  const options = [
+    { kind: 'nutrients', amount: 5, flavor: `The ${neighbor.species}'s bark itches with thousands of crawling mites. Its distress travels through the roots.` },
+    { kind: 'water', amount: 4, flavor: `The ${neighbor.species}'s leaves hang limp in the heat. Its roots find only dust.` },
+    { kind: 'nutrients', amount: 3, flavor: `The ${neighbor.species} has spent itself pushing back blight. Its reserves are thin.` },
+  ];
+  const req = options[Math.floor(Math.random() * options.length)];
+  events.push({ text: `${req.flavor} It asks for ${req.amount} ${req.kind}.`, effect: 'warning' });
+  state.pendingInteractions.push((done) => {
+    showChoiceModal('An Ally Asks for Aid', `<p><em>${req.flavor}</em></p><p>It asks for <strong>${req.amount} ${req.kind}</strong>.</p>`, [
+      {
+        label: 'Give what it needs',
+        onChoose: () => {
+          const oldState = getRelationshipState(neighbor.relation).name;
+          const available = state[req.kind];
+          const given = Math.min(req.amount, available);
+          state[req.kind] -= given;
+          neighbor.helpGivenToThem += 1;
+          neighbor.lastAidMemory = `you-gave-${req.kind}`;
+          let body = '';
+          if (given >= req.amount) {
+            neighbor.relation = Math.min(100, neighbor.relation + 12);
+            body = `You part with <strong>${req.amount} ${req.kind}</strong>. The ${neighbor.species} remembers your generosity, and its roots warm toward you.`;
+          } else {
+            neighbor.relation = Math.min(100, neighbor.relation + 4);
+            body = `You give what you can: <strong>${given} ${req.kind}</strong>. The ${neighbor.species} senses the attempt, though the need is only partly met.`;
+          }
+          const newState = getRelationshipState(neighbor.relation).name;
+          showModal('Aid Given', `<p>${body}</p>`, () => {
+            updateAlliesCount(); updateScore(); updateUI(); render();
+            showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+          });
+        }
+      },
+      {
+        label: 'Withhold your resources',
+        onChoose: () => {
+          const oldState = getRelationshipState(neighbor.relation).name;
+          neighbor.helpRefusedToThem += 1;
+          neighbor.lastAidMemory = 'you-refused';
+          neighbor.relation = Math.max(-100, neighbor.relation - 10);
+          const newState = getRelationshipState(neighbor.relation).name;
+          showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} feels the silence in the roots and grows less friendly.</p>`, () => {
+            updateAlliesCount(); updateScore(); updateUI(); render();
+            showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+          });
+        }
+      }
+    ]);
+  });
+}
+
+function queueChemicalDefenseThreat(events) {
+  const threats = [
+    {
+      title: 'Mite Surge',
+      warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
+      defend: () => {
+        state.defense += 1;
+        return 'You flood your tissues with bitter compounds. The mites retreat before they can do serious harm.';
+      },
+      ignore: () => {
+        state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects');
+        return 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.';
+      }
+    },
+    {
+      title: 'Hungry Browsers',
+      warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and fruit.',
+      defend: () => {
+        state.fruitDefense += 1;
+        return 'You turn your tissues bitter. The browsers recoil and move on.';
+      },
+      ignore: () => {
+        const lost = Math.min(2, Math.max(1, state.developing > 0 ? 2 : 1));
+        state.developing = Math.max(0, state.developing - lost);
+        state.leafClusters = Math.max(0, state.leafClusters - 1);
+        return `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lost} fruit.`;
+      }
+    },
+    {
+      title: 'Spores on the Damp Air',
+      warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
+      defend: () => {
+        state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9);
+        return 'You mobilize defensive chemistry before the infection can take hold.';
+      },
+      ignore: () => {
+        state.health = Math.max(0, state.health - 2); recordDamage(2, 'blight');
+        return 'Blight takes hold. You lose 2 health to spreading infection.';
+      }
+    }
+  ];
+  const threat = threats[Math.floor(Math.random() * threats.length)];
+  events.push({ text: `${threat.warning} Chemical defense could answer this threat.`, effect: 'warning' });
+  state.pendingInteractions.push((done) => {
+    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p>`, [
+      { label: 'Release defensive compounds', onChoose: () => {
+          const body = threat.defend();
+          showModal(threat.title, `<p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
+      }},
+      { label: 'Conserve strength', onChoose: () => {
+          const body = threat.ignore();
+          showModal(threat.title, `<p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
+      }}
+    ]);
+  });
+}
+
 function rollMajorEvent() {
   const weights = MAJOR_EVENTS.map(e => {
     if (e.severity === 'critical') return 0.05;
@@ -1233,14 +1459,16 @@ function rollMinorEvents() {
   const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
   const hostileNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Hostile');
 
-  if (alliedNeighbors.length > 0 && Math.random() < 0.14) {
+  if (alliedNeighbors.length > 0 && Math.random() < 0.16) {
     const target = alliedNeighbors[Math.floor(Math.random() * alliedNeighbors.length)];
-    events.push({ text: `Your ally the ${target.species} is struggling with seasonal stress. A future version should let you spend resources to help directly.`, effect: 'warning' });
+    queueAllyAidRequest(target, events);
   }
-  if (hostileNeighbors.length > 0 && Math.random() < 0.14) {
+  if (hostileNeighbors.length > 0 && Math.random() < 0.18) {
     const target = hostileNeighbors[Math.floor(Math.random() * hostileNeighbors.length)];
-    state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
-    events.push({ text: `The hostile ${target.species} is crowding your light and worsening the shade around you.`, effect: 'warning' });
+    queueHostileTreeThreat(target, events);
+  }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.16) {
+    queueChemicalDefenseThreat(events);
   }
 
   if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) {
@@ -1398,8 +1626,10 @@ function showEventPhase() {
     ${majorHtml}
     ${minorHtml}
   `, () => {
-    if (maybeShowHealthWarning(advanceTurn)) return;
-    advanceTurn();
+    processPendingInteractions(() => {
+      if (maybeShowHealthWarning(advanceTurn)) return;
+      advanceTurn();
+    });
   });
 }
 
