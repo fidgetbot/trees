@@ -220,29 +220,52 @@ const SPECIES = {
   },
 };
 
-// Updated actions - removed fruit/seeds as manual actions
+// Cost scaling: base costs multiply by stage rank (Sapling=×2, Small Tree=×3, etc.)
+function getScaledCost(baseCost) {
+  const stage = computeCurrentLifeStage();
+  const multiplier = Math.max(1, stage.rank);
+  return {
+    sunlight: Math.floor((baseCost.sunlight || 0) * multiplier),
+    water: Math.floor((baseCost.water || 0) * multiplier),
+    nutrients: Math.floor((baseCost.nutrients || 0) * multiplier),
+  };
+}
+
+// Updated actions with categories, icons, and base costs (scaled by stage)
 const ACTIONS = [
-  { key: 'growBranch', name: 'Grow Branch', help: 'Adds woody structure and supports future leaves and flowers.', cost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
-  { key: 'extendRoot', name: 'Extend Root', help: 'Expands nutrient access, storm stability, and fungal networking reach.', cost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
-  { key: 'growLeaves', name: 'Grow Leaves', help: 'Increases sunlight collection and helps recover from leaf loss.', cost: { sunlight: 1, water: 1, nutrients: 1 }, effect: s => { s.leafClusters += 1; } },
-  { key: 'flower', name: 'Produce Flower', help: 'Creates blossoms that can be pollinated into fruit in spring.', cost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
-  { key: 'thicken', name: 'Thicken Trunk', help: 'Stores more water, improves health, and helps survive drought and storms.', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
-  // Chemical Defense is handled via event popups, not regular actions
-  // { key: 'defense', name: 'Chemical Defense', help: 'Makes leaves and fruit less appealing to pests, animals, and rivals.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
-  { key: 'connect', name: 'Seek Root Connection', help: 'Attempt underground friendship with a chosen neighboring tree.', cost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
-  { key: 'requestHelp', name: 'Request Help from Allies', help: 'Call on allied trees to send resources and resilience through the network. Only available when injured.', cost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
-  { key: 'taproot', name: 'Deepen Taproot', help: 'Drive a deeper anchor into the soil, improving drought resilience and water storage.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.rootZones += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
-  { key: 'canopy', name: 'Expand Canopy', help: 'Spread a broader crown for more sunlight, at the cost of exposure.', cost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.leafClusters += 2; s.branches += 1; } },
-  { key: 'aidAlly', name: 'Offer Aid to Ally', help: 'Proactively send resources to an ally and strengthen the relationship.', cost: { sunlight: 0, water: 1, nutrients: 2 }, prereq: s => s.allies >= 1, effect: s => offerAidToAlly(s) },
-  { key: 'bark', name: 'Fortify Bark', help: 'Lay down denser protective tissue to resist insects, fire, and woodpeckers.', cost: { sunlight: 4, water: 1, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
-  { key: 'shadeRival', name: 'Shade Rival', help: 'Lean into contested light and suppress a hostile neighbor.', cost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => shadeRivalAction(s) },
-  { key: 'rhizosphere', name: 'Enrich Rhizosphere', help: 'Invest in the soil food web for future nutrient gain.', cost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => { s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.25; } },
-  { key: 'massFlower', name: 'Mass Flowering', help: 'Pour resources into a burst of blossoms for a risky reproductive surge.', cost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; } },
-  { key: 'nurtureOffspring', name: 'Nurture Offspring', help: 'Send reserves toward seedlings and improve lineage survival.', cost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => s.offspringTrees >= 1 || s.seeds >= 1, effect: s => { s.offspringPool += 1; s.offspringTrees += 1; } },
-  { key: 'shelterGrove', name: 'Shelter the Grove', help: 'Spend resources to brace yourself and your allies against the next hardship.', cost: { sunlight: 4, water: 3, nutrients: 3 }, effect: s => { s.eventModifiers.shelter = 1; } },
-  { key: 'rootDominion', name: 'Root Dominion', help: 'Assert overwhelming territorial pressure on all hostile trees nearby.', cost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => rootDominionAction(s) },
-  { key: 'mastYear', name: 'Mast Year', help: 'An immense reproductive push that floods the canopy with flowers and future seed.', cost: { sunlight: 8, water: 4, nutrients: 6 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
+  // GROWTH - Basic structural growth
+  { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds woody structure and supports future leaves and flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
+  { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Expands nutrient access, storm stability, and fungal networking reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
+  { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection. Hidden at Small Tree+ (use Expand Canopy instead).', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
+  { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
+  { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Drive a deeper anchor into the soil, improving drought resilience and water storage.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.rootZones += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
+  { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight. Replaces Grow Leaves at Small Tree+.', baseCost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.leafClusters += 2; s.branches += 1; } },
+
+  // DEFENSE - Protection and resilience
+  { key: 'bark', name: 'Fortify Bark', icon: '🛡️', category: 'defense', help: 'Lay down denser protective tissue to resist insects, fire, and woodpeckers.', baseCost: { sunlight: 4, water: 1, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
+  { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Invest in the soil food web for future nutrient gain.', baseCost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => { s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.25; } },
+  { key: 'shelterGrove', name: 'Shelter the Grove', icon: '⛺', category: 'defense', help: 'Spend resources to brace yourself and your allies against the next hardship.', baseCost: { sunlight: 4, water: 3, nutrients: 3 }, effect: s => { s.eventModifiers.shelter = 1; } },
+
+  // DIPLOMACY - Interactions with other trees
+  { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
+  { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Proactively send resources to an ally and strengthen the relationship.', baseCost: { sunlight: 0, water: 1, nutrients: 2 }, prereq: s => s.allies >= 1, effect: s => offerAidToAlly(s) },
+  { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience. Only when injured.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
+  { key: 'shadeRival', name: 'Shade Rival', icon: '☂️', category: 'diplomacy', help: 'Lean into contested light and suppress a hostile neighbor.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => shadeRivalAction(s) },
+  { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Assert overwhelming territorial pressure on all hostile trees nearby.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => rootDominionAction(s) },
+
+  // REPRODUCTION - Flowers, fruit, and offspring
+  { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
+  { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Pour resources into a burst of blossoms for a risky reproductive surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; } },
+  { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Send reserves toward seedlings and improve lineage survival.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => s.offspringTrees >= 1 || s.seeds >= 1, effect: s => { s.offspringPool += 1; s.offspringTrees += 1; } },
+  { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'An immense reproductive push that floods the canopy with flowers and future seed.', baseCost: { sunlight: 8, water: 4, nutrients: 6 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
 ];
+
+const CATEGORY_NAMES = {
+  growth: '🌱 Growth',
+  defense: '🛡️ Defense',
+  diplomacy: '🤝 Diplomacy',
+  reproduction: '🌸 Reproduction',
+};
 
 const state = {
   started: false,
@@ -890,21 +913,32 @@ function getAffordableActions() {
 function renderActions() {
   els.actionsList.innerHTML = '';
 
-  const availableActions = [];
+  const currentStageName = computeCurrentLifeStage().name;
+  const currentStageRank = computeCurrentLifeStage().rank;
+
+  // Group actions by category
+  const categories = { growth: [], defense: [], diplomacy: [], reproduction: [] };
   const futureActions = [];
 
   ACTIONS.forEach(action => {
+    // Check if action should be hidden at current stage
+    if (action.hideAt) {
+      const hideStage = LIFE_STAGES.find(s => s.name === action.hideAt);
+      if (hideStage && currentStageRank >= hideStage.rank) return;
+    }
+
+    const scaledCost = getScaledCost(action.baseCost);
     const prereqOk = action.prereq ? action.prereq(state) : true;
-    const affordable = canAfford(action.cost);
+    const affordable = canAfford(scaledCost);
     const unlocked = isActionUnlocked(action.key);
     const currentSeasonName = currentSeason().name;
     const allowedSeasons = SEASONAL_ACTIONS[action.key];
     const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
     const usable = prereqOk && affordable && state.actions > 0 && !seasonLocked && unlocked;
 
-    const sunRequired = action.cost.sunlight || 0;
-    const waterRequired = action.cost.water || 0;
-    const nutRequired = action.cost.nutrients || 0;
+    const sunRequired = scaledCost.sunlight || 0;
+    const waterRequired = scaledCost.water || 0;
+    const nutRequired = scaledCost.nutrients || 0;
     const sunEnough = state.sunlight >= sunRequired;
     const waterEnough = state.water >= waterRequired;
     const nutEnough = state.nutrients >= nutRequired;
@@ -913,27 +947,31 @@ function renderActions() {
     const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
 
     let costsHtml = '<div class="action-costs">';
-    if (sunRequired > 0) costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired} <span class="current">(${state.sunlight})</span></span>`;
-    if (waterRequired > 0) costsHtml += `<span class="cost ${waterClass}">💧${waterRequired} <span class="current">(${state.water})</span></span>`;
-    if (nutRequired > 0) costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired} <span class="current">(${state.nutrients})</span></span>`;
+    if (sunRequired > 0) costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired}</span>`;
+    if (waterRequired > 0) costsHtml += `<span class="cost ${waterClass}">💧${waterRequired}</span>`;
+    if (nutRequired > 0) costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired}</span>`;
     costsHtml += '</div>';
 
+    const actionData = { action, scaledCost, costsHtml, sunRequired, waterRequired, nutRequired };
+
     if (usable) {
-      availableActions.push({ action, costsHtml });
+      if (categories[action.category]) {
+        categories[action.category].push(actionData);
+      }
     } else {
       let reason = 'Unavailable';
       if (!unlocked) reason = `Unlocks at ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'later stage'}`;
       else if (seasonLocked) reason = `Only available in ${allowedSeasons.join('/')}`;
       else if (!prereqOk) {
         if (action.key === 'connect') reason = 'Needs 3 root zones';
-        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'Needs at least 1 ally' : 'Only available when injured (health below max)';
+        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'Needs at least 1 ally' : 'Only available when injured';
         else reason = 'Prerequisites not met';
-      } else if (!affordable || state.actions <= 0) reason = 'Not enough resources right now';
-      futureActions.push({ action, costsHtml, reason });
+      } else if (!affordable || state.actions <= 0) reason = 'Not enough resources';
+      futureActions.push({ ...actionData, reason });
     }
   });
 
-  if (state.actions > 0 && availableActions.length === 0) {
+  if (state.actions > 0 && Object.values(categories).every(arr => arr.length === 0)) {
     const warning = document.createElement('div');
     warning.className = 'nothing-affordable';
     warning.innerHTML = `<strong>⚠️ Nothing Usable</strong>No action is currently possible. The season will advance automatically.`;
@@ -943,44 +981,64 @@ function renderActions() {
         showEventPhase();
       }
     }, 700);
+    return;
   }
 
-  availableActions.forEach(({ action, costsHtml }) => {
-    const card = document.createElement('div');
-    card.className = 'action-card';
-    card.innerHTML = `
-      <div class="action-header">
-        <h4>${action.name}</h4>
-      </div>
-      <p class="action-help">${action.help}</p>
-      ${costsHtml}`;
-    const btn = document.createElement('button');
-    btn.textContent = 'Use Action';
-    btn.onclick = () => {
-      spend(action.cost);
-      action.effect(state);
-      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
-      showFeedback(`${action.name} succeeded!`, 'success');
-      addLog(`Action: ${action.name}`);
-      updateScore();
-      updateUI();
-      render();
-      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
+  // Render categories
+  Object.entries(categories).forEach(([catKey, catActions]) => {
+    if (catActions.length === 0) return;
+
+    const details = document.createElement('details');
+    details.className = 'action-category';
+    details.open = true;
+    details.innerHTML = `<summary class="category-header">${CATEGORY_NAMES[catKey]} (${catActions.length})</summary>`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'category-actions';
+
+    catActions.forEach(({ action, scaledCost, costsHtml }) => {
+      const card = document.createElement('div');
+      card.className = 'action-card';
+      card.innerHTML = `
+        <div class="action-header">
+          <span class="action-icon">${action.icon}</span>
+          <h4>${action.name}</h4>
+        </div>
+        <p class="action-help">${action.help}</p>
+        ${costsHtml}`;
+
+      const btn = document.createElement('button');
+      btn.textContent = 'Use Action';
+      btn.onclick = () => {
+        spend(scaledCost);
+        action.effect(state);
+        if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
+        showFeedback(`${action.name} succeeded!`, 'success');
+        addLog(`Action: ${action.name}`);
+        updateScore();
+        updateUI();
+        render();
+        if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
+          if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
+        }
+        if (maybeTriggerActionMilestone(action.key)) return;
         if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-      }
-      if (maybeTriggerActionMilestone(action.key)) return;
-      if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-      renderActions();
-      if (state.actions <= 0) { showEventPhase(); return; }
-    };
-    card.appendChild(btn);
-    els.actionsList.appendChild(card);
+        renderActions();
+        if (state.actions <= 0) { showEventPhase(); return; }
+      };
+      card.appendChild(btn);
+      wrap.appendChild(card);
+    });
+
+    details.appendChild(wrap);
+    els.actionsList.appendChild(details);
   });
 
+  // Future actions (collapsed)
   if (futureActions.length > 0) {
     const details = document.createElement('details');
     details.className = 'future-actions';
-    details.innerHTML = `<summary>Future Growth (${futureActions.length})</summary>`;
+    details.innerHTML = `<summary>🔒 Future Growth (${futureActions.length})</summary>`;
     const wrap = document.createElement('div');
     wrap.className = 'future-actions-list';
     futureActions.forEach(({ action, costsHtml, reason }) => {
@@ -988,6 +1046,7 @@ function renderActions() {
       card.className = 'action-card disabled';
       card.innerHTML = `
         <div class="action-header">
+          <span class="action-icon">${action.icon}</span>
           <h4>${action.name}</h4>
           <span class="prereq-missing">Locked</span>
         </div>
@@ -1000,7 +1059,8 @@ function renderActions() {
     els.actionsList.appendChild(details);
   }
 
-  if (state.actions > 0 && availableActions.length > 0) {
+  // Finish turn button
+  if (state.actions > 0 && Object.values(categories).some(arr => arr.length > 0)) {
     const endBtn = document.createElement('button');
     endBtn.className = 'finish-turn-btn';
     endBtn.textContent = 'Finish Turn Early →';
