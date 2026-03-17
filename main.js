@@ -71,7 +71,7 @@ function currentStageRequirements() {
       ];
     case 'Sprout':
       return [
-        { key: 'time', label: 'Live through 1 turn as a sprout', met: state.turnsInStage >= 1 },
+        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= 3 },
         { key: 'roots', label: 'Reach 2 root zones', met: state.rootZones >= 2 },
         { key: 'leaves', label: 'Grow 2 leaf clusters', met: state.leafClusters >= 2 },
       ];
@@ -82,12 +82,12 @@ function currentStageRequirements() {
       ];
     case 'Sapling':
       return [
-        { key: 'time', label: 'Live 1 year', met: state.turnsInStage >= turnsForYears(1) },
+        { key: 'time', label: 'Live 2 years', met: state.turnsInStage >= turnsForYears(2) },
         { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
       ];
     case 'Small Tree':
       return [
-        { key: 'time', label: 'Live 2 years', met: state.turnsInStage >= turnsForYears(2) },
+        { key: 'time', label: 'Live 5 years', met: state.turnsInStage >= turnsForYears(5) },
         { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
       ];
     case 'Mature Tree':
@@ -903,10 +903,16 @@ function isActionUnlocked(actionKey) {
 
 function getAffordableActions() {
   return ACTIONS.filter(action => {
+    if (action.hideAt) {
+      const hideStage = LIFE_STAGES.find(s => s.name === action.hideAt);
+      if (hideStage && computeCurrentLifeStage().rank >= hideStage.rank) return false;
+    }
     const prereqOk = action.prereq ? action.prereq(state) : true;
-    const affordable = canAfford(action.cost);
+    const affordable = canAfford(getScaledCost(action.baseCost));
     const unlocked = isActionUnlocked(action.key);
-    return prereqOk && affordable && unlocked;
+    const allowedSeasons = SEASONAL_ACTIONS[action.key];
+    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeason().name);
+    return prereqOk && affordable && unlocked && !seasonLocked;
   });
 }
 
