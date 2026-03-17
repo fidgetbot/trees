@@ -82,7 +82,7 @@ function currentStageRequirements() {
       ];
     case 'Sapling':
       return [
-        { key: 'time', label: 'Live 4 years', met: state.turnsInStage >= turnsForYears(4) },
+        { key: 'time', label: 'Live 2 years', met: state.turnsInStage >= turnsForYears(2) },
         { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
       ];
     case 'Small Tree':

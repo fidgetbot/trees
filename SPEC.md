@@ -12,7 +12,7 @@ Trees progress automatically through stages based on in-game time and activity. 
 | **Sprout** | After first action (grow roots) | *"Your shell cracks. You push outward into the unknown."* | First leaves, basic photosynthesis | Drought, herbivory |
 | **Seedling** | 1 season + 2 root zones + 2 leaf growths | *"Your taproot finds rich soil. You feel sturdy."* | Root extension, fungal connections | Aphids, browsing animals |
 | **Sapling** | 4 seasons + survive 1 major event | *"Your woody fibers harden. You have become a Sapling!"* | Branch growth, chemical defense | Wind, competition |
-| **Small Tree** | 4 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
+| **Small Tree** | 2 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
 | **Mature Tree** | 5 years + first fruit | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms |
 | **Ancient** | 10 years + survive 3 major events + 2 allies | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
 
