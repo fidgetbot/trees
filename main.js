@@ -227,7 +227,8 @@ const ACTIONS = [
   { key: 'growLeaves', name: 'Grow Leaves', help: 'Increases sunlight collection and helps recover from leaf loss.', cost: { sunlight: 1, water: 1, nutrients: 1 }, effect: s => { s.leafClusters += 1; } },
   { key: 'flower', name: 'Produce Flower', help: 'Creates blossoms that can be pollinated into fruit in spring.', cost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
   { key: 'thicken', name: 'Thicken Trunk', help: 'Stores more water, improves health, and helps survive drought and storms.', cost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
-  { key: 'defense', name: 'Chemical Defense', help: 'Makes leaves and fruit less appealing to pests, animals, and rivals.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
+  // Chemical Defense is handled via event popups, not regular actions
+  // { key: 'defense', name: 'Chemical Defense', help: 'Makes leaves and fruit less appealing to pests, animals, and rivals.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
   { key: 'connect', name: 'Seek Root Connection', help: 'Attempt underground friendship with a chosen neighboring tree.', cost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
   { key: 'requestHelp', name: 'Request Help from Allies', help: 'Call on allied trees to send resources and resilience through the network.', cost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1, effect: s => requestHelpFromAllies(s) },
   { key: 'taproot', name: 'Deepen Taproot', help: 'Drive a deeper anchor into the soil, improving drought resilience and water storage.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.rootZones += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
@@ -1395,6 +1396,11 @@ function queueAllyAidRequest(neighbor, events) {
 }
 
 function queueChemicalDefenseThreat(events) {
+  const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
+  const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight &&
+                           state.water >= DEFENSE_COST.water &&
+                           state.nutrients >= DEFENSE_COST.nutrients;
+
   const threats = [
     {
       title: 'Mite Surge',
@@ -1436,18 +1442,37 @@ function queueChemicalDefenseThreat(events) {
     }
   ];
   const threat = threats[Math.floor(Math.random() * threats.length)];
-  events.push({ text: `${threat.warning} Chemical defense could answer this threat.`, effect: 'warning' });
+  const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
+  const affordText = canAffordDefense ? '(You have enough)' : '(Not enough resources!)';
+  events.push({ text: `${threat.warning} Chemical defense could answer this threat. Cost: ${costText}`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
-    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p>`, [
-      { label: 'Release defensive compounds', onChoose: () => {
+    const choices = [
+      {
+        label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) - CANNOT AFFORD`,
+        onChoose: () => {
+          if (!canAffordDefense) {
+            // Shouldn't happen due to UI, but handle gracefully
+            const body = threat.ignore();
+            showModal(threat.title, `<p>You lack the resources to defend yourself.</p><p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
+            return;
+          }
+          // Deduct the cost
+          state.sunlight -= DEFENSE_COST.sunlight;
+          state.water -= DEFENSE_COST.water;
+          state.nutrients -= DEFENSE_COST.nutrients;
           const body = threat.defend();
-          showModal(threat.title, `<p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
-      }},
-      { label: 'Conserve strength', onChoose: () => {
+          showModal(threat.title, `<p>${body}</p><p><em>Spent: ${costText}</em></p>`, () => { updateScore(); updateUI(); render(); done(); });
+        }
+      },
+      {
+        label: 'Conserve strength',
+        onChoose: () => {
           const body = threat.ignore();
           showModal(threat.title, `<p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
-      }}
-    ]);
+        }
+      }
+    ];
+    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText} ${affordText}</p>`, choices);
   });
 }
 
