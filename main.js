@@ -169,13 +169,6 @@ function tryAdvanceLifeStage(onContinue) {
   const next = getNextStage();
   if (!next) return false;
   const reqs = currentStageRequirements();
-  // Debug logging for all stages
-  const currentName = computeCurrentLifeStage().name;
-  if (['Sapling', 'Small Tree', 'Mature Tree'].includes(currentName)) {
-    const allMet = reqs.every(r => r.met);
-    const unmet = reqs.filter(r => !r.met).map(r => r.key).join(',');
-    addLog(`DEBUG: ${currentName} - turns:${state.turnsInStage}, branches:${state.branches}, reqsMet:${allMet}, unmet:[${unmet}]`);
-  }
   if (!reqs.length || reqs.every(r => r.met)) {
     state.lifeStage = next;
     resetStageProgressCounters();
@@ -237,7 +230,7 @@ const ACTIONS = [
   // Chemical Defense is handled via event popups, not regular actions
   // { key: 'defense', name: 'Chemical Defense', help: 'Makes leaves and fruit less appealing to pests, animals, and rivals.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.defense += 1; s.fruitDefense += 1; } },
   { key: 'connect', name: 'Seek Root Connection', help: 'Attempt underground friendship with a chosen neighboring tree.', cost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
-  { key: 'requestHelp', name: 'Request Help from Allies', help: 'Call on allied trees to send resources and resilience through the network.', cost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1, effect: s => requestHelpFromAllies(s) },
+  { key: 'requestHelp', name: 'Request Help from Allies', help: 'Call on allied trees to send resources and resilience through the network. Only available when injured.', cost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
   { key: 'taproot', name: 'Deepen Taproot', help: 'Drive a deeper anchor into the soil, improving drought resilience and water storage.', cost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.rootZones += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
   { key: 'canopy', name: 'Expand Canopy', help: 'Spread a broader crown for more sunlight, at the cost of exposure.', cost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.leafClusters += 2; s.branches += 1; } },
   { key: 'aidAlly', name: 'Offer Aid to Ally', help: 'Proactively send resources to an ally and strengthen the relationship.', cost: { sunlight: 0, water: 1, nutrients: 2 }, prereq: s => s.allies >= 1, effect: s => offerAidToAlly(s) },
@@ -572,9 +565,11 @@ function spend(cost) {
 
 function makeStartingNeighbors() {
   const speciesNames = Object.keys(SPECIES);
+  // Shuffle species and pick first 4 (or cycle if fewer than 4)
+  const shuffled = [...speciesNames].sort(() => Math.random() - 0.5);
   const positions = [0, 1, 3, 4];
   return positions.map((slot, i) => {
-    const species = speciesNames[Math.floor(Math.random() * speciesNames.length)];
+    const species = shuffled[i % shuffled.length];
     const stageChoices = ['Sprout', 'Seedling', 'Sapling', 'Small Tree', 'Mature Tree'];
     const stageName = stageChoices[Math.floor(Math.random() * stageChoices.length)];
     const stage = LIFE_STAGES.find(x => x.name === stageName) || LIFE_STAGES[1];
@@ -931,7 +926,7 @@ function renderActions() {
       else if (seasonLocked) reason = `Only available in ${allowedSeasons.join('/')}`;
       else if (!prereqOk) {
         if (action.key === 'connect') reason = 'Needs 3 root zones';
-        else if (action.key === 'requestHelp') reason = 'Needs at least 1 ally';
+        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'Needs at least 1 ally' : 'Only available when injured (health below max)';
         else reason = 'Prerequisites not met';
       } else if (!affordable || state.actions <= 0) reason = 'Not enough resources right now';
       futureActions.push({ action, costsHtml, reason });
@@ -1359,7 +1354,8 @@ function queueAllyAidRequest(neighbor, events) {
   const req = options[Math.floor(Math.random() * options.length)];
   events.push({ text: `${req.flavor} It asks for ${req.amount} ${req.kind}.`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
-    showChoiceModal('An Ally Asks for Aid', `<p><em>${req.flavor}</em></p><p>It asks for <strong>${req.amount} ${req.kind}</strong>.</p>`, [
+    const resIcon = req.kind === 'nutrients' ? '🌱' : req.kind === 'water' ? '💧' : '☀️';
+    showChoiceModal('An Ally Asks for Aid', `<p><em>${req.flavor}</em></p><p>It asks for <strong>${req.amount} ${resIcon} ${req.kind}</strong>.</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
       {
         label: 'Give what it needs',
         onChoose: () => {
@@ -1457,10 +1453,13 @@ function queueChemicalDefenseThreat(events) {
       {
         label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) - CANNOT AFFORD`,
         onChoose: () => {
-          if (!canAffordDefense) {
-            // Shouldn't happen due to UI, but handle gracefully
+          // Re-check resources at time of click (in case they changed)
+          const hasResourcesNow = state.sunlight >= DEFENSE_COST.sunlight &&
+                                  state.water >= DEFENSE_COST.water &&
+                                  state.nutrients >= DEFENSE_COST.nutrients;
+          if (!hasResourcesNow) {
             const body = threat.ignore();
-            showModal(threat.title, `<p>You lack the resources to defend yourself.</p><p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
+            showModal(threat.title, `<p>You no longer have enough resources to defend yourself.</p><p>${body}</p>`, () => { updateScore(); updateUI(); render(); done(); });
             return;
           }
           // Deduct the cost
@@ -1479,7 +1478,7 @@ function queueChemicalDefenseThreat(events) {
         }
       }
     ];
-    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText} ${affordText}</p>`, choices);
+    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p>${affordText}</p>`, choices);
   });
 }
 
@@ -2048,6 +2047,16 @@ function drawTree(x, groundY, isPlayer, neighbor) {
     ctx.beginPath();
     ctx.ellipse(x, groundY - trunkH - 6, 12, 10, 0, 0, Math.PI * 2);
     ctx.fill();
+  } else if (stageName === 'Sapling') {
+    // Sapling: taller thin trunk, small proportional canopy
+    const trunkH = 55 * scale;
+    const trunkW = 6 * scale;
+    ctx.fillRect(x - trunkW / 2, groundY - trunkH, trunkW, trunkH);
+    // Small canopy - leaves add less bulk
+    const saplingCanopyR = (10 + Math.max(0, leafClusters) * 0.8) * scale;
+    ctx.beginPath();
+    ctx.ellipse(x, groundY - trunkH - saplingCanopyR * 0.3, saplingCanopyR, saplingCanopyR * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else {
     const trunkH = (48 + trunk * 14) * scale;
     const trunkW = (10 + trunk * 3) * scale;
@@ -2063,8 +2072,10 @@ function drawTree(x, groundY, isPlayer, neighbor) {
       ctx.stroke();
     }
     if (leafClusters > 0) {
+      // Slower canopy growth - leaves add less radius
+      const slowCanopyR = (12 + Math.max(0, leafClusters) * 1.2) * scale;
       ctx.beginPath();
-      ctx.ellipse(x, groundY - trunkH - canopyR * 0.25, canopyR, canopyR * 0.85, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, groundY - trunkH - slowCanopyR * 0.25, slowCanopyR, slowCanopyR * 0.85, 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }
