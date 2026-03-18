@@ -45,12 +45,33 @@ Nudges appear randomly every 3–4 turns until growth occurs.
 
 ## Game Structure
 
-- **Game Length:** Endless until death (of original tree and all offspring)
+- **Game Length:** Endless lineage play until no offspring remain
 - **Turn Structure:** 3 turns per season, 4 seasons per year (12 turns/year)
 - **Phases per Turn:**
   1. **Resource Phase:** Pop-up shows resources collected, click to dismiss
   2. **Action Phase:** Player takes actions via interface
   3. **Event Phase:** Pop-up shows event, click to dismiss
+
+## Current Build Status
+
+This spec reflects the current playable build in `main.js`, not just the original design intent.
+
+### Implemented now
+- Full seasonal loop with resource collection, action phase, and event phase
+- Automatic life-stage progression based on stage-specific requirements
+- Six playable fruit-tree species: Plum, Peach, Apricot, Pear, Citrus, Cherry
+- Four persistent neighboring trees with relationship states: Ally, Friendly, Neutral, Rival, Hostile
+- Targeted diplomacy actions: root connection, aid ally, request help, shade rival, root dominion
+- Reproduction chain: flowers → pollinated flowers → developing fruit → seeds → spring seed fate → offspring trees
+- Warning/response fruit-threat chain in summer before seed maturity
+- Succession system where lineage continues automatically through surviving offspring
+- Live scoring, victory popup on reaching Ancient, and continued endless play after victory
+
+### Not fully implemented / simplified
+- Seasonal action locking is currently implemented only for **Produce Flower** in **Spring**
+- Succession does **not** currently let the player choose among offspring; the lineage continues automatically
+- Neighbor life stages are used mainly for scaling/visualization rather than a fully simulated parallel life cycle
+- There is no separate high-score table or leaderboard yet
 
 ## Seasonal Action Locks
 
@@ -66,8 +87,8 @@ Certain actions are restricted by season to reflect real tree biology:
 ## Action Economy
 
 - **Base Actions:** 3 per turn
-- **Bonus Actions:** +1 for every 5 total resources collected
-- **Action Costs:**
+- **Bonus Actions:** None currently implemented
+- **Action Costs:** Base costs are multiplied by current life-stage rank (minimum ×1), so later-stage actions become more expensive as the tree grows
 
 | Action | Sunlight | Water | Nutrients | Notes |
 |--------|----------|-------|-----------|-------|
@@ -139,7 +160,7 @@ Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood 
 - Fruit attracts birds strongly
 - Pollinators: bumblebees, mason bees, butterflies
 
-Neighbor tree species are randomized from these fruiting trees at game start.
+The player chooses one of these fruiting trees at game start. Four neighboring trees are then randomized from the same fruiting species pool.
 
 ## Tree Diplomacy & Competition
 
@@ -259,12 +280,14 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 **Design Rule:** Important reproductive threats should usually appear as **warning → response → outcome** chains rather than surprise losses.
 
 **Succession:**
-- On death, pick one viable offspring to continue as
-- Other offspring become AI-controlled allies
+- On death, if at least one offspring remains, the lineage continues automatically as a surviving offspring
+- Succession currently resets the tree to a reduced-but-living descendant state rather than offering a manual offspring choice
+- Surviving offspring contribute to ally count and can appear in the grove visualization
 
 **Game End:**
-- When original tree AND all offspring die (any cause: lack of resources, fire, disease, etc.)
-- Mode: Endless survival with high score tracking
+- When the current tree dies and no offspring remain in the lineage pool
+- Mode: Endless survival with live score display
+- Reaching **Ancient** triggers a victory milestone popup, but play continues afterward
 
 ## Scoring
 
