@@ -1142,8 +1142,8 @@ function renderActions() {
       card.className = 'action-card';
       card.innerHTML = `
         <div class="action-header">
-          <span class="action-icon">${action.icon}</span>
           <h4>${action.name}</h4>
+          <span class="action-icon">${action.icon}</span>
         </div>
         <p class="action-help">${action.help}</p>
         ${costsHtml}`;
@@ -1187,8 +1187,8 @@ function renderActions() {
       card.className = 'action-card disabled';
       card.innerHTML = `
         <div class="action-header">
-          <span class="action-icon">${action.icon}</span>
           <h4>${action.name}</h4>
+          <span class="action-icon">${action.icon}</span>
           <span class="prereq-missing">Locked</span>
         </div>
         <p class="action-help">${action.help}</p>
