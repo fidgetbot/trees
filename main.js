@@ -1101,13 +1101,13 @@ function renderActions() {
       }
     } else {
       let reason = 'Unavailable';
-      if (!unlocked) reason = `Unlocks at ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'later stage'}`;
-      else if (seasonLocked) reason = `Only available in ${allowedSeasons.join('/')}`;
+      if (!unlocked) reason = `Awakens at the ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
+      else if (seasonLocked) reason = `Best attempted in ${allowedSeasons.join('/')}`;
       else if (!prereqOk) {
-        if (action.key === 'connect') reason = 'Needs 3 root zones';
-        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'Needs at least 1 ally' : 'Only available when injured';
-        else reason = 'Prerequisites not met';
-      } else if (!affordable || state.actions <= 0) reason = 'Not enough resources';
+        if (action.key === 'connect') reason = 'Your roots must reach deeper first';
+        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'You need an ally to call on' : 'You would only ask for help when wounded';
+        else reason = 'The moment is not right yet';
+      } else if (!affordable || state.actions <= 0) reason = 'You lack the resources right now';
       futureActions.push({ ...actionData, reason });
     }
   });
@@ -1115,7 +1115,7 @@ function renderActions() {
   if (state.actions > 0 && Object.values(categories).every(arr => arr.length === 0)) {
     const warning = document.createElement('div');
     warning.className = 'nothing-affordable';
-    warning.innerHTML = `<strong>⚠️ Nothing Usable</strong>No action is currently possible. The season will advance automatically.`;
+    warning.innerHTML = `<strong>⚠️ No action available</strong>Your tree can do nothing more this turn. Time will move on.`;
     els.actionsList.appendChild(warning);
     setTimeout(() => {
       if (els.modal.classList.contains('hidden')) {
@@ -1512,7 +1512,7 @@ function queueHostileTreeThreat(neighbor, events) {
       `<p><em>A hostile ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p>` +
       `<p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`, [
       {
-        label: canAffordDefense ? `Chemical battle (${costText})` : `Chemical battle (${costText}) - CANNOT AFFORD`,
+        label: canAffordDefense ? `Chemical battle (${costText})` : `Chemical battle (${costText}) — too costly right now`,
         onChoose: () => {
           // Re-check resources at click time
           const hasResources = state.sunlight >= DEFENSE_COST.sunlight &&
@@ -1567,7 +1567,7 @@ function queueHostileTreeThreat(neighbor, events) {
         }
       },
       {
-        label: canAffordDiplomacy ? `Attempt diplomacy (${diploText})` : `Attempt diplomacy (${diploText}) - CANNOT AFFORD`,
+        label: canAffordDiplomacy ? `Attempt diplomacy (${diploText})` : `Attempt diplomacy (${diploText}) — too costly right now`,
         onChoose: () => {
           // Re-check resources at click time
           const hasResources = state.sunlight >= DIPLOMACY_COST.sunlight &&
@@ -1788,12 +1788,12 @@ function queueChemicalDefenseThreat(events) {
   }
   const threat = threats[Math.floor(Math.random() * threats.length)];
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
-  const affordText = canAffordDefense ? '(You have enough)' : '(Not enough resources!)';
+  const affordText = canAffordDefense ? 'You can afford this response.' : 'You do not have enough stored resources for this response.';
   events.push({ text: `${threat.warning} Chemical defense could answer this threat. Cost: ${costText}`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
     const choices = [
       {
-        label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) - CANNOT AFFORD`,
+        label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) — too costly right now`,
         onChoose: () => {
           // Re-check resources at time of click (in case they changed)
           const hasResourcesNow = state.sunlight >= DEFENSE_COST.sunlight &&
@@ -1820,7 +1820,7 @@ function queueChemicalDefenseThreat(events) {
         }
       }
     ];
-    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p>${affordText}</p>`, choices);
+    showChoiceModal(threat.title, `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`, choices);
   });
 }
 
