@@ -64,6 +64,9 @@ This spec reflects the current playable build in `main.js`, not just the origina
 - Targeted diplomacy actions: root connection, aid ally, request help, shade rival, root dominion
 - Reproduction chain: flowers → pollinated flowers → developing fruit → seeds → spring seed fate → offspring trees
 - Warning/response fruit-threat chain in summer before seed maturity
+- Warning/response/delayed-consequence chemical-defense threat chain for pests and blight
+- Ally health tracking, repeated ally crisis requests, and ally death when neglected too long
+- Nutrient-heavy growth/defense choices that act as late-game sinks
 - Succession choice on death when offspring remain, with multiple heir archetypes to continue the lineage
 - Local grove-record leaderboard saved in browser storage
 - Live scoring, victory popup on reaching Ancient, and continued endless play after victory
@@ -72,6 +75,7 @@ This spec reflects the current playable build in `main.js`, not just the origina
 - Seasonal action locking is implemented for flowering actions; most other actions remain year-round
 - Succession choices are currently archetypal heirs rather than fully simulated per-offspring individuals
 - Neighbor life stages are used mainly for scaling/visualization rather than a fully simulated parallel life cycle
+- Ally crises are tracked consistently, but allies are still simplified characters rather than full mirror copies of the player tree
 - There is no online/shared leaderboard yet; records are local to the browser
 
 ## Seasonal Action Locks
@@ -107,17 +111,19 @@ Resources accumulate turn-to-turn (stored in trunk/root reserves).
 
 **Sunlight (per turn):**
 ```
-Sunlight = LeafClusters × Exposure% × SeasonFactor
+Sunlight = (LeafClusters + CanopyBonus) × Exposure% × SeasonFactor
 ```
 - **Exposure:** 100% full sun, 50% shaded, 0% fully shaded
+- **CanopyBonus:** Expand Canopy gives stronger sunlight scaling than ordinary leaf growth
 - **Seasonal:** Spring ×0.8, Summer ×1.2, Autumn ×0.6, Winter ×0.2
 
 **Water (per turn):**
 ```
-Water = RootZones × SeasonFactor × DroughtModifier
+Water = (TrunkStorage + RootSupport + TaprootBonus) × SeasonFactor × DroughtModifier
 ```
+- **TaprootBonus:** Deepen Taproot gives stronger water scaling than ordinary roots and visibly softens drought events
 - **Seasonal:** Spring ×1.0, Summer ×0.6, Autumn ×0.8, Winter ×0.4
-- **Drought:** ×0.3 during drought events
+- **Drought:** Reduced during drought events, but deep taproots mitigate the loss
 
 **Nutrients (per turn):**
 ```
@@ -183,7 +189,7 @@ The 4 neighboring trees are persistent characters with evolving relationships.
 
 ### Diplomatic Events
 - **Targeted connection:** Choose a named neighboring fruit tree and risk acceptance, indifference, or hostility
-- **Ally in trouble:** Contextual events ask whether to help an ally tree with chemistry or support
+- **Ally in trouble:** Contextual events ask whether to help an ally tree with chemistry or support, now with tracked ally health and repeated unresolved requests
 - **Hostile shading:** Hostile trees can worsen your light exposure over time
 
 ### Neighbor Progression
