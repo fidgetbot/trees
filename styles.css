@@ -85,12 +85,20 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .action-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 8px;
 }
-.action-header h4 {
+.action-header h4,
+.action-title {
   margin: 0;
+  flex: 1;
+  text-align: left;
+}
+.action-icon {
+  margin-left: auto;
+  flex: 0 0 auto;
+  text-align: right;
 }
 .prereq-missing {
   font-size: 11px;

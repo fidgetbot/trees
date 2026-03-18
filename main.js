@@ -1142,7 +1142,7 @@ function renderActions() {
       card.className = 'action-card';
       card.innerHTML = `
         <div class="action-header">
-          <h4>${action.name}</h4>
+          <h4 class="action-title">${action.name}</h4>
           <span class="action-icon">${action.icon}</span>
         </div>
         <p class="action-help">${action.help}</p>
@@ -1187,10 +1187,10 @@ function renderActions() {
       card.className = 'action-card disabled';
       card.innerHTML = `
         <div class="action-header">
-          <h4>${action.name}</h4>
+          <h4 class="action-title">${action.name}</h4>
           <span class="action-icon">${action.icon}</span>
-          <span class="prereq-missing">Locked</span>
         </div>
+        <span class="prereq-missing">Locked</span>
         <p class="action-help">${action.help}</p>
         ${costsHtml}
         <p class="future-reason">${reason}</p>`;
