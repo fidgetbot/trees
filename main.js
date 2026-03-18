@@ -22,7 +22,11 @@ const STAGE_BY_NAME = Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, s
 // Seasonal action locks
 const SEASONAL_ACTIONS = {
   flower: ['Spring'],
+  massFlower: ['Spring'],
+  mastYear: ['Spring'],
 };
+
+const LEADERBOARD_KEY = 'trees-grove-records-v1';
 
 // Diplomacy system
 const RELATIONSHIP_STATES = {
@@ -314,6 +318,7 @@ const state = {
   healthWarningLevel: 0,
   lastDamageCause: 'decline',
   pendingInteractions: [],
+  recordsSavedThisRun: false,
 };
 
 const els = {
@@ -328,6 +333,7 @@ const els = {
   modalBody: document.getElementById('modal-body'),
   modalButton: document.getElementById('modal-button'),
   actionsList: document.getElementById('actions-list'),
+  viewLeaderboard: document.getElementById('view-leaderboard'),
   log: document.getElementById('log'),
   feedbackContainer: document.getElementById('feedback-container'),
   tooltip: document.getElementById('tooltip'),
@@ -450,6 +456,7 @@ function startGame() {
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
+    recordsSavedThisRun: false,
   });
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
@@ -488,12 +495,140 @@ function showModal(title, body, onContinue) {
   els.modalTitle.textContent = title;
   els.modalBody.innerHTML = body;
   els.modal.classList.remove('hidden');
+  els.modalButton.style.display = '';
   els.modalButton.onclick = () => {
     els.modal.classList.add('hidden');
     onContinue?.();
   };
 }
 
+function loadLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLeaderboard(entries) {
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries.slice(0, 10)));
+}
+
+function currentRunRecord(reason = 'game over') {
+  return {
+    species: state.selectedSpecies || 'Unknown',
+    score: state.score,
+    year: state.year,
+    stage: state.lifeStage.name,
+    allies: state.allies,
+    viableSeeds: state.viableSeeds,
+    offspring: state.offspringPool,
+    reason,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function saveCurrentRunToLeaderboard(reason = 'game over') {
+  const entry = currentRunRecord(reason);
+  const entries = loadLeaderboard();
+  entries.push(entry);
+  entries.sort((a, b) => b.score - a.score || b.year - a.year);
+  saveLeaderboard(entries);
+  state.recordsSavedThisRun = true;
+  return entry;
+}
+
+function leaderboardHtml() {
+  const entries = loadLeaderboard();
+  if (!entries.length) {
+    return '<p>No grove records yet. Finish a run to plant the first one.</p>';
+  }
+
+  return `
+    <ol class="leaderboard-list">
+      ${entries.map((entry, idx) => `
+        <li>
+          <strong>#${idx + 1} — ${entry.species}</strong><br>
+          Score <strong>${entry.score}</strong> · Year ${entry.year} · ${entry.stage}<br>
+          Seeds ${entry.viableSeeds} · Allies ${entry.allies} · ${entry.reason}
+        </li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+function showLeaderboardModal() {
+  showModal('Grove Records', leaderboardHtml(), () => {});
+}
+
+function generateSuccessionChoices(count = 3) {
+  const templates = [
+    {
+      label: 'Deep-rooted heir',
+      summary: 'Begins sturdier belowground, with better roots and a thicker trunk.',
+      stats: {
+        health: Math.max(6, Math.floor(state.maxHealth * 0.72)),
+        maxHealth: Math.max(6, Math.floor(state.maxHealth * 0.72)),
+        branches: Math.max(1, Math.floor(state.branches * 0.45)),
+        rootZones: Math.max(2, Math.floor(state.rootZones * 0.75)),
+        leafClusters: Math.max(1, Math.floor(state.leafClusters * 0.45)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.75)),
+      },
+    },
+    {
+      label: 'Leaf-bright heir',
+      summary: 'Starts with a livelier crown and more sunlight-gathering potential.',
+      stats: {
+        health: Math.max(6, Math.floor(state.maxHealth * 0.68)),
+        maxHealth: Math.max(6, Math.floor(state.maxHealth * 0.68)),
+        branches: Math.max(1, Math.floor(state.branches * 0.7)),
+        rootZones: Math.max(1, Math.floor(state.rootZones * 0.5)),
+        leafClusters: Math.max(2, Math.floor(state.leafClusters * 0.8)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.5)),
+      },
+    },
+    {
+      label: 'Hardy survivor',
+      summary: 'A balanced descendant carrying enough structure to recover steadily.',
+      stats: {
+        health: Math.max(7, Math.floor(state.maxHealth * 0.75)),
+        maxHealth: Math.max(7, Math.floor(state.maxHealth * 0.75)),
+        branches: Math.max(1, Math.floor(state.branches * 0.55)),
+        rootZones: Math.max(1, Math.floor(state.rootZones * 0.6)),
+        leafClusters: Math.max(1, Math.floor(state.leafClusters * 0.6)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.6)),
+      },
+    },
+  ];
+  return templates.slice(0, Math.max(1, Math.min(count, templates.length)));
+}
+
+function continueAsSuccessor(choice) {
+  state.offspringPool = Math.max(0, state.offspringPool - 1);
+  state.offspringTrees = Math.max(0, state.offspringTrees - 1);
+  state.health = choice.stats.health;
+  state.maxHealth = choice.stats.maxHealth;
+  state.branches = choice.stats.branches;
+  state.rootZones = choice.stats.rootZones;
+  state.leafClusters = choice.stats.leafClusters;
+  state.trunk = choice.stats.trunk;
+  state.flowers = 0;
+  state.pollinated = 0;
+  state.developing = 0;
+  state.seeds = 0;
+  state.sunlight = Math.max(0, Math.floor(state.sunlight * 0.35));
+  state.water = Math.max(0, Math.floor(state.water * 0.35));
+  state.nutrients = Math.max(0, Math.floor(state.nutrients * 0.35));
+  addLog(`Your current tree died, but the lineage continues through a ${choice.label.toLowerCase()}.`);
+  showFeedback('A chosen offspring carries the lineage onward.', 'warning');
+  updateAlliesCount();
+  updateScore();
+  updateUI();
+  render();
+  showResourcePhase();
+}
 
 function showChoiceModal(title, body, choices) {
   els.modalTitle.textContent = title;
@@ -2050,25 +2185,22 @@ function advanceTurn() {
 
 function handleDeath() {
   if (state.offspringPool > 0) {
-    state.offspringPool -= 1;
-    state.health = Math.max(6, Math.floor(state.maxHealth * 0.7));
-    state.maxHealth = state.health;
-    state.branches = Math.max(1, Math.floor(state.branches * 0.6));
-    state.rootZones = Math.max(1, Math.floor(state.rootZones * 0.6));
-    state.leafClusters = Math.max(1, Math.floor(state.leafClusters * 0.6));
-    state.trunk = Math.max(1, Math.floor(state.trunk * 0.6));
-    state.flowers = 0;
-    state.pollinated = 0;
-    state.developing = 0;
-    addLog('Your current tree died, but a viable offspring continues the lineage.');
-    showFeedback('Your tree died, but offspring continues...', 'warning');
-    showModal('Succession', '<p>Your tree has died, but one offspring survives. You continue through the lineage.</p>', () => {
-      updateScore(); updateUI(); render(); showResourcePhase();
-    });
+    const choices = generateSuccessionChoices(Math.min(3, state.offspringPool)).map(choice => ({
+      label: choice.label,
+      onChoose: () => continueAsSuccessor(choice),
+    }));
+    showChoiceModal('Succession', `
+      <p>Your current tree has died, but living offspring remain.</p>
+      <p>Choose which surviving line will carry the grove forward:</p>
+      <ul>
+        ${generateSuccessionChoices(Math.min(3, state.offspringPool)).map(choice => `<li><strong>${choice.label}</strong> — ${choice.summary}</li>`).join('')}
+      </ul>
+    `, choices);
   } else {
     state.gameOver = true;
     const flavor = deathFlavor(state.lastDamageCause);
-    showModal('Game Over', `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p>`, () => {});
+    if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('lineage ended');
+    showModal('Game Over', `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p><p>Your run has been added to the grove records.</p>`, () => {});
   }
 }
 
@@ -2077,12 +2209,14 @@ function updateScore() {
 
   if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
     state.victoryAchieved = true;
+    if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('reached Ancient');
     showModal('Victory!', `
       <h2>🌳 You have become Ancient! 🌳</h2>
       <p>Your roots run deep. Your canopy towers above the forest.</p>
       <p>You have successfully established yourself in the ecosystem.</p>
       <p><em>Your offspring will flourish here and provide shade for generations to come.</em></p>
-      <p>Final Score: <strong>${state.score}</strong></p>
+      <p>Current Score: <strong>${state.score}</strong></p>
+      <p>Your milestone has been added to the grove records.</p>
       <p><small>Continue playing to see how long your lineage lasts...</small></p>
     `, () => {});
   }
@@ -2334,5 +2468,6 @@ function drawTree(x, groundY, isPlayer, neighbor) {
 }
 
 els.startGame.addEventListener('click', startGame);
+els.viewLeaderboard?.addEventListener('click', showLeaderboardModal);
 initSpeciesSelect();
 render();

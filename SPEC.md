@@ -64,14 +64,15 @@ This spec reflects the current playable build in `main.js`, not just the origina
 - Targeted diplomacy actions: root connection, aid ally, request help, shade rival, root dominion
 - Reproduction chain: flowers → pollinated flowers → developing fruit → seeds → spring seed fate → offspring trees
 - Warning/response fruit-threat chain in summer before seed maturity
-- Succession system where lineage continues automatically through surviving offspring
+- Succession choice on death when offspring remain, with multiple heir archetypes to continue the lineage
+- Local grove-record leaderboard saved in browser storage
 - Live scoring, victory popup on reaching Ancient, and continued endless play after victory
 
 ### Not fully implemented / simplified
-- Seasonal action locking is currently implemented only for **Produce Flower** in **Spring**
-- Succession does **not** currently let the player choose among offspring; the lineage continues automatically
+- Seasonal action locking is implemented for flowering actions; most other actions remain year-round
+- Succession choices are currently archetypal heirs rather than fully simulated per-offspring individuals
 - Neighbor life stages are used mainly for scaling/visualization rather than a fully simulated parallel life cycle
-- There is no separate high-score table or leaderboard yet
+- There is no online/shared leaderboard yet; records are local to the browser
 
 ## Seasonal Action Locks
 
@@ -80,6 +81,7 @@ Certain actions are restricted by season to reflect real tree biology:
 | Action | Available Seasons | Notes |
 |--------|-------------------|-------|
 | **Produce flower** | Spring only | Only available at Small Tree stage or above |
+| **Mass flowering / Mast year** | Spring only | Seasonal bloom surges follow the same spring flowering window |
 | **All other actions** | All seasons | Year-round growth possible if unlocked by life stage |
 
 **UI:** Off-season actions appear grayed out with tooltip explaining the seasonal restriction.
@@ -280,14 +282,14 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 **Design Rule:** Important reproductive threats should usually appear as **warning → response → outcome** chains rather than surprise losses.
 
 **Succession:**
-- On death, if at least one offspring remains, the lineage continues automatically as a surviving offspring
-- Succession currently resets the tree to a reduced-but-living descendant state rather than offering a manual offspring choice
+- On death, if at least one offspring remains, the player chooses which surviving heir archetype continues the lineage
+- Chosen heirs inherit a reduced but distinct stat profile (rooted, leafy, or balanced)
 - Surviving offspring contribute to ally count and can appear in the grove visualization
 
 **Game End:**
 - When the current tree dies and no offspring remain in the lineage pool
 - Mode: Endless survival with live score display
-- Reaching **Ancient** triggers a victory milestone popup, but play continues afterward
+- Reaching **Ancient** triggers a victory milestone popup, records the run in the local grove records, and play continues afterward
 
 ## Scoring
 
