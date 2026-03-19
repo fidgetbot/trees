@@ -344,6 +344,7 @@ const els = {
   tooltip: document.getElementById('tooltip'),
   actionsBanner: document.getElementById('actions-banner'),
   actionsRemaining: document.getElementById('actions-remaining'),
+  turnEndBanner: document.getElementById('turn-end-banner'),
 };
 
 const ctx = els.canvas.getContext('2d');
@@ -358,6 +359,17 @@ function showFeedback(message, type = 'success') {
   setTimeout(() => {
     feedback.remove();
   }, 3000);
+}
+
+function setTurnEndBanner(message = '') {
+  if (!els.turnEndBanner) return;
+  if (!message) {
+    els.turnEndBanner.textContent = '';
+    els.turnEndBanner.classList.add('hidden');
+    return;
+  }
+  els.turnEndBanner.innerHTML = `<strong>Turn ending:</strong> ${message}`;
+  els.turnEndBanner.classList.remove('hidden');
 }
 
 // Tooltip system
@@ -671,6 +683,7 @@ function processPendingInteractions(onDone) {
 
 function showResourcePhase() {
   if (state.gameOver) return;
+  setTurnEndBanner('');
   const gains = collectResources();
   addLog(`Your tree awakens and gathers from the world around it...`);
   updateUI();
@@ -1299,6 +1312,7 @@ function renderActions() {
     warning.className = 'nothing-affordable';
     warning.innerHTML = `<strong>⚠️ No action available</strong>Your tree can do nothing more this turn. Time will move on.`;
     els.actionsList.appendChild(warning);
+    setTurnEndBanner('No usable action remains. Night will fall as soon as this phase closes.');
     setTimeout(() => {
       if (els.modal.classList.contains('hidden')) {
         showEventPhase();
@@ -2165,6 +2179,9 @@ function applyEventEffects(major, minors) {
 }
 
 function showEventPhase() {
+  if (!els.turnEndBanner?.classList.contains('hidden')) {
+    els.turnEndBanner.innerHTML = `<strong>Turn ended:</strong> ${els.turnEndBanner.textContent.replace(/^Turn ending:\s*/, '')}`;
+  }
   const major = state.turnInSeason === 3 ? rollMajorEvent() : null;
   const minors = rollMinorEvents();
   const consequences = applyEventEffects(major, minors);

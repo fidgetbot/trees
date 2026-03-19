@@ -201,6 +201,22 @@ canvas {
 .actions-banner.no-actions .actions-count {
   color: var(--warn);
 }
+.turn-end-banner {
+  margin: -4px 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.18), rgba(251, 191, 36, 0.08));
+  color: #fde68a;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.turn-end-banner.hidden {
+  display: none;
+}
+.turn-end-banner strong {
+  color: #fef3c7;
+}
 
 /* Grouped Stats */
 .stats-container {
