@@ -127,9 +127,12 @@ Water = (TrunkStorage + RootSupport + TaprootBonus) × SeasonFactor × DroughtMo
 
 **Nutrients (per turn):**
 ```
-Nutrients = RootZones + (0.2 × AlliedRootZones)
+Nutrients = max(1, floor((0.7 × RootZones + cappedAllyBonus + SoilBonus) × DiseaseModifier) - MaintenanceCost)
 ```
-- Includes 20% of allied trees' nutrient income via fungal network
+- Roots now provide a lower base nutrient flow than before
+- Ally nutrient support is intentionally soft-capped to prevent runaway snowballing
+- Larger trees pay nutrient upkeep for maintaining trunk, branches, leaves, flowers, fruit, and seeds
+- This keeps nutrients useful as stored biological capital instead of becoming effortless surplus
 
 **Stressors:** Disease (-20% all), drought, pests (direct damage)
 

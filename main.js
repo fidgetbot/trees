@@ -241,7 +241,7 @@ const ACTIONS = [
   { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds woody structure and supports future leaves and flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
   { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Expands nutrient access, storm stability, and fungal networking reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
   { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
-  { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 5, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
+  { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 5, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },
   { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Drive a deeper anchor into the soil, greatly boosting water collection and drought resilience.', baseCost: { sunlight: 3, water: 1, nutrients: 3 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
   { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
 
@@ -262,8 +262,8 @@ const ACTIONS = [
   // REPRODUCTION - Flowers, fruit, and offspring
   { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
   { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Pour resources into a burst of blossoms for a risky reproductive surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; } },
-  { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Send reserves toward seedlings and improve lineage survival.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => s.offspringTrees >= 1 || s.seeds >= 1, effect: s => { s.offspringPool += 1; s.offspringTrees += 1; } },
-  { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'An immense reproductive push that floods the canopy with flowers and future seed.', baseCost: { sunlight: 8, water: 4, nutrients: 6 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
+  { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Send reserves toward seedlings and improve lineage survival.', baseCost: { sunlight: 2, water: 2, nutrients: 6 }, prereq: s => s.offspringTrees >= 1 || s.seeds >= 1, effect: s => { s.offspringPool += 1; s.offspringTrees += 1; } },
+  { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'An immense reproductive push that floods the canopy with flowers and future seed.', baseCost: { sunlight: 8, water: 4, nutrients: 8 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
 ];
 
 const CATEGORY_NAMES = {
@@ -506,12 +506,19 @@ function collectResources() {
   const sunlightGain = Math.max(1, Math.floor(sunlightBase * exposureFactor() * season.factorSun * state.eventModifiers.disease));
   const waterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus);
   const waterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
-  const nutrientGain = Math.max(1, Math.floor((state.rootZones + 0.2 * state.allies * Math.max(1, state.rootZones)) * state.eventModifiers.disease + (state.eventModifiers.soilBonus || 0)));
+
+  const rootNutrients = state.rootZones * 0.7;
+  const allyNutrients = Math.min(2, state.allies * 0.35);
+  const soilBonus = state.eventModifiers.soilBonus || 0;
+  const maintenanceCost = Math.floor((state.trunk + state.leafClusters + state.branches + state.flowers + state.developing + state.seeds) / 6);
+  const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
+  const nutrientGain = Math.max(1, grossNutrients - maintenanceCost);
+
   state.sunlight += sunlightGain;
   state.water += waterGain;
   state.nutrients += nutrientGain;
   state.actions = 3 + Math.floor((sunlightGain + waterGain + nutrientGain) / 5);
-  return { sunlightGain, waterGain, nutrientGain, waterStorage, canopyBonus, taprootBonus, sunlightBase };
+  return { sunlightGain, waterGain, nutrientGain, waterStorage, canopyBonus, taprootBonus, sunlightBase, rootNutrients, allyNutrients, soilBonus, maintenanceCost, grossNutrients };
 }
 
 function showModal(title, body, onContinue) {
@@ -719,7 +726,7 @@ function showResourcePhase() {
         <span class="res-icon">🌱</span>
         <span class="res-name">Nutrients</span>
         <span class="res-value">+${gains.nutrientGain}</span>
-        <span class="res-detail">${state.rootZones} roots + ${state.allies} allies</span>
+        <span class="res-detail">roots ${gains.rootNutrients.toFixed(1)} + allies ${gains.allyNutrients.toFixed(1)} + soil ${gains.soilBonus.toFixed(2)} − upkeep ${gains.maintenanceCost}</span>
       </div>
       <div class="actions-earned">
         <strong>${state.actions} actions</strong> available this turn
