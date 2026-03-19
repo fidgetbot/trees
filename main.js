@@ -866,7 +866,7 @@ function scaledAidNutrientCost(base = 10, neighbor = null, crisis = null) {
   return Math.min(25, Math.max(6, base + (stageRank - 1) * 2 + (severity - 1) * 4));
 }
 
-function updateNeighborAliveState(neighbor) {
+function updateNeighborAliveState(neighbor, cause = 'hardship') {
   if (!neighbor || neighbor.health > 0) return false;
   const oldState = getRelationshipState(neighbor.relation).name;
   neighbor.health = 0;
@@ -874,9 +874,11 @@ function updateNeighborAliveState(neighbor) {
   neighbor.ally = false;
   neighbor.dead = true;
   neighbor.activeCrises = [];
-  addLog(`The ${neighbor.species} could not survive its accumulating hardships.`);
+  addLog(`The ${neighbor.species} dies from ${cause}.`);
   updateAlliesCount();
-  showRelationshipChangeModal(neighbor.species, oldState, 'Dead', () => { updateUI(); render(); });
+  showModal('Ally Lost', `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health has reached zero, and its roots no longer answer yours.</p><p><strong>Cause:</strong> ${cause}</p>`, () => {
+    showRelationshipChangeModal(neighbor.species, oldState, 'Dead', () => { updateUI(); render(); });
+  });
   return true;
 }
 
@@ -929,7 +931,7 @@ function advanceAllyCrises(events) {
       neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
       if (neighbor.health <= 0) {
         events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}.`, effect: 'damage' });
-        updateNeighborAliveState(neighbor);
+        updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
       }
     }
   }
@@ -1522,9 +1524,20 @@ const MAJOR_EVENTS = [
     apply: (s) => {
       s.eventModifiers.disease = 0.6;
       const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
-      if (s.allies > 0) {
-        s.allies = Math.max(0, s.allies - 1);
-        effects.push('Lost 1 ally to the blight');
+      const alliedNeighbors = s.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
+      if (alliedNeighbors.length > 0) {
+        const target = alliedNeighbors[Math.floor(Math.random() * alliedNeighbors.length)];
+        const blightDamage = 4;
+        target.health = Math.max(0, target.health - blightDamage);
+        effects.push(`The blight spreads to your allied ${target.species}. (${target.health}/${target.maxHealth} health remains)`);
+        if (target.health <= 0) {
+          effects.push(`The ${target.species} is overwhelmed by blight.`);
+          s.pendingInteractions.push((done) => {
+            updateNeighborAliveState(target, 'fungal blight');
+            done?.();
+          });
+        }
+        updateAlliesCount();
       }
       return effects;
     }
@@ -2585,6 +2598,12 @@ function drawTree(x, groundY, isPlayer, neighbor) {
     ctx.textAlign = 'center';
     const label = neighbor.offspring ? `${neighbor.species} offspring (${neighbor.stageName})` : `${neighbor.species} (${(neighbor.relationName || (neighbor.ally ? 'Ally' : 'Neutral')).toLowerCase()})`;
     ctx.fillText(label, x, groundY + 110);
+    if (!neighbor.offspring && typeof neighbor.health === 'number' && typeof neighbor.maxHealth === 'number') {
+      const healthColor = getRelationshipState(neighbor.relation).name === 'Ally' ? 'rgba(187, 247, 208, 0.9)' : 'rgba(255,255,255,0.55)';
+      ctx.fillStyle = healthColor;
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`Health ${neighbor.health}/${neighbor.maxHealth}`, x, groundY + 124);
+    }
   }
 }
 
