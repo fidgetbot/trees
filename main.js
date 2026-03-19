@@ -1897,9 +1897,20 @@ function queueChemicalDefenseThreat(events) {
       },
       {
         title: 'Hungry Browsers',
-        warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and fruit.',
-        defend: () => { state.fruitDefense += 1; return 'You turn your tissues bitter. The browsers recoil and move on.'; },
-        ignore: () => { const lost = Math.min(2, Math.max(1, state.developing > 0 ? 2 : 1)); state.developing = Math.max(0, state.developing - lost); state.leafClusters = Math.max(0, state.leafClusters - 1); recordDamage(1, 'insects'); return `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lost} fruit.`; }
+        warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and leaves.',
+        defend: () => {
+          state.fruitDefense += 1;
+          if (state.developing > 0) return 'You turn your tissues bitter. The browsers recoil before they can strip your leaves or reach your fruit.';
+          return 'You turn your tissues bitter. The browsers recoil before they can strip your young growth.';
+        },
+        ignore: () => {
+          const lostFruit = Math.min(2, state.developing);
+          if (lostFruit > 0) state.developing = Math.max(0, state.developing - lostFruit);
+          state.leafClusters = Math.max(0, state.leafClusters - 1);
+          recordDamage(1, 'insects');
+          if (lostFruit > 0) return `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lostFruit} fruit.`;
+          return 'You leave yourself undefended. Browsers strip 1 leaf cluster and chew through your tender new growth.';
+        }
       },
       {
         title: 'Spores on the Damp Air',
