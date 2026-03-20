@@ -13,8 +13,8 @@ Trees progress automatically through stages based on in-game time and activity. 
 | **Seedling** | 1 season + 2 root zones + 2 leaf growths | *"Your taproot finds rich soil. You feel sturdy."* | Root extension, fungal connections | Aphids, browsing animals |
 | **Sapling** | 4 seasons + survive 1 major event | *"Your woody fibers harden. You have become a Sapling!"* | Branch growth, chemical defense | Wind, competition |
 | **Small Tree** | 2 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
-| **Mature Tree** | 3 years + survive 2 major events + 1 ally | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms, **ally betrayal** |
-| **Ancient** | 6 years + survive 2 major events + 1 ally | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
+| **Mature Tree** | 3 years + first fruit | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms, **ally betrayal** |
+| **Ancient** | 3 years + survive 2 major events + 1 ally | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
 
 **Stage Effects:**
 - **Seed/Sprout/Seedling:** Underground focus, no canopy competition, vulnerable to surface events
@@ -153,7 +153,7 @@ Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood 
 - Pollinators: honeybees, bumblebees, butterflies
 
 ### Apricot
-- **Bonus:** Early bloomer — flowers cost -1 sunlight
+- **Bonus:** Early bloomer — flowering actions cost -1 sunlight
 - Early-blooming and frost-sensitive
 - Can reproduce quickly if spring goes well
 - Pollinators: mason bees, honeybees, beetles
@@ -165,16 +165,23 @@ Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood 
 - Pollinators: hoverflies, honeybees, solitary bees
 
 ### Citrus
-- **Bonus:** Fragrant — 2× pollinator attraction
+- **Bonus:** Fragrant — 2× pollinator attraction (capped for sanity)
 - Water-hungry but flavorful
 - Fragrant blossoms and vulnerable fruit
 - Pollinators: honeybees, small native bees, hoverflies
 
 ### Cherry
-- **Bonus:** Alluring — +25% ally relationship gain
+- **Bonus:** Alluring — +25% positive relationship gain
 - Graceful, showy blossoms
 - Fruit attracts birds strongly
 - Pollinators: bumblebees, mason bees, butterflies
+
+### Species Baselines
+Beyond the marquee bonus text shown in the UI, each species also carries baseline tuning for:
+- **Growth rate:** affects life-stage progression speed
+- **Drought resistance:** softens drought penalties and damage
+
+These are part of species identity, but the named bonus above is the primary differentiator surfaced to players.
 
 The player chooses one of these fruiting trees at game start. Four neighboring trees are then randomized from the same fruiting species pool.
 
@@ -198,6 +205,7 @@ The 4 neighboring trees are persistent characters with evolving relationships.
 ### Diplomatic Events
 - **Targeted connection:** Choose a named neighboring fruit tree and risk acceptance, indifference, or hostility
 - **Ally in trouble:** Contextual events ask whether to help an ally tree with chemistry or support, now with tracked ally health and repeated unresolved requests
+- **Ally betrayal:** Neglected allies can begin to sour and betray you starting at the **Sapling** stage; before **Mature Tree**, only one ally-related punishment can trigger per event phase, but that cap is removed once you reach Mature Tree. Fungal-network blight remains a later-run threat
 - **Hostile shading:** Hostile trees can worsen your light exposure over time
 
 ### Neighbor Progression
@@ -228,7 +236,7 @@ Neighboring trees also advance through life stages, creating dynamic difficulty:
 
 ## Fungal Network
 
-- **Establish:** Only available after enough root growth
+- **Establish:** Available once you reach 3 root zones
 - **Targeted:** Player chooses which neighboring tree to approach
 - **Chance-based:** Deeper roots improve acceptance odds
 - **Tense outcomes:** Trees may accept, ignore, or become insulted and hostile

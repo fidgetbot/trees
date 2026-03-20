@@ -248,46 +248,101 @@ function tryAdvanceLifeStage(onContinue) {
 
 const SPECIES = {
   Plum: {
+    icon: '🟣',
     description: 'Fast-growing plum tree with abundant blossoms and soft fruit.',
+    bonusTitle: 'Fast growth',
+    bonusText: '+20% stage progress',
     branches: 1, rootZones: 2, trunk: 1, health: 10,
     growthRate: 1.2, droughtResist: 0.35, pollinators: ['bumblebees', 'mason bees', 'hoverflies'],
   },
   Peach: {
+    icon: '🍑',
     description: 'Tender peach tree with rich fruit and moderate resilience.',
+    bonusTitle: 'Resilient',
+    bonusText: '+1 starting max health',
     branches: 1, rootZones: 2, trunk: 1, health: 11,
     growthRate: 1.1, droughtResist: 0.4, pollinators: ['honeybees', 'bumblebees', 'butterflies'],
   },
   Apricot: {
+    icon: '🟠',
     description: 'Early-blooming apricot tree, productive but frost-sensitive.',
+    bonusTitle: 'Early bloomer',
+    bonusText: 'Flowering actions cost -1 sunlight',
     branches: 1, rootZones: 2, trunk: 1, health: 10,
     growthRate: 1.15, droughtResist: 0.3, pollinators: ['mason bees', 'honeybees', 'beetles'],
   },
   Pear: {
+    icon: '🍐',
     description: 'Steady pear tree with durable wood and dependable fruit.',
+    bonusTitle: 'Durable wood',
+    bonusText: 'Starts with +1 trunk',
     branches: 1, rootZones: 2, trunk: 2, health: 12,
     growthRate: 1.0, droughtResist: 0.45, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
   },
   Citrus: {
+    icon: '🍋',
     description: 'Glossy-leaved citrus tree with fragrant blossoms and thirsty roots.',
+    bonusTitle: 'Fragrant',
+    bonusText: '2× pollinator attraction',
     branches: 1, rootZones: 2, trunk: 1, health: 11,
     growthRate: 1.05, droughtResist: 0.25, pollinators: ['honeybees', 'small native bees', 'hoverflies'],
   },
   Cherry: {
+    icon: '🍒',
     description: 'Graceful cherry tree with showy flowers and bird-loved fruit.',
+    bonusTitle: 'Alluring',
+    bonusText: '+25% positive relationship gain',
     branches: 1, rootZones: 2, trunk: 1, health: 10,
     growthRate: 1.15, droughtResist: 0.35, pollinators: ['bumblebees', 'mason bees', 'butterflies'],
   },
 };
 
-// Cost scaling: base costs multiply by stage rank (Sapling=×2, Small Tree=×3, etc.)
-function getScaledCost(baseCost) {
+function getCurrentSpeciesSpec() {
+  return SPECIES[state.selectedSpecies] || null;
+}
+
+function getStageProgressIncrement() {
+  const growthRate = getCurrentSpeciesSpec()?.growthRate || 1;
+  const baseIncrement = state.year >= 15 ? 1.5 : 1;
+  return baseIncrement * growthRate;
+}
+
+function getSpeciesAdjustedCost(actionKey, baseCost) {
   const stage = computeCurrentLifeStage();
   const multiplier = Math.max(1, stage.rank);
-  return {
+  const cost = {
     sunlight: Math.floor((baseCost.sunlight || 0) * multiplier),
     water: Math.floor((baseCost.water || 0) * multiplier),
     nutrients: Math.floor((baseCost.nutrients || 0) * multiplier),
   };
+
+  if (state.selectedSpecies === 'Apricot' && ['flower', 'massFlower', 'mastYear'].includes(actionKey)) {
+    cost.sunlight = Math.max(0, cost.sunlight - 1);
+  }
+
+  return cost;
+}
+
+function applyRelationshipDelta(neighbor, delta) {
+  const adjustedDelta = delta > 0 && state.selectedSpecies === 'Cherry'
+    ? Math.max(1, Math.ceil(delta * 1.25))
+    : delta;
+  neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
+  return adjustedDelta;
+}
+
+function getPollinatorChance(baseChance) {
+  const multiplier = state.selectedSpecies === 'Citrus' ? 2 : 1;
+  return Math.min(0.95, baseChance * multiplier);
+}
+
+function getDroughtResistance() {
+  return getCurrentSpeciesSpec()?.droughtResist || 0;
+}
+
+// Cost scaling: base costs multiply by stage rank (Sapling=×2, Small Tree=×3, etc.)
+function getScaledCost(baseCost, actionKey = null) {
+  return getSpeciesAdjustedCost(actionKey, baseCost);
 }
 
 // Updated actions with categories, icons, and base costs (scaled by stage)
@@ -308,7 +363,7 @@ const ACTIONS = [
   { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Choose a nutrient-heavy growth push for trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: s => woodSurgeAction(s) },
 
   // DIPLOMACY - Interactions with other trees
-  { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 2, effect: s => attemptConnection(s) },
+  { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
   { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Send substantial reserves to support an ally and improve its health.', baseCost: { sunlight: 0, water: 1, nutrients: 6 }, prereq: s => s.allies >= 1, effect: s => offerAidToAlly(s) },
   { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
   { key: 'shadeRival', name: 'Shade Rival', icon: '☂️', category: 'diplomacy', help: 'Lean into contested light and suppress a hostile neighbor.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => shadeRivalAction(s) },
@@ -469,15 +524,47 @@ function initCollapsibleGroups() {
   });
 }
 
+function renderSpeciesSummary(speciesName, options = {}) {
+  const spec = SPECIES[speciesName];
+  if (!spec) return '';
+
+  const {
+    title = speciesName,
+    intro = '',
+    compact = false,
+  } = options;
+
+  const startingEdge = [];
+  if (spec.health > 10) startingEdge.push(`Health ${spec.health}`);
+  if (spec.trunk > 1) startingEdge.push(`Trunk ${spec.trunk}`);
+
+  return `
+    <div class="species-summary ${compact ? 'compact' : ''}">
+      <div class="species-summary-head">
+        <div class="species-summary-title-row">
+          <span class="species-summary-icon">${spec.icon || '🌳'}</span>
+          <div>
+            <div class="species-summary-kicker">${intro}</div>
+            <h3>${title}</h3>
+          </div>
+        </div>
+        <p class="species-summary-description">${spec.description}</p>
+      </div>
+      <div class="species-summary-bonus"><strong>Bonus:</strong> ${spec.bonusTitle} — ${spec.bonusText}</div>
+      <div class="species-summary-meta">
+        <div><strong>Pollinators:</strong> ${spec.pollinators.join(', ')}</div>
+        <div><strong>Starting edge:</strong> ${startingEdge.length ? startingEdge.join(' · ') : 'Balanced baseline'}</div>
+      </div>
+    </div>`;
+}
+
 function initSpeciesSelect() {
   const names = Object.keys(SPECIES);
   const chosen = names[Math.floor(Math.random() * names.length)];
   state.selectedSpecies = chosen;
-  const spec = SPECIES[chosen];
   els.speciesList.innerHTML = `
-    <div class="species-card selected">
-      <h3>You are a ${chosen} tree.</h3>
-      <p>${spec.description}</p>
+    <div class="species-card selected species-card-detail">
+      ${renderSpeciesSummary(chosen, { title: `${chosen} tree`, intro: 'You are a' })}
     </div>`;
   els.startGame.disabled = false;
   els.startGame.textContent = 'Begin';
@@ -1029,7 +1116,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
         }
         neighbor.helpGivenToThem += given > 0 ? 1 : 0;
         neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
-        neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + relationDelta));
+        applyRelationshipDelta(neighbor, relationDelta);
         const newState = getRelationshipState(neighbor.relation).name;
         showModal('Aid Given', `<p>${body}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
           updateAlliesCount(); updateScore(); updateUI(); render();
@@ -1053,10 +1140,17 @@ function showAllyAidRequest(neighbor, crisis, done) {
   ]);
 }
 
-// NEW: Late-game ally threats - allies can betray you if neglected
+// Sapling-and-later ally threats - neglected alliances can sour once the tree is established enough to rely on them
 function checkAllyBetrayal(events) {
+  const currentStage = computeCurrentLifeStage();
+  if (currentStage.rank < STAGE_BY_NAME['Sapling'].rank) return;
+
+  const capAllyThreats = currentStage.rank < STAGE_BY_NAME['Mature Tree'].rank;
+  let allyThreatTriggered = false;
+
   for (const neighbor of state.neighbors) {
     if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
+    if (capAllyThreats && allyThreatTriggered) break;
     
     // Track neglect: if help refused more than given, risk betrayal
     const neglectScore = (neighbor.helpRefusedToThem || 0) - (neighbor.helpGivenToThem || 0);
@@ -1077,9 +1171,11 @@ function checkAllyBetrayal(events) {
           updateAlliesCount(); updateScore(); updateUI(); render(); done();
         });
       });
+      allyThreatTriggered = true;
+      continue;
     }
     
-    // NEW: Fungal Network Collapse - blight spreads through ally connections
+    // Fungal Network Collapse - blight spreads through ally connections later in the run
     if (state.year >= 8 && Math.random() < 0.08) {
       events.push({ 
         text: `Blight travels the fungal network from your ally ${neighbor.species}. Your shared connection becomes a channel for disease.`, 
@@ -1089,6 +1185,7 @@ function checkAllyBetrayal(events) {
       state.health -= 2;
       recordDamage(2, 'blight');
       events.push({ text: 'Health -2 from network blight. Resource collection reduced.', effect: 'damage' });
+      allyThreatTriggered = true;
     }
   }
 }
@@ -1125,7 +1222,7 @@ function offerAidToAlly(s) {
     state.water -= waterCost;
     neighbor.helpGivenToThem += 1;
     neighbor.lastAidMemory = 'you-gave-freely';
-    neighbor.relation = Math.min(100, neighbor.relation + (crisis ? 10 : 8));
+    applyRelationshipDelta(neighbor, crisis ? 10 : 8);
     neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + (crisis ? 3 : 2));
     if (crisis) neighbor.activeCrises = neighbor.activeCrises.filter(c => c.id !== crisis.id);
     const newState = getRelationshipState(neighbor.relation).name;
@@ -1190,7 +1287,7 @@ function requestHelpFromAllies(s) {
     state.health += actualHeal;
     neighbor.helpReceivedFromThem += 1;
     const oldState = getRelationshipState(neighbor.relation).name;
-    neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + relationShift));
+    applyRelationshipDelta(neighbor, relationShift);
     const newState = getRelationshipState(neighbor.relation).name;
     neighbor.lastAidMemory = actualHeal > 0 ? 'helped-you' : 'could-not-help';
     addLog(`${tone} You recover ${actualHeal} health from ${neighbor.species}.`);
@@ -1215,30 +1312,30 @@ function attemptConnection(s) {
     let feedback = { text: '', type: 'info' };
 
     if (oldState === 'Ally') {
-      neighbor.relation = Math.min(100, neighbor.relation + 10);
+      applyRelationshipDelta(neighbor, 10);
       message = `Your roots find the familiar touch of the ${neighbor.species}. Resources and signals pass warmly between you.`;
       feedback = { text: `${neighbor.species} strengthens your alliance`, type: 'success' };
     } else if (oldState === 'Friendly') {
       if (roll < 0.7 + rootBonus) {
-        neighbor.relation = Math.min(100, neighbor.relation + 20);
+        applyRelationshipDelta(neighbor, 20);
         message = `The ${neighbor.species} answers your overture with quiet warmth, opening more of its root network to you.`;
         feedback = { text: `${neighbor.species} welcomed your roots`, type: 'success' };
       } else {
-        neighbor.relation = Math.max(-100, neighbor.relation - 5);
+        applyRelationshipDelta(neighbor, -5);
         message = `The ${neighbor.species} hesitates. It does not reject you, but keeps part of itself withheld.`;
         feedback = { text: `${neighbor.species} grew cautious`, type: 'info' };
       }
     } else if (oldState === 'Neutral') {
       if (roll < 0.50 + rootBonus) { // INCREASED from 0.35 to 0.50
-        neighbor.relation = Math.min(100, neighbor.relation + 20);
+        applyRelationshipDelta(neighbor, 20);
         message = `The ${neighbor.species} pauses, then accepts your tentative underground greeting.`;
         feedback = { text: `${neighbor.species} responded cautiously`, type: 'success' };
       } else if (roll < 0.75) {
-        neighbor.relation = Math.min(100, neighbor.relation + 2);
+        applyRelationshipDelta(neighbor, 2);
         message = `The ${neighbor.species} senses you, but offers little in return. For now, the soil remains politely quiet.`;
         feedback = { text: `${neighbor.species} mostly ignored you`, type: 'info' };
       } else {
-        neighbor.relation = Math.max(-100, neighbor.relation - 15);
+        applyRelationshipDelta(neighbor, -15);
         message = `The ${neighbor.species} interprets your reach as intrusion and releases a bitter pulse through the soil.`;
         state.health = Math.max(0, state.health - 1);
         recordDamage(1, 'chemicals');
@@ -1246,11 +1343,11 @@ function attemptConnection(s) {
       }
     } else if (oldState === 'Rival') {
       if (roll < 0.18 + rootBonus) {
-        neighbor.relation = Math.min(100, neighbor.relation + 18);
+        applyRelationshipDelta(neighbor, 18);
         message = `After a tense silence, the ${neighbor.species} relents. The rivalry softens, if only a little.`;
         feedback = { text: `${neighbor.species} softened`, type: 'success' };
       } else {
-        neighbor.relation = Math.max(-100, neighbor.relation - 12);
+        applyRelationshipDelta(neighbor, -12);
         message = `The ${neighbor.species} answers with defensive chemistry, warning you that the rivalry is still alive.`;
         state.health = Math.max(0, state.health - 1);
         recordDamage(1, 'chemicals');
@@ -1259,11 +1356,11 @@ function attemptConnection(s) {
       }
     } else if (oldState === 'Hostile') {
       if (roll < 0.08 + rootBonus) {
-        neighbor.relation = Math.min(100, neighbor.relation + 30);
+        applyRelationshipDelta(neighbor, 30);
         message = `Against all expectation, the ${neighbor.species} does not strike. Its hatred cools, though distrust still lingers.`;
         feedback = { text: `${neighbor.species} cooled slightly`, type: 'success' };
       } else {
-        neighbor.relation = Math.max(-100, neighbor.relation - 8);
+        applyRelationshipDelta(neighbor, -8);
         message = `The ${neighbor.species} reacts at once, flooding the soil with hostile chemicals. Your tissues burn with the warning.`;
         state.health = Math.max(0, state.health - 2);
         recordDamage(2, 'chemicals');
@@ -1342,7 +1439,7 @@ function getAffordableActions() {
       if (hideStage && computeCurrentLifeStage().rank >= hideStage.rank) return false;
     }
     const prereqOk = action.prereq ? action.prereq(state) : true;
-    const affordable = canAfford(getScaledCost(action.baseCost));
+    const affordable = canAfford(getScaledCost(action.baseCost, action.key));
     const unlocked = isActionUnlocked(action.key);
     const allowedSeasons = SEASONAL_ACTIONS[action.key];
     const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeason().name);
@@ -1367,7 +1464,7 @@ function renderActions() {
       if (hideStage && currentStageRank >= hideStage.rank) return;
     }
 
-    const scaledCost = getScaledCost(action.baseCost);
+    const scaledCost = getScaledCost(action.baseCost, action.key);
     const prereqOk = action.prereq ? action.prereq(state) : true;
     const affordable = canAfford(scaledCost);
     const unlocked = isActionUnlocked(action.key);
@@ -1527,12 +1624,17 @@ const MAJOR_EVENTS = [
     desc: 'The soil dries and cracks. Your roots must reach deeper for moisture.',
     severity: 'bad',
     apply: (s) => {
-      s.eventModifiers.drought = Math.max(0.15, 0.55 - (s.trunk * 0.08));
+      const droughtResist = getDroughtResistance();
+      const baseDroughtModifier = Math.max(0.15, 0.55 - (s.trunk * 0.08));
+      s.eventModifiers.drought = Math.min(1, baseDroughtModifier + (droughtResist * 0.35));
       const baseThirst = Math.max(1, 2 - s.trunk - Math.floor(s.eventModifiers.shelter || 0));
-      const thirst = Math.floor(baseThirst * getThreatMultiplier());
+      const thirst = Math.max(1, Math.floor(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.5)));
       s.health -= thirst;
       recordDamage(thirst, 'drought');
-      const effects = [`Water collection reduced sharply`, `Health -${thirst} from thirst and water stress`]; if (s.taprootDepth > 0) effects.push(`Your deep taproot finds lower moisture and softens the drought's bite.`); return effects;
+      const effects = [`Water collection reduced sharply`, `Health -${thirst} from thirst and water stress`];
+      if (droughtResist >= 0.4) effects.push(`Your species' natural drought tolerance helps you hold on to moisture.`);
+      if (s.taprootDepth > 0) effects.push(`Your deep taproot finds lower moisture and softens the drought's bite.`);
+      return effects;
     }
   },
   {
@@ -1925,17 +2027,17 @@ function queueHostileTreeThreat(neighbor, events) {
 
           if (roll < 0.35 + rootBonus) {
             // Success - improve relationship
-            neighbor.relation = Math.min(100, neighbor.relation + 25);
+            applyRelationshipDelta(neighbor, 25);
             neighbor.stageScore = Math.max(0, neighbor.stageScore - 20);
             body = `You extend your roots with gifts of nutrients and a tentative truce. The ${neighbor.species} hesitates, then accepts. The hostility between you softens into wary neutrality.`;
             success = true;
           } else if (roll < 0.65 + rootBonus) {
             // Partial success - small improvement but still hostile
-            neighbor.relation = Math.min(100, neighbor.relation + 8);
+            applyRelationshipDelta(neighbor, 8);
             body = `Your overture is met with suspicion. The ${neighbor.species} does not attack, but keeps its distance. The soil between you remains tense.`;
           } else {
             // Failure - wasted resources, relation worsens slightly
-            neighbor.relation = Math.max(-100, neighbor.relation - 5);
+            applyRelationshipDelta(neighbor, -5);
             neighbor.stageScore += 20;
             body = `The ${neighbor.species} interprets your gifts as weakness and presses harder. Your diplomacy failed, and the rivalry deepens.`;
           }
@@ -2093,14 +2195,17 @@ function rollMinorEvents() {
 
   // Pollination chance based on flowers and season
   if (state.flowers > 0) {
-    const pollinatorChance = currentSeason().name === 'Spring' ? 0.55 : 
-                            currentSeason().name === 'Summer' ? 0.4 : 0.1;
+    const basePollinatorChance = currentSeason().name === 'Spring' ? 0.55 : 
+                                currentSeason().name === 'Summer' ? 0.4 : 0.1;
+    const pollinatorChance = getPollinatorChance(basePollinatorChance);
     if (Math.random() < pollinatorChance) {
       const pollinated = Math.min(state.flowers, Math.floor(Math.random() * 2) + 1);
       state.pollinated += pollinated;
       state.flowers -= pollinated;
+      const visitor = SPECIES[state.selectedSpecies].pollinators[Math.floor(Math.random() * SPECIES[state.selectedSpecies].pollinators.length)];
+      const citrusBonusText = state.selectedSpecies === 'Citrus' ? ' Its fragrant blossoms drew them in.' : '';
       events.push({
-        text: `${SPECIES[state.selectedSpecies].pollinators[Math.floor(Math.random() * SPECIES[state.selectedSpecies].pollinators.length)]} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated. (+${pollinated} flowers pollinated)`,
+        text: `${visitor} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated. (+${pollinated} flowers pollinated)${citrusBonusText}`,
         effect: 'pollinated'
       });
     }
@@ -2402,12 +2507,8 @@ function handleSpringViability(onContinue) {
 function advanceTurn() {
   if (state.health <= 0) return handleDeath();
 
-  // Accelerated aging: after year 15, stage progress speeds up
-  if (state.year >= 15) {
-    state.turnsInStage += 1.5; // +50% progress speed
-  } else {
-    state.turnsInStage += 1;
-  }
+  // Species growth rate affects stage progression; very old trees still accelerate further.
+  state.turnsInStage += getStageProgressIncrement();
   if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
 
   if (state.turnInSeason < 3) {
@@ -2547,9 +2648,11 @@ function updateUI() {
 
   const speciesBadge = document.getElementById('species-badge');
   if (speciesBadge && state.selectedSpecies) {
-    const spec = SPECIES[state.selectedSpecies];
-    const icons = { Plum: '🍑', Peach: '🍑', Apricot: '🍊', Pear: '🍐', Citrus: '🍋', Cherry: '🍒' };
-    speciesBadge.textContent = `${icons[state.selectedSpecies] || '🌳'} ${state.selectedSpecies} — ${spec.description}`;
+    speciesBadge.innerHTML = renderSpeciesSummary(state.selectedSpecies, {
+      title: state.selectedSpecies,
+      intro: 'Species',
+      compact: true,
+    });
   }
 }
 

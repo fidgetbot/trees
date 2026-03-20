@@ -587,11 +587,61 @@ canvas {
   background: var(--panel-alt);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   margin-bottom: 16px;
   font-size: 14px;
+  color: var(--text);
+}
+.species-card-detail {
+  padding: 14px;
+}
+.species-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.species-summary.compact {
+  gap: 8px;
+}
+.species-summary-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.species-summary-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.species-summary-kicker {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.species-summary h3 {
+  margin: 0;
   color: var(--accent);
-  font-weight: 600;
+}
+.species-summary-description,
+.species-summary-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.species-summary-bonus {
+  border-left: 3px solid rgba(125, 211, 252, 0.55);
+  padding-left: 10px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.species-summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .stat-icon {
   display: inline-block;
