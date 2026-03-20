@@ -108,14 +108,14 @@ The codebase is moving toward a three-layer architecture:
 - `core/stages.js` created for stage requirement/progression helpers
 - `core/random.js` created as the first seedable-RNG utility layer
 - `core/actions.js` created for the action catalog and category metadata
-- `core/events.js` now covers the major-event catalog, event rolling helper, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
+- `core/events.js` now covers the major-event catalog, event rolling helper, minor-event rolling, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
 - `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
 - `core/engine.js` created as the first shared state-transition layer (season lookup, event application, spring viability, turn advancement, death handling)
 - `main.js` now imports the extracted rule modules
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
-- Move the remaining minor-event and interaction-trigger logic behind shared event/core interfaces
+- Move the remaining interaction-trigger logic behind shared event/core interfaces
 - Move the rest of diplomacy actions and interaction flows behind shared core interfaces
 - Expand `core/engine.js` from wrapper-level orchestration into the primary public engine API
 - Move browser-only rendering/modal behavior into `ui/`

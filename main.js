@@ -33,6 +33,7 @@ import {
   resolveFruitThreats as resolveFruitThreatsForState,
   processSeasonalReproduction as processSeasonalReproductionForState,
   resolveSeedFate as resolveSeedFateForCount,
+  rollMinorEvents as rollMinorEventsForState,
 } from './core/events.js';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
@@ -1730,150 +1731,19 @@ function rollMajorEvent() {
 }
 
 function rollMinorEvents() {
-  const events = [];
-  
-  if (state.pendingChemicalThreat) {
-    const delayed = state.pendingChemicalThreat;
-    state.pendingChemicalThreat = null;
-    events.push({ text: delayed.warning, effect: 'warning' });
-    events.push({ text: delayed.ignore(), effect: 'damage' });
-  }
-
-  // Pollination chance based on flowers and season
-  if (state.flowers > 0) {
-    const basePollinatorChance = currentSeason().name === 'Spring' ? 0.55 : 
-                                currentSeason().name === 'Summer' ? 0.4 : 0.1;
-    const pollinatorChance = getPollinatorChanceForState(basePollinatorChance);
-    if (Math.random() < pollinatorChance) {
-      const pollinated = Math.min(state.flowers, Math.floor(Math.random() * 2) + 1);
-      state.pollinated += pollinated;
-      state.flowers -= pollinated;
-      const visitor = SPECIES[state.selectedSpecies].pollinators[Math.floor(Math.random() * SPECIES[state.selectedSpecies].pollinators.length)];
-      const citrusBonusText = state.selectedSpecies === 'Citrus' ? ' Its fragrant blossoms drew them in.' : '';
-      events.push({
-        text: `${visitor} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated. (+${pollinated} flowers pollinated)${citrusBonusText}`,
-        effect: 'pollinated'
-      });
-    }
-  }
-
-  processSeasonalReproduction(events);
-  
-  if (Math.random() < 0.25) {
-    state.nutrients += 1;
-    events.push({ text: 'Forest animals left nitrogen-rich gifts near your trunk. (+1 nutrient)', effect: 'nutrients' });
-  }
-  
-  if (Math.random() < 0.25) {
-    state.water += 2;
-    state.eventModifiers.rainChain += 1;
-    events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
-    if (state.eventModifiers.rainChain >= 3) {
-      state.health -= 1;
-      recordDamage(1, 'blight');
-      events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' });
-    }
-  } else {
-    state.eventModifiers.rainChain = 0;
-  }
-
-  if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) {
-    state.branches -= 1;
-    events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' });
-  }
-
-  const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
-  const hostileNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Hostile');
-
-  if (alliedNeighbors.length > 0) {
-    advanceAllyCrises(events);
-    checkAllyBetrayal(events); // NEW: Late-game ally threats
-  }
-  if (hostileNeighbors.length > 0 && Math.random() < 0.35) {
-    const target = hostileNeighbors[Math.floor(Math.random() * hostileNeighbors.length)];
-    queueHostileTreeThreat(target, events);
-  }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) {
-    queueChemicalDefenseThreat(events);
-  }
-  if (Math.random() < 0.12) {
-    const currentStage = computeCurrentLifeStage().name;
-    let flavor;
-    if (currentStage === 'Seed' || currentStage === 'Sprout' || currentStage === 'Seedling') {
-      // Early stage flavor (underground/surface focus)
-      const earlyFlavor = [
-        'A beetle trundles past your seed, unaware of the life within.',
-        'Earthworms turn the soil nearby, aerating the ground you will soon reach for.',
-        'A gentle rain soaks the earth above you, promising moisture to come.',
-        'Ants march in lines across the soil surface, busy with their own purposes.',
-        'The soil shifts slightly as a mole tunnels past, deep below.',
-      ];
-      flavor = earlyFlavor[Math.floor(Math.random() * earlyFlavor.length)];
-    } else if (currentStage === 'Sapling' || currentStage === 'Small Tree') {
-      // Mid stage flavor (growing canopy, no flowers yet for Sapling)
-      const midFlavor = [
-        'Two hopeful crows have chosen your branches to make a nest for their young.',
-        'A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.',
-        'A fox sleeps for an afternoon in the small shade you cast.',
-        'Robins tug worms from the damp soil near your roots.',
-        'A gentle breeze rustles your new leaves.',
-      ];
-      flavor = midFlavor[Math.floor(Math.random() * midFlavor.length)];
-    } else {
-      // Late stage flavor (full canopy, flowers, fruit)
-      const lateFlavor = [
-        'Two hopeful crows have chosen your branches to make a nest for their young.',
-        'A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.',
-        'Bees drift lazily through your flowers, dusted gold with pollen.',
-        'A fox sleeps for an afternoon in the shade you cast.',
-        'Robins tug worms from the damp soil near your roots.',
-      ];
-      flavor = lateFlavor[Math.floor(Math.random() * lateFlavor.length)];
-    }
-    events.push({ text: flavor, effect: 'flavor' });
-  }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) {
-    events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' });
-    if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1;
-  }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) {
-    events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning' });
-    if (state.defense + state.trunk >= 3) {
-      events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good' });
-      state.nutrients += 1;
-    } else {
-      state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects');
-      events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage' });
-    }
-  }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Small Tree'].rank && Math.random() < 0.08) {
-    events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning' });
-    if (state.trunk >= 3) {
-      state.water += 2;
-      events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good' });
-    } else {
-      state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm');
-      events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage' });
-    }
-  }
-
-  if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) {
-    state.pendingOffspringThreat = true;
-    events.push({ text: 'Your young offspring is under aphid pressure. Chemical Defense this turn may save it.', effect: 'warning' });
-  } else if (state.pendingOffspringThreat) {
-    state.pendingOffspringThreat = false;
-    if (state.defense > 0 || state.fruitDefense > 0) {
-      events.push({ text: 'You shielded your offspring with defensive chemistry. It survives the aphid attack. (+offspring survives)', effect: 'offspring-safe' });
-    } else if (Math.random() < 0.5) {
-      state.offspringTrees = Math.max(0, state.offspringTrees - 1);
-      state.offspringPool = Math.max(0, state.offspringPool - 1);
-      events.push({ text: 'A young offspring succumbed to aphids before it could establish itself. (-1 offspring)', effect: 'offspring-loss' });
-    } else {
-      events.push({ text: 'Your offspring weathered the aphids on its own, but only barely. (+offspring survives)', effect: 'offspring-safe' });
-    }
-  }
-  
-  return events;
+  return rollMinorEventsForState(state, {
+    currentSeasonName: currentSeason().name,
+    getPollinatorChance: getPollinatorChanceForState,
+    species: SPECIES,
+    recordDamage,
+    STAGE_BY_NAME,
+    getRelationshipState,
+    advanceAllyCrises: (events) => advanceAllyCrises(events),
+    checkAllyBetrayal: (events) => checkAllyBetrayal(events),
+    queueHostileTreeThreat: (target, events) => queueHostileTreeThreat(target, events),
+    queueChemicalDefenseThreat: (events) => queueChemicalDefenseThreat(events),
+    computeCurrentLifeStage,
+  });
 }
 
 function recordDamage(amount, cause) {
