@@ -110,6 +110,7 @@ The codebase is moving toward a three-layer architecture:
 - `core/actions.js` created for the action catalog, category metadata, and shared action-availability/locking helpers
 - `core/events.js` now covers the major-event catalog, event rolling helper, minor-event rolling, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
 - `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
+- `core/survival.js` now handles shared damage/death flavor and health-warning threshold/content helpers
 - `core/engine.js` created as the first shared state-transition layer (season lookup, score calculation/update, resource collection/exposure math, turn-start orchestration, event application, action execution, post-event continuation, spring viability, post-spring continuation, turn advancement, death handling)
 - `main.js` now imports the extracted rule modules
 - `ui/actions.js` now exists as the first browser-only rendering helper, handling action-panel DOM construction and button wiring
@@ -143,12 +144,12 @@ To consider this milestone complete:
 - major gameplay systems needed by headless simulation are no longer trapped behind DOM-only code paths
 - the browser build remains playable throughout
 
-Planned remaining slices before switching focus to simulation:
-1. Extract browser HUD/feedback/tooltip/collapsible-group helpers into `ui/`
-2. Extract more browser bootstrap/state setup so `main.js` trends toward orchestration only
-3. Extract remaining simulation-blocking non-DOM interaction/state helpers from `main.js` into shared modules
+Completed final browser-refactor slices:
+1. Extracted browser HUD/feedback/tooltip/collapsible-group helpers into `ui/`
+2. Extracted more browser bootstrap/state setup so `main.js` trends toward orchestration only
+3. Extracted additional simulation-relevant non-DOM state helpers from `main.js` into shared modules, including survival/damage/health-warning logic in `core/`
 
-**Hard stop:** after these targeted slices, stop refactoring for cleanliness alone and move to the simulation harness.
+**Hard stop reached:** the project should now switch focus from browser refactor cleanup to the simulation harness unless a sim blocker is discovered.
 
 #### Milestone 2 — Simulation MVP complete
 `sim/run.js` should evolve from a scaffold into a real headless game runner.
