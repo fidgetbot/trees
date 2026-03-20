@@ -109,12 +109,13 @@ The codebase is moving toward a three-layer architecture:
 - `core/random.js` created as the first seedable-RNG utility layer
 - `core/actions.js` created for the action catalog and category metadata
 - `core/events.js` created for the major-event catalog and event rolling helper
+- `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
 - `main.js` now imports the extracted rule modules
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
 - Expand `core/events.js` to cover the remaining minor-event / seasonal-reproduction logic
-- Extract diplomacy helpers into `core/diplomacy.js`
+- Move the rest of diplomacy actions and interaction flows behind shared core interfaces
 - Introduce a formal `core/engine.js` API for state transitions
 - Move browser-only rendering/modal behavior into `ui/`
 - Add seeded headless playtests and reporting in `sim/`

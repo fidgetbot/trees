@@ -28,6 +28,12 @@ import {
 import { randomChoice, randomInt } from './core/random.js';
 import { CATEGORY_NAMES, createActions } from './core/actions.js';
 import { createMajorEvents, rollMajorEvent as rollMajorEventFromList } from './core/events.js';
+import {
+  applyRelationshipDelta as applyRelationshipDeltaForState,
+  updateAlliesCount as updateAlliesCountForState,
+  compareConflictPower as compareConflictPowerForState,
+  checkAllyBetrayal as checkAllyBetrayalForState,
+} from './core/diplomacy.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -188,9 +194,7 @@ function getSpeciesAdjustedCostForState(actionKey, baseCost) {
 }
 
 function applyRelationshipDelta(neighbor, delta) {
-  const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
-  neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
-  return adjustedDelta;
+  return applyRelationshipDeltaForState(state, neighbor, delta, getAdjustedRelationshipDelta);
 }
 
 function getPollinatorChanceForState(baseChance) {
@@ -764,7 +768,7 @@ function getNeighborAtSlot(idx) {
 }
 
 function updateAlliesCount() {
-  state.allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally').length + state.offspringTrees;
+  return updateAlliesCountForState(state, getRelationshipState);
 }
 
 function growNeighbors() {
@@ -974,54 +978,20 @@ function showAllyAidRequest(neighbor, crisis, done) {
   ]);
 }
 
-// Sapling-and-later ally threats - neglected alliances can sour once the tree is established enough to rely on them
 function checkAllyBetrayal(events) {
-  const currentStage = computeCurrentLifeStage();
-  if (currentStage.rank < STAGE_BY_NAME['Sapling'].rank) return;
-
-  const capAllyThreats = currentStage.rank < STAGE_BY_NAME['Mature Tree'].rank;
-  let allyThreatTriggered = false;
-
-  for (const neighbor of state.neighbors) {
-    if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
-    if (capAllyThreats && allyThreatTriggered) break;
-    
-    // Track neglect: if help refused more than given, risk betrayal
-    const neglectScore = (neighbor.helpRefusedToThem || 0) - (neighbor.helpGivenToThem || 0);
-    
-    // 15% chance of betrayal event if neglected
-    if (neglectScore >= 2 && Math.random() < 0.15) {
-      const oldState = getRelationshipState(neighbor.relation).name;
-      neighbor.relation = Math.max(-100, neighbor.relation - 25);
-      const newState = getRelationshipState(neighbor.relation).name;
-      
-      events.push({ 
-        text: `Your ally ${neighbor.species} feels abandoned. The fungal bond between you weakens into something bitter.`, 
-        effect: 'warning' 
-      });
-      
+  return checkAllyBetrayalForState(state, events, {
+    computeCurrentLifeStage,
+    STAGE_BY_NAME,
+    getRelationshipState,
+    recordDamage,
+    onRelationshipShift: (neighbor, oldState, newState) => {
       state.pendingInteractions.push((done) => {
         showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
           updateAlliesCount(); updateScore(); updateUI(); render(); done();
         });
       });
-      allyThreatTriggered = true;
-      continue;
-    }
-    
-    // Fungal Network Collapse - blight spreads through ally connections later in the run
-    if (state.year >= 8 && Math.random() < 0.08) {
-      events.push({ 
-        text: `Blight travels the fungal network from your ally ${neighbor.species}. Your shared connection becomes a channel for disease.`, 
-        effect: 'warning' 
-      });
-      state.eventModifiers.disease = 0.7; // -30% resources
-      state.health -= 2;
-      recordDamage(2, 'blight');
-      events.push({ text: 'Health -2 from network blight. Resource collection reduced.', effect: 'damage' });
-      allyThreatTriggered = true;
-    }
-  }
+    },
+  });
 }
 
 function resinReserveAction(s) {
@@ -1568,10 +1538,7 @@ function resolveSeedFate(seedCount) {
 
 
 function compareConflictPower(neighbor) {
-  const yourPower = state.defense + state.rootZones + state.branches + state.trunk + Math.floor(state.leafClusters / 2);
-  const neighborStage = getNeighborStage(neighbor.stageScore).rank + 1;
-  const theirPower = neighborStage * 2 + Math.max(0, Math.floor(-neighbor.relation / 20));
-  return { yourPower, theirPower };
+  return compareConflictPowerForState(state, neighbor, getNeighborStage);
 }
 
 function queueHostileTreeThreat(neighbor, events) {
