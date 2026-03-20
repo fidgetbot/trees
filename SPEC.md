@@ -119,7 +119,7 @@ The codebase is moving toward a three-layer architecture:
 - `ui/resources.js` now handles resource-phase modal body rendering
 - `ui/outcomes.js` now handles spring-fate, victory, succession, and game-over presentation bodies
 - `ui/` now contains extracted browser-only rendering helpers
-- `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node
+- `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node, including a simple `--turns` loop for repeated headless runs
 
 ### Planned next phases
 - Move the remaining interaction-trigger logic behind shared event/core interfaces

@@ -42,6 +42,15 @@ function createStubEngine() {
   });
 }
 
+function parseArgs(argv) {
+  const options = { turns: 1 };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--turns') options.turns = Math.max(1, Number.parseInt(argv[i + 1] || '1', 10) || 1);
+  }
+  return options;
+}
+
 function createInitialState() {
   return {
     seasonIndex: 0,
@@ -78,18 +87,32 @@ function createInitialState() {
   };
 }
 
+const options = parseArgs(process.argv.slice(2));
 const engine = createStubEngine();
 const state = createInitialState();
-const gains = engine.startTurn(state, { addLog: () => {}, presentResources: () => {} });
+const turns = [];
+
+for (let i = 0; i < options.turns; i += 1) {
+  const gains = engine.startTurn(state, { addLog: () => {}, presentResources: () => {} });
+  turns.push({
+    turn: i + 1,
+    season: engine.currentSeason(state).name,
+    gains: {
+      sunlight: gains.sunlightGain,
+      water: gains.waterGain,
+      nutrients: gains.nutrientGain,
+      actions: state.actions,
+    },
+    resources: {
+      sunlight: state.sunlight,
+      water: state.water,
+      nutrients: state.nutrients,
+    },
+  });
+}
 
 console.log(JSON.stringify({
   version: loadVersion(),
   mode: 'sim-scaffold',
-  season: engine.currentSeason(state).name,
-  gains: {
-    sunlight: gains.sunlightGain,
-    water: gains.waterGain,
-    nutrients: gains.nutrientGain,
-    actions: state.actions,
-  },
+  turns,
 }, null, 2));
