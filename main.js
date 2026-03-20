@@ -27,7 +27,13 @@ import {
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
 import { CATEGORY_NAMES, createActions } from './core/actions.js';
-import { createMajorEvents, rollMajorEvent as rollMajorEventFromList } from './core/events.js';
+import {
+  createMajorEvents,
+  rollMajorEvent as rollMajorEventFromList,
+  resolveFruitThreats as resolveFruitThreatsForState,
+  processSeasonalReproduction as processSeasonalReproductionForState,
+  resolveSeedFate as resolveSeedFateForCount,
+} from './core/events.js';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -1430,110 +1436,15 @@ const MAJOR_EVENTS = createMajorEvents({
 });
 
 function resolveFruitThreats(events) {
-  if (!state.pendingFruitThreat) return;
-
-  const threat = state.pendingFruitThreat;
-  const defensePower = state.defense + state.fruitDefense;
-  let losses = 0;
-  let saved = 0;
-
-  for (let i = 0; i < state.developing; i++) {
-    let lossChance = threat.baseLoss;
-    if (threat.type === 'human') lossChance -= 0.12 * defensePower;
-    if (threat.type === 'bird') lossChance -= 0.08 * defensePower;
-    if (threat.type === 'chewer') lossChance -= 0.1 * defensePower;
-    lossChance = Math.max(0.05, Math.min(0.95, lossChance));
-    if (Math.random() < lossChance) losses += 1;
-    else saved += 1;
-  }
-
-  state.developing = Math.max(0, state.developing - losses);
-  if (losses > 0) {
-    events.push({ text: threat.outcome(losses, saved, defensePower > 0), effect: 'fruit-loss' });
-  } else {
-    events.push({ text: threat.safeText, effect: 'fruit-safe' });
-  }
-
-  state.pendingFruitThreat = null;
-  state.fruitDefense = Math.max(0, state.fruitDefense - 1);
+  return resolveFruitThreatsForState(state, events);
 }
 
 function processSeasonalReproduction(events) {
-  const season = currentSeason().name;
-
-  if (season === 'Summer' && state.pollinated > 0) {
-    const ripened = state.pollinated;
-    state.developing += ripened;
-    state.pollinated = 0;
-    if (ripened > 0) state.hasProducedFruit = true;
-    events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
-  }
-
-  if (season === 'Summer' && state.developing > 0 && !state.pendingFruitThreat && Math.random() < 0.45) {
-    const threats = [
-      {
-        type: 'human',
-        warning: 'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.',
-        baseLoss: 0.45,
-        outcome: (losses, saved, defended) => defended
-          ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.`
-          : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`,
-        safeText: 'Your fruits ripened untouched despite the curious humans.'
-      },
-      {
-        type: 'bird',
-        warning: 'Bright birds gather near your canopy, watching the ripening fruit.',
-        baseLoss: 0.35,
-        outcome: (losses, saved, defended) => defended
-          ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.`
-          : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`,
-        safeText: 'Most birds lost interest before doing any serious damage.'
-      },
-      {
-        type: 'chewer',
-        warning: 'Gnawing animals are scouting your branches for easy meals.',
-        baseLoss: 0.4,
-        outcome: (losses, saved, defended) => defended
-          ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.`
-          : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`,
-        safeText: 'The animals passed by without ruining your fruits.'
-      },
-    ];
-    state.pendingFruitThreat = threats[Math.floor(Math.random() * threats.length)];
-    events.push({ text: `${state.pendingFruitThreat.warning} You could invest in Chemical Defense before the danger peaks.`, effect: 'warning' });
-  }
-
-  if (season === 'Summer' && state.pendingFruitThreat) {
-    resolveFruitThreats(events);
-  }
-
-  if (season === 'Autumn' && state.developing > 0) {
-    const matured = state.developing;
-    state.seeds += matured;
-    state.developing = 0;
-    events.push({ text: `${matured} surviving fruit${matured !== 1 ? 's' : ''} hardened into ${matured} seed${matured !== 1 ? 's' : ''}. (+${matured} seed${matured !== 1 ? 's' : ''})`, effect: 'growth' });
-  }
+  return processSeasonalReproductionForState(state, events, () => currentSeason().name);
 }
 
 function resolveSeedFate(seedCount) {
-  const results = [];
-  let sprouted = 0;
-
-  for (let i = 0; i < seedCount; i++) {
-    const r = Math.random();
-    if (r < 0.22) results.push('A seed was eaten outright before it could travel.');
-    else if (r < 0.42) results.push('A seed landed in deep shade and failed to establish.');
-    else if (r < 0.62) results.push('A bird carried one of your seeds away, but dropped it on poor ground.');
-    else if (r < 0.82) {
-      sprouted += 1;
-      results.push('A seed reached promising soil and sprouted into offspring.');
-    } else {
-      sprouted += 1;
-      results.push('An animal carried a seed to open ground, where it sprouted successfully.');
-    }
-  }
-
-  return { sprouted, results };
+  return resolveSeedFateForCount(seedCount);
 }
 
 
