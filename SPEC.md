@@ -113,6 +113,7 @@ The codebase is moving toward a three-layer architecture:
 - `core/engine.js` created as the first shared state-transition layer (season lookup, resource collection/exposure math, event application, action execution, spring viability, turn advancement, death handling)
 - `main.js` now imports the extracted rule modules
 - `ui/actions.js` now exists as the first browser-only rendering helper, handling action-panel DOM construction and button wiring
+- `ui/events.js` now handles event-phase modal body rendering for browser play
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
