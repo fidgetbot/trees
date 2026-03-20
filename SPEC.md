@@ -125,7 +125,7 @@ The codebase is moving toward a three-layer architecture:
 - `ui/hud.js` now handles browser HUD/feedback helpers, tooltip/collapsible-group wiring, and HUD stat/banner updates
 - `ui/browser-app.js` now handles browser app setup helpers, including initial browser state creation, DOM element lookup, species-select bootstrap, and start-game setup
 - `ui/` now contains extracted browser-only rendering/helpers for actions, modals, outcomes, species presentation, leaderboard presentation/storage, canvas rendering, HUD wiring, and browser app setup
-- `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node, including a simple `--turns` loop for repeated headless runs
+- `sim/run.js` now runs seeded headless simulations in Node using the shared engine, with a baseline non-interactive policy, real turn/event progression, repeated batch runs, and structured JSON output (`--turns`, `--games`, `--seed`, `--species`)
 
 ### Completion plan and exit criteria
 
@@ -162,6 +162,12 @@ To consider this milestone complete:
 - it supports deterministic seeds
 - it supports repeated batch runs
 - it emits structured JSON results suitable for analysis
+
+Current status:
+- seeded headless runs are now implemented in `sim/run.js`
+- batch execution and JSON reporting are now implemented
+- the current baseline policy prioritizes non-interactive actions first and uses simplified headless fallbacks for interaction-heavy diplomacy choices
+- next simulation work should improve policy quality, expand interaction fidelity, and add higher-level aggregated reporting for balance analysis
 
 Minimum expected simulation capabilities:
 - `--turns N`
