@@ -121,7 +121,8 @@ The codebase is moving toward a three-layer architecture:
 - `ui/species.js` now handles species-card/species-badge summary rendering and browser species-select panel setup
 - `ui/leaderboard.js` now handles leaderboard storage helpers plus leaderboard/run-record presentation for browser play
 - `ui/canvas.js` now handles browser-only forest scene rendering, including seasonal background, tree drawing, and fungal-network drawing
-- `ui/` now contains extracted browser-only rendering helpers for actions, modals, outcomes, species presentation, leaderboard presentation/storage, and canvas rendering
+- `ui/hud.js` now handles browser HUD/feedback helpers, tooltip/collapsible-group wiring, and HUD stat/banner updates
+- `ui/` now contains extracted browser-only rendering helpers for actions, modals, outcomes, species presentation, leaderboard presentation/storage, canvas rendering, and HUD wiring
 - `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node, including a simple `--turns` loop for repeated headless runs
 
 ### Completion plan and exit criteria
