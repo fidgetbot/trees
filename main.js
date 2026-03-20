@@ -1724,17 +1724,14 @@ function showEventPhase() {
   render();
 
   showModal('Night Falls...', renderEventPhaseBody({ major, minors, consequences }), () => {
-    const continueFlow = () => {
-      processPendingInteractions(() => {
-        if (maybeShowHealthWarning(advanceTurn)) return;
-        advanceTurn();
-      });
-    };
-    if (state.majorEvent?.key === 'Drought' && state.taprootDepth > 0) {
-      showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', continueFlow);
-    } else {
-      continueFlow();
-    }
+    engine.continueAfterEvent(state, {
+      processPendingInteractions,
+      maybeShowHealthWarning,
+      advanceTurn,
+      showTaprootResilience: (onContinue) => {
+        showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+      },
+    });
   });
 }
 

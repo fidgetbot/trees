@@ -188,6 +188,30 @@ export function createEngine(deps) {
     return true;
   }
 
+  function continueAfterEvent(state, hooks = {}) {
+    const {
+      processPendingInteractions: processPendingInteractionsHook,
+      maybeShowHealthWarning: maybeShowHealthWarningHook,
+      advanceTurn: advanceTurnHook,
+      showTaprootResilience,
+    } = hooks;
+
+    const continueFlow = () => {
+      processPendingInteractionsHook?.(() => {
+        if (maybeShowHealthWarningHook?.(advanceTurnHook)) return;
+        advanceTurnHook?.();
+      });
+    };
+
+    if (state.majorEvent?.key === 'Drought' && state.taprootDepth > 0) {
+      showTaprootResilience?.(continueFlow);
+      return true;
+    }
+
+    continueFlow();
+    return true;
+  }
+
   function handleDeath(state) {
     if (state.offspringPool > 0) {
       const generated = generateSuccessionChoices(Math.min(3, state.offspringPool));
@@ -219,6 +243,7 @@ export function createEngine(deps) {
     advanceTurn,
     showEventPhase,
     executeAction,
+    continueAfterEvent,
     handleDeath,
     computeCurrentLifeStage,
   };
