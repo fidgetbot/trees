@@ -483,33 +483,6 @@ let engine;
 
 function currentSeason() { return engine.currentSeason(state); }
 
-function exposureFactor() {
-  const hostileShade = state.eventModifiers.shade || 0;
-  return Math.max(0.15, 1 - (0.08 * Math.max(0, 4 - state.trunk)) - hostileShade);
-}
-
-function collectResources() {
-  const season = currentSeason();
-  const canopyBonus = state.canopySpread * 2;
-  const taprootBonus = state.taprootDepth * 2;
-  const sunlightBase = state.leafClusters + canopyBonus;
-  const sunlightGain = Math.max(1, Math.floor(sunlightBase * exposureFactor() * season.factorSun * state.eventModifiers.disease));
-  const waterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus);
-  const waterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
-
-  const rootNutrients = state.rootZones * 0.7;
-  const allyNutrients = Math.min(2, state.allies * 0.35);
-  const soilBonus = state.eventModifiers.soilBonus || 0;
-  const maintenanceCost = Math.floor((state.trunk + state.leafClusters + state.branches + state.flowers + state.developing + state.seeds) / 6);
-  const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
-  const nutrientGain = Math.max(1, grossNutrients - maintenanceCost);
-
-  state.sunlight += sunlightGain;
-  state.water += waterGain;
-  state.nutrients += nutrientGain;
-  state.actions = 3 + Math.floor((sunlightGain + waterGain + nutrientGain) / 5);
-  return { sunlightGain, waterGain, nutrientGain, waterStorage, canopyBonus, taprootBonus, sunlightBase, rootNutrients, allyNutrients, soilBonus, maintenanceCost, grossNutrients };
-}
 
 function showModal(title, body, onContinue) {
   els.modalTitle.textContent = title;
@@ -681,13 +654,13 @@ function processPendingInteractions(onDone) {
 function showResourcePhase() {
   if (state.gameOver) return;
   setTurnEndBanner('');
-  const gains = collectResources();
+  const gains = engine.collectResources(state);
   addLog(`Your tree awakens and gathers from the world around it...`);
   updateUI();
   render();
 
-  const season = currentSeason();
-  const exposure = Math.round(exposureFactor() * 100);
+  const season = gains.season;
+  const exposure = Math.round(gains.exposure * 100);
 
   // Themed resource phase description
   const seasonDescriptions = {
