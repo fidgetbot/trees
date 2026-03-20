@@ -9,7 +9,7 @@ const SEASONS = [
 // Legacy threshold values remain only for neighbor visualization/scaling.
 const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
-  { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 2, popup: 'Your shell cracks. You push outward into the unknown.' },
+  { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },,
   { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
   { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
   { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'bark', 'shadeRival', 'rhizosphere'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
@@ -91,14 +91,14 @@ function currentStageRequirements() {
       ];
     case 'Small Tree':
       return [
-        { key: 'time', label: 'Live 5 years', met: state.turnsInStage >= turnsForYears(5) },
+        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
         { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
       ];
     case 'Mature Tree':
       return [
-        { key: 'time', label: 'Live 10 years', met: state.turnsInStage >= turnsForYears(10) },
-        { key: 'major', label: 'Survive 3 major events', met: state.majorEventsSurvivedInStage >= 3 },
-        { key: 'allies', label: 'Have 2 allies', met: state.allies >= 2 },
+        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
+        { key: 'major', label: 'Survive 2 major events', met: state.majorEventsSurvivedInStage >= 2 },
+        { key: 'allies', label: 'Have 1 ally', met: state.allies >= 1 },
       ];
     default:
       return [];
@@ -167,6 +167,61 @@ function resumeTurnFlow() {
   if (state.actions <= 0) {
     showEventPhase();
   }
+}
+
+// Ally warning system - warns players they need to invest in diplomacy
+function maybeShowAllyWarning() {
+  const stage = computeCurrentLifeStage().name;
+  
+  // Only warn in stages where allies will be needed
+  if (stage !== 'Sapling' && stage !== 'Small Tree' && stage !== 'Mature Tree') return false;
+  
+  // Don't warn if already have enough allies
+  if (state.allies >= 1) return false;
+  
+  // Don't warn too frequently
+  if (state.growthNudgeCooldown > 0) return false;
+  
+  // Calculate urgency based on stage
+  let urgency = 0;
+  if (stage === 'Sapling') urgency = 1; // Early warning
+  if (stage === 'Small Tree') urgency = 2; // Getting close
+  if (stage === 'Mature Tree') urgency = 3; // Critical
+  
+  const warnings = {
+    1: [
+      'Your roots sense other trees nearby. The fungal network awaits those who reach out.',
+      'The forest grows stronger together. Solitude has its limits.',
+    ],
+    2: [
+      'You feel the weight of growing alone. Ancient trees do not stand without kin.',
+      'Your roots brush against others in the dark, but no bonds have formed. Time grows short.',
+      'The path to Ancient requires connection. The soil remembers those who reach out.',
+    ],
+    3: [
+      'URGENT: You stand at the threshold of greatness, but alone. Without allies, Ancient remains beyond reach.',
+      'Your roots ache for connection. The fungal network is your only path forward now.',
+      'Time runs short. Seek root connection, or your lineage ends here.',
+    ],
+  };
+  
+  const options = warnings[urgency] || warnings[1];
+  const message = options[Math.floor(Math.random() * options.length)];
+  
+  const titles = {
+    1: 'A Whisper in the Soil',
+    2: 'The Forest Reminds You',
+    3: 'CRITICAL: Connection Needed',
+  };
+  
+  state.growthNudgeCooldown = 4 + Math.floor(Math.random() * 2);
+  showModal(titles[urgency], `<p><em>${message}</em></p><p><strong>Current allies:</strong> ${state.allies}/1 needed for Ancient</p>`, () => {
+    updateUI();
+    render();
+    if (state.phase === 'event') showResourcePhase();
+    else resumeTurnFlow();
+  });
+  return true;
 }
 
 function tryAdvanceLifeStage(onContinue) {
@@ -253,7 +308,7 @@ const ACTIONS = [
   { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Choose a nutrient-heavy growth push for trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: s => woodSurgeAction(s) },
 
   // DIPLOMACY - Interactions with other trees
-  { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
+  { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 2, effect: s => attemptConnection(s) },
   { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Send substantial reserves to support an ally and improve its health.', baseCost: { sunlight: 0, water: 1, nutrients: 6 }, prereq: s => s.allies >= 1, effect: s => offerAidToAlly(s) },
   { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
   { key: 'shadeRival', name: 'Shade Rival', icon: '☂️', category: 'diplomacy', help: 'Lean into contested light and suppress a hostile neighbor.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => getRelationshipState(n.relation).name === 'Hostile'), effect: s => shadeRivalAction(s) },
@@ -437,22 +492,22 @@ function startGame() {
     turnInSeason: 1,
     score: 0,
     lifeStage: LIFE_STAGES[0],
-    sunlight: 3,
-    water: 3,
-    nutrients: 3,
+    sunlight: 5,
+    water: 4,
+    nutrients: 4,
     actions: 1,
     branches: 0,
     rootZones: 0,
     leafClusters: 0,
-    trunk: 0,
+    trunk: 1,
     flowers: 0,
     pollinated: 0,
     developing: 0,
     seeds: 0,
     viableSeeds: 0,
     allies: 0,
-    health: spec.health,
-    maxHealth: spec.health,
+    health: spec.health + 3,
+    maxHealth: spec.health + 3,
     offspringPool: 0,
     defense: 0,
     fruitDefense: 0,
@@ -998,6 +1053,46 @@ function showAllyAidRequest(neighbor, crisis, done) {
   ]);
 }
 
+// NEW: Late-game ally threats - allies can betray you if neglected
+function checkAllyBetrayal(events) {
+  for (const neighbor of state.neighbors) {
+    if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
+    
+    // Track neglect: if help refused more than given, risk betrayal
+    const neglectScore = (neighbor.helpRefusedToThem || 0) - (neighbor.helpGivenToThem || 0);
+    
+    // 15% chance of betrayal event if neglected
+    if (neglectScore >= 2 && Math.random() < 0.15) {
+      const oldState = getRelationshipState(neighbor.relation).name;
+      neighbor.relation = Math.max(-100, neighbor.relation - 25);
+      const newState = getRelationshipState(neighbor.relation).name;
+      
+      events.push({ 
+        text: `Your ally ${neighbor.species} feels abandoned. The fungal bond between you weakens into something bitter.`, 
+        effect: 'warning' 
+      });
+      
+      state.pendingInteractions.push((done) => {
+        showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
+          updateAlliesCount(); updateScore(); updateUI(); render(); done();
+        });
+      });
+    }
+    
+    // NEW: Fungal Network Collapse - blight spreads through ally connections
+    if (state.year >= 8 && Math.random() < 0.08) {
+      events.push({ 
+        text: `Blight travels the fungal network from your ally ${neighbor.species}. Your shared connection becomes a channel for disease.`, 
+        effect: 'warning' 
+      });
+      state.eventModifiers.disease = 0.7; // -30% resources
+      state.health -= 2;
+      recordDamage(2, 'blight');
+      events.push({ text: 'Health -2 from network blight. Resource collection reduced.', effect: 'damage' });
+    }
+  }
+}
+
 function resinReserveAction(s) {
   showChoiceModal('Resin Reserve', '<p>How will you spend this dense pulse of nutrients?</p>', [
     { label: 'Saturate bark with bitter resin (−12🌱)', onChoose: () => { state.nutrients = Math.max(0, state.nutrients - 12); state.defense += 2; state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.95); showModal('Resin Reserve', '<p>Your tissues run bitter and guarded. Insects and infection will have a harder time taking hold.</p>', resumeTurnFlow); } },
@@ -1134,7 +1229,7 @@ function attemptConnection(s) {
         feedback = { text: `${neighbor.species} grew cautious`, type: 'info' };
       }
     } else if (oldState === 'Neutral') {
-      if (roll < 0.35 + rootBonus) {
+      if (roll < 0.50 + rootBonus) { // INCREASED from 0.35 to 0.50
         neighbor.relation = Math.min(100, neighbor.relation + 20);
         message = `The ${neighbor.species} pauses, then accepts your tentative underground greeting.`;
         feedback = { text: `${neighbor.species} responded cautiously`, type: 'success' };
@@ -1417,6 +1512,12 @@ function renderActions() {
     els.actionsList.appendChild(endBtn);
   }
 }
+// Escalating threats: damage increases after year 10
+function getThreatMultiplier() {
+  if (state.year < 10) return 1;
+  return 1 + ((state.year - 10) * 0.1); // +10% per year after 10
+}
+
 // Expanded event pool with real botany/ecology inspiration
 const MAJOR_EVENTS = [
   {
@@ -1427,7 +1528,8 @@ const MAJOR_EVENTS = [
     severity: 'bad',
     apply: (s) => {
       s.eventModifiers.drought = Math.max(0.15, 0.55 - (s.trunk * 0.08));
-      const thirst = Math.max(1, 3 - s.trunk - Math.floor(s.eventModifiers.shelter || 0));
+      const baseThirst = Math.max(1, 2 - s.trunk - Math.floor(s.eventModifiers.shelter || 0));
+      const thirst = Math.floor(baseThirst * getThreatMultiplier());
       s.health -= thirst;
       recordDamage(thirst, 'drought');
       const effects = [`Water collection reduced sharply`, `Health -${thirst} from thirst and water stress`]; if (s.taprootDepth > 0) effects.push(`Your deep taproot finds lower moisture and softens the drought's bite.`); return effects;
@@ -1440,7 +1542,8 @@ const MAJOR_EVENTS = [
     desc: 'A wave of herbivores descends on the canopy, hungry for tender leaves.',
     severity: 'bad',
     apply: (s) => {
-      const damage = Math.max(1, 2 - s.defense);
+      const baseDamage = Math.max(1, 1 - s.defense);
+      const damage = Math.floor(baseDamage * getThreatMultiplier());
       const prevLeaves = s.leafClusters;
       s.leafClusters = Math.max(1, s.leafClusters - damage);
       s.health -= 1;
@@ -1483,7 +1586,7 @@ const MAJOR_EVENTS = [
     severity: 'critical',
     apply: (s) => {
       const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
-      const damage = Math.max(1, 4 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
+      const damage = Math.max(1, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
       s.health -= damage;
       recordDamage(damage, 'storm');
       const effects = [];
@@ -2033,6 +2136,7 @@ function rollMinorEvents() {
 
   if (alliedNeighbors.length > 0) {
     advanceAllyCrises(events);
+    checkAllyBetrayal(events); // NEW: Late-game ally threats
   }
   if (hostileNeighbors.length > 0 && Math.random() < 0.35) {
     const target = hostileNeighbors[Math.floor(Math.random() * hostileNeighbors.length)];
@@ -2298,7 +2402,12 @@ function handleSpringViability(onContinue) {
 function advanceTurn() {
   if (state.health <= 0) return handleDeath();
 
-  state.turnsInStage += 1;
+  // Accelerated aging: after year 15, stage progress speeds up
+  if (state.year >= 15) {
+    state.turnsInStage += 1.5; // +50% progress speed
+  } else {
+    state.turnsInStage += 1;
+  }
   if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
 
   if (state.turnInSeason < 3) {
@@ -2321,6 +2430,7 @@ function advanceTurn() {
         updateAlliesCount();
         if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
         if (maybeShowGrowthNudge()) return;
+        if (maybeShowAllyWarning()) return;
         showResourcePhase();
       })) return;
     }
@@ -2332,6 +2442,7 @@ function advanceTurn() {
   render();
   if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return;
   if (maybeShowGrowthNudge()) return;
+  if (maybeShowAllyWarning()) return;
   showResourcePhase();
 }
 

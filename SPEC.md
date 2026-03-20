@@ -13,8 +13,8 @@ Trees progress automatically through stages based on in-game time and activity. 
 | **Seedling** | 1 season + 2 root zones + 2 leaf growths | *"Your taproot finds rich soil. You feel sturdy."* | Root extension, fungal connections | Aphids, browsing animals |
 | **Sapling** | 4 seasons + survive 1 major event | *"Your woody fibers harden. You have become a Sapling!"* | Branch growth, chemical defense | Wind, competition |
 | **Small Tree** | 2 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
-| **Mature Tree** | 5 years + first fruit | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms |
-| **Ancient** | 10 years + survive 3 major events + 2 allies | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
+| **Mature Tree** | 3 years + survive 2 major events + 1 ally | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms, **ally betrayal** |
+| **Ancient** | 6 years + survive 2 major events + 1 ally | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
 
 **Stage Effects:**
 - **Seed/Sprout/Seedling:** Underground focus, no canopy competition, vulnerable to surface events
@@ -141,32 +141,37 @@ Nutrients = max(1, floor((0.7 × RootZones + cappedAllyBonus + SoilBonus) × Dis
 Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood should return later with distinct reproduction systems.
 
 ### Plum
-- Fast-growing and prolific
+- **Bonus:** Fast growth — +20% stage progression speed
 - Soft fruit, high reproduction potential
 - Moderate drought resilience
 - Pollinators: bumblebees, mason bees, hoverflies
 
 ### Peach
+- **Bonus:** Resilient — +1 starting max health
 - Tender but productive
 - Benefits from careful defense of fruit
 - Pollinators: honeybees, bumblebees, butterflies
 
 ### Apricot
+- **Bonus:** Early bloomer — flowers cost -1 sunlight
 - Early-blooming and frost-sensitive
 - Can reproduce quickly if spring goes well
 - Pollinators: mason bees, honeybees, beetles
 
 ### Pear
+- **Bonus:** Durable wood — starts with +1 trunk
 - Slower, steadier, more durable wood
 - Better drought tolerance through sturdier structure
 - Pollinators: hoverflies, honeybees, solitary bees
 
 ### Citrus
+- **Bonus:** Fragrant — 2× pollinator attraction
 - Water-hungry but flavorful
 - Fragrant blossoms and vulnerable fruit
 - Pollinators: honeybees, small native bees, hoverflies
 
 ### Cherry
+- **Bonus:** Alluring — +25% ally relationship gain
 - Graceful, showy blossoms
 - Fruit attracts birds strongly
 - Pollinators: bumblebees, mason bees, butterflies
@@ -272,6 +277,8 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 - **Competition warning:** Neighbor growing fast, shading increasing
 - **Alliance offer:** Neighbor requests formal alliance
 - **Chemical truce:** Rival offers to de-escalate
+- **Ally betrayal:** Neglected allies may turn hostile (late-game threat)
+- **Fungal network collapse:** Blight spreads through ally connections (year 8+)
 - **Spring seed fate:** Each seed may be eaten, lost in shade, dispersed poorly, or sprout successfully
 - **Offspring trouble:** Young offspring may face aphids or drought and ask for help
 - **(More from real forest ecology)**
@@ -320,6 +327,36 @@ Events scale with life stage — threats that matter to seedlings don't bother a
 - Minor events: Pollinators, rain, animals, lightning
 - Succession system
 - Live scoring
+
+## New Mechanics (Implemented)
+
+### Last Stand
+When health drops below 20%, players can sacrifice a branch to survive fatal damage. This reflects real botanical strategy — trees auto-prune to conserve resources in crisis.
+
+### Ally Warning System
+Players receive escalating warnings when they approach stages requiring allies:
+- **Sapling:** Gentle hints about the fungal network
+- **Small Tree:** Clear warnings that Ancient requires connection
+- **Mature Tree:** Urgent alerts that time is running out
+
+### Accelerated Aging
+After year 15, stage progression speeds up (+50%) to prevent endless games.
+
+### Escalating Threats
+Events become more dangerous after year 10 (+10% damage per year), keeping late-game challenging.
+
+### Species Bonuses
+Each species has unique starting advantages displayed in the UI:
+- **Plum:** Fast growth (+20% stage progress)
+- **Peach:** Resilient (+1 max health)
+- **Apricot:** Early bloomer (flowers cost -1 sunlight)
+- **Pear:** Durable wood (starts with +1 trunk)
+- **Citrus:** Fragrant (2× pollinator attraction)
+- **Cherry:** Alluring (+25% ally relationship gain)
+
+### Late-Game Ally Threats
+- **Ally Betrayal:** Neglected allies (help refused > help given) can turn hostile
+- **Fungal Network Collapse:** Blight spreads through ally connections after year 8
 
 ## Future Ideas
 
