@@ -107,7 +107,7 @@ The codebase is moving toward a three-layer architecture:
 - `core/species.js` created for species definitions and species-rule helpers
 - `core/stages.js` created for stage requirement/progression helpers
 - `core/random.js` created as the first seedable-RNG utility layer
-- `core/actions.js` created for the action catalog and category metadata
+- `core/actions.js` created for the action catalog, category metadata, and shared action-availability/locking helpers
 - `core/events.js` now covers the major-event catalog, event rolling helper, minor-event rolling, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
 - `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
 - `core/engine.js` created as the first shared state-transition layer (season lookup, resource collection/exposure math, event application, spring viability, turn advancement, death handling)

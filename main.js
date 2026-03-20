@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions } from './core/actions.js';
+import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -1245,20 +1245,20 @@ function renderActions() {
   const futureActions = [];
 
   ACTIONS.forEach(action => {
-    // Check if action should be hidden at current stage
-    if (action.hideAt) {
-      const hideStage = LIFE_STAGES.find(s => s.name === action.hideAt);
-      if (hideStage && currentStageRank >= hideStage.rank) return;
-    }
+    const availability = getActionAvailability({
+      action,
+      state,
+      lifeStages: LIFE_STAGES,
+      currentStageRank,
+      currentSeasonName: currentSeason().name,
+      seasonalActions: SEASONAL_ACTIONS,
+      getScaledCost,
+      canAfford,
+      isActionUnlocked,
+    });
+    if (availability.hidden) return;
 
-    const scaledCost = getScaledCost(action.baseCost, action.key);
-    const prereqOk = action.prereq ? action.prereq(state) : true;
-    const affordable = canAfford(scaledCost);
-    const unlocked = isActionUnlocked(action.key);
-    const currentSeasonName = currentSeason().name;
-    const allowedSeasons = SEASONAL_ACTIONS[action.key];
-    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
-    const usable = prereqOk && affordable && state.actions > 0 && !seasonLocked && unlocked;
+    const { scaledCost, usable, reason } = availability;
 
     const sunRequired = scaledCost.sunlight || 0;
     const waterRequired = scaledCost.water || 0;
@@ -1283,14 +1283,6 @@ function renderActions() {
         categories[action.category].push(actionData);
       }
     } else {
-      let reason = 'Unavailable';
-      if (!unlocked) reason = `Awakens at the ${LIFE_STAGES.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
-      else if (seasonLocked) reason = `Best attempted in ${allowedSeasons.join('/')}`;
-      else if (!prereqOk) {
-        if (action.key === 'connect') reason = 'Your roots must reach deeper first';
-        else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'You need an ally to call on' : 'You would only ask for help when wounded';
-        else reason = 'The moment is not right yet';
-      } else if (!affordable || state.actions <= 0) reason = 'You lack the resources right now';
       futureActions.push({ ...actionData, reason });
     }
   });

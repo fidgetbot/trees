@@ -5,6 +5,55 @@ export const CATEGORY_NAMES = {
   reproduction: '🌸 Reproduction',
 };
 
+export function getActionAvailability({
+  action,
+  state,
+  lifeStages,
+  currentStageRank,
+  currentSeasonName,
+  seasonalActions,
+  getScaledCost,
+  canAfford,
+  isActionUnlocked,
+}) {
+  if (action.hideAt) {
+    const hideStage = lifeStages.find(s => s.name === action.hideAt);
+    if (hideStage && currentStageRank >= hideStage.rank) return { hidden: true };
+  }
+
+  const scaledCost = getScaledCost(action.baseCost, action.key);
+  const prereqOk = action.prereq ? action.prereq(state) : true;
+  const affordable = canAfford(scaledCost);
+  const unlocked = isActionUnlocked(action.key);
+  const allowedSeasons = seasonalActions[action.key];
+  const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
+  const usable = prereqOk && affordable && state.actions > 0 && !seasonLocked && unlocked;
+
+  let reason = null;
+  if (!usable) {
+    if (!unlocked) reason = `Awakens at the ${lifeStages.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
+    else if (seasonLocked) reason = `Best attempted in ${allowedSeasons.join('/')}`;
+    else if (!prereqOk) {
+      if (action.key === 'connect') reason = 'Your roots must reach deeper first';
+      else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'You need an ally to call on' : 'You would only ask for help when wounded';
+      else reason = 'The moment is not right yet';
+    } else if (!affordable || state.actions <= 0) reason = 'You lack the resources right now';
+    else reason = 'Unavailable';
+  }
+
+  return {
+    hidden: false,
+    scaledCost,
+    prereqOk,
+    affordable,
+    unlocked,
+    allowedSeasons,
+    seasonLocked,
+    usable,
+    reason,
+  };
+}
+
 export function createActions(deps) {
   const {
     resinReserveAction,
