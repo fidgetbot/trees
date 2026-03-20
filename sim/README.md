@@ -1,10 +1,8 @@
-# Trees simulation harness
+# Trees sim scaffold
 
-This directory is reserved for the upcoming headless playtest runner.
+Current headless entrypoint:
 
-Planned files:
-- `strategies.js`
-- `run-playtests.js`
-- `report.js`
+- `node sim/run.js` — run one stubbed headless turn
+- `node sim/run.js --turns 10` — run multiple stubbed headless turn-start cycles
 
-The goal is to run the same core engine used by the browser build, but without DOM/UI dependencies.
+Right now this exercises the shared engine with stubbed browser hooks so the Node path can grow incrementally while the browser refactor continues.

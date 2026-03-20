@@ -124,9 +124,10 @@ The codebase is moving toward a three-layer architecture:
 ### Planned next phases
 - Move the remaining interaction-trigger logic behind shared event/core interfaces
 - Move the rest of diplomacy actions and interaction flows behind shared core interfaces
-- Continue expanding `core/engine.js` from wrapper-level orchestration into the primary public engine API, with event-phase continuation and action execution as the next likely candidates
-- Move browser-only rendering/modal behavior into `ui/`
+- Continue expanding `core/engine.js` from wrapper-level orchestration into the primary public engine API
+- Move the remaining browser-only rendering/modal behavior into `ui/`
 - Expand `sim/run.js` from a stub harness into seeded headless playtests and reporting
+- Replace stubbed sim hooks with progressively more real turn progression and action selection
 
 ## Seasonal Action Locks
 
