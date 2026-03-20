@@ -1691,15 +1691,9 @@ function handleSpringViability(onContinue) {
 function advanceTurn() {
   return engine.advanceTurn(state, {
     onDeath: () => handleDeath(),
-    onAfterSpringViability: () => {
-      updateScore();
-      updateUI();
-      render();
-      updateAlliesCount();
-      if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-      if (maybeShowGrowthNudge()) return;
-      if (maybeShowAllyWarning()) return;
-      showResourcePhase();
+    onAfterSpringViability: (fate, prevSeeds) => {
+      addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+      if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
     },
     onAfterAdvance: () => {},
   });

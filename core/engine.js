@@ -124,6 +124,26 @@ export function createEngine(deps) {
     return true;
   }
 
+  function afterSpringAdvance(state, hooks = {}) {
+    const {
+      onAfterSpringViability,
+      onAfterAdvance,
+    } = hooks;
+
+    growNeighbors();
+    updateAlliesCount();
+    updateScore();
+    updateUI();
+    render();
+    if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return true;
+    if (maybeShowGrowthNudge()) return true;
+    if (maybeShowAllyWarning()) return true;
+    onAfterSpringViability?.();
+    onAfterAdvance?.();
+    showResourcePhase();
+    return true;
+  }
+
   function advanceTurn(state, hooks = {}) {
     const { onDeath, onAfterSpringViability, onAfterAdvance } = hooks;
     if (state.health <= 0) return onDeath?.() ?? false;
@@ -142,21 +162,16 @@ export function createEngine(deps) {
       }
       if (currentSeason(state).name === 'Spring') {
         updateScore(); updateUI(); render();
-        if (handleSpringViability(state, (fate, prevSeeds) => onAfterSpringViability?.(fate, prevSeeds))) return true;
+        if (handleSpringViability(state, (fate, prevSeeds) => {
+          onAfterSpringViability?.(fate, prevSeeds);
+          afterSpringAdvance(state, hooks);
+        })) return true;
       }
     }
 
-    growNeighbors();
-    updateAlliesCount();
-    updateScore();
-    updateUI();
-    render();
-    if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return true;
-    if (maybeShowGrowthNudge()) return true;
-    if (maybeShowAllyWarning()) return true;
-    onAfterAdvance?.();
-    showResourcePhase();
-    return true;
+    return afterSpringAdvance(state, {
+      onAfterAdvance,
+    });
   }
 
   function showEventPhase(state) {
@@ -248,6 +263,7 @@ export function createEngine(deps) {
     startTurn,
     applyEventEffects,
     handleSpringViability,
+    afterSpringAdvance,
     advanceTurn,
     showEventPhase,
     executeAction,

@@ -110,7 +110,7 @@ The codebase is moving toward a three-layer architecture:
 - `core/actions.js` created for the action catalog, category metadata, and shared action-availability/locking helpers
 - `core/events.js` now covers the major-event catalog, event rolling helper, minor-event rolling, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
 - `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
-- `core/engine.js` created as the first shared state-transition layer (season lookup, resource collection/exposure math, turn-start orchestration, event application, action execution, post-event continuation, spring viability, turn advancement, death handling)
+- `core/engine.js` created as the first shared state-transition layer (season lookup, resource collection/exposure math, turn-start orchestration, event application, action execution, post-event continuation, spring viability, post-spring continuation, turn advancement, death handling)
 - `main.js` now imports the extracted rule modules
 - `ui/actions.js` now exists as the first browser-only rendering helper, handling action-panel DOM construction and button wiring
 - `ui/events.js` now handles event-phase modal body rendering for browser play
