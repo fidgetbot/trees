@@ -116,6 +116,7 @@ The codebase is moving toward a three-layer architecture:
 - `ui/events.js` now handles event-phase modal body rendering for browser play
 - `ui/modal.js` now handles the standard browser modal display helper
 - `ui/choice-modal.js` now handles browser choice-modal rendering
+- `ui/resources.js` now handles resource-phase modal body rendering
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
