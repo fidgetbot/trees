@@ -1,119 +1,46 @@
-const SEASONS = [
-  { name: 'Spring', factorSun: 0.8, factorWater: 1.0, top: '#FFE4E1', bottom: '#E6F3FF' },
-  { name: 'Summer', factorSun: 1.2, factorWater: 0.6, top: '#FFD700', bottom: '#90EE90' },
-  { name: 'Autumn', factorSun: 0.6, factorWater: 0.8, top: '#FF8C00', bottom: '#8B4513' },
-  { name: 'Winter', factorSun: 0.2, factorWater: 0.4, top: '#D3D3D3', bottom: '#F0F8FF' },
-];
-
-// Life stages use automatic growth requirements for the player.
-// Legacy threshold values remain only for neighbor visualization/scaling.
-const LIFE_STAGES = [
-  { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
-  { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },
-  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
-  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
-  { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'bark', 'shadeRival', 'rhizosphere'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
-  { name: 'Mature Tree', rank: 5, threshold: 2000, unlocks: ['thicken', 'massFlower', 'nurtureOffspring', 'shelterGrove'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
-  { name: 'Ancient', rank: 6, threshold: 5000, unlocks: ['victory', 'rootDominion', 'mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you.' },
-];
-
-const STAGE_BY_NAME = Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, stage]));
-
-// Seasonal action locks
-const SEASONAL_ACTIONS = {
-  flower: ['Spring'],
-  massFlower: ['Spring'],
-  mastYear: ['Spring'],
-};
-
-const LEADERBOARD_KEY = 'trees-grove-records-v1';
-
-// Diplomacy system
-const RELATIONSHIP_STATES = {
-  ALLY: { min: 50, name: 'Ally', color: '#4CAF50' },
-  FRIENDLY: { min: 10, name: 'Friendly', color: '#8BC34A' },
-  NEUTRAL: { min: -10, name: 'Neutral', color: '#9E9E9E' },
-  RIVAL: { min: -50, name: 'Rival', color: '#FF9800' },
-  HOSTILE: { min: -100, name: 'Hostile', color: '#F44336' },
-};
-
-function getRelationshipState(score) {
-  if (score >= 50) return RELATIONSHIP_STATES.ALLY;
-  if (score >= 10) return RELATIONSHIP_STATES.FRIENDLY;
-  if (score >= -10) return RELATIONSHIP_STATES.NEUTRAL;
-  if (score >= -50) return RELATIONSHIP_STATES.RIVAL;
-  return RELATIONSHIP_STATES.HOSTILE;
-}
-
-function getLifeStage(score) {
-  for (let i = LIFE_STAGES.length - 1; i >= 0; i--) {
-    if (score >= LIFE_STAGES[i].threshold) {
-      return LIFE_STAGES[i];
-    }
-  }
-  return LIFE_STAGES[0];
-}
-
-function getNeighborStage(score) {
-  return getLifeStage(score);
-}
+import {
+  SEASONS,
+  LIFE_STAGES,
+  STAGE_BY_NAME,
+  SEASONAL_ACTIONS,
+  LEADERBOARD_KEY,
+  RELATIONSHIP_STATES,
+  getRelationshipState,
+  getLifeStage,
+  getNeighborStage,
+} from './core/constants.js';
+import {
+  SPECIES,
+  getCurrentSpeciesSpec,
+  getStageProgressIncrement,
+  getSpeciesAdjustedCost,
+  getAdjustedRelationshipDelta,
+  getPollinatorChance,
+  getDroughtResistance,
+} from './core/species.js';
+import {
+  computeCurrentLifeStage as computeCurrentLifeStageFromState,
+  turnsForYears,
+  currentStageRequirements as getCurrentStageRequirements,
+  getNextStage as getNextStageFromState,
+  resetStageProgressCounters as resetStageProgressCountersForState,
+} from './core/stages.js';
+import { randomChoice, randomInt } from './core/random.js';
 
 function computeCurrentLifeStage() {
-  return state.lifeStage || LIFE_STAGES[0];
-}
-
-function turnsForYears(years) {
-  return years * 12;
+  return computeCurrentLifeStageFromState(state);
 }
 
 function currentStageRequirements() {
-  const stage = computeCurrentLifeStage().name;
-  switch (stage) {
-    case 'Seed':
-      return [
-        { key: 'firstRoot', label: 'Take your first action: grow roots', met: state.firstRootActionTaken },
-      ];
-    case 'Sprout':
-      return [
-        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= 3 },
-        { key: 'roots', label: 'Reach 2 root zones', met: state.rootZones >= 2 },
-        { key: 'leaves', label: 'Grow 2 leaf clusters', met: state.leafClusters >= 2 },
-      ];
-    case 'Seedling':
-      return [
-        { key: 'time', label: 'Live through 4 seasons', met: state.turnsInStage >= 12 },
-        { key: 'major', label: 'Survive 1 major event', met: state.majorEventsSurvivedInStage >= 1 },
-      ];
-    case 'Sapling':
-      return [
-        { key: 'time', label: 'Live 2 years', met: state.turnsInStage >= turnsForYears(2) },
-        { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
-      ];
-    case 'Small Tree':
-      return [
-        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
-        { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
-      ];
-    case 'Mature Tree':
-      return [
-        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
-        { key: 'major', label: 'Survive 2 major events', met: state.majorEventsSurvivedInStage >= 2 },
-        { key: 'allies', label: 'Have 1 ally', met: state.allies >= 1 },
-      ];
-    default:
-      return [];
-  }
+  return getCurrentStageRequirements(state);
 }
 
 function getNextStage() {
-  const current = computeCurrentLifeStage();
-  return LIFE_STAGES.find(stage => stage.rank === current.rank + 1) || null;
+  return getNextStageFromState(state);
 }
 
 function resetStageProgressCounters() {
-  state.turnsInStage = 0;
-  state.majorEventsSurvivedInStage = 0;
-  state.growthNudgeCooldown = 3 + Math.floor(Math.random() * 2);
+  resetStageProgressCountersForState(state);
 }
 
 function maybeShowGrowthNudge() {
@@ -148,8 +75,8 @@ function maybeShowGrowthNudge() {
   };
 
   const options = nudgeMap[missing[0].key] || ['Something in you strains toward its next form.'];
-  const message = options[Math.floor(Math.random() * options.length)];
-  state.growthNudgeCooldown = 3 + Math.floor(Math.random() * 2);
+  const message = randomChoice(options);
+  state.growthNudgeCooldown = 3 + randomInt(2);
   showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
     updateUI();
     render();
@@ -206,7 +133,7 @@ function maybeShowAllyWarning() {
   };
   
   const options = warnings[urgency] || warnings[1];
-  const message = options[Math.floor(Math.random() * options.length)];
+  const message = randomChoice(options);
   
   const titles = {
     1: 'A Whisper in the Soil',
@@ -246,103 +173,35 @@ function tryAdvanceLifeStage(onContinue) {
 }
 
 
-const SPECIES = {
-  Plum: {
-    icon: '🟣',
-    description: 'Fast-growing plum tree with abundant blossoms and soft fruit.',
-    bonusTitle: 'Fast growth',
-    bonusText: '+20% stage progress',
-    branches: 1, rootZones: 2, trunk: 1, health: 10,
-    growthRate: 1.2, droughtResist: 0.35, pollinators: ['bumblebees', 'mason bees', 'hoverflies'],
-  },
-  Peach: {
-    icon: '🍑',
-    description: 'Tender peach tree with rich fruit and moderate resilience.',
-    bonusTitle: 'Resilient',
-    bonusText: '+1 starting max health',
-    branches: 1, rootZones: 2, trunk: 1, health: 11,
-    growthRate: 1.1, droughtResist: 0.4, pollinators: ['honeybees', 'bumblebees', 'butterflies'],
-  },
-  Apricot: {
-    icon: '🟠',
-    description: 'Early-blooming apricot tree, productive but frost-sensitive.',
-    bonusTitle: 'Early bloomer',
-    bonusText: 'Flowering actions cost -1 sunlight',
-    branches: 1, rootZones: 2, trunk: 1, health: 10,
-    growthRate: 1.15, droughtResist: 0.3, pollinators: ['mason bees', 'honeybees', 'beetles'],
-  },
-  Pear: {
-    icon: '🍐',
-    description: 'Steady pear tree with durable wood and dependable fruit.',
-    bonusTitle: 'Durable wood',
-    bonusText: 'Starts with +1 trunk',
-    branches: 1, rootZones: 2, trunk: 2, health: 12,
-    growthRate: 1.0, droughtResist: 0.45, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
-  },
-  Citrus: {
-    icon: '🍋',
-    description: 'Glossy-leaved citrus tree with fragrant blossoms and thirsty roots.',
-    bonusTitle: 'Fragrant',
-    bonusText: '2× pollinator attraction',
-    branches: 1, rootZones: 2, trunk: 1, health: 11,
-    growthRate: 1.05, droughtResist: 0.25, pollinators: ['honeybees', 'small native bees', 'hoverflies'],
-  },
-  Cherry: {
-    icon: '🍒',
-    description: 'Graceful cherry tree with showy flowers and bird-loved fruit.',
-    bonusTitle: 'Alluring',
-    bonusText: '+25% positive relationship gain',
-    branches: 1, rootZones: 2, trunk: 1, health: 10,
-    growthRate: 1.15, droughtResist: 0.35, pollinators: ['bumblebees', 'mason bees', 'butterflies'],
-  },
-};
-
-function getCurrentSpeciesSpec() {
-  return SPECIES[state.selectedSpecies] || null;
+function getCurrentSpeciesSpecForState() {
+  return getCurrentSpeciesSpec(state);
 }
 
-function getStageProgressIncrement() {
-  const growthRate = getCurrentSpeciesSpec()?.growthRate || 1;
-  const baseIncrement = state.year >= 15 ? 1.5 : 1;
-  return baseIncrement * growthRate;
+function getStageProgressIncrementForState() {
+  return getStageProgressIncrement(state);
 }
 
-function getSpeciesAdjustedCost(actionKey, baseCost) {
-  const stage = computeCurrentLifeStage();
-  const multiplier = Math.max(1, stage.rank);
-  const cost = {
-    sunlight: Math.floor((baseCost.sunlight || 0) * multiplier),
-    water: Math.floor((baseCost.water || 0) * multiplier),
-    nutrients: Math.floor((baseCost.nutrients || 0) * multiplier),
-  };
-
-  if (state.selectedSpecies === 'Apricot' && ['flower', 'massFlower', 'mastYear'].includes(actionKey)) {
-    cost.sunlight = Math.max(0, cost.sunlight - 1);
-  }
-
-  return cost;
+function getSpeciesAdjustedCostForState(actionKey, baseCost) {
+  return getSpeciesAdjustedCost(state, actionKey, baseCost, computeCurrentLifeStage());
 }
 
 function applyRelationshipDelta(neighbor, delta) {
-  const adjustedDelta = delta > 0 && state.selectedSpecies === 'Cherry'
-    ? Math.max(1, Math.ceil(delta * 1.25))
-    : delta;
+  const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
   return adjustedDelta;
 }
 
-function getPollinatorChance(baseChance) {
-  const multiplier = state.selectedSpecies === 'Citrus' ? 2 : 1;
-  return Math.min(0.95, baseChance * multiplier);
+function getPollinatorChanceForState(baseChance) {
+  return getPollinatorChance(state, baseChance);
 }
 
-function getDroughtResistance() {
-  return getCurrentSpeciesSpec()?.droughtResist || 0;
+function getDroughtResistanceForState() {
+  return getDroughtResistance(state);
 }
 
 // Cost scaling: base costs multiply by stage rank (Sapling=×2, Small Tree=×3, etc.)
 function getScaledCost(baseCost, actionKey = null) {
-  return getSpeciesAdjustedCost(actionKey, baseCost);
+  return getSpeciesAdjustedCostForState(actionKey, baseCost);
 }
 
 // Updated actions with categories, icons, and base costs (scaled by stage)
@@ -560,7 +419,7 @@ function renderSpeciesSummary(speciesName, options = {}) {
 
 function initSpeciesSelect() {
   const names = Object.keys(SPECIES);
-  const chosen = names[Math.floor(Math.random() * names.length)];
+  const chosen = names[randomInt(names.length)];
   state.selectedSpecies = chosen;
   els.speciesList.innerHTML = `
     <div class="species-card selected species-card-detail">
@@ -1624,7 +1483,7 @@ const MAJOR_EVENTS = [
     desc: 'The soil dries and cracks. Your roots must reach deeper for moisture.',
     severity: 'bad',
     apply: (s) => {
-      const droughtResist = getDroughtResistance();
+      const droughtResist = getDroughtResistanceForState();
       const baseDroughtModifier = Math.max(0.15, 0.55 - (s.trunk * 0.08));
       s.eventModifiers.drought = Math.min(1, baseDroughtModifier + (droughtResist * 0.35));
       const baseThirst = Math.max(1, 2 - s.trunk - Math.floor(s.eventModifiers.shelter || 0));
@@ -2197,7 +2056,7 @@ function rollMinorEvents() {
   if (state.flowers > 0) {
     const basePollinatorChance = currentSeason().name === 'Spring' ? 0.55 : 
                                 currentSeason().name === 'Summer' ? 0.4 : 0.1;
-    const pollinatorChance = getPollinatorChance(basePollinatorChance);
+    const pollinatorChance = getPollinatorChanceForState(basePollinatorChance);
     if (Math.random() < pollinatorChance) {
       const pollinated = Math.min(state.flowers, Math.floor(Math.random() * 2) + 1);
       state.pollinated += pollinated;
@@ -2508,7 +2367,7 @@ function advanceTurn() {
   if (state.health <= 0) return handleDeath();
 
   // Species growth rate affects stage progression; very old trees still accelerate further.
-  state.turnsInStage += getStageProgressIncrement();
+  state.turnsInStage += getStageProgressIncrementForState();
   if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
 
   if (state.turnInSeason < 3) {

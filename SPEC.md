@@ -54,7 +54,7 @@ Nudges appear randomly every 3–4 turns until growth occurs.
 
 ## Current Build Status
 
-This spec reflects the current playable build in `main.js`, not just the original design intent.
+This spec reflects the current playable build, which is now beginning a phased refactor out of `main.js` into shared core modules.
 
 ### Implemented now
 - Full seasonal loop with resource collection, action phase, and event phase
@@ -77,6 +77,44 @@ This spec reflects the current playable build in `main.js`, not just the origina
 - Neighbor life stages are used mainly for scaling/visualization rather than a fully simulated parallel life cycle
 - Ally crises are tracked consistently, but allies are still simplified characters rather than full mirror copies of the player tree
 - There is no online/shared leaderboard yet; records are local to the browser
+
+## Refactor Roadmap: Engine, UI, Simulation
+
+The codebase is moving toward a three-layer architecture:
+
+1. **Core engine** (`core/`)
+   - Shared game rules and state helpers
+   - No DOM dependencies
+   - Eventually used by both browser play and headless simulation
+
+2. **Browser UI** (`ui/`)
+   - Rendering, modals, input wiring, and presentation text
+   - Thin client over the core engine
+
+3. **Simulation harness** (`sim/`)
+   - Headless Node-based playtests
+   - Seeded runs, strategy bots, structured logs, and balance reporting
+
+### Refactor principles
+- Preserve **v30 gameplay behavior** during extraction unless separation forces a change
+- Use a **single rules engine** for browser and simulation
+- Centralize randomness behind a **seedable RNG**
+- Prefer **structured event payloads** over UI-only prose in the engine
+- Keep the browser build playable throughout the migration
+
+### Current refactor status
+- `core/constants.js` created for seasons, stages, relationship bands, and shared constants
+- `core/species.js` created for species definitions and species-rule helpers
+- `core/stages.js` created for stage requirement/progression helpers
+- `core/random.js` created as the first seedable-RNG utility layer
+- `main.js` now imports the extracted rule modules
+- `ui/` and `sim/` directories are scaffolded for later phases
+
+### Planned next phases
+- Extract action definitions and event tables into `core/`
+- Introduce a formal `core/engine.js` API for state transitions
+- Move browser-only rendering/modal behavior into `ui/`
+- Add seeded headless playtests and reporting in `sim/`
 
 ## Seasonal Action Locks
 
