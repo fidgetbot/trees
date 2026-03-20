@@ -168,6 +168,7 @@ Current status:
 - batch execution and JSON reporting are now implemented
 - the current baseline policy now prioritizes unmet stage requirements first, which allows headless runs to progress through life stages instead of stalling in early growth
 - simulation reporting now includes aggregate balance-oriented summaries such as stage reach rates, score/year percentiles, action usage, event frequencies, death causes, species breakdowns, stage transitions, and per-run peak metrics
+- browser startup wiring is smoke-tested again after the refactor; the live start path depends on the full outcomes import set remaining wired into `main.js`
 - simplified headless fallbacks are still used for interaction-heavy diplomacy choices
 - next simulation work should improve policy quality further, expand interaction fidelity, and use the new reports for balance analysis (without changing game values until explicitly requested)
 

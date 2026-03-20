@@ -48,7 +48,7 @@ import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
-import { renderSpringSeedFateBody, renderVictoryBody } from './ui/outcomes.js';
+import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
 import { renderForestScene } from './ui/canvas.js';
