@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createEngine } from '../core/engine.js';
 import { createSeededRng } from '../core/random.js';
 import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, getRelationshipState } from '../core/constants.js';
-import { SPECIES, getCurrentSpeciesSpec, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
+import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate } from '../core/events.js';
@@ -25,6 +25,21 @@ function parseArgs(argv) {
   }
   if (!SPECIES[options.species]) options.species = 'Plum';
   return options;
+}
+
+function incrementCounter(map, key, amount = 1) {
+  map[key] = (map[key] || 0) + amount;
+}
+
+function average(values) {
+  return values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2)) : 0;
+}
+
+function percentile(values, pct) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((pct / 100) * sorted.length) - 1));
+  return sorted[idx];
 }
 
 function makeStartingNeighbors(rng) {
@@ -144,12 +159,48 @@ function updateNeighborAliveState(state, neighbor) {
   updateAlliesCount(state, getRelationshipState);
 }
 
+function createMetricsTracker() {
+  return {
+    actionsTaken: {},
+    majorEvents: {},
+    minorEffects: {},
+    stageTransitions: [],
+    stagesReached: { Seed: true },
+    peak: {
+      score: 0,
+      allies: 0,
+      viableSeeds: 0,
+      offspringPool: 0,
+      health: 0,
+      branches: 0,
+      rootZones: 0,
+      leafClusters: 0,
+      trunk: 0,
+    },
+    endingResources: null,
+  };
+}
+
+function updatePeakMetrics(metrics, state) {
+  metrics.peak.score = Math.max(metrics.peak.score, state.score);
+  metrics.peak.allies = Math.max(metrics.peak.allies, state.allies);
+  metrics.peak.viableSeeds = Math.max(metrics.peak.viableSeeds, state.viableSeeds);
+  metrics.peak.offspringPool = Math.max(metrics.peak.offspringPool, state.offspringPool);
+  metrics.peak.health = Math.max(metrics.peak.health, state.health);
+  metrics.peak.branches = Math.max(metrics.peak.branches, state.branches);
+  metrics.peak.rootZones = Math.max(metrics.peak.rootZones, state.rootZones);
+  metrics.peak.leafClusters = Math.max(metrics.peak.leafClusters, state.leafClusters);
+  metrics.peak.trunk = Math.max(metrics.peak.trunk, state.trunk);
+}
+
 function createHeadlessGame(seed, speciesName) {
   const rng = createSeededRng(seed);
   const originalRandom = Math.random;
   Math.random = rng;
 
   const state = createInitialState(speciesName, rng);
+  const metrics = createMetricsTracker();
+  updatePeakMetrics(metrics, state);
 
   function maybeShowHealthWarning(onContinue) {
     const level = healthWarningBandForState(state);
@@ -166,12 +217,15 @@ function createHeadlessGame(seed, speciesName) {
   function maybeShowAllyWarning() { return false; }
 
   function tryAdvanceLifeStage(onContinue) {
+    const previousStage = state.lifeStage.name;
     const next = getNextStage(state);
     if (!next) return false;
     const reqs = currentStageRequirements(state);
     if (!reqs.length || reqs.every(r => r.met)) {
       state.lifeStage = next;
       resetStageProgressCounters(state, rng);
+      metrics.stageTransitions.push({ from: previousStage, to: next.name, year: state.year, season: SEASONS[state.seasonIndex].name });
+      metrics.stagesReached[next.name] = true;
       addLog(state, `You have grown. You are now a ${next.name}.`);
       onContinue?.();
       return true;
@@ -372,6 +426,7 @@ function createHeadlessGame(seed, speciesName) {
           state.actions = 0;
           break;
         }
+        incrementCounter(metrics.actionsTaken, picked.action.key);
         engine.executeAction(state, picked.action, picked.availability.scaledCost, {
           spend: cost => spend(state, cost),
           showFeedback: () => {},
@@ -381,14 +436,19 @@ function createHeadlessGame(seed, speciesName) {
           renderActions: () => {},
           showEventPhase: () => {},
         });
+        updatePeakMetrics(metrics, state);
       }
 
       const eventResult = engine.showEventPhase(state);
       state.majorEvent = eventResult.major;
       state.minorEvent = eventResult.minors;
 
+      if (eventResult.major?.key) incrementCounter(metrics.majorEvents, eventResult.major.key);
+      for (const event of eventResult.minors) incrementCounter(metrics.minorEffects, event.effect || 'unknown');
+
       if (state.health <= 0) {
         engine.handleDeath(state);
+        updatePeakMetrics(metrics, state);
         break;
       }
 
@@ -405,6 +465,7 @@ function createHeadlessGame(seed, speciesName) {
       });
 
       turnsPlayed += 1;
+      updatePeakMetrics(metrics, state);
       history.push({
         turn: turnsPlayed,
         year: state.year,
@@ -417,6 +478,12 @@ function createHeadlessGame(seed, speciesName) {
         minorEvents: eventResult.minors.map(e => e.effect),
       });
     }
+
+    metrics.endingResources = {
+      sunlight: state.sunlight,
+      water: state.water,
+      nutrients: state.nutrients,
+    };
 
     Math.random = originalRandom;
     return {
@@ -435,11 +502,108 @@ function createHeadlessGame(seed, speciesName) {
       gameOver: state.gameOver,
       deathCause: state.gameOver ? state.lastDamageCause : null,
       deathFlavor: state.gameOver ? deathFlavorForCause(state.lastDamageCause) : null,
+      metrics,
       history,
     };
   }
 
   return { run };
+}
+
+function summarizeGames(games) {
+  const summary = {
+    games: games.length,
+    wins: games.filter(g => g.victoryAchieved).length,
+    losses: games.filter(g => g.gameOver).length,
+    averageScore: average(games.map(g => g.score)),
+    averageYears: average(games.map(g => g.year)),
+    averageTurnsPlayed: average(games.map(g => g.turnsPlayed)),
+    averageAllies: average(games.map(g => g.allies)),
+    averageViableSeeds: average(games.map(g => g.viableSeeds)),
+    averageOffspringPool: average(games.map(g => g.offspringPool)),
+    averageEndingHealth: average(games.map(g => g.health)),
+    scorePercentiles: {
+      p25: percentile(games.map(g => g.score), 25),
+      p50: percentile(games.map(g => g.score), 50),
+      p75: percentile(games.map(g => g.score), 75),
+      p90: percentile(games.map(g => g.score), 90),
+    },
+    yearPercentiles: {
+      p25: percentile(games.map(g => g.year), 25),
+      p50: percentile(games.map(g => g.year), 50),
+      p75: percentile(games.map(g => g.year), 75),
+      p90: percentile(games.map(g => g.year), 90),
+    },
+    byStage: {},
+    stageReachCounts: {},
+    stageReachRates: {},
+    deathCauses: {},
+    actionUsage: {},
+    majorEventCounts: {},
+    minorEffectCounts: {},
+    speciesBreakdown: {},
+  };
+
+  for (const stage of LIFE_STAGES) {
+    const finalCount = games.filter(g => g.stage === stage.name).length;
+    const reachCount = games.filter(g => g.metrics.stagesReached[stage.name]).length;
+    if (finalCount > 0) summary.byStage[stage.name] = finalCount;
+    if (reachCount > 0) {
+      summary.stageReachCounts[stage.name] = reachCount;
+      summary.stageReachRates[stage.name] = Number((reachCount / games.length).toFixed(3));
+    }
+  }
+
+  for (const game of games) {
+    if (game.deathCause) incrementCounter(summary.deathCauses, game.deathCause);
+
+    for (const [key, count] of Object.entries(game.metrics.actionsTaken)) incrementCounter(summary.actionUsage, key, count);
+    for (const [key, count] of Object.entries(game.metrics.majorEvents)) incrementCounter(summary.majorEventCounts, key, count);
+    for (const [key, count] of Object.entries(game.metrics.minorEffects)) incrementCounter(summary.minorEffectCounts, key, count);
+
+    const bucket = summary.speciesBreakdown[game.species] || {
+      games: 0,
+      wins: 0,
+      losses: 0,
+      totalScore: 0,
+      totalYears: 0,
+      totalAllies: 0,
+      totalViableSeeds: 0,
+      totalOffspringPool: 0,
+      finalStages: {},
+      stageReachCounts: {},
+      deathCauses: {},
+    };
+
+    bucket.games += 1;
+    if (game.victoryAchieved) bucket.wins += 1;
+    if (game.gameOver) bucket.losses += 1;
+    bucket.totalScore += game.score;
+    bucket.totalYears += game.year;
+    bucket.totalAllies += game.allies;
+    bucket.totalViableSeeds += game.viableSeeds;
+    bucket.totalOffspringPool += game.offspringPool;
+    incrementCounter(bucket.finalStages, game.stage);
+    if (game.deathCause) incrementCounter(bucket.deathCauses, game.deathCause);
+    for (const stage of Object.keys(game.metrics.stagesReached)) incrementCounter(bucket.stageReachCounts, stage);
+
+    summary.speciesBreakdown[game.species] = bucket;
+  }
+
+  for (const [species, bucket] of Object.entries(summary.speciesBreakdown)) {
+    bucket.averageScore = average([bucket.totalScore / bucket.games]);
+    bucket.averageYears = average([bucket.totalYears / bucket.games]);
+    bucket.averageAllies = average([bucket.totalAllies / bucket.games]);
+    bucket.averageViableSeeds = average([bucket.totalViableSeeds / bucket.games]);
+    bucket.averageOffspringPool = average([bucket.totalOffspringPool / bucket.games]);
+    delete bucket.totalScore;
+    delete bucket.totalYears;
+    delete bucket.totalAllies;
+    delete bucket.totalViableSeeds;
+    delete bucket.totalOffspringPool;
+  }
+
+  return summary;
 }
 
 const options = parseArgs(process.argv.slice(2));
@@ -450,19 +614,10 @@ for (let i = 0; i < options.games; i += 1) {
   games.push(game.run(options.turns));
 }
 
-const summary = {
-  games: games.length,
-  wins: games.filter(g => g.victoryAchieved).length,
-  losses: games.filter(g => g.gameOver).length,
-  averageScore: Number((games.reduce((sum, g) => sum + g.score, 0) / games.length).toFixed(2)),
-  averageYears: Number((games.reduce((sum, g) => sum + g.year, 0) / games.length).toFixed(2)),
-  byStage: Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, games.filter(g => g.stage === stage.name).length]).filter(([, count]) => count > 0)),
-};
-
 console.log(JSON.stringify({
   version: loadVersion(),
   mode: 'simulation-mvp',
   options,
-  summary,
+  summary: summarizeGames(games),
   games,
 }, null, 2));
