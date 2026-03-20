@@ -40,6 +40,7 @@ import {
   compareConflictPower as compareConflictPowerForState,
   checkAllyBetrayal as checkAllyBetrayalForState,
 } from './core/diplomacy.js';
+import { createEngine } from './core/engine.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -477,7 +478,9 @@ function startGame() {
   showResourcePhase();
 }
 
-function currentSeason() { return SEASONS[state.seasonIndex]; }
+let engine;
+
+function currentSeason() { return engine.currentSeason(state); }
 
 function exposureFactor() {
   const hostileShade = state.eventModifiers.shade || 0;
@@ -1435,6 +1438,32 @@ const MAJOR_EVENTS = createMajorEvents({
   updateAlliesCount,
 });
 
+engine = createEngine({
+  SEASONS,
+  computeCurrentLifeStage,
+  getStageProgressIncrement: getStageProgressIncrementForState,
+  rollMajorEvent,
+  rollMinorEvents,
+  resolveSeedFate,
+  updateAlliesCount,
+  growNeighbors,
+  tryAdvanceLifeStage,
+  maybeShowGrowthNudge,
+  maybeShowAllyWarning,
+  showResourcePhase,
+  updateScore,
+  updateUI,
+  render,
+  showModal,
+  processPendingInteractions,
+  maybeShowHealthWarning,
+  saveCurrentRunToLeaderboard,
+  deathFlavor,
+  generateSuccessionChoices,
+  continueAsSuccessor,
+  showChoiceModal,
+});
+
 function resolveFruitThreats(events) {
   return resolveFruitThreatsForState(state, events);
 }
@@ -1910,38 +1939,14 @@ function deathFlavor(cause) {
 }
 
 function applyEventEffects(major, minors) {
-  // Reset modifiers
-  state.eventModifiers.drought = 1;
-  state.eventModifiers.disease = 1;
-  state.eventModifiers.shade = Math.max(0, (state.eventModifiers.shade || 0) * 0.7);
-  state.eventModifiers.shelter = Math.max(0, (state.eventModifiers.shelter || 0) - 0.25);
-  
-  const consequences = [];
-  
-  if (major) {
-    const majorEffects = major.apply(state);
-    consequences.push(...majorEffects);
-    if (state.health > 0) state.majorEventsSurvivedInStage += 1;
-  }
-  
-  minors.forEach(event => {
-    if (event.effect === 'pollinated') {
-      state.score += 5;
-    }
-  });
-  
-  state.health = Math.min(state.maxHealth, Math.max(0, state.health));
-  
-  return consequences;
+  return engine.applyEventEffects(state, major, minors);
 }
 
 function showEventPhase() {
   if (!els.turnEndBanner?.classList.contains('hidden')) {
     els.turnEndBanner.innerHTML = `<strong>Turn ended:</strong> ${els.turnEndBanner.textContent.replace(/^Turn ending:\s*/, '')}`;
   }
-  const major = state.turnInSeason === 3 ? rollMajorEvent() : null;
-  const minors = rollMinorEvents();
-  const consequences = applyEventEffects(major, minors);
+  const { major, minors, consequences } = engine.showEventPhase(state);
   updateScore();
   updateUI();
   render();
@@ -2002,87 +2007,32 @@ function showEventPhase() {
 }
 
 function handleSpringViability(onContinue) {
-  if (state.seeds <= 0) return false;
-  const prevSeeds = state.seeds;
-  const fate = resolveSeedFate(state.seeds);
-  state.viableSeeds += fate.sprouted;
-  state.offspringPool += fate.sprouted;
-  state.offspringTrees += fate.sprouted;
-  state.seeds = 0;
-  addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
-  if (fate.sprouted > 0) {
-    showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
-  }
-  showModal('Spring Seed Fate', `
-    <p>${prevSeeds} seed${prevSeeds !== 1 ? 's' : ''} faced the hazards of dispersal and germination.</p>
-    <ul>${fate.results.map(r => `<li>${r}</li>`).join('')}</ul>
-    <p><strong>${fate.sprouted}</strong> offspring successfully sprouted.</p>
-  `, () => onContinue?.());
-  return true;
+  return engine.handleSpringViability(state, (fate, prevSeeds) => {
+    addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+    if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
+    onContinue?.();
+  });
 }
 
 function advanceTurn() {
-  if (state.health <= 0) return handleDeath();
-
-  // Species growth rate affects stage progression; very old trees still accelerate further.
-  state.turnsInStage += getStageProgressIncrementForState();
-  if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
-
-  if (state.turnInSeason < 3) {
-    state.turnInSeason += 1;
-  } else {
-    state.turnInSeason = 1;
-    state.seasonIndex += 1;
-    if (state.seasonIndex > 3) {
-      state.seasonIndex = 0;
-      state.year += 1;
-    }
-    if (currentSeason().name === 'Spring') {
+  return engine.advanceTurn(state, {
+    onDeath: () => handleDeath(),
+    onAfterSpringViability: () => {
       updateScore();
       updateUI();
       render();
-      if (handleSpringViability(() => {
-        updateScore();
-        updateUI();
-        render();
-        updateAlliesCount();
-        if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-        if (maybeShowGrowthNudge()) return;
-        if (maybeShowAllyWarning()) return;
-        showResourcePhase();
-      })) return;
-    }
-  }
-  growNeighbors();
-  updateAlliesCount();
-  updateScore();
-  updateUI();
-  render();
-  if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return;
-  if (maybeShowGrowthNudge()) return;
-  if (maybeShowAllyWarning()) return;
-  showResourcePhase();
+      updateAlliesCount();
+      if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
+      if (maybeShowGrowthNudge()) return;
+      if (maybeShowAllyWarning()) return;
+      showResourcePhase();
+    },
+    onAfterAdvance: () => {},
+  });
 }
 
 function handleDeath() {
-  if (state.offspringPool > 0) {
-    const choices = generateSuccessionChoices(Math.min(3, state.offspringPool)).map(choice => ({
-      label: choice.label,
-      onChoose: () => continueAsSuccessor(choice),
-    }));
-    showChoiceModal('Succession', `
-      <p>Your current tree has died, but living offspring remain.</p>
-      <p>Choose which surviving line will carry the grove forward:</p>
-      <ul>
-        ${generateSuccessionChoices(Math.min(3, state.offspringPool)).map(choice => `<li><strong>${choice.label}</strong> — ${choice.summary}</li>`).join('')}
-      </ul>
-    `, choices);
-  } else {
-    state.gameOver = true;
-    const flavor = deathFlavor(state.lastDamageCause);
-    if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('lineage ended');
-    showModal('Game Over', `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p><p>Your run has been added to the grove records.</p>`, () => {});
-  }
+  return engine.handleDeath(state);
 }
 
 function updateScore() {
