@@ -44,6 +44,7 @@ import {
 import { createEngine } from './core/engine.js';
 import { renderActionPanels } from './ui/actions.js';
 import { renderEventPhaseBody } from './ui/events.js';
+import { showStandardModal } from './ui/modal.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -487,14 +488,7 @@ function currentSeason() { return engine.currentSeason(state); }
 
 
 function showModal(title, body, onContinue) {
-  els.modalTitle.textContent = title;
-  els.modalBody.innerHTML = body;
-  els.modal.classList.remove('hidden');
-  els.modalButton.style.display = '';
-  els.modalButton.onclick = () => {
-    els.modal.classList.add('hidden');
-    onContinue?.();
-  };
+  return showStandardModal(els, title, body, onContinue);
 }
 
 function loadLeaderboard() {
