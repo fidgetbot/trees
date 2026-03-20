@@ -26,6 +26,7 @@ export function createEngine(deps) {
     renderSpringSeedFateBody,
     renderGameOverBody,
     renderSuccessionBody,
+    renderVictoryBody,
   } = deps;
 
   function currentSeason(state) {
@@ -90,6 +91,22 @@ export function createEngine(deps) {
     return gains;
   }
 
+  function calculateScore(state) {
+    return (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
+  }
+
+  function updateScoreState(state) {
+    state.score = calculateScore(state);
+
+    if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
+      state.victoryAchieved = true;
+      if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('reached Ancient');
+      showModal('Victory!', renderVictoryBody({ score: state.score }), () => {});
+    }
+
+    return state.score;
+  }
+
   function applyEventEffects(state, major, minors) {
     state.eventModifiers.drought = 1;
     state.eventModifiers.disease = 1;
@@ -132,10 +149,10 @@ export function createEngine(deps) {
 
     growNeighbors();
     updateAlliesCount();
-    updateScore();
+    updateScoreState(state);
     updateUI();
     render();
-    if (tryAdvanceLifeStage(() => { updateScore(); updateUI(); render(); showResourcePhase(); })) return true;
+    if (tryAdvanceLifeStage(() => { updateScoreState(state); updateUI(); render(); showResourcePhase(); })) return true;
     if (maybeShowGrowthNudge()) return true;
     if (maybeShowAllyWarning()) return true;
     onAfterSpringViability?.();
@@ -161,7 +178,7 @@ export function createEngine(deps) {
         state.year += 1;
       }
       if (currentSeason(state).name === 'Spring') {
-        updateScore(); updateUI(); render();
+        updateScoreState(state); updateUI(); render();
         if (handleSpringViability(state, (fate, prevSeeds) => {
           onAfterSpringViability?.(fate, prevSeeds);
           afterSpringAdvance(state, hooks);
@@ -178,7 +195,7 @@ export function createEngine(deps) {
     const major = state.turnInSeason === 3 ? rollMajorEvent() : null;
     const minors = rollMinorEvents();
     const consequences = applyEventEffects(state, major, minors);
-    updateScore();
+    updateScoreState(state);
     updateUI();
     render();
     return { major, minors, consequences };
@@ -200,7 +217,7 @@ export function createEngine(deps) {
     if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
     showFeedback?.(`${action.name} succeeded!`, 'success');
     addLog?.(`Action: ${action.name}`);
-    updateScore();
+    updateScoreState(state);
     updateUI();
     render();
     if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
@@ -269,6 +286,8 @@ export function createEngine(deps) {
     executeAction,
     continueAfterEvent,
     handleDeath,
+    updateScoreState,
+    calculateScore,
     computeCurrentLifeStage,
   };
 }

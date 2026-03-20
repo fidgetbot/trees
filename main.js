@@ -1310,6 +1310,7 @@ engine = createEngine({
   renderSpringSeedFateBody,
   renderGameOverBody,
   renderSuccessionBody,
+  renderVictoryBody,
 });
 
 function resolveFruitThreats(events) {
@@ -1704,13 +1705,7 @@ function handleDeath() {
 }
 
 function updateScore() {
-  state.score = (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
-
-  if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
-    state.victoryAchieved = true;
-    if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('reached Ancient');
-    showModal('Victory!', renderVictoryBody({ score: state.score }), () => {});
-  }
+  return engine.updateScoreState(state);
 }
 
 function updateUI() {
