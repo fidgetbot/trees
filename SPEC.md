@@ -108,11 +108,12 @@ The codebase is moving toward a three-layer architecture:
 - `core/stages.js` created for stage requirement/progression helpers
 - `core/random.js` created as the first seedable-RNG utility layer
 - `core/actions.js` created for the action catalog and category metadata
+- `core/events.js` created for the major-event catalog and event rolling helper
 - `main.js` now imports the extracted rule modules
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
-- Extract major/minor event tables into `core/events.js`
+- Expand `core/events.js` to cover the remaining minor-event / seasonal-reproduction logic
 - Extract diplomacy helpers into `core/diplomacy.js`
 - Introduce a formal `core/engine.js` API for state transitions
 - Move browser-only rendering/modal behavior into `ui/`
