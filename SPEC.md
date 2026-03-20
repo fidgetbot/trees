@@ -107,11 +107,13 @@ The codebase is moving toward a three-layer architecture:
 - `core/species.js` created for species definitions and species-rule helpers
 - `core/stages.js` created for stage requirement/progression helpers
 - `core/random.js` created as the first seedable-RNG utility layer
+- `core/actions.js` created for the action catalog and category metadata
 - `main.js` now imports the extracted rule modules
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
-- Extract action definitions and event tables into `core/`
+- Extract major/minor event tables into `core/events.js`
+- Extract diplomacy helpers into `core/diplomacy.js`
 - Introduce a formal `core/engine.js` API for state transitions
 - Move browser-only rendering/modal behavior into `ui/`
 - Add seeded headless playtests and reporting in `sim/`
