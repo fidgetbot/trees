@@ -52,6 +52,7 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
 import { renderForestScene } from './ui/canvas.js';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
+import { createInitialBrowserState, getBrowserElements, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -239,151 +240,36 @@ const ACTIONS = createActions({
   getRelationshipState,
 });
 
-const state = {
-  started: false,
-  selectedSpecies: null,
-  year: 1,
-  seasonIndex: 0,
-  turnInSeason: 1,
-  score: 0,
-  lifeStage: LIFE_STAGES[0],
-  sunlight: 0,
-  water: 0,
-  nutrients: 0,
-  actions: 0,
-  branches: 0,
-  rootZones: 0,
-  leafClusters: 0,
-  trunk: 0,
-  flowers: 0,
-  pollinated: 0,
-  developing: 0,
-  seeds: 0,
-  viableSeeds: 0,
-  allies: 0,
-  health: 0,
-  maxHealth: 0,
-  offspringPool: 0,
-  defense: 0,
-  fruitDefense: 0,
-  offspringTrees: 0,
-  pendingFruitThreat: null,
-  pendingOffspringThreat: false,
-  pendingChemicalThreat: null,
-  taprootDepth: 0,
-  canopySpread: 0,
-  log: [],
-  eventModifiers: { drought: 1, disease: 1, storms: 0, rainChain: 0, soilBonus: 0, shelter: 0 },
-  majorEvent: null,
-  minorEvent: null,
-  gameOver: false,
-  victoryAchieved: false,
-  // Diplomacy tracking
-  neighbors: [],
-  firstRootActionTaken: false,
-  turnsInStage: 0,
-  majorEventsSurvivedInStage: 0,
-  growthNudgeCooldown: 3,
-  hasProducedFruit: false,
-  milestones: {},
-  healthWarningLevel: 0,
-  lastDamageCause: 'decline',
-  pendingInteractions: [],
-  recordsSavedThisRun: false,
-};
-
-const els = {
-  speciesList: document.getElementById('species-list'),
-  startGame: document.getElementById('start-game'),
-  speciesPanel: document.getElementById('species-panel'),
-  gamePanel: document.getElementById('game-panel'),
-  hudPanel: document.getElementById('hud-panel'),
-  canvas: document.getElementById('game-canvas'),
-  modal: document.getElementById('modal'),
-  modalTitle: document.getElementById('modal-title'),
-  modalBody: document.getElementById('modal-body'),
-  modalButton: document.getElementById('modal-button'),
-  actionsList: document.getElementById('actions-list'),
-  viewLeaderboard: document.getElementById('view-leaderboard'),
-  log: document.getElementById('log'),
-  feedbackContainer: document.getElementById('feedback-container'),
-  tooltip: document.getElementById('tooltip'),
-  actionsBanner: document.getElementById('actions-banner'),
-  actionsRemaining: document.getElementById('actions-remaining'),
-  turnEndBanner: document.getElementById('turn-end-banner'),
-};
-
+const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
+const els = getBrowserElements(document);
 const ctx = els.canvas.getContext('2d');
 
 // Floating feedback system
 function initSpeciesSelect() {
-  const names = Object.keys(SPECIES);
-  const chosen = names[randomInt(names.length)];
-  state.selectedSpecies = chosen;
-  initSpeciesSelectUI(els, chosen, speciesName => renderSpeciesSummary(speciesName, SPECIES[speciesName], { title: `${speciesName} tree`, intro: 'You are a' }));
+  return initSpeciesSelectController({
+    state,
+    speciesNames: Object.keys(SPECIES),
+    chooseRandomIndex: length => randomInt(length),
+    renderSpeciesSelect: speciesName => initSpeciesSelectUI(els, speciesName, name => renderSpeciesSummary(name, SPECIES[name], { title: `${name} tree`, intro: 'You are a' })),
+  });
 }
 
 function startGame() {
   const spec = SPECIES[state.selectedSpecies];
-  Object.assign(state, {
-    started: true,
-    year: 1,
-    seasonIndex: 0,
-    turnInSeason: 1,
-    score: 0,
-    lifeStage: LIFE_STAGES[0],
-    sunlight: 5,
-    water: 4,
-    nutrients: 4,
-    actions: 1,
-    branches: 0,
-    rootZones: 0,
-    leafClusters: 0,
-    trunk: 1,
-    flowers: 0,
-    pollinated: 0,
-    developing: 0,
-    seeds: 0,
-    viableSeeds: 0,
-    allies: 0,
-    health: spec.health + 3,
-    maxHealth: spec.health + 3,
-    offspringPool: 0,
-    defense: 0,
-    fruitDefense: 0,
-    offspringTrees: 0,
-    pendingFruitThreat: null,
-    pendingOffspringThreat: false,
-    pendingChemicalThreat: null,
-    taprootDepth: 0,
-    canopySpread: 0,
-    log: [],
-    eventModifiers: { drought: 1, disease: 1, storms: 0, rainChain: 0, soilBonus: 0, shelter: 0 },
-    gameOver: false,
-    victoryAchieved: false,
-    neighbors: makeStartingNeighbors(),
-    firstRootActionTaken: false,
-    turnsInStage: 0,
-    majorEventsSurvivedInStage: 0,
-    growthNudgeCooldown: 3 + Math.floor(Math.random() * 2),
-    hasProducedFruit: false,
-    milestones: {},
-    healthWarningLevel: 0,
-    lastDamageCause: 'decline',
-    pendingInteractions: [],
-    recordsSavedThisRun: false,
+  return startBrowserGame({
+    state,
+    selectedSpecies: state.selectedSpecies,
+    species: spec,
+    initialLifeStage: LIFE_STAGES[0],
+    makeStartingNeighbors,
+    initTooltips,
+    initCollapsibleGroups,
+    addLog,
+    updateUI,
+    showResourcePhase,
+    showGamePanels: () => showGamePanelsUI(els),
+    random: Math.random,
   });
-  els.speciesPanel.classList.add('hidden');
-  els.gamePanel.classList.remove('hidden');
-  els.hudPanel.classList.remove('hidden');
-  
-  // Initialize UI features
-  initTooltips();
-  initCollapsibleGroups();
-  
-  addLog('You begin as a seed, buried in the dark soil.');
-  updateUI();
-  showResourcePhase();
 }
 
 let engine;
