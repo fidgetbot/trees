@@ -166,8 +166,9 @@ To consider this milestone complete:
 Current status:
 - seeded headless runs are now implemented in `sim/run.js`
 - batch execution and JSON reporting are now implemented
-- the current baseline policy prioritizes non-interactive actions first and uses simplified headless fallbacks for interaction-heavy diplomacy choices
-- next simulation work should improve policy quality, expand interaction fidelity, and add higher-level aggregated reporting for balance analysis
+- the current baseline policy now prioritizes unmet stage requirements first, which allows headless runs to progress through life stages instead of stalling in early growth
+- simplified headless fallbacks are still used for interaction-heavy diplomacy choices
+- next simulation work should improve policy quality further, expand interaction fidelity, and add higher-level aggregated reporting for balance analysis
 
 Minimum expected simulation capabilities:
 - `--turns N`

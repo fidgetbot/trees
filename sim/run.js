@@ -206,7 +206,7 @@ function createHeadlessGame(seed, speciesName) {
       if (!target) return;
       target.relation += 25;
       if (getRelationshipState(target.relation).name === 'Ally') target.ally = true;
-      updateAlliesCountForState(s, getRelationshipState);
+      updateAlliesCount(s, getRelationshipState);
     },
     offerAidToAlly: s => {
       const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
@@ -304,22 +304,53 @@ function createHeadlessGame(seed, speciesName) {
       }))
       .filter(entry => !entry.availability.hidden && entry.availability.usable);
 
-    const priorities = [
-      'extendRoot', 'growLeaves', 'growBranch', 'taproot', 'canopy',
-      'thicken', 'bark', 'flower', 'massFlower', 'nurtureOffspring',
-      'requestHelp', 'connect', 'aidAlly', 'rhizosphere', 'shelterGrove',
-      'resinReserve', 'woodSurge', 'shadeRival', 'rootDominion', 'mastYear',
-    ];
+    const pick = keys => available.find(entry => keys.includes(entry.action.key));
+    const unmet = currentStageRequirements(state).filter(req => !req.met).map(req => req.key);
 
     if (state.health <= Math.max(2, Math.floor(state.maxHealth * 0.4))) {
-      const rescue = available.find(entry => ['requestHelp', 'bark', 'thicken', 'taproot'].includes(entry.action.key));
+      const rescue = pick(['requestHelp', 'bark', 'thicken', 'taproot', 'shelterGrove']);
       if (rescue) return rescue;
     }
 
-    if (state.lifeStage.name === 'Mature Tree' && state.allies < 1) {
-      const allyAction = available.find(entry => entry.action.key === 'connect');
+    if (unmet.includes('firstRoot')) {
+      const rootStart = pick(['extendRoot']);
+      if (rootStart) return rootStart;
+    }
+    if (unmet.includes('leaves')) {
+      const leaves = pick(['growLeaves', 'growBranch', 'canopy']);
+      if (leaves) return leaves;
+    }
+    if (unmet.includes('roots')) {
+      const roots = pick(['extendRoot', 'taproot']);
+      if (roots) return roots;
+    }
+    if (unmet.includes('branches')) {
+      const branches = pick(['growBranch', 'canopy', 'woodSurge']);
+      if (branches) return branches;
+    }
+    if (unmet.includes('fruit')) {
+      const fruit = seasonName === 'Spring'
+        ? pick(['flower', 'massFlower', 'mastYear'])
+        : pick(['nurtureOffspring']);
+      if (fruit) return fruit;
+    }
+    if (unmet.includes('allies') || (state.lifeStage.name === 'Mature Tree' && state.allies < 1)) {
+      const allyAction = pick(['connect', 'aidAlly']);
       if (allyAction) return allyAction;
     }
+
+    if (state.flowers > 0 && seasonName === 'Spring') {
+      const moreFlowers = pick(['massFlower', 'flower']);
+      if (moreFlowers) return moreFlowers;
+    }
+
+    const priorities = [
+      'growLeaves', 'growBranch', 'taproot', 'canopy', 'thicken',
+      'bark', 'flower', 'massFlower', 'connect', 'aidAlly',
+      'requestHelp', 'rhizosphere', 'shelterGrove', 'resinReserve',
+      'woodSurge', 'nurtureOffspring', 'shadeRival', 'rootDominion',
+      'mastYear', 'extendRoot'
+    ];
 
     for (const key of priorities) {
       const match = available.find(entry => entry.action.key === key);
