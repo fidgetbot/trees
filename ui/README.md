@@ -4,5 +4,6 @@ This directory now contains the first browser-only helpers extracted from `main.
 - `actions.js` — action panel DOM rendering
 - `events.js` — event-phase modal body rendering
 - `modal.js` — standard modal display helper
+- `choice-modal.js` — choice-button modal rendering helper
 
 More rendering, input wiring, and presentation-only behavior should keep moving here as the refactor continues.

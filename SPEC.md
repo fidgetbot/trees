@@ -115,6 +115,7 @@ The codebase is moving toward a three-layer architecture:
 - `ui/actions.js` now exists as the first browser-only rendering helper, handling action-panel DOM construction and button wiring
 - `ui/events.js` now handles event-phase modal body rendering for browser play
 - `ui/modal.js` now handles the standard browser modal display helper
+- `ui/choice-modal.js` now handles browser choice-modal rendering
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
