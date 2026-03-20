@@ -124,13 +124,58 @@ The codebase is moving toward a three-layer architecture:
 - `ui/` now contains extracted browser-only rendering helpers for actions, modals, outcomes, species presentation, leaderboard presentation/storage, and canvas rendering
 - `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node, including a simple `--turns` loop for repeated headless runs
 
-### Planned next phases
-- Move the remaining interaction-trigger logic behind shared event/core interfaces
-- Move the rest of diplomacy actions and interaction flows behind shared core interfaces
-- Continue expanding `core/engine.js` from wrapper-level orchestration into the primary public engine API
-- Keep shrinking `main.js` by extracting the remaining browser-only HUD/canvas rendering and interaction wiring into `ui/`
-- Expand `sim/run.js` from a stub harness into seeded headless playtests and reporting
-- Replace stubbed sim hooks with progressively more real turn progression and action selection
+### Completion plan and exit criteria
+
+The goal is not to refactor indefinitely. The goal is to reach a stable development loop where browser play, headless simulation, balancing, and new feature work can all proceed on the same shared rules.
+
+#### Milestone 1 — Browser refactor complete
+`main.js` should become primarily a browser adapter/controller responsible for:
+- app bootstrap and dependency wiring
+- browser event listeners and callbacks
+- delegating rendering to `ui/`
+- delegating rules/state transitions to shared modules
+
+To consider this milestone complete:
+- browser-only HUD helpers and DOM wiring are extracted from `main.js`
+- browser bootstrap/state setup is extracted enough that `main.js` is no longer a monolithic mixed file
+- major gameplay systems needed by headless simulation are no longer trapped behind DOM-only code paths
+- the browser build remains playable throughout
+
+Planned remaining slices before switching focus to simulation:
+1. Extract browser HUD/feedback/tooltip/collapsible-group helpers into `ui/`
+2. Extract more browser bootstrap/state setup so `main.js` trends toward orchestration only
+3. Extract remaining simulation-blocking non-DOM interaction/state helpers from `main.js` into shared modules
+
+**Hard stop:** after these targeted slices, stop refactoring for cleanliness alone and move to the simulation harness.
+
+#### Milestone 2 — Simulation MVP complete
+`sim/run.js` should evolve from a scaffold into a real headless game runner.
+
+To consider this milestone complete:
+- it can create an initial game state without browser dependencies
+- it can run a full turn loop headlessly
+- it can choose actions automatically via a baseline policy
+- it can stop on death, victory, or a turn cap
+- it supports deterministic seeds
+- it supports repeated batch runs
+- it emits structured JSON results suitable for analysis
+
+Minimum expected simulation capabilities:
+- `--turns N`
+- `--seed X`
+- `--games N`
+- structured summaries including score, years survived, final stage, allies, viable seeds, and cause of death
+
+#### Milestone 3 — Playtest and balance workflow restored
+Once browser refactor and sim MVP are complete, the project should be back in a productive design loop.
+
+To consider this milestone complete:
+- the browser game is still playable for manual testing
+- the simulation harness can run repeatable batches for balance checks
+- balance changes can be evaluated by both manual play and batch simulation
+- new game features can be added to shared rules first, then surfaced in browser UI and simulation as needed
+
+At that point, refactor ceases to be the main project. The main project becomes playtesting, balancing, and adding features.
 
 ## Seasonal Action Locks
 
