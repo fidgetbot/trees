@@ -23,6 +23,9 @@ export function createEngine(deps) {
     generateSuccessionChoices,
     continueAsSuccessor,
     showChoiceModal,
+    renderSpringSeedFateBody,
+    renderGameOverBody,
+    renderSuccessionBody,
   } = deps;
 
   function currentSeason(state) {
@@ -117,11 +120,7 @@ export function createEngine(deps) {
     state.offspringPool += fate.sprouted;
     state.offspringTrees += fate.sprouted;
     state.seeds = 0;
-    showModal('Spring Seed Fate', `
-      <p>${prevSeeds} seed${prevSeeds !== 1 ? 's' : ''} faced the hazards of dispersal and germination.</p>
-      <ul>${fate.results.map(r => `<li>${r}</li>`).join('')}</ul>
-      <p><strong>${fate.sprouted}</strong> offspring successfully sprouted.</p>
-    `, () => onContinue?.(fate, prevSeeds));
+    showModal('Spring Seed Fate', renderSpringSeedFateBody({ prevSeeds, fate }), () => onContinue?.(fate, prevSeeds));
     return true;
   }
 
@@ -233,18 +232,12 @@ export function createEngine(deps) {
         label: choice.label,
         onChoose: () => continueAsSuccessor(choice),
       }));
-      showChoiceModal('Succession', `
-        <p>Your current tree has died, but living offspring remain.</p>
-        <p>Choose which surviving line will carry the grove forward:</p>
-        <ul>
-          ${generated.map(choice => `<li><strong>${choice.label}</strong> — ${choice.summary}</li>`).join('')}
-        </ul>
-      `, choices);
+      showChoiceModal('Succession', renderSuccessionBody({ generated }), choices);
     } else {
       state.gameOver = true;
       const flavor = deathFlavor(state.lastDamageCause);
       if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('lineage ended');
-      showModal('Game Over', `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${state.score}</strong></p><p>Your run has been added to the grove records.</p>`, () => {});
+      showModal('Game Over', renderGameOverBody({ flavor, score: state.score }), () => {});
     }
   }
 

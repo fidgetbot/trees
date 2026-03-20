@@ -47,6 +47,7 @@ import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
+import { renderSpringSeedFateBody, renderVictoryBody } from './ui/outcomes.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -1306,6 +1307,9 @@ engine = createEngine({
   generateSuccessionChoices,
   continueAsSuccessor,
   showChoiceModal,
+  renderSpringSeedFateBody,
+  renderGameOverBody,
+  renderSuccessionBody,
 });
 
 function resolveFruitThreats(events) {
@@ -1711,15 +1715,7 @@ function updateScore() {
   if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
     state.victoryAchieved = true;
     if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('reached Ancient');
-    showModal('Victory!', `
-      <h2>🌳 You have become Ancient! 🌳</h2>
-      <p>Your roots run deep. Your canopy towers above the forest.</p>
-      <p>You have successfully established yourself in the ecosystem.</p>
-      <p><em>Your offspring will flourish here and provide shade for generations to come.</em></p>
-      <p>Current Score: <strong>${state.score}</strong></p>
-      <p>Your milestone has been added to the grove records.</p>
-      <p><small>Continue playing to see how long your lineage lasts...</small></p>
-    `, () => {});
+    showModal('Victory!', renderVictoryBody({ score: state.score }), () => {});
   }
 }
 

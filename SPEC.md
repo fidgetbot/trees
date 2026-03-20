@@ -117,6 +117,7 @@ The codebase is moving toward a three-layer architecture:
 - `ui/modal.js` now handles the standard browser modal display helper
 - `ui/choice-modal.js` now handles browser choice-modal rendering
 - `ui/resources.js` now handles resource-phase modal body rendering
+- `ui/outcomes.js` now handles spring-fate, victory, succession, and game-over presentation bodies
 - `ui/` and `sim/` directories are scaffolded for later phases
 
 ### Planned next phases
