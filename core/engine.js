@@ -156,6 +156,38 @@ export function createEngine(deps) {
     return { major, minors, consequences };
   }
 
+  function executeAction(state, action, scaledCost, hooks = {}) {
+    const {
+      spend,
+      showFeedback,
+      addLog,
+      maybeTriggerActionMilestone,
+      resumeTurnFlow,
+      renderActions,
+      showEventPhase,
+    } = hooks;
+
+    spend(scaledCost);
+    action.effect(state);
+    if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
+    showFeedback?.(`${action.name} succeeded!`, 'success');
+    addLog?.(`Action: ${action.name}`);
+    updateScore();
+    updateUI();
+    render();
+    if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
+      if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
+    }
+    if (maybeTriggerActionMilestone?.(action.key)) return true;
+    if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
+    renderActions?.();
+    if (state.actions <= 0) {
+      showEventPhase?.();
+      return true;
+    }
+    return true;
+  }
+
   function handleDeath(state) {
     if (state.offspringPool > 0) {
       const generated = generateSuccessionChoices(Math.min(3, state.offspringPool));
@@ -186,6 +218,7 @@ export function createEngine(deps) {
     handleSpringViability,
     advanceTurn,
     showEventPhase,
+    executeAction,
     handleDeath,
     computeCurrentLifeStage,
   };

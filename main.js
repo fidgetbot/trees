@@ -1327,21 +1327,15 @@ function renderActions() {
       const btn = document.createElement('button');
       btn.textContent = 'Use Action';
       btn.onclick = () => {
-        spend(scaledCost);
-        action.effect(state);
-        if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
-        showFeedback(`${action.name} succeeded!`, 'success');
-        addLog(`Action: ${action.name}`);
-        updateScore();
-        updateUI();
-        render();
-        if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
-          if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-        }
-        if (maybeTriggerActionMilestone(action.key)) return;
-        if (tryAdvanceLifeStage(() => { resumeTurnFlow(); })) return;
-        renderActions();
-        if (state.actions <= 0) { showEventPhase(); return; }
+        engine.executeAction(state, action, scaledCost, {
+          spend,
+          showFeedback,
+          addLog,
+          maybeTriggerActionMilestone,
+          resumeTurnFlow,
+          renderActions,
+          showEventPhase,
+        });
       };
       card.appendChild(btn);
       wrap.appendChild(card);
