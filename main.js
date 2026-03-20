@@ -634,13 +634,13 @@ function processPendingInteractions(onDone) {
 function showResourcePhase() {
   if (state.gameOver) return;
   setTurnEndBanner('');
-  const gains = engine.collectResources(state);
-  addLog(`Your tree awakens and gathers from the world around it...`);
-  updateUI();
-  render();
-
-  showModal('Your Tree Gathers...', renderResourcePhaseBody({ state, gains }), () => {
-    renderActions();
+  return engine.startTurn(state, {
+    addLog,
+    presentResources: (gains) => {
+      showModal('Your Tree Gathers...', renderResourcePhaseBody({ state, gains }), () => {
+        renderActions();
+      });
+    },
   });
 }
 

@@ -73,6 +73,20 @@ export function createEngine(deps) {
     };
   }
 
+  function startTurn(state, hooks = {}) {
+    const {
+      addLog,
+      presentResources,
+    } = hooks;
+
+    const gains = collectResources(state);
+    addLog?.('Your tree awakens and gathers from the world around it...');
+    updateUI();
+    render();
+    presentResources?.(gains);
+    return gains;
+  }
+
   function applyEventEffects(state, major, minors) {
     state.eventModifiers.drought = 1;
     state.eventModifiers.disease = 1;
@@ -238,6 +252,7 @@ export function createEngine(deps) {
     currentSeason,
     exposureFactor,
     collectResources,
+    startTurn,
     applyEventEffects,
     handleSpringViability,
     advanceTurn,
