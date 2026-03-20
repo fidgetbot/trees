@@ -48,6 +48,8 @@ import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderVictoryBody } from './ui/outcomes.js';
+import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
+import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -376,50 +378,11 @@ function initCollapsibleGroups() {
   });
 }
 
-function renderSpeciesSummary(speciesName, options = {}) {
-  const spec = SPECIES[speciesName];
-  if (!spec) return '';
-
-  const {
-    title = speciesName,
-    intro = '',
-    compact = false,
-  } = options;
-
-  const startingEdge = [];
-  if (spec.health > 10) startingEdge.push(`Health ${spec.health}`);
-  if (spec.trunk > 1) startingEdge.push(`Trunk ${spec.trunk}`);
-
-  return `
-    <div class="species-summary ${compact ? 'compact' : ''}">
-      <div class="species-summary-head">
-        <div class="species-summary-title-row">
-          <span class="species-summary-icon">${spec.icon || '🌳'}</span>
-          <div>
-            <div class="species-summary-kicker">${intro}</div>
-            <h3>${title}</h3>
-          </div>
-        </div>
-        <p class="species-summary-description">${spec.description}</p>
-      </div>
-      <div class="species-summary-bonus"><strong>Bonus:</strong> ${spec.bonusTitle} — ${spec.bonusText}</div>
-      <div class="species-summary-meta">
-        <div><strong>Pollinators:</strong> ${spec.pollinators.join(', ')}</div>
-        <div><strong>Starting edge:</strong> ${startingEdge.length ? startingEdge.join(' · ') : 'Balanced baseline'}</div>
-      </div>
-    </div>`;
-}
-
 function initSpeciesSelect() {
   const names = Object.keys(SPECIES);
   const chosen = names[randomInt(names.length)];
   state.selectedSpecies = chosen;
-  els.speciesList.innerHTML = `
-    <div class="species-card selected species-card-detail">
-      ${renderSpeciesSummary(chosen, { title: `${chosen} tree`, intro: 'You are a' })}
-    </div>`;
-  els.startGame.disabled = false;
-  els.startGame.textContent = 'Begin';
+  initSpeciesSelectUI(els, chosen, speciesName => renderSpeciesSummary(speciesName, SPECIES[speciesName], { title: `${speciesName} tree`, intro: 'You are a' }));
 }
 
 function startGame() {
@@ -494,65 +457,21 @@ function showModal(title, body, onContinue) {
   return showStandardModal(els, title, body, onContinue);
 }
 
-function loadLeaderboard() {
-  try {
-    const raw = localStorage.getItem(LEADERBOARD_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLeaderboard(entries) {
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries.slice(0, 10)));
-}
-
-function currentRunRecord(reason = 'game over') {
-  return {
-    species: state.selectedSpecies || 'Unknown',
-    score: state.score,
-    year: state.year,
-    stage: state.lifeStage.name,
-    allies: state.allies,
-    viableSeeds: state.viableSeeds,
-    offspring: state.offspringPool,
-    reason,
-    savedAt: new Date().toISOString(),
-  };
-}
+const leaderboard = createLeaderboardStore({
+  storage: localStorage,
+  storageKey: LEADERBOARD_KEY,
+  limit: 10,
+});
 
 function saveCurrentRunToLeaderboard(reason = 'game over') {
-  const entry = currentRunRecord(reason);
-  const entries = loadLeaderboard();
-  entries.push(entry);
-  entries.sort((a, b) => b.score - a.score || b.year - a.year);
-  saveLeaderboard(entries);
+  const entry = createRunRecord(state, reason);
+  leaderboard.saveRun(entry);
   state.recordsSavedThisRun = true;
   return entry;
 }
 
-function leaderboardHtml() {
-  const entries = loadLeaderboard();
-  if (!entries.length) {
-    return '<p>No grove records yet. Finish a run to plant the first one.</p>';
-  }
-
-  return `
-    <ol class="leaderboard-list">
-      ${entries.map((entry, idx) => `
-        <li>
-          <strong>#${idx + 1} — ${entry.species}</strong><br>
-          Score <strong>${entry.score}</strong> · Year ${entry.year} · ${entry.stage}<br>
-          Seeds ${entry.viableSeeds} · Allies ${entry.allies} · ${entry.reason}
-        </li>
-      `).join('')}
-    </ol>
-  `;
-}
-
 function showLeaderboardModal() {
-  showModal('Grove Records', leaderboardHtml(), () => {});
+  showModal('Grove Records', renderLeaderboardBody(leaderboard.load()), () => {});
 }
 
 function generateSuccessionChoices(count = 3) {
@@ -1770,7 +1689,7 @@ function updateUI() {
 
   const speciesBadge = document.getElementById('species-badge');
   if (speciesBadge && state.selectedSpecies) {
-    speciesBadge.innerHTML = renderSpeciesSummary(state.selectedSpecies, {
+    speciesBadge.innerHTML = renderSpeciesSummary(state.selectedSpecies, SPECIES[state.selectedSpecies], {
       title: state.selectedSpecies,
       intro: 'Species',
       compact: true,

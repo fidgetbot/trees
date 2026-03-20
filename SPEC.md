@@ -118,14 +118,16 @@ The codebase is moving toward a three-layer architecture:
 - `ui/choice-modal.js` now handles browser choice-modal rendering
 - `ui/resources.js` now handles resource-phase modal body rendering
 - `ui/outcomes.js` now handles spring-fate, victory, succession, and game-over presentation bodies
-- `ui/` now contains extracted browser-only rendering helpers
+- `ui/species.js` now handles species-card/species-badge summary rendering and browser species-select panel setup
+- `ui/leaderboard.js` now handles leaderboard storage helpers plus leaderboard/run-record presentation for browser play
+- `ui/` now contains extracted browser-only rendering helpers for actions, modals, outcomes, species presentation, and leaderboard presentation/storage
 - `sim/run.js` now exists as the first headless scaffold, instantiating the shared engine with stubbed hooks and exercising the turn-start path from Node, including a simple `--turns` loop for repeated headless runs
 
 ### Planned next phases
 - Move the remaining interaction-trigger logic behind shared event/core interfaces
 - Move the rest of diplomacy actions and interaction flows behind shared core interfaces
 - Continue expanding `core/engine.js` from wrapper-level orchestration into the primary public engine API
-- Move the remaining browser-only rendering/modal behavior into `ui/`
+- Keep shrinking `main.js` by extracting the remaining browser-only HUD/canvas rendering and interaction wiring into `ui/`
 - Expand `sim/run.js` from a stub harness into seeded headless playtests and reporting
 - Replace stubbed sim hooks with progressively more real turn progression and action selection
 
