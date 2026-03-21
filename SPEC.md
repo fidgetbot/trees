@@ -176,7 +176,14 @@ Minimum expected simulation capabilities:
 - `--turns N`
 - `--seed X`
 - `--games N`
-- structured summaries including score, years survived, final stage, allies, viable seeds, and cause of death
+- `--species <name>`
+- structured summaries including score, years survived, final stage, allies, viable seeds, offspring pool, ending health, and cause of death
+- aggregate balance reporting including stage reach rates, score/year percentiles, action usage, event frequencies, death causes, species breakdowns, stage transitions, and per-run peak metrics
+
+Current simulation usage examples:
+- `node sim/run.js`
+- `node sim/run.js --turns 48`
+- `node sim/run.js --turns 48 --games 8 --seed 20 --species Plum`
 
 #### Milestone 3 — Playtest and balance workflow restored
 Once browser refactor and sim MVP are complete, the project should be back in a productive design loop.
