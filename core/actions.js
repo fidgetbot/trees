@@ -67,7 +67,7 @@ export function createActions(deps) {
   } = deps;
 
   return [
-    { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds woody structure and supports future leaves and flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 1; } },
+    { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds woody structure and supports future leaves and flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
     { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Expands nutrient access, storm stability, and fungal networking reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
     { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
     { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 5, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.health += 1; s.maxHealth += 1; } },

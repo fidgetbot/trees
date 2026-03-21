@@ -108,6 +108,10 @@ The current implementation intentionally treats nutrients as a meaningful limiti
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
 - If the player cannot afford any currently available action, the browser UI presents an explicit resource-blocked end-turn state instead of auto-advancing immediately
 
+Growth actions are intentionally differentiated:
+- **Grow Leaves** is the cheapest direct sunlight-increase action
+- **Grow Branch** adds structure and a larger burst of new foliage, making it a stronger but pricier way to improve future sunlight collection
+
 Action categories currently include:
 - growth and structure
 - defense and resilience
