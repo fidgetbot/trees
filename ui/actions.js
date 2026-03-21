@@ -5,8 +5,17 @@ export function renderActionPanels({
   categoryNames,
   onUseAction,
   onFinishTurn,
+  noUsableActions = false,
+  warningHtml = '',
 }) {
   els.actionsList.innerHTML = '';
+
+  if (warningHtml) {
+    const warning = document.createElement('div');
+    warning.className = 'nothing-affordable';
+    warning.innerHTML = warningHtml;
+    els.actionsList.appendChild(warning);
+  }
 
   Object.entries(categories).forEach(([catKey, catActions]) => {
     if (catActions.length === 0) return;
@@ -65,10 +74,10 @@ export function renderActionPanels({
     els.actionsList.appendChild(details);
   }
 
-  if (Object.values(categories).some(arr => arr.length > 0)) {
+  if (Object.values(categories).some(arr => arr.length > 0) || noUsableActions) {
     const endBtn = document.createElement('button');
     endBtn.className = 'finish-turn-btn';
-    endBtn.textContent = 'Finish Turn Early →';
+    endBtn.textContent = noUsableActions ? 'Out of Resources — End Turn →' : 'Finish Turn Early →';
     endBtn.onclick = onFinishTurn;
     els.actionsList.appendChild(endBtn);
   }

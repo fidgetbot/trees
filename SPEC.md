@@ -106,6 +106,7 @@ The current implementation intentionally treats nutrients as a meaningful limiti
 - **Base actions per turn:** 3
 - Actions spend combinations of sunlight, water, and nutrients
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
+- If the player cannot afford any currently available action, the browser UI presents an explicit resource-blocked end-turn state instead of auto-advancing immediately
 
 Action categories currently include:
 - growth and structure

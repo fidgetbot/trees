@@ -975,18 +975,12 @@ function renderActions() {
     }
   });
 
-  if (state.actions > 0 && Object.values(categories).every(arr => arr.length === 0)) {
-    const warning = document.createElement('div');
-    warning.className = 'nothing-affordable';
-    warning.innerHTML = `<strong>⚠️ No action available</strong>Your tree can do nothing more this turn. Time will move on.`;
-    els.actionsList.appendChild(warning);
-    setTurnEndBanner('No usable action remains. Night will fall as soon as this phase closes.');
-    setTimeout(() => {
-      if (els.modal.classList.contains('hidden')) {
-        showEventPhase();
-      }
-    }, 700);
-    return;
+  const noUsableActions = state.actions > 0 && Object.values(categories).every(arr => arr.length === 0);
+
+  let warningHtml = '';
+  if (noUsableActions) {
+    warningHtml = `<strong>⚠️ No action available</strong>You do not have enough resources for any currently available action. End the turn to let time move on.`;
+    setTurnEndBanner('No usable action remains. You can end the turn once you are ready.');
   }
 
   renderActionPanels({
@@ -994,6 +988,8 @@ function renderActions() {
     categories,
     futureActions,
     categoryNames: CATEGORY_NAMES,
+    noUsableActions,
+    warningHtml,
     onUseAction: (action, scaledCost) => {
       engine.executeAction(state, action, scaledCost, {
         spend,
