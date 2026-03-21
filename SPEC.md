@@ -1,494 +1,321 @@
 # Trees - Game Specification
 
-A browser-based game where you play as a tree, balancing growth, reproduction, and survival in a competitive forest ecosystem.
+Trees is a browser-based tree-life survival strategy game. You play as a fruiting tree growing through the seasons, balancing structure, resources, reproduction, diplomacy, and survival inside a living forest.
 
-## Life Stages
+This file describes the **current game**, the **current codebase architecture**, and the **high-level design decisions** that should guide future work.
 
-Trees progress automatically through stages based on in-game time and activity. When all conditions are met, a popup announces your growth — trees don't decide to grow, they simply become.
+## Documentation Conventions
 
-| Stage | Requirements | Growth Popup | Unlocks | Vulnerabilities |
-|-------|--------------|--------------|---------|-----------------|
-| **Seed** | — | — | Basic growth only | All threats fatal |
-| **Sprout** | After first action (grow roots) | *"Your shell cracks. You push outward into the unknown."* | First leaves, basic photosynthesis | Drought, herbivory |
-| **Seedling** | 1 season + 2 root zones + 2 leaf growths | *"Your taproot finds rich soil. You feel sturdy."* | Root extension, fungal connections | Aphids, browsing animals |
-| **Sapling** | 4 seasons + survive 1 major event | *"Your woody fibers harden. You have become a Sapling!"* | Branch growth, chemical defense | Wind, competition |
-| **Small Tree** | 2 years + 2 branches | *"You yearn skyward. Your canopy reaches for the light."* | Flowers, reproduction | Lightning, disease |
-| **Mature Tree** | 3 years + first fruit | *"Fruits of your own hang heavy. The cycle turns."* | Full canopy, ally support | Fire, beetle swarms, **ally betrayal** |
-| **Ancient** | 3 years + survive 2 major events + 1 ally | *"Lightning scar and fire ash — you endure. Ancient patience fills you."* | Victory condition | None (resilient) |
+**`SPEC.md` is stable truth, not a progress log.**
 
-**Stage Effects:**
-- **Seed/Sprout/Seedling:** Underground focus, no canopy competition, vulnerable to surface events
-- **Sapling/Small Tree:** Enter canopy wars, shading competition begins, chemical warfare unlocks
-- **Mature/Ancient:** Established position, can support allies, immune to most minor threats
+Use this file for:
+- current gameplay design
+- current architecture
+- high-level goals
+- important design decisions and constraints
 
-### Growth Nudges
+Do **not** use this file for:
+- implementation diary entries
+- step-by-step refactor history
+- temporary work-slice progress notes
+- stale milestone checklists that belong in project tracking
 
-When you're close to growth (2 of 3 conditions met), occasional flavor text hints at the change to come:
+**GitHub Issues are the source of truth for progress tracking.**
 
-| Missing Requirement | Nudge Message |
-|---------------------|---------------|
-| More time needed | *"Your roots feel restless... something shifts slowly within."* |
-| Need deeper roots | *"Your taproot probes deeper, seeking something it cannot name."* |
-| Need survival event | *"You sense storms approaching. Endurance will bring change."* |
-| Need branches | *"Your crown yearns skyward. Space awaits above."* |
-| Need fruit | *"Flowers spent, your branches await the weight of purpose."* |
-| Need allies | *"Your roots touch others in the dark. Connection calls."* |
+Ongoing work should be tracked in issues, including:
+- progress updates
+- current status
+- blockers
+- next steps
+- validation notes
+- milestone progress as work is completed
 
-Nudges appear randomly every 3–4 turns until growth occurs.
+As work proceeds, the relevant GitHub issue(s) should be updated instead of appending progress history to this spec.
 
-## Platform & Format
+## Overview
 
-- **Platform:** Web-based HTML5
+- **Platform:** Web-based HTML5 game
 - **Graphics:** HTML5 Canvas, 2D
-- **Hosting:** GitHub Pages from `fidgetbot/trees` repository
-- **Resolution:** 900×600 (wider to fit 5 trees side by side)
+- **Hosting:** GitHub Pages from `fidgetbot/trees`
+- **Resolution:** 900×600
+- **Current focus:** fruiting trees only
 
-## Game Structure
+The game combines:
+- seasonal resource management
+- growth through life stages
+- diplomacy and rivalry with neighboring trees
+- reproduction and lineage continuation
+- environmental threats and long-term survival
 
-- **Game Length:** Endless lineage play until no offspring remain
-- **Turn Structure:** 3 turns per season, 4 seasons per year (12 turns/year)
-- **Phases per Turn:**
-  1. **Resource Phase:** Pop-up shows resources collected, click to dismiss
-  2. **Action Phase:** Player takes actions via interface
-  3. **Event Phase:** Pop-up shows event, click to dismiss
+## Core Player Loop
 
-## Current Build Status
+Each turn follows this structure:
+1. **Resource Phase** — the tree gathers sunlight, water, and nutrients
+2. **Action Phase** — the player spends actions on growth, defense, diplomacy, or reproduction
+3. **Event Phase** — the game resolves seasonal events, threats, and downstream consequences
 
-This spec reflects the current playable build, which is now beginning a phased refactor out of `main.js` into shared core modules.
+Time advances in:
+- **3 turns per season**
+- **4 seasons per year**
+- **12 turns per year**
+
+A typical run is about:
+- surviving early fragility
+- building enough structure to keep growing
+- reaching reproduction
+- enduring major threats
+- either dying, continuing through succession, or stabilizing into an Ancient lineage
+
+## Core Systems
+
+### Life Stages
+
+Trees progress automatically when their stage requirements are met. Growth is not an action; it is a consequence of development and survival.
+
+| Stage | Requirements | Unlocks | Vulnerabilities |
+|-------|--------------|---------|-----------------|
+| **Seed** | — | Basic growth only | All threats fatal |
+| **Sprout** | After first action (grow roots) | First leaves, basic photosynthesis | Drought, herbivory |
+| **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections | Aphids, browsing animals |
+| **Sapling** | 4 seasons + survive 1 major event | Branch growth, chemical defense | Wind, competition |
+| **Small Tree** | 2 years + 2 branches | Flowers, reproduction | Lightning, disease |
+| **Mature Tree** | 3 years + first fruit | Full canopy, ally support | Fire, beetle swarms, ally betrayal |
+| **Ancient** | 3 years + survive 2 major events + 1 ally | Victory state / long-term resilience | Highly resilient |
+
+#### Growth nudges
+
+When the player is close to growth, the game can surface flavor nudges indicating what is still missing. These are presentation cues, not separate mechanics.
+
+### Resources
+
+Resources persist between turns and represent stored biological capital.
+
+#### Sunlight
+Generated primarily from leaves and canopy exposure, modified by season and competition.
+
+#### Water
+Generated from trunk storage, roots, and taproot depth, modified by season and drought pressure.
+
+#### Nutrients
+Generated from roots and fungal/allied support, reduced by upkeep and adverse conditions.
+
+The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
+
+### Action Economy
+
+- **Base actions per turn:** 3
+- Actions spend combinations of sunlight, water, and nutrients
+- Costs scale upward by life stage so later growth and defense decisions remain meaningful
+
+Action categories currently include:
+- growth and structure
+- defense and resilience
+- reproduction
+- diplomacy and rivalry
+- advanced late-game sinks
+
+### Seasonal Constraints
+
+Some actions are season-locked to reflect tree biology.
+
+Current notable lock:
+- flowering actions are **Spring-only**
+
+Most other actions remain broadly available year-round once unlocked by stage.
+
+### Neighbor Trees and Diplomacy
+
+The player exists in a forest with persistent neighboring trees.
+
+Current relationship states:
+- Ally
+- Friendly
+- Neutral
+- Rival
+- Hostile
+
+Current diplomacy/rivalry systems include:
+- root connection
+- aid to allies
+- requesting help from allies
+- shading rivals
+- root domination
+- ally crises and ally neglect consequences
+- betrayal pressure in hostile or strained long-term relationships
+
+Neighbors are persistent actors, but they are still simplified relative to the player tree.
+
+### Reproduction and Lineage
+
+The current reproduction chain is:
+- flowers
+- pollinated flowers
+- developing fruit
+- seeds
+- spring seed-fate resolution
+- offspring pool / offspring trees
+
+If the current tree dies but viable lineage remains, the game can continue through succession rather than ending immediately.
+
+### Threats, Events, and Survival
+
+The game includes both major and minor events, along with delayed consequence chains.
+
+Current systems include:
+- seasonal minor events
+- major environmental threats
+- fruit-threat warning/response chains
+- chemical-defense threat chains
+- damage tracking and death flavoring
+- health warning thresholds as the tree approaches collapse
+
+### Scoring, Victory, and Continuation
+
+- Score updates continuously during play
+- Reaching **Ancient** is the current victory threshold
+- Runs may continue after victory
+- Death may end the run or transition into succession if offspring remain
+- Browser play also maintains a local grove-record leaderboard
+
+## Species Scope
+
+Current focus is **fruiting trees only**.
+
+Implemented playable species:
+- Plum
+- Peach
+- Apricot
+- Pear
+- Citrus
+- Cherry
+
+Non-fruiting trees such as oak or redwood are intentionally deferred for later, since they likely need distinct reproduction and progression systems rather than being forced into the current fruit-tree model.
+
+## Current Implementation Status
 
 ### Implemented now
-- Full seasonal loop with resource collection, action phase, and event phase
-- Automatic life-stage progression based on stage-specific requirements
-- Six playable fruit-tree species: Plum, Peach, Apricot, Pear, Citrus, Cherry
-- Four persistent neighboring trees with relationship states: Ally, Friendly, Neutral, Rival, Hostile
-- Targeted diplomacy actions: root connection, aid ally, request help, shade rival, root dominion
-- Reproduction chain: flowers → pollinated flowers → developing fruit → seeds → spring seed fate → offspring trees
-- Warning/response fruit-threat chain in summer before seed maturity
-- Warning/response/delayed-consequence chemical-defense threat chain for pests and blight
-- Ally health tracking, repeated ally crisis requests, and ally death when neglected too long
-- Nutrient-heavy growth/defense choices that act as late-game sinks
-- Succession choice on death when offspring remain, with multiple heir archetypes to continue the lineage
-- Local grove-record leaderboard saved in browser storage
-- Live scoring, victory popup on reaching Ancient, and continued endless play after victory
 
-### Not fully implemented / simplified
-- Seasonal action locking is implemented for flowering actions; most other actions remain year-round
-- Succession choices are currently archetypal heirs rather than fully simulated per-offspring individuals
-- Neighbor life stages are used mainly for scaling/visualization rather than a fully simulated parallel life cycle
-- Ally crises are tracked consistently, but allies are still simplified characters rather than full mirror copies of the player tree
-- There is no online/shared leaderboard yet; records are local to the browser
+The current codebase includes:
+- the full seasonal resource → action → event loop
+- automatic life-stage progression
+- six playable fruit-tree species
+- persistent neighboring trees with relationship states
+- diplomacy/rivalry actions and ally-state tracking
+- reproduction through flowers, fruit, seeds, and spring seed fate
+- threat-response chains for fruit threats and chemical defense
+- ally crises and neglect consequences
+- succession on death when lineage remains
+- scoring, Ancient victory, and post-victory continuation
+- local browser leaderboard storage
+- headless seeded simulation for automated playtests and balance analysis
 
-## Refactor Roadmap: Engine, UI, Simulation
+### Current simplifications / limitations
 
-The codebase is moving toward a three-layer architecture:
+The current build still simplifies several systems:
+- flowering is season-locked, but most other actions are still available year-round
+- succession currently uses curated heir archetypes rather than fully simulated offspring individuals
+- neighbors are persistent and meaningful, but not fully mirrored player-equivalents
+- some diplomacy/interaction-heavy flows still use simplified handling in headless simulation
+- the browser leaderboard is local-only; there is no shared online leaderboard yet
 
-1. **Core engine** (`core/`)
-   - Shared game rules and state helpers
-   - No DOM dependencies
-   - Eventually used by both browser play and headless simulation
+## Architecture Overview
 
-2. **Browser UI** (`ui/`)
-   - Rendering, modals, input wiring, and presentation text
-   - Thin client over the core engine
+The codebase is organized into three primary layers plus a browser adapter:
 
-3. **Simulation harness** (`sim/`)
-   - Headless Node-based playtests
-   - Seeded runs, strategy bots, structured logs, and balance reporting
+### `core/`
+Shared rules and state-transition helpers with no DOM dependency.
 
-### Refactor principles
-- Preserve **v30 gameplay behavior** during extraction unless separation forces a change
-- Use a **single rules engine** for browser and simulation
-- Centralize randomness behind a **seedable RNG**
-- Prefer **structured event payloads** over UI-only prose in the engine
-- Keep the browser build playable throughout the migration
+Current responsibilities include:
+- shared constants and stage definitions
+- species rules and species-specific adjustments
+- stage progression logic
+- seedable randomness helpers
+- action catalog and availability rules
+- event rolling and event resolution helpers
+- diplomacy and survival helpers
+- shared engine turn/state flow
 
-### Current refactor status
-- `core/constants.js` created for seasons, stages, relationship bands, and shared constants
-- `core/species.js` created for species definitions and species-rule helpers
-- `core/stages.js` created for stage requirement/progression helpers
-- `core/random.js` created as the first seedable-RNG utility layer
-- `core/actions.js` created for the action catalog, category metadata, and shared action-availability/locking helpers
-- `core/events.js` now covers the major-event catalog, event rolling helper, minor-event rolling, fruit-threat resolution, seasonal reproduction flow, and seed-fate resolution
-- `core/diplomacy.js` created for shared relationship/alliance helpers and ally-threat logic
-- `core/survival.js` now handles shared damage/death flavor and health-warning threshold/content helpers
-- `core/engine.js` created as the first shared state-transition layer (season lookup, score calculation/update, resource collection/exposure math, turn-start orchestration, event application, action execution, post-event continuation, spring viability, post-spring continuation, turn advancement, death handling)
-- `main.js` now imports the extracted rule modules
-- `ui/actions.js` now exists as the first browser-only rendering helper, handling action-panel DOM construction and button wiring
-- `ui/events.js` now handles event-phase modal body rendering for browser play
-- `ui/modal.js` now handles the standard browser modal display helper
-- `ui/choice-modal.js` now handles browser choice-modal rendering
-- `ui/resources.js` now handles resource-phase modal body rendering
-- `ui/outcomes.js` now handles spring-fate, victory, succession, and game-over presentation bodies
-- `ui/species.js` now handles species-card/species-badge summary rendering and browser species-select panel setup
-- `ui/leaderboard.js` now handles leaderboard storage helpers plus leaderboard/run-record presentation for browser play
-- `ui/canvas.js` now handles browser-only forest scene rendering, including seasonal background, tree drawing, and fungal-network drawing
-- `ui/hud.js` now handles browser HUD/feedback helpers, tooltip/collapsible-group wiring, and HUD stat/banner updates
-- `ui/browser-app.js` now handles browser app setup helpers, including initial browser state creation, DOM element lookup, species-select bootstrap, and start-game setup
-- `ui/` now contains extracted browser-only rendering/helpers for actions, modals, outcomes, species presentation, leaderboard presentation/storage, canvas rendering, HUD wiring, and browser app setup
-- `sim/run.js` now runs seeded headless simulations in Node using the shared engine, with a baseline non-interactive policy, real turn/event progression, repeated batch runs, and structured JSON output (`--turns`, `--games`, `--seed`, `--species`)
+### `ui/`
+Browser-only rendering, modal presentation, HUD updates, and browser setup helpers.
 
-### Completion plan and exit criteria
+Current responsibilities include:
+- action panel rendering
+- resource/event/outcome modal bodies
+- species selection UI
+- leaderboard presentation/storage helpers
+- forest canvas rendering
+- HUD updates and browser interaction wiring
+- browser app bootstrap helpers
 
-The goal is not to refactor indefinitely. The goal is to reach a stable development loop where browser play, headless simulation, balancing, and new feature work can all proceed on the same shared rules.
+### `sim/`
+Headless Node-based simulation and balance-analysis tooling.
 
-#### Milestone 1 — Browser refactor complete
-`main.js` should become primarily a browser adapter/controller responsible for:
-- app bootstrap and dependency wiring
-- browser event listeners and callbacks
-- delegating rendering to `ui/`
-- delegating rules/state transitions to shared modules
+Current responsibilities include:
+- seeded simulation runs
+- repeated batch execution
+- baseline automated action selection
+- structured JSON reporting for balance analysis
 
-To consider this milestone complete:
-- browser-only HUD helpers and DOM wiring are extracted from `main.js`
-- browser bootstrap/state setup is extracted enough that `main.js` is no longer a monolithic mixed file
-- major gameplay systems needed by headless simulation are no longer trapped behind DOM-only code paths
-- the browser build remains playable throughout
+### `main.js`
+Browser adapter/controller that wires the browser surface to the shared rules and UI modules.
 
-Completed final browser-refactor slices:
-1. Extracted browser HUD/feedback/tooltip/collapsible-group helpers into `ui/`
-2. Extracted more browser bootstrap/state setup so `main.js` trends toward orchestration only
-3. Extracted additional simulation-relevant non-DOM state helpers from `main.js` into shared modules, including survival/damage/health-warning logic in `core/`
+It still contains some game-specific orchestration and browser runtime glue, but it is no longer the monolithic source of all game logic.
 
-**Hard stop reached:** the project should now switch focus from browser refactor cleanup to the simulation harness unless a sim blocker is discovered.
+## Simulation and Balance Workflow
 
-#### Milestone 2 — Simulation MVP complete
-`sim/run.js` should evolve from a scaffold into a real headless game runner.
+The simulation harness exists to support balance analysis and automated playtesting without replacing manual browser playtests.
 
-To consider this milestone complete:
-- it can create an initial game state without browser dependencies
-- it can run a full turn loop headlessly
-- it can choose actions automatically via a baseline policy
-- it can stop on death, victory, or a turn cap
-- it supports deterministic seeds
-- it supports repeated batch runs
-- it emits structured JSON results suitable for analysis
+Current simulation capabilities include:
+- deterministic seeds
+- repeated batch runs
+- species-specific runs
+- structured per-game history
+- aggregate reporting across runs
 
-Current status:
-- seeded headless runs are now implemented in `sim/run.js`
-- batch execution and JSON reporting are now implemented
-- the current baseline policy now prioritizes unmet stage requirements first, which allows headless runs to progress through life stages instead of stalling in early growth
-- simulation reporting now includes aggregate balance-oriented summaries such as stage reach rates, score/year percentiles, action usage, event frequencies, death causes, species breakdowns, stage transitions, and per-run peak metrics
-- browser startup wiring is smoke-tested again after the refactor; the live start path depends on the full outcomes import set remaining wired into `main.js`
-- simplified headless fallbacks are still used for interaction-heavy diplomacy choices
-- next simulation work should improve policy quality further, expand interaction fidelity, and use the new reports for balance analysis (without changing game values until explicitly requested)
+Current reporting includes:
+- stage reach counts and rates
+- score and year percentiles
+- action usage frequencies
+- event frequencies
+- death causes
+- species breakdowns
+- per-run stage transitions
+- per-run peak metrics
 
-Minimum expected simulation capabilities:
-- `--turns N`
-- `--seed X`
-- `--games N`
-- `--species <name>`
-- structured summaries including score, years survived, final stage, allies, viable seeds, offspring pool, ending health, and cause of death
-- aggregate balance reporting including stage reach rates, score/year percentiles, action usage, event frequencies, death causes, species breakdowns, stage transitions, and per-run peak metrics
-
-Current simulation usage examples:
+Representative usage examples:
 - `node sim/run.js`
 - `node sim/run.js --turns 48`
 - `node sim/run.js --turns 48 --games 8 --seed 20 --species Plum`
 
-#### Milestone 3 — Playtest and balance workflow restored
-Once browser refactor and sim MVP are complete, the project should be back in a productive design loop.
+Detailed simulation usage and output documentation belongs in `sim/README.md`.
 
-To consider this milestone complete:
-- the browser game is still playable for manual testing
-- the simulation harness can run repeatable batches for balance checks
-- balance changes can be evaluated by both manual play and batch simulation
-- new game features can be added to shared rules first, then surfaced in browser UI and simulation as needed
+## Design Decisions and Invariants
 
-At that point, refactor ceases to be the main project. The main project becomes playtesting, balancing, and adding features.
+These principles should continue to guide future work:
 
-## Seasonal Action Locks
+### One shared rules engine
+Browser play and headless simulation should continue to rely on the same shared rules/state logic wherever possible.
 
-Certain actions are restricted by season to reflect real tree biology:
+### UI stays out of shared rules
+Rendering, modal prose, browser event wiring, and other presentation concerns belong in `ui/` or browser adapter code, not in shared rules modules.
 
-| Action | Available Seasons | Notes |
-|--------|-------------------|-------|
-| **Produce flower** | Spring only | Only available at Small Tree stage or above |
-| **Mass flowering / Mast year** | Spring only | Seasonal bloom surges follow the same spring flowering window |
-| **All other actions** | All seasons | Year-round growth possible if unlocked by life stage |
+### Simulation informs balance, but does not replace playtesting
+Automated simulation is a balancing and analysis tool. Manual browser playtests remain necessary for feel, pacing, readability, and player experience.
 
-**UI:** Off-season actions appear grayed out with tooltip explaining the seasonal restriction.
+### Preserve behavior unless intentionally changing design
+Refactors and infrastructure work should preserve gameplay behavior unless a design change is deliberate and documented.
 
-## Action Economy
+### Fruit-tree scope is intentional
+The current design is built around fruiting trees, reproduction, and lineage. Expanding beyond that should happen intentionally, not by forcing unrelated tree types into the same assumptions.
 
-- **Base Actions:** 3 per turn
-- **Bonus Actions:** None currently implemented
-- **Action Costs:** Base costs are multiplied by current life-stage rank (minimum ×1), so later-stage actions become more expensive as the tree grows
+### GitHub Issues track progress
+Progress tracking, work slices, blockers, and milestone updates belong in GitHub Issues rather than being appended to this spec.
 
-| Action | Sunlight | Water | Nutrients | Notes |
-|--------|----------|-------|-----------|-------|
-| Grow branch | 2 | 1 | 1 | Adds leaf cluster |
-| Extend root | 1 | 0 | 0 | Adds root zone |
-| Grow leaves | 1 | 1 | 1 | On existing branch |
-| Produce flower | 3 | 2 | 2 | Prerequisite for fruit |
-| Thicken trunk | 5 | 2 | 2 | Increases strength |
-| Chemical defense | 3 | 1 | 2 | Allelopathy/toxins |
+## Forward-Looking Goals
 
-## Resources
-
-Resources accumulate turn-to-turn (stored in trunk/root reserves).
-
-**Sunlight (per turn):**
-```
-Sunlight = (LeafClusters + CanopyBonus) × Exposure% × SeasonFactor
-```
-- **Exposure:** 100% full sun, 50% shaded, 0% fully shaded
-- **CanopyBonus:** Expand Canopy gives stronger sunlight scaling than ordinary leaf growth
-- **Seasonal:** Spring ×0.8, Summer ×1.2, Autumn ×0.6, Winter ×0.2
-
-**Water (per turn):**
-```
-Water = (TrunkStorage + RootSupport + TaprootBonus) × SeasonFactor × DroughtModifier
-```
-- **TaprootBonus:** Deepen Taproot gives stronger water scaling than ordinary roots and visibly softens drought events
-- **Seasonal:** Spring ×1.0, Summer ×0.6, Autumn ×0.8, Winter ×0.4
-- **Drought:** Reduced during drought events, but deep taproots mitigate the loss
-
-**Nutrients (per turn):**
-```
-Nutrients = max(1, floor((0.7 × RootZones + cappedAllyBonus + SoilBonus) × DiseaseModifier) - MaintenanceCost)
-```
-- Roots now provide a lower base nutrient flow than before
-- Ally nutrient support is intentionally soft-capped to prevent runaway snowballing
-- Larger trees pay nutrient upkeep for maintaining trunk, branches, leaves, flowers, fruit, and seeds
-- This keeps nutrients useful as stored biological capital instead of becoming effortless surplus
-
-**Stressors:** Disease (-20% all), drought, pests (direct damage)
-
-## Species
-
-Current focus: **fruiting trees only**. Non-fruiting trees like oak and redwood should return later with distinct reproduction systems.
-
-### Plum
-- **Bonus:** Fast growth — +20% stage progression speed
-- Soft fruit, high reproduction potential
-- Moderate drought resilience
-- Pollinators: bumblebees, mason bees, hoverflies
-
-### Peach
-- **Bonus:** Resilient — +1 starting max health
-- Tender but productive
-- Benefits from careful defense of fruit
-- Pollinators: honeybees, bumblebees, butterflies
-
-### Apricot
-- **Bonus:** Early bloomer — flowering actions cost -1 sunlight
-- Early-blooming and frost-sensitive
-- Can reproduce quickly if spring goes well
-- Pollinators: mason bees, honeybees, beetles
-
-### Pear
-- **Bonus:** Durable wood — starts with +1 trunk
-- Slower, steadier, more durable wood
-- Better drought tolerance through sturdier structure
-- Pollinators: hoverflies, honeybees, solitary bees
-
-### Citrus
-- **Bonus:** Fragrant — 2× pollinator attraction (capped for sanity)
-- Water-hungry but flavorful
-- Fragrant blossoms and vulnerable fruit
-- Pollinators: honeybees, small native bees, hoverflies
-
-### Cherry
-- **Bonus:** Alluring — +25% positive relationship gain
-- Graceful, showy blossoms
-- Fruit attracts birds strongly
-- Pollinators: bumblebees, mason bees, butterflies
-
-### Species Baselines
-Beyond the marquee bonus text shown in the UI, each species also carries baseline tuning for:
-- **Growth rate:** affects life-stage progression speed
-- **Drought resistance:** softens drought penalties and damage
-
-These are part of species identity, but the named bonus above is the primary differentiator surfaced to players.
-
-The player chooses one of these fruiting trees at game start. Four neighboring trees are then randomized from the same fruiting species pool.
-
-## Tree Diplomacy & Competition
-
-The 4 neighboring trees are persistent characters with evolving relationships.
-
-### Relationship States
-- **Ally** (+50 to +100): Share resources, warn of threats, mutual aid
-- **Friendly** (+10 to +49): Open to alliance, minor resource sharing
-- **Neutral** (-10 to +10): No interaction
-- **Rival** (-50 to -11): Compete for light, chemical skirmishes
-- **Hostile** (-100 to -51): Active warfare, shading, allelopathy
-
-### Diplomatic Actions
-| Action | Cost | Effect |
-|--------|------|--------|
-| **Seek root connection** | 1/0/1 | Attempt underground friendship with a chosen neighboring tree |
-| **Chemical defense** | 3/1/2 | Protect fruit, leaves, and offspring; may also deter hostility |
-
-### Diplomatic Events
-- **Targeted connection:** Choose a named neighboring fruit tree and risk acceptance, indifference, or hostility
-- **Ally in trouble:** Contextual events ask whether to help an ally tree with chemistry or support, now with tracked ally health and repeated unresolved requests
-- **Ally betrayal:** Neglected allies can begin to sour and betray you starting at the **Sapling** stage; before **Mature Tree**, only one ally-related punishment can trigger per event phase, but that cap is removed once you reach Mature Tree. Fungal-network blight remains a later-run threat
-- **Hostile shading:** Hostile trees can worsen your light exposure over time
-
-### Neighbor Progression
-Neighboring trees also advance through life stages, creating dynamic difficulty:
-- Young neighbors: Easy allies, low threat
-- Mature rivals: Aggressive competition for canopy space
-- Ancient neighbors: Stable, predictable
-
-## Visual Design
-
-- **View:** Cross-section (sky above, soil below)
-- **Aesthetic:** Silhouette style, minimal geometric shapes
-- **Trees:** 5 visible (player center, 2 neighbors each side)
-- **Shapes:**
-  - Trunk: Vertical rectangle
-  - Canopy: Circle or ellipse per branch cluster
-  - Roots: Lines branching downward
-  - Fungal network: Thin glowing lines between roots
-
-### Seasonal Palettes
-
-| Season | Top Color | Bottom Color |
-|--------|-----------|--------------|
-| Spring | #FFE4E1 (soft pink) | #E6F3FF (light blue) |
-| Summer | #FFD700 (gold) | #90EE90 (green) |
-| Autumn | #FF8C00 (orange) | #8B4513 (brown) |
-| Winter | #D3D3D3 (grey) | #F0F8FF (pale white) |
-
-## Fungal Network
-
-- **Establish:** Available once you reach 3 root zones
-- **Targeted:** Player chooses which neighboring tree to approach
-- **Chance-based:** Deeper roots improve acceptance odds
-- **Tense outcomes:** Trees may accept, ignore, or become insulted and hostile
-
-## Events
-
-Events scale with life stage — threats that matter to seedlings don't bother ancient trees.
-
-### Life Stage Event Modifiers
-
-| Stage | Event Effects |
-|-------|---------------|
-| **Seed** | All damage ×3, no beneficial events |
-| **Sprout** | Damage ×2, drought fatal |
-| **Seedling** | Aphids worse, browsing animals appear |
-| **Sapling** | Wind damage increased, competition begins |
-| **Small Tree** | Lightning risk, full event pool |
-| **Mature Tree** | Fire/beetle swarms, resistant to minor threats |
-| **Ancient** | Immune to minor events, fire resistant |
-
-### Major Events (1 per season, guaranteed)
-
-| Event | Seed | Sprout | Seedling | Sapling | Small | Mature | Ancient |
-|-------|------|--------|----------|---------|-------|--------|---------|
-| **Fire** | Fatal | Fatal | Severe | Dangerous | Risky | Manageable | Survivable |
-| **Drought** | Fatal | Severe | Dangerous | Risky | Manageable | Minor | Negligible |
-| **Aphid Swarm** | — | — | Severe | Dangerous | Risky | Minor | Negligible |
-| **Wind Storm** | — | — | — | Dangerous | Risky | Manageable | Minor |
-| **Lightning** | — | — | — | — | Risky | Dangerous | Manageable |
-| **Beetle Swarm** | — | — | — | — | — | Dangerous | Risky |
-| **Late Frost** | Fatal | Severe | Dangerous | Risky | Manageable | Minor | — |
-| **Fungal Blight** | — | — | Severe | Dangerous | Risky | Manageable | Minor |
-
-### Minor Events (random, frequent, small effects)
-- **Beneficial Pollinators:** Bonus resources if flowers present
-- **Animal Nitrogen:** Nutrient boost from animal waste
-- **Rain:** Extra water (consecutive = root rot risk)
-- **Lightning/Wind:** Branch damage (stage-scaled)
-- **Bird Dispersal:** Nutrients + pollination chance
-- **Mycorrhizal Bloom:** Nutrient boost from fungal network
-- **Beaver Activity:** Water table changes
-
-### Diplomatic Events
-- **Ally under attack:** Help with chemicals? (+20 relation)
-- **Rival aggression:** Being shaded/chemically attacked
-- **Competition warning:** Neighbor growing fast, shading increasing
-- **Alliance offer:** Neighbor requests formal alliance
-- **Chemical truce:** Rival offers to de-escalate
-- **Ally betrayal:** Neglected allies may turn hostile (late-game threat)
-- **Fungal network collapse:** Blight spreads through ally connections (year 8+)
-- **Spring seed fate:** Each seed may be eaten, lost in shade, dispersed poorly, or sprout successfully
-- **Offspring trouble:** Young offspring may face aphids or drought and ask for help
-- **(More from real forest ecology)**
-
-## Win/Loss & Succession
-
-**Offspring Flow:**
-1. **Spring / Small Tree+**: Player may spend resources to produce flowers
-2. **Spring/Summer**: Pollinator events may convert flowers into pollinated flowers
-3. **Summer**: Pollinated flowers automatically become fruit
-4. **Summer warning events**: Humans, birds, or chewing animals may threaten fruit before seed maturity
-5. **Player response window**: Chemical Defense can reduce fruit loss
-6. **Autumn**: Each surviving fruit becomes exactly one seed
-7. **Spring**: Each seed rolls through dispersal, landing, and germination fate
-8. Successfully sprouted seeds become visible offspring trees and succession options
-
-**Design Rule:** Important reproductive threats should usually appear as **warning → response → outcome** chains rather than surprise losses.
-
-**Succession:**
-- On death, if at least one offspring remains, the player chooses which surviving heir archetype continues the lineage
-- Chosen heirs inherit a reduced but distinct stat profile (rooted, leafy, or balanced)
-- Surviving offspring contribute to ally count and can appear in the grove visualization
-
-**Game End:**
-- When the current tree dies and no offspring remain in the lineage pool
-- Mode: Endless survival with live score display
-- Reaching **Ancient** triggers a victory milestone popup, records the run in the local grove records, and play continues afterward
-
-## Scoring
-
-**Composite Score (live display):**
-- **Age:** 10 points per year survived
-- **Biomass:** 1 point per branch + root + trunk unit
-- **Offspring:** 50 points per viable seed produced
-- **Network:** 20 points per allied tree in fungal network
-
-**Example:** 50-year-old oak, 30 biomass, 3 offspring, 2 allies = 500 + 30 + 150 + 40 = **720**
-
-## MVP Scope
-
-- 6 fruit-tree identities with shared mechanics
-- Basic geometric visuals (silhouettes)
-- Core resource/action/event loop
-- Fungal network through targeted connection attempts
-- Major events: Fire, drought, insect swarm
-- Minor events: Pollinators, rain, animals, lightning
-- Succession system
-- Live scoring
-
-## New Mechanics (Implemented)
-
-### Last Stand
-When health drops below 20%, players can sacrifice a branch to survive fatal damage. This reflects real botanical strategy — trees auto-prune to conserve resources in crisis.
-
-### Ally Warning System
-Players receive escalating warnings when they approach stages requiring allies:
-- **Sapling:** Gentle hints about the fungal network
-- **Small Tree:** Clear warnings that Ancient requires connection
-- **Mature Tree:** Urgent alerts that time is running out
-
-### Accelerated Aging
-After year 15, stage progression speeds up (+50%) to prevent endless games.
-
-### Escalating Threats
-Events become more dangerous after year 10 (+10% damage per year), keeping late-game challenging.
-
-### Species Bonuses
-Each species has unique starting advantages displayed in the UI:
-- **Plum:** Fast growth (+20% stage progress)
-- **Peach:** Resilient (+1 max health)
-- **Apricot:** Early bloomer (flowers cost -1 sunlight)
-- **Pear:** Durable wood (starts with +1 trunk)
-- **Citrus:** Fragrant (2× pollinator attraction)
-- **Cherry:** Alluring (+25% ally relationship gain)
-
-### Late-Game Ally Threats
-- **Ally Betrayal:** Neglected allies (help refused > help given) can turn hostile
-- **Fungal Network Collapse:** Blight spreads through ally connections after year 8
-
-## Future Ideas
-
-- More species (Birch, Pine, Maple, etc.)
-- More events (flood, frost, beaver attack)
-- Seasonal animations (leaves falling, snow)
-- Sound design (wind, rain, birds)
-- Achievements/leaderboards
-- Tutorial mode with botany facts
+The current high-level goals are:
+- use the simulation harness to support balancing decisions
+- improve simulation fidelity for interaction-heavy systems where needed
+- continue manual browser playtesting alongside simulation
+- add new gameplay features on top of shared core rules rather than re-entangling UI and rules
+- keep the browser build and simulation harness aligned as the game evolves
