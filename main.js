@@ -929,10 +929,6 @@ function renderActions() {
 
   const noUsableActions = state.actions > 0 && Object.values(categories).every(arr => arr.length === 0);
 
-  if (noUsableActions) {
-    setTurnEndBanner('No usable action remains. You can end the turn once you are ready.');
-  }
-
   renderActionPanels({
     els,
     categories,
@@ -1318,9 +1314,7 @@ function applyEventEffects(major, minors) {
 }
 
 function showEventPhase() {
-  if (!els.turnEndBanner?.classList.contains('hidden')) {
-    els.turnEndBanner.innerHTML = `<strong>Turn ended:</strong> ${els.turnEndBanner.textContent.replace(/^Turn ending:\s*/, '')}`;
-  }
+  setTurnEndBanner('');
   const { major, minors, consequences } = engine.showEventPhase(state);
   updateScore();
   updateUI();
