@@ -349,4 +349,3 @@ The current high-level goals are:
 - continue manual browser playtesting alongside simulation
 - add new gameplay features on top of shared core rules rather than re-entangling UI and rules
 - keep the browser build and simulation harness aligned as the game evolves
-simulation harness aligned as the game evolves
