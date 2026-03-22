@@ -45,14 +45,11 @@ import {
   updateAlliesCount as updateAlliesCountForState,
   compareConflictPower as compareConflictPowerForState,
   checkAllyBetrayal as checkAllyBetrayalForState,
-  resolveConnectionAttempt,
-  applyAggressionToNeighbor,
-  listAggressionOptions,
-  listConnectionOptions,
-  listAidOptions,
-  listHelpRequestOptions,
-  resolveAidToAlly,
-  resolveHelpRequestFromAlly,
+  buildAggressionDecision,
+  buildConnectionDecision,
+  buildAidDecision,
+  buildHelpRequestDecision,
+  resolveDiplomacyDecision,
 } from './core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js';
 import { createEngine } from './core/engine.js';
@@ -708,72 +705,129 @@ function woodSurgeAction(s) {
   ]);
 }
 
-function offerAidToAlly(s) {
-  const options = listAidOptions(state, {
-    getRelationshipState,
-    scaledAidNutrientCost,
-  });
-  if (!options.length) return resumeTurnFlow();
-  const choose = (neighbor) => {
-    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-    if (!option) return resumeTurnFlow();
-    const outcome = resolveAidToAlly(state, neighbor, {
-      getRelationshipState,
-      getAdjustedRelationshipDelta,
-      scaledAidNutrientCost,
+function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFlow) {
+  const neighbor = resolved.targetIndex == null ? null : state.neighbors[resolved.targetIndex];
+  const neighborName = neighbor?.species || resolved.option?.meta?.species || 'neighbor';
+  const outcome = resolved.outcome;
+
+  if (decision.kind === 'connection') {
+    addLog(outcome.message);
+    showFeedback(outcome.feedback.text, outcome.feedback.type);
+    updateAlliesCount();
+    updateScore();
+    updateUI();
+    render();
+    renderActions();
+
+    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p><p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
+      updateUI();
+      render();
+      renderActions();
+      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, () => {
+        updateUI();
+        render();
+        renderActions();
+        onDone?.();
+      });
     });
+    return;
+  }
+
+  if (decision.kind === 'ally-aid') {
     if (!outcome.ok) {
-      showModal('Aid Sent', `<p>You want to support the ${neighbor.species}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, resumeTurnFlow);
+      showModal('Aid Sent', `<p>You want to support the ${neighborName}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
-    const crisisLine = option.meta?.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${option.meta.crisis.title.toLowerCase()}.</p>` : '';
-    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighbor.species}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
+    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid helps the ${neighborName} push back ${resolved.option.meta.crisis.title.toLowerCase()}.</p>` : '';
+    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       updateAlliesCount(); updateScore(); updateUI(); render();
-      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, resumeTurnFlow);
+      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, onDone);
     });
-  };
-  if (options.length === 1) return choose(state.neighbors[options[0].targetIndex]);
-  chooseNeighborModal(choose, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
+    return;
+  }
+
+  if (decision.kind === 'ally-help-request') {
+    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.`);
+    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>`, () => {
+      updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
+      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, () => {
+        updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
+        onDone?.();
+      });
+    });
+    return;
+  }
+
+  if (decision.kind === 'aggression:shade') {
+    const sunlightGain = outcome.gains.sunlight;
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, onDone);
+    return;
+  }
+
+  if (decision.kind === 'aggression:dominion') {
+    const { sunlight, water, nutrients } = outcome.gains;
+    showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighborName}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, onDone);
+  }
 }
 
-function runAggressionFlow(kind) {
-  const options = listAggressionOptions(state, kind, { getRelationshipState });
-  if (!options.length) return resumeTurnFlow();
+function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTurnFlow } = {}) {
+  if (!decision.options.length) {
+    if (emptyMessage) showFeedback(emptyMessage, 'warning');
+    onDone?.();
+    return;
+  }
 
-  const title = kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?';
-  const body = kind === 'shade'
-    ? 'Choose any neighboring tree to suppress.'
-    : 'Choose any neighboring tree to pressure underground.';
-
-  chooseNeighborModal((neighbor) => {
-    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-    if (!option) return resumeTurnFlow();
-
+  const execute = (option) => {
     const proceed = () => {
-      const outcome = applyAggressionToNeighbor(state, neighbor, kind, { getRelationshipState });
-      if (kind === 'shade') {
-        const sunlightGain = outcome.gains.sunlight;
-        showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighbor.species}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, resumeTurnFlow);
-      } else {
-        const { sunlight, water, nutrients } = outcome.gains;
-        showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighbor.species}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, resumeTurnFlow);
-      }
+      const resolved = resolveDiplomacyDecision(state, decision, option.id, {
+        getRelationshipState,
+        getAdjustedRelationshipDelta,
+        getNeighborStage,
+        scaledAidNutrientCost,
+        recordDamage,
+        random: Math.random,
+      });
+      showResolvedDiplomacyDecision(decision, resolved, onDone);
     };
 
-    if (option.requiresConfirmation) {
-      showChoiceModal(
-        option.confirmation.title,
-        option.confirmation.body,
-        [
-          { label: 'Yes, turn this relationship hostile', className: 'btn warning', onClick: () => proceed() },
-          { label: 'No, keep the peace', className: 'btn', onClick: () => resumeTurnFlow() },
-        ]
-      );
+    if (option.requiresConfirmation && option.confirmation) {
+      showChoiceModal(option.confirmation.title, option.confirmation.body, [
+        { label: 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
+        { label: 'No, keep the peace', className: 'btn', onChoose: () => onDone?.() },
+      ]);
       return;
     }
 
     proceed();
-  }, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), title, body, true);
+  };
+
+  if (decision.options.length === 1) {
+    execute(decision.options[0]);
+    return;
+  }
+
+  chooseNeighborModal(
+    (neighbor) => {
+      const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
+      if (!option) return onDone?.();
+      execute(option);
+    },
+    n => decision.options.some(option => option.targetIndex === state.neighbors.indexOf(n)),
+    decision.title,
+    decision.body,
+    true
+  );
+}
+
+function offerAidToAlly(s) {
+  return runDiplomacyDecision(buildAidDecision(state, {
+    getRelationshipState,
+    scaledAidNutrientCost,
+  }));
+}
+
+function runAggressionFlow(kind) {
+  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState }));
 }
 
 function shadeRivalAction(s) {
@@ -785,69 +839,19 @@ function rootDominionAction(s) {
 }
 
 function requestHelpFromAllies(s) {
-  const options = listHelpRequestOptions(state, {
+  return runDiplomacyDecision(buildHelpRequestDecision(state, {
     getRelationshipState,
     getNeighborStage,
+  }), {
+    emptyMessage: 'No allies are close enough to help',
+    onDone: () => {
+      if (state.actions <= 0) showEventPhase();
+    },
   });
-  if (!options.length) {
-    showFeedback('No allies are close enough to help', 'warning');
-    resumeTurnFlow();
-    return;
-  }
-  const askOne = (neighbor) => {
-    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-    if (!option) return resumeTurnFlow();
-    const outcome = resolveHelpRequestFromAlly(state, neighbor, {
-      getRelationshipState,
-      getAdjustedRelationshipDelta,
-      getNeighborStage,
-      random: Math.random,
-    });
-    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighbor.species}.`);
-    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighbor.species}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>`, () => {
-      updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
-      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, () => {
-        updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
-        if (state.actions <= 0) showEventPhase();
-      });
-    });
-  };
-  if (options.length === 1) return askOne(state.neighbors[options[0].targetIndex]);
-  chooseNeighborModal(askOne, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Ask an ally for help', 'Choose which allied tree you are asking to support you.', true);
 }
 
 function attemptConnection(s) {
-  const options = listConnectionOptions(state, { getRelationshipState });
-  if (!options.length) return resumeTurnFlow();
-  chooseNeighborModal((neighbor) => {
-    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-    if (!option) return resumeTurnFlow();
-    const outcome = resolveConnectionAttempt(state, neighbor, {
-      getRelationshipState,
-      getAdjustedRelationshipDelta,
-      recordDamage,
-      random: Math.random,
-    });
-
-    addLog(outcome.message);
-    showFeedback(outcome.feedback.text, outcome.feedback.type);
-    updateAlliesCount();
-    updateScore();
-    updateUI();
-    render();
-    renderActions();
-
-    showModal(`Root Contact: ${neighbor.species}`, `<p>${outcome.message}</p><p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
-      updateUI();
-      render();
-      renderActions();
-      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, () => {
-        updateUI();
-        render();
-        renderActions();
-      });
-    });
-  }, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Reach toward which neighbor?', 'Choose a neighboring tree to contact through the soil.', true);
+  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState }));
 }
 
 function getNeighborTree(idx) {

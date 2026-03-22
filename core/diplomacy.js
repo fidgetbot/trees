@@ -1,4 +1,4 @@
-import { createDecision } from './decisions.js';
+import { createDecision, findDecisionOption } from './decisions.js';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -414,6 +414,72 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
   }
 
   throw new Error(`Unknown aggression kind: ${kind}`);
+}
+
+export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
+  if (!decision) throw new Error('Decision is required');
+  const option = findDecisionOption(decision, choiceId);
+  if (!option) throw new Error(`Unknown decision option: ${choiceId}`);
+  const neighbor = option.targetIndex == null ? null : state.neighbors[option.targetIndex];
+
+  if (decision.kind === 'connection') {
+    if (!neighbor) throw new Error('Connection decision missing neighbor target');
+    return {
+      kind: 'connection',
+      targetIndex: option.targetIndex,
+      option,
+      outcome: resolveConnectionAttempt(state, neighbor, {
+        getRelationshipState: deps.getRelationshipState,
+        getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
+        recordDamage: deps.recordDamage,
+        random: deps.random,
+      }),
+    };
+  }
+
+  if (decision.kind === 'ally-aid') {
+    if (!neighbor) throw new Error('Aid decision missing neighbor target');
+    return {
+      kind: 'ally-aid',
+      targetIndex: option.targetIndex,
+      option,
+      outcome: resolveAidToAlly(state, neighbor, {
+        getRelationshipState: deps.getRelationshipState,
+        getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
+        scaledAidNutrientCost: deps.scaledAidNutrientCost,
+      }),
+    };
+  }
+
+  if (decision.kind === 'ally-help-request') {
+    if (!neighbor) throw new Error('Help request decision missing neighbor target');
+    return {
+      kind: 'ally-help-request',
+      targetIndex: option.targetIndex,
+      option,
+      outcome: resolveHelpRequestFromAlly(state, neighbor, {
+        getRelationshipState: deps.getRelationshipState,
+        getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
+        getNeighborStage: deps.getNeighborStage,
+        random: deps.random,
+      }),
+    };
+  }
+
+  if (decision.kind === 'aggression:shade' || decision.kind === 'aggression:dominion') {
+    if (!neighbor) throw new Error('Aggression decision missing neighbor target');
+    const actionKind = decision.meta?.actionKind || (decision.kind === 'aggression:shade' ? 'shade' : 'dominion');
+    return {
+      kind: decision.kind,
+      targetIndex: option.targetIndex,
+      option,
+      outcome: applyAggressionToNeighbor(state, neighbor, actionKind, {
+        getRelationshipState: deps.getRelationshipState,
+      }),
+    };
+  }
+
+  throw new Error(`Unsupported diplomacy decision kind: ${decision.kind}`);
 }
 
 export function checkAllyBetrayal(state, events, deps) {

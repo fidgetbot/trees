@@ -6,7 +6,7 @@ import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtR
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
-import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, listConnectionOptions, listAidOptions, listHelpRequestOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
+import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
 function loadVersion() {
@@ -265,12 +265,10 @@ function createHeadlessGame(seed, speciesName) {
     resinReserveAction: s => { s.defense += 1; },
     woodSurgeAction: s => { s.trunk += 1; s.rootZones += 1; },
     attemptConnection: s => {
-      const options = listConnectionOptions(s, { getRelationshipState });
-      const targetOption = options.find(option => option.meta?.relationName !== 'Ally') || options[0];
+      const decision = buildConnectionDecision(s, { getRelationshipState });
+      const targetOption = decision.options.find(option => option.meta?.relationName !== 'Ally') || decision.options[0];
       if (!targetOption) return;
-      const neighbor = s.neighbors[targetOption.targetIndex];
-      if (!neighbor) return;
-      resolveConnectionAttempt(s, neighbor, {
+      resolveDiplomacyDecision(s, decision, targetOption.id, {
         getRelationshipState,
         recordDamage: (amount, cause) => recordDamageForState(s, amount, cause),
         random: rng,
@@ -278,26 +276,22 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     offerAidToAlly: s => {
-      const options = listAidOptions(s, { getRelationshipState });
-      const targetOption = options.find(option => option.affordable && option.meta?.crisis) || options.find(option => option.affordable) || options[0];
+      const decision = buildAidDecision(s, { getRelationshipState });
+      const targetOption = decision.options.find(option => option.affordable && option.meta?.crisis) || decision.options.find(option => option.affordable) || decision.options[0];
       if (!targetOption) return;
-      const neighbor = s.neighbors[targetOption.targetIndex];
-      if (!neighbor) return;
-      resolveAidToAlly(s, neighbor, {
+      resolveDiplomacyDecision(s, decision, targetOption.id, {
         getRelationshipState,
       });
       updateAlliesCount(s, getRelationshipState);
     },
     requestHelpFromAllies: s => {
-      const options = listHelpRequestOptions(s, {
+      const decision = buildHelpRequestDecision(s, {
         getRelationshipState,
         getNeighborStage,
       });
-      const targetOption = options.find(option => option.meta?.toneHint === 'warm') || options[0];
+      const targetOption = decision.options.find(option => option.meta?.toneHint === 'warm') || decision.options[0];
       if (!targetOption) return;
-      const neighbor = s.neighbors[targetOption.targetIndex];
-      if (!neighbor) return;
-      resolveHelpRequestFromAlly(s, neighbor, {
+      resolveDiplomacyDecision(s, decision, targetOption.id, {
         getRelationshipState,
         getNeighborStage,
         random: rng,
@@ -305,23 +299,27 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     shadeRivalAction: s => {
-      const options = listAggressionOptions(s, 'shade', { getRelationshipState });
-      const chosen = options.find(option => option.meta?.alreadyContested) || options[0];
+      const decision = buildAggressionDecision(s, 'shade', { getRelationshipState });
+      const chosen = decision.options.find(option => option.meta?.alreadyContested) || decision.options[0];
       if (!chosen) return;
-      const neighbor = s.neighbors[chosen.targetIndex];
+      const resolved = resolveDiplomacyDecision(s, decision, chosen.id, {
+        getRelationshipState,
+      });
+      const neighbor = s.neighbors[resolved.targetIndex];
       if (!neighbor) return;
-      applyAggressionToNeighbor(s, neighbor, 'shade', { getRelationshipState });
       neighbor.health = Math.max(0, neighbor.health - 1);
       if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
     },
     rootDominionAction: s => {
-      const options = listAggressionOptions(s, 'dominion', { getRelationshipState });
-      const chosen = options.find(option => option.meta?.alreadyContested) || options[0];
+      const decision = buildAggressionDecision(s, 'dominion', { getRelationshipState });
+      const chosen = decision.options.find(option => option.meta?.alreadyContested) || decision.options[0];
       if (!chosen) return;
-      const neighbor = s.neighbors[chosen.targetIndex];
+      const resolved = resolveDiplomacyDecision(s, decision, chosen.id, {
+        getRelationshipState,
+      });
+      const neighbor = s.neighbors[resolved.targetIndex];
       if (!neighbor) return;
-      const outcome = applyAggressionToNeighbor(s, neighbor, 'dominion', { getRelationshipState });
-      neighbor.health = Math.max(0, neighbor.health - (outcome.alreadyContested ? 2 : 1));
+      neighbor.health = Math.max(0, neighbor.health - (resolved.outcome.alreadyContested ? 2 : 1));
       if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
     },
     getRelationshipState,
