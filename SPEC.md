@@ -82,6 +82,10 @@ Trees progress automatically when their stage requirements are met. Growth is no
 | **Mature Tree** | 3 years + first fruit | Full canopy, ally support | Fire, beetle swarms, ally betrayal |
 | **Ancient** | 3 years + survive 2 major events + 1 ally | Victory state / long-term resilience | Highly resilient |
 
+Current score thresholds in implementation:
+- Mature Tree: 3300
+- Ancient: 10200
+
 #### Growth nudges
 
 When the player is close to growth, the game can surface flavor nudges indicating what is still missing. These are presentation cues, not separate mechanics.
@@ -206,6 +210,12 @@ The current codebase includes:
 - the full seasonal resource → action → event loop
 - automatic life-stage progression
 - six playable fruit-tree species
+- a rebalanced pear profile that no longer starts with an extra trunk and no longer sits above the roster as the default strongest survival pick
+- citrus pollination snowball has been trimmed repeatedly so its reproductive edge remains flavorful without overwhelming the rest of the cast
+- peach resilience has also been softened so it reads as sturdy rather than quietly top-tier
+- stronger midgame and late-game environmental pressure, especially from drought, storms, frost, and blight, so defensive investment matters more than pure snowball growth
+- late-stage survival now asks more of trunk/roots/defense before the game consistently hands out Ancient victories in simulation
+- lineage and alliance systems tuned to be more rewarding without letting them trivialize score-based advancement
 - persistent neighboring trees with relationship states
 - diplomacy/rivalry actions and ally-state tracking
 - reproduction through flowers, fruit, seeds, and spring seed fate

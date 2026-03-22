@@ -11,8 +11,8 @@ export const LIFE_STAGES = [
   { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
   { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly', 'shadeRival'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
   { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'bark', 'rhizosphere'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
-  { name: 'Mature Tree', rank: 5, threshold: 2000, unlocks: ['thicken', 'massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
-  { name: 'Ancient', rank: 6, threshold: 5000, unlocks: ['victory', 'mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you.' },
+  { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['thicken', 'massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
+  { name: 'Ancient', rank: 6, threshold: 10200, unlocks: ['victory', 'mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you.' },
 ];
 
 export const STAGE_BY_NAME = Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, stage]));

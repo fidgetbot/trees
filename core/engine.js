@@ -92,7 +92,7 @@ export function createEngine(deps) {
   }
 
   function calculateScore(state) {
-    return (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 50) + (state.allies * 20);
+    return (state.year * 10) + (state.branches + state.rootZones + state.trunk) + (state.viableSeeds * 55) + (state.allies * 22) + (state.offspringPool * 5);
   }
 
   function updateScoreState(state) {

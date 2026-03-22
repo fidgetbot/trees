@@ -22,28 +22,15 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
     getAdjustedRelationshipDelta = (_state, delta) => delta,
-    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 8,
+    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 4,
   } = deps;
 
   const oldState = getRelationshipState(neighbor.relation).name;
   const crisis = (neighbor.activeCrises || [])[0] || null;
-  const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
-  const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
+  const nutrientCost = scaledAidNutrientCost(4, neighbor, crisis);
+  const waterCost = crisis?.kind === 'water' ? Math.min(4, Math.max(1, crisis.amount)) : 1;
 
-  if (state.nutrients < nutrientCost || state.water < waterCost) {
-    return {
-      ok: false,
-      oldState,
-      newState: oldState,
-      crisis,
-      nutrientCost,
-      waterCost,
-      reason: 'insufficient-reserves',
-    };
-  }
 
-  state.nutrients -= nutrientCost;
-  state.water -= waterCost;
   neighbor.helpGivenToThem += 1;
   neighbor.lastAidMemory = 'you-gave-freely';
   const adjusted = getAdjustedRelationshipDelta(state, crisis ? 10 : 8);
@@ -131,7 +118,7 @@ export function buildConnectionDecision(state, deps = {}) {
 export function buildAidDecision(state, deps = {}) {
   const {
     getRelationshipState,
-    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 8,
+    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 4,
   } = deps;
 
   return createDecision({

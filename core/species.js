@@ -11,9 +11,9 @@ export const SPECIES = {
     icon: '🍑',
     description: 'Tender peach tree with rich fruit and moderate resilience.',
     bonusTitle: 'Resilient',
-    bonusText: '+1 starting max health',
-    branches: 1, rootZones: 2, trunk: 1, health: 11,
-    growthRate: 1.1, droughtResist: 0.4, pollinators: ['honeybees', 'bumblebees', 'butterflies'],
+    bonusText: 'Modest extra durability',
+    branches: 1, rootZones: 2, trunk: 1, health: 10,
+    growthRate: 1.08, droughtResist: 0.36, pollinators: ['honeybees', 'bumblebees', 'butterflies'],
   },
   Apricot: {
     icon: '🟠',
@@ -26,18 +26,18 @@ export const SPECIES = {
   Pear: {
     icon: '🍐',
     description: 'Steady pear tree with durable wood and dependable fruit.',
-    bonusTitle: 'Durable wood',
-    bonusText: 'Starts with +1 trunk',
-    branches: 1, rootZones: 2, trunk: 2, health: 12,
-    growthRate: 1.0, droughtResist: 0.45, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
+    bonusTitle: 'Steady heartwood',
+    bonusText: 'Balanced durability with dependable fruit, not dominant survivability',
+    branches: 1, rootZones: 2, trunk: 1, health: 10,
+    growthRate: 0.98, droughtResist: 0.28, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
   },
   Citrus: {
     icon: '🍋',
     description: 'Glossy-leaved citrus tree with fragrant blossoms and thirsty roots.',
     bonusTitle: 'Fragrant',
-    bonusText: '2× pollinator attraction',
-    branches: 1, rootZones: 2, trunk: 1, health: 11,
-    growthRate: 1.05, droughtResist: 0.25, pollinators: ['honeybees', 'small native bees', 'hoverflies'],
+    bonusText: '1.25× pollinator attraction',
+    branches: 1, rootZones: 2, trunk: 1, health: 9,
+    growthRate: 1.0, droughtResist: 0.18, pollinators: ['honeybees', 'small native bees', 'hoverflies'],
   },
   Cherry: {
     icon: '🍒',
@@ -81,7 +81,7 @@ export function getAdjustedRelationshipDelta(state, delta) {
 }
 
 export function getPollinatorChance(state, baseChance) {
-  const multiplier = state.selectedSpecies === 'Citrus' ? 2 : 1;
+  const multiplier = state.selectedSpecies === 'Citrus' ? 1.25 : 1;
   return Math.min(0.95, baseChance * multiplier);
 }
 

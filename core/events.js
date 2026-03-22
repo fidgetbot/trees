@@ -21,8 +21,9 @@ export function createMajorEvents(deps) {
         const droughtResist = getDroughtResistance();
         const baseDroughtModifier = Math.max(0.15, 0.55 - (s.trunk * 0.08));
         s.eventModifiers.drought = Math.min(1, baseDroughtModifier + (droughtResist * 0.35));
-        const baseThirst = Math.max(1, 2 - s.trunk - Math.floor(s.eventModifiers.shelter || 0));
-        const thirst = Math.max(1, Math.floor(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.5)));
+        const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
+        const baseThirst = Math.max(1, 3 + stagePressure - s.trunk - Math.floor((s.taprootDepth || 0) / 2) - Math.floor(s.eventModifiers.shelter || 0));
+        const thirst = Math.max(1, Math.ceil(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.45)));
         s.health -= thirst;
         recordDamage(thirst, 'drought');
         const effects = ['Water collection reduced sharply', `Health -${thirst} from thirst and water stress`];
@@ -46,7 +47,8 @@ export function createMajorEvents(deps) {
     {
       key: 'Storm', name: 'Autumn Storm', icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad',
       apply: (s) => {
-        const damage = Math.max(0, 3 - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
+        const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
+        const damage = Math.max(0, 4 + stagePressure - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
         s.health -= damage;
         recordDamage(damage, 'storm');
         const effects = [];
@@ -94,21 +96,22 @@ export function createMajorEvents(deps) {
           s.leafClusters -= 1;
           effects.push('1 leaf cluster damaged by frost');
         }
-        s.health -= 1;
-        recordDamage(1, 'frost');
-        effects.push('Health -1 from cold stress');
+        const frostDamage = s.lifeStage?.rank >= 5 ? 3 : s.lifeStage?.rank >= 4 ? 2 : 1;
+        s.health -= frostDamage;
+        recordDamage(frostDamage, 'frost');
+        effects.push(`Health -${frostDamage} from cold stress`);
         return effects;
       }
     },
     {
       key: 'FungalBlight', name: 'Fungal Blight', icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad',
       apply: (s) => {
-        s.eventModifiers.disease = 0.6;
+        s.eventModifiers.disease = 0.5;
         const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
         const alliedNeighbors = s.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
         if (alliedNeighbors.length > 0) {
           const target = randomChoice(alliedNeighbors);
-          const blightDamage = 4;
+          const blightDamage = 5;
           target.health = Math.max(0, target.health - blightDamage);
           effects.push(`The blight spreads to your allied ${target.species}. (${target.health}/${target.maxHealth} health remains)`);
           if (target.health <= 0) {
@@ -221,7 +224,7 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
 
 import { createDecision } from './decisions.js';
 
-export function resolveSeedFate(seedCount) { const results=[]; let sprouted=0; for (let i=0;i<seedCount;i++){ const r=Math.random(); if (r<0.22) results.push('A seed was eaten outright before it could travel.'); else if (r<0.42) results.push('A seed landed in deep shade and failed to establish.'); else if (r<0.62) results.push('A bird carried one of your seeds away, but dropped it on poor ground.'); else if (r<0.82) { sprouted += 1; results.push('A seed reached promising soil and sprouted into offspring.'); } else { sprouted += 1; results.push('An animal carried a seed to open ground, where it sprouted successfully.'); } } return { sprouted, results }; }
+export function resolveSeedFate(seedCount) { const results=[]; let sprouted=0; for (let i=0;i<seedCount;i++){ const r=Math.random(); if (r<0.18) results.push('A seed was eaten outright before it could travel.'); else if (r<0.33) results.push('A seed landed in deep shade and failed to establish.'); else if (r<0.48) results.push('A bird carried one of your seeds away, but dropped it on poor ground.'); else if (r<0.78) { sprouted += 1; results.push('A seed reached promising soil and sprouted into offspring.'); } else { sprouted += 1; results.push('An animal carried a seed to open ground, where it sprouted successfully.'); } } return { sprouted, results }; }
 
 export function resolvePendingStartOfTurnEffects(state) {
   const resolved = [];
