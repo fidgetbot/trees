@@ -238,7 +238,7 @@ Current responsibilities include:
 - stage progression logic
 - seedable randomness helpers
 - action catalog and availability rules
-- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution
+- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution and shared hostile-encroachment decision/resolution flow
 - diplomacy and survival helpers, including shared relationship-resolution, connection target option generation, ally-aid target option generation, ally-help target option generation, aggression target/confirmation option generation, and the corresponding shared resolution logic
 - shared engine turn/state flow
 

@@ -35,6 +35,8 @@ import {
   resolveSeedFate as resolveSeedFateForCount,
   rollMinorEvents as rollMinorEventsForState,
   resolvePendingStartOfTurnEffects,
+  buildHostileEncroachmentDecision,
+  resolveHostileEncroachmentChoice,
 } from './core/events.js';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
@@ -1042,147 +1044,30 @@ function compareConflictPower(neighbor) {
 }
 
 function queueHostileTreeThreat(neighbor, events) {
-  const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
-  const DIPLOMACY_COST = { sunlight: 5, water: 2, nutrients: 3 };
-  const relationName = getRelationshipState(neighbor.relation).name.toLowerCase();
+  const decision = buildHostileEncroachmentDecision(state, neighbor, {
+    getRelationshipState,
+    compareConflictPower,
+  });
 
-  events.push({ text: `The ${relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+  events.push({ text: `The ${decision.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
-    const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight &&
-                             state.water >= DEFENSE_COST.water &&
-                             state.nutrients >= DEFENSE_COST.nutrients;
-    const canAffordDiplomacy = state.sunlight >= DIPLOMACY_COST.sunlight &&
-                                state.water >= DIPLOMACY_COST.water &&
-                                state.nutrients >= DIPLOMACY_COST.nutrients;
-
-    const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
-    const diploText = `☀️${DIPLOMACY_COST.sunlight} 💧${DIPLOMACY_COST.water} 🌱${DIPLOMACY_COST.nutrients}`;
-
-    showChoiceModal('Hostile Encroachment',
-      `<p><em>The ${relationName} ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p>` +
-      `<p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`, [
-      {
-        label: canAffordDefense ? `Chemical battle (${costText})` : `Chemical battle (${costText}) — too costly right now`,
+    showChoiceModal(decision.title, decision.body,
+      decision.options.map(option => ({
+        label: option.label,
         onChoose: () => {
-          // Re-check resources at click time
-          const hasResources = state.sunlight >= DEFENSE_COST.sunlight &&
-                               state.water >= DEFENSE_COST.water &&
-                               state.nutrients >= DEFENSE_COST.nutrients;
-          if (!hasResources) {
-            // Not enough resources - apply penalty
-            state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
-            const lostSun = Math.min(state.sunlight, 2);
-            state.sunlight -= lostSun;
-            neighbor.relation = Math.max(-100, neighbor.relation - 4);
-            showModal('Space Lost', `<p>You lack the resources to defend yourself. The ${neighbor.species} steals your light.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`, () => {
-              updateScore(); updateUI(); render(); done();
-            });
-            return;
-          }
-
-          // Deduct cost
-          state.sunlight -= DEFENSE_COST.sunlight;
-          state.water -= DEFENSE_COST.water;
-          state.nutrients -= DEFENSE_COST.nutrients;
-
-          const oldState = getRelationshipState(neighbor.relation).name;
-          const { yourPower, theirPower } = compareConflictPower(neighbor);
-          const swing = yourPower - theirPower + Math.floor(Math.random() * 5) - 2;
-          let body = '';
-          if (swing >= 2) {
-            const stolenSun = Math.max(1, Math.min(3, Math.floor(Math.random() * 3) + 1));
-            const stolenWater = Math.max(0, Math.min(2, Math.floor(Math.random() * 2)));
-            const stolenNutrients = Math.max(1, Math.min(3, Math.floor(Math.random() * 3) + 1));
-            state.sunlight += stolenSun; state.water += stolenWater; state.nutrients += stolenNutrients;
-            neighbor.stageScore = Math.max(0, neighbor.stageScore - 40);
-            neighbor.relation = Math.max(-100, neighbor.relation - 6);
-            body = `Your chemistry turns the contested ground against the ${neighbor.species}. You siphon <strong>${stolenSun} sunlight</strong>, <strong>${stolenWater} water</strong>, and <strong>${stolenNutrients} nutrients</strong>.`;
-          } else if (swing <= -2) {
-            const lostSun = Math.min(state.sunlight, Math.max(1, Math.floor(Math.random() * 3) + 1));
-            const lostWater = Math.min(state.water, Math.max(0, Math.floor(Math.random() * 2)));
-            const lostNutrients = Math.min(state.nutrients, Math.max(1, Math.floor(Math.random() * 3) + 1));
-            state.sunlight -= lostSun; state.water -= lostWater; state.nutrients -= lostNutrients;
-            neighbor.stageScore += 40;
-            neighbor.relation = Math.max(-100, neighbor.relation - 8);
-            body = `The ${neighbor.species} overpowers you in the soil-war, stripping away <strong>${lostSun} sunlight</strong>, <strong>${lostWater} water</strong>, and <strong>${lostNutrients} nutrients</strong>.`;
-          } else {
-            neighbor.relation = Math.max(-100, neighbor.relation - 2);
-            body = `The struggle poisons the ground between you, but neither of you yields. You repel the ${neighbor.species}, for now.`;
-          }
-          const newState = getRelationshipState(neighbor.relation).name;
-          showModal('Chemical Battle', `<p>${body}</p><p><em>Spent: ${costText}</em></p><p><strong>Your resources now:</strong> ☀️ ${state.sunlight} · 💧 ${state.water} · 🌱 ${state.nutrients}</p>`, () => {
+          const outcome = resolveHostileEncroachmentChoice(state, neighbor, option.id, {
+            getRelationshipState,
+            compareConflictPower,
+            applyRelationshipDelta,
+            random: Math.random,
+          });
+          showModal(outcome.title, outcome.body, () => {
             updateAlliesCount(); updateScore(); updateUI(); render();
-            showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+            showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, done);
           });
         }
-      },
-      {
-        label: canAffordDiplomacy ? `Attempt diplomacy (${diploText})` : `Attempt diplomacy (${diploText}) — too costly right now`,
-        onChoose: () => {
-          // Re-check resources at click time
-          const hasResources = state.sunlight >= DIPLOMACY_COST.sunlight &&
-                               state.water >= DIPLOMACY_COST.water &&
-                               state.nutrients >= DIPLOMACY_COST.nutrients;
-          if (!hasResources) {
-            // Not enough resources - apply penalty
-            state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
-            const lostSun = Math.min(state.sunlight, 2);
-            state.sunlight -= lostSun;
-            neighbor.relation = Math.max(-100, neighbor.relation - 4);
-            showModal('Space Lost', `<p>You lack the resources for diplomacy. The ${neighbor.species} steals your light.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`, () => {
-              updateScore(); updateUI(); render(); done();
-            });
-            return;
-          }
-
-          // Deduct cost
-          state.sunlight -= DIPLOMACY_COST.sunlight;
-          state.water -= DIPLOMACY_COST.water;
-          state.nutrients -= DIPLOMACY_COST.nutrients;
-
-          const oldState = getRelationshipState(neighbor.relation).name;
-          const rootBonus = Math.min(0.25, Math.max(0, state.rootZones - 3) * 0.05);
-          const roll = Math.random();
-          let body = '';
-          let success = false;
-
-          if (roll < 0.35 + rootBonus) {
-            // Success - improve relationship
-            applyRelationshipDelta(neighbor, 25);
-            neighbor.stageScore = Math.max(0, neighbor.stageScore - 20);
-            body = `You extend your roots with gifts of nutrients and a tentative truce. The ${neighbor.species} hesitates, then accepts. The hostility between you softens into wary neutrality.`;
-            success = true;
-          } else if (roll < 0.65 + rootBonus) {
-            // Partial success - small improvement but still hostile
-            applyRelationshipDelta(neighbor, 8);
-            body = `Your overture is met with suspicion. The ${neighbor.species} does not attack, but keeps its distance. The soil between you remains tense.`;
-          } else {
-            // Failure - wasted resources, relation worsens slightly
-            applyRelationshipDelta(neighbor, -5);
-            neighbor.stageScore += 20;
-            body = `The ${neighbor.species} interprets your gifts as weakness and presses harder. Your diplomacy failed, and the rivalry deepens.`;
-          }
-
-          const newState = getRelationshipState(neighbor.relation).name;
-          showModal(success ? 'Diplomacy Succeeded' : 'Diplomacy Attempt', `<p>${body}</p><p><em>Spent: ${diploText}</em></p><p><strong>Your resources now:</strong> ☀️ ${state.sunlight} · 💧 ${state.water} · 🌱 ${state.nutrients}</p>`, () => {
-            updateAlliesCount(); updateScore(); updateUI(); render();
-            showRelationshipChangeModal(neighbor.species, oldState, newState, done);
-          });
-        }
-      },
-      {
-        label: 'Endure and conserve strength',
-        onChoose: () => {
-          state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
-          const lostSun = Math.min(state.sunlight, 2);
-          state.sunlight -= lostSun;
-          neighbor.relation = Math.max(-100, neighbor.relation - 4);
-          showModal('Space Lost', `<p>You hold back. The ${neighbor.species} steals some of your light while your roots yield ground.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`, () => {
-            updateScore(); updateUI(); render(); done();
-          });
-        }
-      }
-    ]);
+      }))
+    );
   });
 }
 

@@ -5,8 +5,8 @@ import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, getRelationshipS
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
-import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects } from '../core/events.js';
-import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, listConnectionOptions, listAidOptions, listHelpRequestOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
+import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildHostileEncroachmentDecision, resolveHostileEncroachmentChoice } from '../core/events.js';
+import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, listConnectionOptions, listAidOptions, listHelpRequestOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
 function loadVersion() {
@@ -331,7 +331,26 @@ function createHeadlessGame(seed, speciesName) {
       getRelationshipState,
       advanceAllyCrises: () => {},
       checkAllyBetrayal: () => false,
-      queueHostileTreeThreat: () => {},
+      queueHostileTreeThreat: (neighbor, events) => {
+        const decision = buildHostileEncroachmentDecision(state, neighbor, {
+          getRelationshipState,
+          compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
+        });
+        events.push({ text: `The ${decision.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+        state.pendingInteractions.push((done) => {
+          const choice = decision.options.find(option => option.id === 'chemical-battle' && option.affordable)
+            || decision.options.find(option => option.id === 'diplomacy' && option.affordable)
+            || decision.options.find(option => option.id === 'endure');
+          if (!choice) return done?.();
+          resolveHostileEncroachmentChoice(state, neighbor, choice.id, {
+            getRelationshipState,
+            compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
+            applyRelationshipDelta: (target, delta) => { target.relation = Math.max(-100, Math.min(100, target.relation + delta)); },
+            random: rng,
+          });
+          done?.();
+        });
+      },
       queueChemicalDefenseThreat: () => {},
       computeCurrentLifeStage: () => computeCurrentLifeStage(state),
     }),
