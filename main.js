@@ -514,6 +514,27 @@ function showRelationshipChangeModal(species, oldState, newState, onContinue) {
   showModal(`Relationship Shift: ${species}`, `<p><em>${relationshipFlavorChange(oldState, newState, species)}</em></p><p>Status changed from <strong>${oldState}</strong> to <strong>${newState}</strong>.</p>`, onContinue);
 }
 
+function refreshMainView({ actions = false } = {}) {
+  updateAlliesCount();
+  updateScore();
+  updateUI();
+  render();
+  if (actions) renderActions();
+}
+
+function refreshRenderedView({ actions = false } = {}) {
+  updateUI();
+  render();
+  if (actions) renderActions();
+}
+
+function continueWithRelationshipChange(species, oldState, newState, onDone, { actions = false } = {}) {
+  showRelationshipChangeModal(species, oldState, newState, () => {
+    refreshRenderedView({ actions });
+    onDone?.();
+  });
+}
+
 function maybeShowMilestone(key, title, body, onContinue) {
   if (state.milestones[key]) return false;
   state.milestones[key] = true;
@@ -559,7 +580,7 @@ function updateNeighborAliveState(neighbor, cause = 'hardship') {
   addLog(`The ${neighbor.species} dies from ${cause}.`);
   updateAlliesCount();
   showModal('Ally Lost', `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health has reached zero, and its roots no longer answer yours.</p><p><strong>Cause:</strong> ${cause}</p>`, () => {
-    showRelationshipChangeModal(neighbor.species, oldState, 'Dead', () => { updateUI(); render(); });
+    continueWithRelationshipChange(neighbor.species, oldState, 'Dead');
   });
   return true;
 }
@@ -652,8 +673,8 @@ function showAllyAidRequest(neighbor, crisis, done) {
         applyRelationshipDelta(neighbor, relationDelta);
         const newState = getRelationshipState(neighbor.relation).name;
         showModal('Aid Given', `<p>${body}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
-          updateAlliesCount(); updateScore(); updateUI(); render();
-          showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+          refreshMainView();
+          continueWithRelationshipChange(neighbor.species, oldState, newState, done);
         });
       }
     },
@@ -665,8 +686,8 @@ function showAllyAidRequest(neighbor, crisis, done) {
         neighbor.relation = Math.max(-100, neighbor.relation - 12);
         const newState = getRelationshipState(neighbor.relation).name;
         showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
-          updateAlliesCount(); updateScore(); updateUI(); render();
-          showRelationshipChangeModal(neighbor.species, oldState, newState, done);
+          refreshMainView();
+          continueWithRelationshipChange(neighbor.species, oldState, newState, done);
         });
       }
     }
@@ -681,9 +702,7 @@ function checkAllyBetrayal(events) {
     recordDamage,
     onRelationshipShift: (neighbor, oldState, newState) => {
       state.pendingInteractions.push((done) => {
-        showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
-          updateAlliesCount(); updateScore(); updateUI(); render(); done();
-        });
+        continueWithRelationshipChange(neighbor.species, oldState, newState, done);
       });
     },
   });
@@ -713,22 +732,11 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   if (decision.kind === 'connection') {
     addLog(outcome.message);
     showFeedback(outcome.feedback.text, outcome.feedback.type);
-    updateAlliesCount();
-    updateScore();
-    updateUI();
-    render();
-    renderActions();
+    refreshMainView({ actions: true });
 
     showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p><p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
-      updateUI();
-      render();
-      renderActions();
-      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, () => {
-        updateUI();
-        render();
-        renderActions();
-        onDone?.();
-      });
+      refreshRenderedView({ actions: true });
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });
     return;
   }
@@ -740,8 +748,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
     }
     const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid helps the ${neighborName} push back ${resolved.option.meta.crisis.title.toLowerCase()}.</p>` : '';
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
-      updateAlliesCount(); updateScore(); updateUI(); render();
-      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, onDone);
+      refreshMainView();
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
     });
     return;
   }
@@ -749,11 +757,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   if (decision.kind === 'ally-help-request') {
     addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.`);
     showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>`, () => {
-      updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
-      showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, () => {
-        updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
-        onDone?.();
-      });
+      refreshMainView({ actions: true });
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });
     return;
   }
@@ -1064,10 +1069,10 @@ function queueSharedDecisionInteraction(decision, done) {
           random: Math.random,
         });
         showModal(outcome.title, outcome.body, () => {
-          updateAlliesCount(); updateScore(); updateUI(); render();
+          refreshMainView();
           const neighborName = decision.meta?.neighbor?.species;
           if (neighborName && outcome.oldState && outcome.newState) {
-            showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, done);
+            continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, done);
             return;
           }
           done?.();
