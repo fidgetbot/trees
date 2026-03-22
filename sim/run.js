@@ -266,9 +266,11 @@ function createHeadlessGame(seed, speciesName) {
     woodSurgeAction: s => { s.trunk += 1; s.rootZones += 1; },
     attemptConnection: s => {
       const options = listConnectionOptions(s, { getRelationshipState });
-      const targetOption = options.find(option => option.relationName !== 'Ally') || options[0];
+      const targetOption = options.find(option => option.meta?.relationName !== 'Ally') || options[0];
       if (!targetOption) return;
-      resolveConnectionAttempt(s, targetOption.neighbor, {
+      const neighbor = s.neighbors[targetOption.targetIndex];
+      if (!neighbor) return;
+      resolveConnectionAttempt(s, neighbor, {
         getRelationshipState,
         recordDamage: (amount, cause) => recordDamageForState(s, amount, cause),
         random: rng,
@@ -277,9 +279,11 @@ function createHeadlessGame(seed, speciesName) {
     },
     offerAidToAlly: s => {
       const options = listAidOptions(s, { getRelationshipState });
-      const targetOption = options.find(option => option.affordable && option.crisis) || options.find(option => option.affordable) || options[0];
+      const targetOption = options.find(option => option.affordable && option.meta?.crisis) || options.find(option => option.affordable) || options[0];
       if (!targetOption) return;
-      resolveAidToAlly(s, targetOption.neighbor, {
+      const neighbor = s.neighbors[targetOption.targetIndex];
+      if (!neighbor) return;
+      resolveAidToAlly(s, neighbor, {
         getRelationshipState,
       });
       updateAlliesCount(s, getRelationshipState);
@@ -289,9 +293,11 @@ function createHeadlessGame(seed, speciesName) {
         getRelationshipState,
         getNeighborStage,
       });
-      const targetOption = options.find(option => option.toneHint === 'warm') || options[0];
+      const targetOption = options.find(option => option.meta?.toneHint === 'warm') || options[0];
       if (!targetOption) return;
-      resolveHelpRequestFromAlly(s, targetOption.neighbor, {
+      const neighbor = s.neighbors[targetOption.targetIndex];
+      if (!neighbor) return;
+      resolveHelpRequestFromAlly(s, neighbor, {
         getRelationshipState,
         getNeighborStage,
         random: rng,
@@ -300,19 +306,23 @@ function createHeadlessGame(seed, speciesName) {
     },
     shadeRivalAction: s => {
       const options = listAggressionOptions(s, 'shade', { getRelationshipState });
-      const chosen = options.find(option => option.alreadyContested) || options[0];
+      const chosen = options.find(option => option.meta?.alreadyContested) || options[0];
       if (!chosen) return;
-      applyAggressionToNeighbor(s, chosen.neighbor, 'shade', { getRelationshipState });
-      chosen.neighbor.health = Math.max(0, chosen.neighbor.health - 1);
-      if (chosen.neighbor.health <= 0) updateNeighborAliveState(s, chosen.neighbor);
+      const neighbor = s.neighbors[chosen.targetIndex];
+      if (!neighbor) return;
+      applyAggressionToNeighbor(s, neighbor, 'shade', { getRelationshipState });
+      neighbor.health = Math.max(0, neighbor.health - 1);
+      if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
     },
     rootDominionAction: s => {
       const options = listAggressionOptions(s, 'dominion', { getRelationshipState });
-      const chosen = options.find(option => option.alreadyContested) || options[0];
+      const chosen = options.find(option => option.meta?.alreadyContested) || options[0];
       if (!chosen) return;
-      const outcome = applyAggressionToNeighbor(s, chosen.neighbor, 'dominion', { getRelationshipState });
-      chosen.neighbor.health = Math.max(0, chosen.neighbor.health - (outcome.alreadyContested ? 2 : 1));
-      if (chosen.neighbor.health <= 0) updateNeighborAliveState(s, chosen.neighbor);
+      const neighbor = s.neighbors[chosen.targetIndex];
+      if (!neighbor) return;
+      const outcome = applyAggressionToNeighbor(s, neighbor, 'dominion', { getRelationshipState });
+      neighbor.health = Math.max(0, neighbor.health - (outcome.alreadyContested ? 2 : 1));
+      if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
     },
     getRelationshipState,
   });
@@ -355,7 +365,7 @@ function createHeadlessGame(seed, speciesName) {
         const decision = buildChemicalDefenseDecision(state, {
           computeCurrentLifeStage: () => computeCurrentLifeStage(state),
         });
-        events.push({ text: decision.threat.warning, effect: 'warning' });
+        events.push({ text: decision.meta.threat.warning, effect: 'warning' });
         state.pendingInteractions.push((done) => {
           const choice = decision.options.find(option => option.id === 'defend' && option.affordable)
             || decision.options.find(option => option.id === 'conserve');

@@ -715,7 +715,7 @@ function offerAidToAlly(s) {
   });
   if (!options.length) return resumeTurnFlow();
   const choose = (neighbor) => {
-    const option = options.find(entry => entry.neighbor === neighbor);
+    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
     if (!option) return resumeTurnFlow();
     const outcome = resolveAidToAlly(state, neighbor, {
       getRelationshipState,
@@ -726,14 +726,14 @@ function offerAidToAlly(s) {
       showModal('Aid Sent', `<p>You want to support the ${neighbor.species}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, resumeTurnFlow);
       return;
     }
-    const crisisLine = option.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${option.crisis.title.toLowerCase()}.</p>` : '';
+    const crisisLine = option.meta?.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${option.meta.crisis.title.toLowerCase()}.</p>` : '';
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighbor.species}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
       updateAlliesCount(); updateScore(); updateUI(); render();
       showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, resumeTurnFlow);
     });
   };
-  if (options.length === 1) return choose(options[0].neighbor);
-  chooseNeighborModal(choose, n => options.some(option => option.neighbor === n), 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
+  if (options.length === 1) return choose(state.neighbors[options[0].targetIndex]);
+  chooseNeighborModal(choose, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
 }
 
 function runAggressionFlow(kind) {
@@ -746,7 +746,7 @@ function runAggressionFlow(kind) {
     : 'Choose any neighboring tree to pressure underground.';
 
   chooseNeighborModal((neighbor) => {
-    const option = options.find(entry => entry.neighbor === neighbor);
+    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
     if (!option) return resumeTurnFlow();
 
     const proceed = () => {
@@ -760,10 +760,10 @@ function runAggressionFlow(kind) {
       }
     };
 
-    if (option.requiresWarning) {
+    if (option.requiresConfirmation) {
       showChoiceModal(
-        option.warningTitle,
-        option.warningBody,
+        option.confirmation.title,
+        option.confirmation.body,
         [
           { label: 'Yes, turn this relationship hostile', className: 'btn warning', onClick: () => proceed() },
           { label: 'No, keep the peace', className: 'btn', onClick: () => resumeTurnFlow() },
@@ -773,7 +773,7 @@ function runAggressionFlow(kind) {
     }
 
     proceed();
-  }, n => options.some(option => option.neighbor === n), title, body, true);
+  }, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), title, body, true);
 }
 
 function shadeRivalAction(s) {
@@ -795,7 +795,7 @@ function requestHelpFromAllies(s) {
     return;
   }
   const askOne = (neighbor) => {
-    const option = options.find(entry => entry.neighbor === neighbor);
+    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
     if (!option) return resumeTurnFlow();
     const outcome = resolveHelpRequestFromAlly(state, neighbor, {
       getRelationshipState,
@@ -812,15 +812,15 @@ function requestHelpFromAllies(s) {
       });
     });
   };
-  if (options.length === 1) return askOne(options[0].neighbor);
-  chooseNeighborModal(askOne, n => options.some(option => option.neighbor === n), 'Ask an ally for help', 'Choose which allied tree you are asking to support you.', true);
+  if (options.length === 1) return askOne(state.neighbors[options[0].targetIndex]);
+  chooseNeighborModal(askOne, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Ask an ally for help', 'Choose which allied tree you are asking to support you.', true);
 }
 
 function attemptConnection(s) {
   const options = listConnectionOptions(state, { getRelationshipState });
   if (!options.length) return resumeTurnFlow();
   chooseNeighborModal((neighbor) => {
-    const option = options.find(entry => entry.neighbor === neighbor);
+    const option = options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
     if (!option) return resumeTurnFlow();
     const outcome = resolveConnectionAttempt(state, neighbor, {
       getRelationshipState,
@@ -847,7 +847,7 @@ function attemptConnection(s) {
         renderActions();
       });
     });
-  }, n => options.some(option => option.neighbor === n), 'Reach toward which neighbor?', 'Choose a neighboring tree to contact through the soil.', true);
+  }, n => options.some(option => option.targetIndex === state.neighbors.indexOf(n)), 'Reach toward which neighbor?', 'Choose a neighboring tree to contact through the soil.', true);
 }
 
 function getNeighborTree(idx) {
@@ -1051,7 +1051,7 @@ function queueHostileTreeThreat(neighbor, events) {
     compareConflictPower,
   });
 
-  events.push({ text: `The ${decision.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+  events.push({ text: `The ${decision.meta.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
     showChoiceModal(decision.title, decision.body,
       decision.options.map(option => ({

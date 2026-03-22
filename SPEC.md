@@ -239,7 +239,7 @@ Current responsibilities include:
 - seedable randomness helpers
 - action catalog and availability rules
 - event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, and shared chemical-defense threat decision/resolution flow
-- diplomacy and survival helpers, including shared relationship-resolution plus decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic
+- diplomacy and survival helpers, including shared relationship-resolution plus normalized decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic
 - shared engine turn/state flow
 
 ### `ui/`
@@ -312,6 +312,9 @@ Browser play and headless simulation should rely on the same shared rules/state 
 
 ### UI stays out of shared rules
 Rendering, modal prose, browser event wiring, and other presentation concerns belong in `ui/` or browser adapter code, not in shared rules modules.
+
+### Shared decisions use one normalized shape
+Interactive browser/sim choice flows should prefer a normalized shared decision object shape, with per-flow details attached under `decision.meta` / `option.meta` and stable selection identifiers such as `option.id` and `option.targetIndex`. Frontends may render or choose from that data differently, but they should not depend on ad hoc per-flow field names.
 
 ### Simulation informs balance, but does not replace playtesting
 Automated simulation is a balancing and analysis tool. Manual browser playtests remain necessary for feel, pacing, readability, and player experience.

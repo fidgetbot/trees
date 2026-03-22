@@ -1,3 +1,5 @@
+import { createDecision } from './decisions.js';
+
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
@@ -136,49 +138,73 @@ export function buildAidDecision(state, deps = {}) {
     scaledAidNutrientCost = (_base, _neighbor, _crisis) => 8,
   } = deps;
 
-  return state.neighbors
-    .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
-    .map((neighbor, index) => {
-      const crisis = (neighbor.activeCrises || [])[0] || null;
-      const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
-      const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
-      return {
-        index,
-        neighbor,
-        species: neighbor.species,
-        relationName: 'Ally',
-        crisis,
-        nutrientCost,
-        waterCost,
-        affordable: state.nutrients >= nutrientCost && state.water >= waterCost,
-      };
-    });
+  return createDecision({
+    kind: 'ally-aid',
+    title: 'Offer aid to which ally?',
+    body: 'Choose an allied tree to support.',
+    options: state.neighbors
+      .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+      .map((neighbor, index) => {
+        const crisis = (neighbor.activeCrises || [])[0] || null;
+        const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
+        const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
+        return {
+          id: `neighbor-${index}`,
+          label: `${neighbor.species} — Ally`,
+          targetIndex: index,
+          affordable: state.nutrients >= nutrientCost && state.water >= waterCost,
+          meta: {
+            species: neighbor.species,
+            relationName: 'Ally',
+            crisis,
+            nutrientCost,
+            waterCost,
+          },
+        };
+      }),
+  });
 }
 
-export function listHelpRequestOptions(state, deps = {}) {
+export function listAidOptions(state, deps = {}) {
+  return buildAidDecision(state, deps).options;
+}
+
+export function buildHelpRequestDecision(state, deps = {}) {
   const {
     getRelationshipState,
     getNeighborStage = () => ({ rank: 1 }),
   } = deps;
 
-  return state.neighbors
-    .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
-    .map((neighbor, index) => {
-      const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
-      const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
-      let toneHint = 'steady';
-      if (favorBalance < -2) toneHint = 'strained';
-      else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
-      return {
-        index,
-        neighbor,
-        species: neighbor.species,
-        relationName: 'Ally',
-        favorBalance,
-        stageBonus,
-        toneHint,
-      };
-    });
+  return createDecision({
+    kind: 'ally-help-request',
+    title: 'Ask an ally for help',
+    body: 'Choose which allied tree you are asking to support you.',
+    options: state.neighbors
+      .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+      .map((neighbor, index) => {
+        const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
+        const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
+        let toneHint = 'steady';
+        if (favorBalance < -2) toneHint = 'strained';
+        else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
+        return {
+          id: `neighbor-${index}`,
+          label: `${neighbor.species} — Ally`,
+          targetIndex: index,
+          meta: {
+            species: neighbor.species,
+            relationName: 'Ally',
+            favorBalance,
+            stageBonus,
+            toneHint,
+          },
+        };
+      }),
+  });
+}
+
+export function listHelpRequestOptions(state, deps = {}) {
+  return buildHelpRequestDecision(state, deps).options;
 }
 
 export function resolveConnectionAttempt(state, neighbor, deps = {}) {
@@ -290,8 +316,6 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     feedback,
   };
 }
-
-import { createDecision } from './decisions.js';
 
 export function buildAggressionDecision(state, kind, deps = {}) {
   const { getRelationshipState } = deps;
