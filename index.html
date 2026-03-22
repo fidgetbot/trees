@@ -29,11 +29,18 @@
         <button id="view-leaderboard" class="secondary-button">View Grove Records</button>
       </section>
 
-      <section class="center-panel panel game-panel hidden" id="game-panel">
-        <canvas id="game-canvas" width="900" height="600"></canvas>
+      <section class="center-panel panel game-panel hidden collapsible-panel" id="game-panel">
+        <button id="map-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize map">−</button>
+        <button id="map-restore" class="panel-chip hidden" type="button">🗺 Map</button>
+        <div id="map-content" class="panel-content">
+          <canvas id="game-canvas" width="900" height="600"></canvas>
+        </div>
       </section>
 
-      <section class="right-panel panel game-panel hidden" id="hud-panel">
+      <section class="right-panel panel game-panel hidden collapsible-panel" id="hud-panel">
+        <button id="hud-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize status">−</button>
+        <button id="hud-restore" class="panel-chip hidden" type="button">📊 Status</button>
+        <div id="hud-content" class="panel-content">
         <div class="hud-header">
           <h2>Status</h2>
           <span id="phase-indicator" class="phase-pill">Action Phase</span>
@@ -141,6 +148,7 @@
 
         <h3>Log</h3>
         <div id="log" class="log"></div>
+        </div>
       </section>
     </main>
   </div>

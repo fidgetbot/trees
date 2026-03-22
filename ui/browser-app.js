@@ -72,7 +72,35 @@ export function getBrowserElements(documentRef = document) {
     actionsBanner: documentRef.getElementById('actions-banner'),
     actionsRemaining: documentRef.getElementById('actions-remaining'),
     turnEndBanner: documentRef.getElementById('turn-end-banner'),
+    mapMinimize: documentRef.getElementById('map-minimize'),
+    mapRestore: documentRef.getElementById('map-restore'),
+    mapContent: documentRef.getElementById('map-content'),
+    hudMinimize: documentRef.getElementById('hud-minimize'),
+    hudRestore: documentRef.getElementById('hud-restore'),
+    hudContent: documentRef.getElementById('hud-content'),
   };
+}
+
+export function initPanelCollapseUI(els) {
+  const bindPanel = ({ panel, content, minimize, restore, chipLabel, buttonLabel }) => {
+    if (!panel || !content || !minimize || !restore) return;
+    const setCollapsed = (collapsed) => {
+      panel.classList.toggle('panel-collapsed', collapsed);
+      content.classList.toggle('hidden', collapsed);
+      restore.classList.toggle('hidden', !collapsed);
+      minimize.classList.toggle('hidden', collapsed);
+      minimize.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      restore.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      restore.textContent = chipLabel;
+      minimize.setAttribute('aria-label', collapsed ? `Restore ${buttonLabel}` : `Minimize ${buttonLabel}`);
+    };
+    minimize.onclick = () => setCollapsed(true);
+    restore.onclick = () => setCollapsed(false);
+    setCollapsed(false);
+  };
+
+  bindPanel({ panel: els.gamePanel, content: els.mapContent, minimize: els.mapMinimize, restore: els.mapRestore, chipLabel: '🗺 Map', buttonLabel: 'map' });
+  bindPanel({ panel: els.hudPanel, content: els.hudContent, minimize: els.hudMinimize, restore: els.hudRestore, chipLabel: '📊 Status', buttonLabel: 'status' });
 }
 
 export function initSpeciesSelectController({ state, speciesNames, chooseRandomIndex, renderSpeciesSelect }) {
@@ -84,6 +112,7 @@ export function initSpeciesSelectController({ state, speciesNames, chooseRandomI
 
 export function startBrowserGame({
   state,
+  initPanelCollapse,
   selectedSpecies,
   species,
   initialLifeStage,
@@ -149,6 +178,7 @@ export function startBrowserGame({
   showGamePanels();
   initTooltips();
   initCollapsibleGroups();
+  initPanelCollapse?.();
   addLog('You begin as a seed, buried in the dark soil.');
   updateUI();
   showResourcePhase();
