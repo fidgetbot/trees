@@ -36,9 +36,9 @@ import {
   rollMinorEvents as rollMinorEventsForState,
   resolvePendingStartOfTurnEffects,
   buildChemicalDefenseDecision,
-  resolveChemicalDefenseChoice,
   buildHostileEncroachmentDecision,
-  resolveHostileEncroachmentChoice,
+  describeDecisionPrompt,
+  resolveSharedDecision,
 } from './core/events.js';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
@@ -1045,32 +1045,43 @@ function compareConflictPower(neighbor) {
   return compareConflictPowerForState(state, neighbor, getNeighborStage);
 }
 
+function queueSharedDecisionInteraction(decision, done) {
+  showChoiceModal(
+    decision.title,
+    decision.body,
+    decision.options.map(option => ({
+      label: option.label,
+      onChoose: () => {
+        const outcome = resolveSharedDecision(state, decision, option.id, {
+          getRelationshipState,
+          compareConflictPower,
+          applyRelationshipDelta,
+          recordDamage,
+          random: Math.random,
+        });
+        showModal(outcome.title, outcome.body, () => {
+          updateAlliesCount(); updateScore(); updateUI(); render();
+          const neighborName = decision.meta?.neighbor?.species;
+          if (neighborName && outcome.oldState && outcome.newState) {
+            showRelationshipChangeModal(neighborName, outcome.oldState, outcome.newState, done);
+            return;
+          }
+          done?.();
+        });
+      },
+    }))
+  );
+}
+
 function queueHostileTreeThreat(neighbor, events) {
   const decision = buildHostileEncroachmentDecision(state, neighbor, {
     getRelationshipState,
     compareConflictPower,
   });
 
-  events.push({ text: `The ${decision.meta.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
-  state.pendingInteractions.push((done) => {
-    showChoiceModal(decision.title, decision.body,
-      decision.options.map(option => ({
-        label: option.label,
-        onChoose: () => {
-          const outcome = resolveHostileEncroachmentChoice(state, neighbor, option.id, {
-            getRelationshipState,
-            compareConflictPower,
-            applyRelationshipDelta,
-            random: Math.random,
-          });
-          showModal(outcome.title, outcome.body, () => {
-            updateAlliesCount(); updateScore(); updateUI(); render();
-            showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, done);
-          });
-        }
-      }))
-    );
-  });
+  const prompt = describeDecisionPrompt(decision);
+  if (prompt) events.push(prompt);
+  state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
 }
 
 function queueAllyAidRequest(neighbor, events) {
@@ -1081,18 +1092,9 @@ function queueChemicalDefenseThreat(events) {
   const decision = buildChemicalDefenseDecision(state, {
     computeCurrentLifeStage,
   });
-  events.push({ text: decision.meta.threat.warning, effect: 'warning' });
-  state.pendingInteractions.push((done) => {
-    showChoiceModal(decision.title, decision.body, decision.options.map(option => ({
-      label: option.label,
-      onChoose: () => {
-        const outcome = resolveChemicalDefenseChoice(state, decision, option.id, {
-          recordDamage,
-        });
-        showModal(outcome.title, outcome.body, () => { updateScore(); updateUI(); render(); done(); });
-      }
-    })));
-  });
+  const prompt = describeDecisionPrompt(decision);
+  if (prompt) events.push(prompt);
+  state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
 }
 
 function rollMajorEvent() {

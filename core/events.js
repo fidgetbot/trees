@@ -529,6 +529,49 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   };
 }
 
+export function describeDecisionPrompt(decision) {
+  if (!decision) return null;
+  if (decision.kind === 'hostile-encroachment') {
+    const neighbor = decision.meta?.neighbor;
+    const relationName = decision.meta?.relationName;
+    if (!neighbor || !relationName) return null;
+    return {
+      text: `The ${relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`,
+      effect: 'warning',
+    };
+  }
+  if (decision.kind === 'chemical-defense') {
+    return {
+      text: decision.meta?.threat?.warning || 'A chemical threat rises around you.',
+      effect: 'warning',
+    };
+  }
+  return null;
+}
+
+export function resolveSharedDecision(state, decision, choiceId, deps = {}) {
+  if (!decision) throw new Error('Decision is required');
+
+  if (decision.kind === 'chemical-defense') {
+    return resolveChemicalDefenseChoice(state, decision, choiceId, {
+      recordDamage: deps.recordDamage,
+    });
+  }
+
+  if (decision.kind === 'hostile-encroachment') {
+    const neighbor = decision.meta?.neighbor;
+    if (!neighbor) throw new Error('Hostile encroachment decision missing neighbor');
+    return resolveHostileEncroachmentChoice(state, neighbor, choiceId, {
+      getRelationshipState: deps.getRelationshipState,
+      compareConflictPower: deps.compareConflictPower,
+      applyRelationshipDelta: deps.applyRelationshipDelta,
+      random: deps.random,
+    });
+  }
+
+  throw new Error(`Unsupported shared decision kind: ${decision.kind}`);
+}
+
 export function rollMinorEvents(state, deps) {
   const {
     currentSeasonName,

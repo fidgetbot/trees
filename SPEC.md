@@ -238,7 +238,7 @@ Current responsibilities include:
 - stage progression logic
 - seedable randomness helpers
 - action catalog and availability rules
-- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, and shared chemical-defense threat decision/resolution flow
+- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, shared chemical-defense threat decision/resolution flow, and shared decision-runner dispatch for interactive event choices
 - diplomacy and survival helpers, including shared relationship-resolution plus normalized decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic
 - shared engine turn/state flow
 
@@ -316,6 +316,9 @@ Rendering, modal prose, browser event wiring, and other presentation concerns be
 
 ### Shared decisions use one normalized shape
 Interactive browser/sim choice flows should prefer a normalized shared decision object shape, with per-flow details attached under `decision.meta` / `option.meta` and stable selection identifiers such as `option.id` and `option.targetIndex`. Frontends may render or choose from that data differently, but they should not depend on ad hoc per-flow field names.
+
+### Shared decision execution should dispatch through one boundary
+When an interactive event decision has been built, browser and simulation code should submit a chosen `option.id` back through a shared resolver/dispatcher rather than calling per-flow resolver functions directly. The adapter layer may still decide how to present or pick options, but execution and outcome production should flow through one shared decision-running boundary.
 
 ### Simulation informs balance, but does not replace playtesting
 Automated simulation is a balancing and analysis tool. Manual browser playtests remain necessary for feel, pacing, readability, and player experience.
