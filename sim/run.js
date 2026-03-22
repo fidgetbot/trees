@@ -5,7 +5,7 @@ import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, getRelationshipS
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
-import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildHostileEncroachmentDecision, resolveHostileEncroachmentChoice } from '../core/events.js';
+import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, resolveChemicalDefenseChoice, buildHostileEncroachmentDecision, resolveHostileEncroachmentChoice } from '../core/events.js';
 import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, listConnectionOptions, listAidOptions, listHelpRequestOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
@@ -351,7 +351,21 @@ function createHeadlessGame(seed, speciesName) {
           done?.();
         });
       },
-      queueChemicalDefenseThreat: () => {},
+      queueChemicalDefenseThreat: (events) => {
+        const decision = buildChemicalDefenseDecision(state, {
+          computeCurrentLifeStage: () => computeCurrentLifeStage(state),
+        });
+        events.push({ text: decision.threat.warning, effect: 'warning' });
+        state.pendingInteractions.push((done) => {
+          const choice = decision.options.find(option => option.id === 'defend' && option.affordable)
+            || decision.options.find(option => option.id === 'conserve');
+          if (!choice) return done?.();
+          resolveChemicalDefenseChoice(state, decision, choice.id, {
+            recordDamage: (amount, cause) => recordDamageForState(state, amount, cause),
+          });
+          done?.();
+        });
+      },
       computeCurrentLifeStage: () => computeCurrentLifeStage(state),
     }),
     resolveSeedFate,

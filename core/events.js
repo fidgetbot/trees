@@ -238,6 +238,139 @@ export function resolvePendingStartOfTurnEffects(state) {
   return resolved;
 }
 
+export function buildChemicalDefenseDecision(state, deps = {}) {
+  const { computeCurrentLifeStage } = deps;
+  const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
+  const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
+
+  const currentStage = computeCurrentLifeStage().name;
+  let threats;
+
+  if (currentStage === 'Seedling') {
+    threats = [
+      {
+        title: 'Aphid Cluster',
+        warning: 'Tiny aphids gather on your tender stem, piercing and sucking at your sap.',
+        defend: () => { state.defense += 1; return 'You release sticky compounds that trap the aphids. They fall away, unable to feed.'; },
+        ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'The aphids feast unchecked, draining your strength. You lose 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
+      },
+      {
+        title: 'Surface Crawlers',
+        warning: 'Small insects swarm the soil surface around your base, nibbling at your tender roots.',
+        defend: () => { state.defense += 1; return 'You release defensive compounds into the soil. The crawlers retreat from your roots.'; },
+        ignore: () => { state.rootZones = Math.max(0, state.rootZones - 1); state.health = Math.max(0, state.health - 1); return { body: 'The insects damage your shallow roots. You lose 1 root zone and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
+      },
+      {
+        title: 'Damp Rot',
+        warning: 'The soil around you stays too wet. Mold creeps up your tender stem.',
+        defend: () => { state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9); return 'You mobilize protective chemistry. The mold cannot take hold on your tissues.'; },
+        ignore: () => { state.health = Math.max(0, state.health - 2); return { body: 'The damp rot spreads. You lose 2 health as your stem weakens.', damage: { amount: 2, cause: 'blight' } }; }
+      }
+    ];
+  } else {
+    threats = [
+      {
+        title: 'Mite Surge',
+        warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
+        defend: () => { state.defense += 1; return 'You flood your tissues with bitter compounds. The mites retreat before they can do serious harm.'; },
+        ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
+      },
+      {
+        title: 'Hungry Browsers',
+        warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and leaves.',
+        defend: () => {
+          state.fruitDefense += 1;
+          if (state.developing > 0) return 'You turn your tissues bitter. The browsers recoil before they can strip your leaves or reach your fruit.';
+          return 'You turn your tissues bitter. The browsers recoil before they can strip your young growth.';
+        },
+        ignore: () => {
+          const lostFruit = Math.min(2, state.developing);
+          if (lostFruit > 0) state.developing = Math.max(0, state.developing - lostFruit);
+          state.leafClusters = Math.max(0, state.leafClusters - 1);
+          return { body: lostFruit > 0 ? `You leave yourself undefended. Browsers strip 1 leaf cluster and ruin ${lostFruit} fruit.` : 'You leave yourself undefended. Browsers strip 1 leaf cluster and chew through your tender new growth.', damage: { amount: 1, cause: 'insects' } };
+        }
+      },
+      {
+        title: 'Spores on the Damp Air',
+        warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
+        defend: () => { state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9); return 'You mobilize defensive chemistry before the infection can take hold.'; },
+        ignore: () => { state.health = Math.max(0, state.health - 2); return { body: 'Blight takes hold. You lose 2 health to spreading infection.', damage: { amount: 2, cause: 'blight' } }; }
+      }
+    ];
+  }
+
+  const threat = threats[Math.floor(Math.random() * threats.length)];
+  const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
+  const affordText = canAffordDefense ? 'You can afford this response.' : 'You do not have enough stored resources for this response.';
+
+  return {
+    kind: 'chemical-defense',
+    title: threat.title,
+    body: `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
+    threat,
+    cost: DEFENSE_COST,
+    options: [
+      {
+        id: 'defend',
+        label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) — too costly right now`,
+        affordable: canAffordDefense,
+      },
+      {
+        id: 'conserve',
+        label: 'Conserve strength',
+        affordable: true,
+      }
+    ]
+  };
+}
+
+export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {}) {
+  const { recordDamage = () => {} } = deps;
+  const { threat, cost } = decision;
+  const costText = `☀️${cost.sunlight} 💧${cost.water} 🌱${cost.nutrients}`;
+
+  if (choiceId === 'defend') {
+    const hasResourcesNow = state.sunlight >= cost.sunlight && state.water >= cost.water && state.nutrients >= cost.nutrients;
+    if (!hasResourcesNow) {
+      state.pendingChemicalThreat = {
+        title: threat.title,
+        warning: threat.warning,
+        ignore: () => {
+          const result = threat.ignore();
+          if (result.damage) recordDamage(result.damage.amount, result.damage.cause);
+          return result.body;
+        }
+      };
+      return {
+        title: threat.title,
+        body: `<p>You do not have enough reserves to mount a chemical defense. The danger will crest next turn.</p>`,
+      };
+    }
+    state.sunlight -= cost.sunlight;
+    state.water -= cost.water;
+    state.nutrients -= cost.nutrients;
+    const body = threat.defend();
+    return {
+      title: threat.title,
+      body: `<p>${body}</p><p><em>Spent: ${costText}</em></p>`,
+    };
+  }
+
+  state.pendingChemicalThreat = {
+    title: threat.title,
+    warning: threat.warning,
+    ignore: () => {
+      const result = threat.ignore();
+      if (result.damage) recordDamage(result.damage.amount, result.damage.cause);
+      return result.body;
+    }
+  };
+  return {
+    title: threat.title,
+    body: `<p>You conserve your reserves. The danger is not gone; it will break over you next turn.</p>`,
+  };
+}
+
 export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
