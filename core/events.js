@@ -616,8 +616,10 @@ export function rollMinorEvents(state, deps) {
       state.pollinated += pollinated;
       state.flowers -= pollinated;
       const visitor = randomChoice(species[state.selectedSpecies].pollinators);
+      const visitorText = visitor.charAt(0).toUpperCase() + visitor.slice(1);
       const citrusBonusText = state.selectedSpecies === 'Citrus' ? ' Its fragrant blossoms drew them in.' : '';
-      events.push({ text: `${visitor} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} were successfully pollinated. (+${pollinated} flowers pollinated)${citrusBonusText}`, effect: 'pollinated' });
+      const blossomVerb = pollinated === 1 ? 'was' : 'were';
+      events.push({ text: `${visitorText} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} ${blossomVerb} successfully pollinated. (+${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated)${citrusBonusText}`, effect: 'pollinated' });
     }
   }
   processSeasonalReproduction(state, events, () => currentSeasonName);

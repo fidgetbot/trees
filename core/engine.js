@@ -84,7 +84,7 @@ export function createEngine(deps) {
     } = hooks;
 
     const gains = collectResources(state);
-    addLog?.('Your tree awakens and gathers from the world around it...');
+    addLog?.(`Gathered +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.`);
     updateUI();
     render();
     presentResources?.(gains);
@@ -216,7 +216,14 @@ export function createEngine(deps) {
     action.effect(state);
     if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
     showFeedback?.(`${action.name} succeeded!`, 'success');
-    addLog?.(`Action: ${action.name}`);
+    addLog?.(`Action: ${action.name}.`);
+    if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
+    if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');
+    if (action.key === 'growLeaves') addLog?.('Fresh leaves unfurl to gather more light.');
+    if (action.key === 'thicken') addLog?.('Your trunk thickens and your body grows sturdier.');
+    if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
+    if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
+    if (action.key === 'nurtureOffspring') addLog?.(`You invest in offspring. Pool: ${state.offspringPool}, established: ${state.offspringTrees}.`);
     updateScoreState(state);
     updateUI();
     render();

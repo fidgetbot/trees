@@ -744,6 +744,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
 
   if (decision.kind === 'ally-aid') {
     if (!outcome.ok) {
+      if (outcome.reason === 'not-an-ally') {
+        showModal('Aid Cancelled', `<p>The ${neighborName} is not currently an ally, so you cannot send ally aid to it.</p><p><strong>Current relationship:</strong> ${outcome.oldState}</p>`, onDone);
+        return;
+      }
       showModal('Aid Sent', `<p>You want to support the ${neighborName}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
@@ -829,7 +833,9 @@ function offerAidToAlly(s) {
   return runDiplomacyDecision(buildAidDecision(state, {
     getRelationshipState,
     scaledAidNutrientCost,
-  }));
+  }), {
+    emptyMessage: 'No allied trees are available to receive aid',
+  });
 }
 
 function runAggressionFlow(kind) {
@@ -873,6 +879,7 @@ function getNeighborTree(idx) {
       trunk: Math.max(1, Math.min(3, Math.floor(childStage.threshold / 800) + 1)),
       ally: true,
       offspring: true,
+      relationName: 'Ally',
       stageName: childStage.name,
     };
   }
@@ -1159,6 +1166,9 @@ function applyEventEffects(major, minors) {
 function showEventPhase() {
   setTurnEndBanner('');
   const { major, minors, consequences } = engine.showEventPhase(state);
+  if (major?.title) addLog(`Major event: ${major.title}.`);
+  minors.forEach(event => event?.text && addLog(event.text));
+  consequences.forEach(text => text && addLog(text));
   updateScore();
   updateUI();
   render();
@@ -1178,6 +1188,7 @@ function showEventPhase() {
 function handleSpringViability(onContinue) {
   return engine.handleSpringViability(state, (fate, prevSeeds) => {
     addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+    if (fate.sprouted > 0) addLog(`${fate.sprouted} ${state.selectedSpecies} offspring tree${fate.sprouted !== 1 ? 's' : ''} took root nearby as allies.`);
     if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
     onContinue?.();
   });
@@ -1188,6 +1199,7 @@ function advanceTurn() {
     onDeath: () => handleDeath(),
     onAfterSpringViability: (fate, prevSeeds) => {
       addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+      if (fate.sprouted > 0) addLog(`${fate.sprouted} ${state.selectedSpecies} offspring tree${fate.sprouted !== 1 ? 's' : ''} took root nearby as allies.`);
       if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
     },
     onAfterAdvance: () => {},

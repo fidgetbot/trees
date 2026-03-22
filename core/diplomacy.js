@@ -30,6 +30,17 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   const nutrientCost = scaledAidNutrientCost(4, neighbor, crisis);
   const waterCost = crisis?.kind === 'water' ? Math.min(4, Math.max(1, crisis.amount)) : 1;
 
+  if (oldState !== 'Ally') {
+    return {
+      ok: false,
+      oldState,
+      newState: oldState,
+      crisis,
+      nutrientCost,
+      waterCost,
+      reason: 'not-an-ally',
+    };
+  }
 
   neighbor.helpGivenToThem += 1;
   neighbor.lastAidMemory = 'you-gave-freely';

@@ -182,17 +182,26 @@ function drawTree({ ctx, x, groundY, isPlayer, neighbor, state, playerStageName,
     }
   }
 
-  if (!isPlayer && neighbor) {
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  const relationshipLabel = isPlayer
+    ? 'You'
+    : (neighbor?.offspring ? 'Offspring — Ally' : (neighbor?.relationName || (neighbor?.ally ? 'Ally' : 'Neutral')));
+  const speciesLabel = isPlayer ? `${state.selectedSpecies || 'Tree'} — You` : `${neighbor?.species || 'Tree'} — ${relationshipLabel}`;
+  if (isPlayer || neighbor) {
+    ctx.fillStyle = isPlayer ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.52)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    const label = neighbor.offspring ? `${neighbor.species} offspring (${neighbor.stageName})` : `${neighbor.species} (${(neighbor.relationName || (neighbor.ally ? 'Ally' : 'Neutral')).toLowerCase()})`;
-    ctx.fillText(label, x, groundY + 110);
-    if (!neighbor.offspring && typeof neighbor.health === 'number' && typeof neighbor.maxHealth === 'number') {
+    ctx.fillText(speciesLabel, x, groundY + 110);
+    const stageLabel = isPlayer ? playerStageName : neighbor?.stageName;
+    if (stageLabel) {
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = isPlayer ? 'rgba(255,255,255,0.68)' : 'rgba(255,255,255,0.42)';
+      ctx.fillText(stageLabel, x, groundY + 124);
+    }
+    if (!isPlayer && neighbor && typeof neighbor.health === 'number' && typeof neighbor.maxHealth === 'number' && !neighbor.offspring) {
       const healthColor = getRelationshipState(neighbor.relation).name === 'Ally' ? 'rgba(187, 247, 208, 0.9)' : 'rgba(255,255,255,0.55)';
       ctx.fillStyle = healthColor;
       ctx.font = '10px sans-serif';
-      ctx.fillText(`Health ${neighbor.health}/${neighbor.maxHealth}`, x, groundY + 124);
+      ctx.fillText(`Health ${neighbor.health}/${neighbor.maxHealth}`, x, groundY + 138);
     }
   }
 }

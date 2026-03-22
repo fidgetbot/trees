@@ -128,6 +128,11 @@ Current browser HUD behavior:
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
 - the map and status panels can be minimized with small top-right corner controls and restored with compact chips; both start expanded at the beginning of a run
+- health and allies now appear under Resources instead of a separate Ecology section, with only a subtle divider separating spendable resources from status values
+- ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
+- pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
+- the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
+- all visible trees on the map are labeled; offspring use the parent species and are labeled as offspring allies
 
 ### Seasonal Constraints
 
