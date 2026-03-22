@@ -259,6 +259,7 @@ Headless Node-based simulation and balance-analysis tooling.
 
 Current responsibilities include:
 - seeded simulation runs
+- reporting the committed app build version from `version.json` in simulation output
 - repeated batch execution
 - baseline automated action selection
 - structured JSON reporting for balance analysis
@@ -327,6 +328,9 @@ The current design is built around fruiting trees, reproduction, and lineage. Ex
 
 ### GitHub Issues track progress
 Progress tracking, work slices, blockers, and milestone updates belong in GitHub Issues rather than being appended to this spec.
+
+### Build version is repository-driven and auto-bumped on push
+The visible app build number is stored in `version.json`. On pushes to `main`, GitHub Actions should automatically increment that file in a follow-up commit from `github-actions[bot]`, after which GitHub Pages deploys the bumped version. Operationally, that means a human-authored push lands first, then the version-bump commit lands, then Pages serves the new version number. When reporting deploy completion, verify the live `version.json` value rather than assuming the branch push alone changed it.
 
 ## Forward-Looking Goals
 
