@@ -69,7 +69,7 @@ export function renderActionPanels({
   if (Object.values(categories).some(arr => arr.length > 0) || noUsableActions) {
     const endBtn = document.createElement('button');
     endBtn.className = 'finish-turn-btn';
-    endBtn.textContent = noUsableActions ? 'Out of Resources — End Turn →' : 'Finish Turn Early →';
+    endBtn.textContent = noUsableActions ? 'Out of Resources — End Turn' : 'Finish Turn Early';
     endBtn.onclick = onFinishTurn;
     els.actionsList.appendChild(endBtn);
   }
