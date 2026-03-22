@@ -221,6 +221,23 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
 
 export function resolveSeedFate(seedCount) { const results=[]; let sprouted=0; for (let i=0;i<seedCount;i++){ const r=Math.random(); if (r<0.22) results.push('A seed was eaten outright before it could travel.'); else if (r<0.42) results.push('A seed landed in deep shade and failed to establish.'); else if (r<0.62) results.push('A bird carried one of your seeds away, but dropped it on poor ground.'); else if (r<0.82) { sprouted += 1; results.push('A seed reached promising soil and sprouted into offspring.'); } else { sprouted += 1; results.push('An animal carried a seed to open ground, where it sprouted successfully.'); } } return { sprouted, results }; }
 
+export function resolvePendingStartOfTurnEffects(state) {
+  const resolved = [];
+
+  if (state.pendingChemicalThreat) {
+    const delayed = state.pendingChemicalThreat;
+    state.pendingChemicalThreat = null;
+    resolved.push({
+      key: 'pendingChemicalThreat',
+      title: delayed.title,
+      warning: delayed.warning,
+      body: delayed.ignore(),
+    });
+  }
+
+  return resolved;
+}
+
 export function rollMinorEvents(state, deps) {
   const {
     currentSeasonName,
@@ -236,12 +253,6 @@ export function rollMinorEvents(state, deps) {
     computeCurrentLifeStage,
   } = deps;
   const events = [];
-  if (state.pendingChemicalThreat) {
-    const delayed = state.pendingChemicalThreat;
-    state.pendingChemicalThreat = null;
-    events.push({ text: delayed.warning, effect: 'warning' });
-    events.push({ text: delayed.ignore(), effect: 'damage' });
-  }
   if (state.flowers > 0) {
     const basePollinatorChance = currentSeasonName === 'Spring' ? 0.55 : currentSeasonName === 'Summer' ? 0.4 : 0.1;
     const pollinatorChance = getPollinatorChance(basePollinatorChance);
@@ -260,8 +271,9 @@ export function rollMinorEvents(state, deps) {
   if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) { state.branches -= 1; events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' }); }
   const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
   const hostileNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Hostile');
+  const contestedNeighbors = state.neighbors.filter(n => ['Rival', 'Hostile'].includes(getRelationshipState(n.relation).name));
   if (alliedNeighbors.length > 0) { advanceAllyCrises(events); checkAllyBetrayal(events); }
-  if (hostileNeighbors.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(hostileNeighbors), events);
+  if (contestedNeighbors.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(contestedNeighbors), events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
   if (Math.random() < 0.12) {
     const currentStage = computeCurrentLifeStage().name;

@@ -5,8 +5,8 @@ import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, getRelationshipS
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
-import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate } from '../core/events.js';
-import { updateAlliesCount } from '../core/diplomacy.js';
+import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects } from '../core/events.js';
+import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
 function loadVersion() {
@@ -159,6 +159,15 @@ function updateNeighborAliveState(state, neighbor) {
   updateAlliesCount(state, getRelationshipState);
 }
 
+function getNeighborStage(stageScore) {
+  let stage = LIFE_STAGES[0];
+  for (const candidate of LIFE_STAGES) {
+    if (stageScore >= candidate.threshold) stage = candidate;
+    else break;
+  }
+  return stage;
+}
+
 function createMetricsTracker() {
   return {
     actionsTaken: {},
@@ -258,36 +267,44 @@ function createHeadlessGame(seed, speciesName) {
     attemptConnection: s => {
       const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name !== 'Ally');
       if (!target) return;
-      target.relation += 25;
-      if (getRelationshipState(target.relation).name === 'Ally') target.ally = true;
+      resolveConnectionAttempt(s, target, {
+        getRelationshipState,
+        recordDamage: (amount, cause) => recordDamageForState(s, amount, cause),
+        random: rng,
+      });
       updateAlliesCount(s, getRelationshipState);
     },
     offerAidToAlly: s => {
       const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
       if (!target) return;
-      target.health = Math.min(target.maxHealth, target.health + 2);
-      target.helpGivenToThem += 1;
-      target.relation += 5;
+      resolveAidToAlly(s, target, {
+        getRelationshipState,
+      });
+      updateAlliesCount(s, getRelationshipState);
     },
     requestHelpFromAllies: s => {
-      if (s.allies < 1) return;
-      s.water += 1;
-      s.nutrients += 1;
-      s.health = Math.min(s.maxHealth, s.health + 1);
+      const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
+      if (!target) return;
+      resolveHelpRequestFromAlly(s, target, {
+        getRelationshipState,
+        getNeighborStage,
+        random: rng,
+      });
+      updateAlliesCount(s, getRelationshipState);
     },
     shadeRivalAction: s => {
-      const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Hostile');
+      const target = s.neighbors.find(n => !n.dead);
       if (!target) return;
+      applyAggressionToNeighbor(s, target, 'shade', { getRelationshipState });
       target.health = Math.max(0, target.health - 1);
-      target.relation -= 5;
       if (target.health <= 0) updateNeighborAliveState(s, target);
     },
     rootDominionAction: s => {
-      s.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Hostile').forEach(target => {
-        target.health = Math.max(0, target.health - 2);
-        target.relation -= 10;
-        if (target.health <= 0) updateNeighborAliveState(s, target);
-      });
+      const target = s.neighbors.find(n => !n.dead);
+      if (!target) return;
+      const outcome = applyAggressionToNeighbor(s, target, 'dominion', { getRelationshipState });
+      target.health = Math.max(0, target.health - (outcome.alreadyContested ? 2 : 1));
+      if (target.health <= 0) updateNeighborAliveState(s, target);
     },
     getRelationshipState,
   });
@@ -418,6 +435,12 @@ function createHeadlessGame(seed, speciesName) {
     let turnsPlayed = 0;
 
     while (!state.gameOver && !state.victoryAchieved && turnsPlayed < turnLimit) {
+      const startOfTurnEffects = resolvePendingStartOfTurnEffects(state);
+      startOfTurnEffects.forEach(effect => {
+        addLog(state, effect.warning);
+        addLog(state, effect.body);
+      });
+
       const gains = engine.startTurn(state, { addLog: line => addLog(state, line), presentResources: () => {} });
 
       while (state.actions > 0 && !state.gameOver) {

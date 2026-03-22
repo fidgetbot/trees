@@ -34,12 +34,17 @@ import {
   processSeasonalReproduction as processSeasonalReproductionForState,
   resolveSeedFate as resolveSeedFateForCount,
   rollMinorEvents as rollMinorEventsForState,
+  resolvePendingStartOfTurnEffects,
 } from './core/events.js';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
   compareConflictPower as compareConflictPowerForState,
   checkAllyBetrayal as checkAllyBetrayalForState,
+  resolveConnectionAttempt,
+  applyAggressionToNeighbor,
+  resolveAidToAlly,
+  resolveHelpRequestFromAlly,
 } from './core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js';
 import { createEngine } from './core/engine.js';
@@ -379,6 +384,20 @@ function processPendingInteractions(onDone) {
 function showResourcePhase() {
   if (state.gameOver) return;
   setTurnEndBanner('');
+  const pendingStartOfTurn = resolvePendingStartOfTurnEffects(state);
+  if (pendingStartOfTurn.length) {
+    const first = pendingStartOfTurn[0];
+    updateScore();
+    updateUI();
+    render();
+    showModal(first.title, `<p>${first.body}</p>`, () => {
+      updateScore();
+      updateUI();
+      render();
+      showResourcePhase();
+    });
+    return;
+  }
   return engine.startTurn(state, {
     addLog,
     presentResources: (gains) => {
@@ -685,55 +704,63 @@ function offerAidToAlly(s) {
   const allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
   if (!allies.length) return resumeTurnFlow();
   const choose = (neighbor) => {
-    const oldState = getRelationshipState(neighbor.relation).name;
-    const crisis = (neighbor.activeCrises || [])[0] || null;
-    const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
-    const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
-    if (state.nutrients < nutrientCost || state.water < waterCost) {
-      showModal('Aid Sent', `<p>You want to support the ${neighbor.species}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${nutrientCost} · 💧${waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, resumeTurnFlow);
+    const outcome = resolveAidToAlly(state, neighbor, {
+      getRelationshipState,
+      getAdjustedRelationshipDelta,
+      scaledAidNutrientCost,
+    });
+    if (!outcome.ok) {
+      showModal('Aid Sent', `<p>You want to support the ${neighbor.species}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, resumeTurnFlow);
       return;
     }
-    state.nutrients -= nutrientCost;
-    state.water -= waterCost;
-    neighbor.helpGivenToThem += 1;
-    neighbor.lastAidMemory = 'you-gave-freely';
-    applyRelationshipDelta(neighbor, crisis ? 10 : 8);
-    neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + (crisis ? 3 : 2));
-    if (crisis) neighbor.activeCrises = neighbor.activeCrises.filter(c => c.id !== crisis.id);
-    const newState = getRelationshipState(neighbor.relation).name;
-    const crisisLine = crisis ? `<p>Your aid helps the ${neighbor.species} push back ${crisis.title.toLowerCase()}.</p>` : '';
-    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighbor.species}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${nutrientCost} · 💧${waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
+    const crisisLine = outcome.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${outcome.crisis.title.toLowerCase()}.</p>` : '';
+    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighbor.species}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
       updateAlliesCount(); updateScore(); updateUI(); render();
-      showRelationshipChangeModal(neighbor.species, oldState, newState, resumeTurnFlow);
+      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, resumeTurnFlow);
     });
   };
   if (allies.length === 1) return choose(allies[0]);
   chooseNeighborModal(choose, n => getRelationshipState(n.relation).name === 'Ally', 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
 }
 
+function confirmAggressionIfNeeded(neighbor, proceed) {
+  const relationName = getRelationshipState(neighbor.relation).name;
+  if (relationName === 'Friendly' || relationName === 'Ally') {
+    showChoiceModal(
+      'Escalate against this tree?',
+      `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`,
+      [
+        { label: 'Yes, turn this relationship hostile', className: 'btn warning', onClick: () => proceed() },
+        { label: 'No, keep the peace', className: 'btn', onClick: () => resumeTurnFlow() },
+      ]
+    );
+    return;
+  }
+  proceed();
+}
+
 function shadeRivalAction(s) {
-  const hostiles = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Hostile');
-  if (!hostiles.length) return resumeTurnFlow();
+  const targets = state.neighbors.filter(n => !n.dead);
+  if (!targets.length) return resumeTurnFlow();
   chooseNeighborModal((neighbor) => {
-    neighbor.stageScore = Math.max(0, neighbor.stageScore - 30);
-    neighbor.relation = Math.max(-100, neighbor.relation - 4);
-    state.sunlight += 2;
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighbor.species}, stealing back light it would have taken from you.</p><p>You gain <strong>2 sunlight</strong>.</p>`, resumeTurnFlow);
-  }, n => getRelationshipState(n.relation).name === 'Hostile', 'Shade which rival?', 'Choose a hostile tree to suppress.', true);
+    confirmAggressionIfNeeded(neighbor, () => {
+      const outcome = applyAggressionToNeighbor(state, neighbor, 'shade', { getRelationshipState });
+      const sunlightGain = outcome.gains.sunlight;
+      showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighbor.species}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, resumeTurnFlow);
+    });
+  }, n => !n.dead, 'Shade which neighbor?', 'Choose any neighboring tree to suppress.', true);
 }
 
 function rootDominionAction(s) {
-  let affected = 0;
-  state.neighbors.forEach(n => {
-    if (getRelationshipState(n.relation).name === 'Hostile') {
-      n.stageScore = Math.max(0, n.stageScore - 50);
-      n.relation = Math.max(-100, n.relation - 6);
-      affected += 1;
-    }
-  });
-  state.sunlight += affected;
-  state.nutrients += affected;
-  showModal('Root Dominion', `<p>Your roots seize the contested soil. Hostile trees recoil from your underground dominance.</p><p><strong>${affected}</strong> rival tree${affected !== 1 ? 's were' : ' was'} pressured. You gain <strong>${affected} sunlight</strong> and <strong>${affected} nutrients</strong>.</p>`, resumeTurnFlow);
+  const targets = state.neighbors.filter(n => !n.dead);
+  if (!targets.length) return resumeTurnFlow();
+  chooseNeighborModal((neighbor) => {
+    confirmAggressionIfNeeded(neighbor, () => {
+      const outcome = applyAggressionToNeighbor(state, neighbor, 'dominion', { getRelationshipState });
+      const { sunlight, water, nutrients } = outcome.gains;
+      showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighbor.species}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, resumeTurnFlow);
+    });
+  }, n => !n.dead, 'Assert dominion over which neighbor?', 'Choose any neighboring tree to pressure underground.', true);
 }
 
 function requestHelpFromAllies(s) {
@@ -744,31 +771,16 @@ function requestHelpFromAllies(s) {
     return;
   }
   const askOne = (neighbor) => {
-    neighbor.timesAskedThemForHelp += 1;
-    const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
-    const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
-    const rawHeal = 2 + Math.floor(Math.random() * 4) + Math.max(0, stageBonus > 2 ? 1 : 0);
-    const heal = Math.max(2, Math.min(5, rawHeal));
-    const actualHeal = Math.min(heal, state.maxHealth - state.health);
-    let relationShift = 6;
-    let tone = `The ${neighbor.species} sends strength through the fungal dark.`;
-    if (favorBalance < -2) {
-      relationShift = -4;
-      tone = `The ${neighbor.species} answers, but coolly. You have asked much of it lately, and given little in return.`;
-    } else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) {
-      relationShift = 10;
-      tone = `The ${neighbor.species} remembers that you answered its need before. It sends help with warmth.`;
-    }
-    state.health += actualHeal;
-    neighbor.helpReceivedFromThem += 1;
-    const oldState = getRelationshipState(neighbor.relation).name;
-    applyRelationshipDelta(neighbor, relationShift);
-    const newState = getRelationshipState(neighbor.relation).name;
-    neighbor.lastAidMemory = actualHeal > 0 ? 'helped-you' : 'could-not-help';
-    addLog(`${tone} You recover ${actualHeal} health from ${neighbor.species}.`);
-    showModal('Allied Aid', `<p>${tone}</p><p><strong>${neighbor.species}</strong> gives you <strong>${actualHeal} health</strong>.</p>`, () => {
+    const outcome = resolveHelpRequestFromAlly(state, neighbor, {
+      getRelationshipState,
+      getAdjustedRelationshipDelta,
+      getNeighborStage,
+      random: Math.random,
+    });
+    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighbor.species}.`);
+    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighbor.species}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>`, () => {
       updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
-      showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
+      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, () => {
         updateAlliesCount(); updateScore(); updateUI(); render(); renderActions();
         if (state.actions <= 0) showEventPhase();
       });
@@ -780,86 +792,26 @@ function requestHelpFromAllies(s) {
 
 function attemptConnection(s) {
   chooseNeighborModal((neighbor) => {
-    const rootBonus = Math.min(0.35, Math.max(0, state.rootZones - 2) * 0.08);
-    const oldState = getRelationshipState(neighbor.relation).name;
-    const roll = Math.random();
-    let message = '';
-    let feedback = { text: '', type: 'info' };
+    const outcome = resolveConnectionAttempt(state, neighbor, {
+      getRelationshipState,
+      getAdjustedRelationshipDelta,
+      recordDamage,
+      random: Math.random,
+    });
 
-    if (oldState === 'Ally') {
-      applyRelationshipDelta(neighbor, 10);
-      message = `Your roots find the familiar touch of the ${neighbor.species}. Resources and signals pass warmly between you.`;
-      feedback = { text: `${neighbor.species} strengthens your alliance`, type: 'success' };
-    } else if (oldState === 'Friendly') {
-      if (roll < 0.7 + rootBonus) {
-        applyRelationshipDelta(neighbor, 20);
-        message = `The ${neighbor.species} answers your overture with quiet warmth, opening more of its root network to you.`;
-        feedback = { text: `${neighbor.species} welcomed your roots`, type: 'success' };
-      } else {
-        applyRelationshipDelta(neighbor, -5);
-        message = `The ${neighbor.species} hesitates. It does not reject you, but keeps part of itself withheld.`;
-        feedback = { text: `${neighbor.species} grew cautious`, type: 'info' };
-      }
-    } else if (oldState === 'Neutral') {
-      if (roll < 0.50 + rootBonus) { // INCREASED from 0.35 to 0.50
-        applyRelationshipDelta(neighbor, 20);
-        message = `The ${neighbor.species} pauses, then accepts your tentative underground greeting.`;
-        feedback = { text: `${neighbor.species} responded cautiously`, type: 'success' };
-      } else if (roll < 0.75) {
-        applyRelationshipDelta(neighbor, 2);
-        message = `The ${neighbor.species} senses you, but offers little in return. For now, the soil remains politely quiet.`;
-        feedback = { text: `${neighbor.species} mostly ignored you`, type: 'info' };
-      } else {
-        applyRelationshipDelta(neighbor, -15);
-        message = `The ${neighbor.species} interprets your reach as intrusion and releases a bitter pulse through the soil.`;
-        state.health = Math.max(0, state.health - 1);
-        recordDamage(1, 'chemicals');
-        feedback = { text: `${neighbor.species} rebuffed you`, type: 'error' };
-      }
-    } else if (oldState === 'Rival') {
-      if (roll < 0.18 + rootBonus) {
-        applyRelationshipDelta(neighbor, 18);
-        message = `After a tense silence, the ${neighbor.species} relents. The rivalry softens, if only a little.`;
-        feedback = { text: `${neighbor.species} softened`, type: 'success' };
-      } else {
-        applyRelationshipDelta(neighbor, -12);
-        message = `The ${neighbor.species} answers with defensive chemistry, warning you that the rivalry is still alive.`;
-        state.health = Math.max(0, state.health - 1);
-        recordDamage(1, 'chemicals');
-        state.nutrients = Math.max(0, state.nutrients - 1);
-        feedback = { text: `${neighbor.species} retaliated`, type: 'error' };
-      }
-    } else if (oldState === 'Hostile') {
-      if (roll < 0.08 + rootBonus) {
-        applyRelationshipDelta(neighbor, 30);
-        message = `Against all expectation, the ${neighbor.species} does not strike. Its hatred cools, though distrust still lingers.`;
-        feedback = { text: `${neighbor.species} cooled slightly`, type: 'success' };
-      } else {
-        applyRelationshipDelta(neighbor, -8);
-        message = `The ${neighbor.species} reacts at once, flooding the soil with hostile chemicals. Your tissues burn with the warning.`;
-        state.health = Math.max(0, state.health - 2);
-        recordDamage(2, 'chemicals');
-        state.water = Math.max(0, state.water - 1);
-        state.nutrients = Math.max(0, state.nutrients - 1);
-        feedback = { text: `${neighbor.species} struck back violently`, type: 'error' };
-      }
-    }
-
-    const newState = getRelationshipState(neighbor.relation).name;
-    neighbor.ally = newState === 'Ally';
-    addLog(message);
-    showFeedback(feedback.text, feedback.type);
+    addLog(outcome.message);
+    showFeedback(outcome.feedback.text, outcome.feedback.type);
     updateAlliesCount();
     updateScore();
     updateUI();
     render();
     renderActions();
 
-    showModal(`Root Contact: ${neighbor.species}`, `<p>${message}</p><p><strong>Current relationship:</strong> ${newState}</p>`, () => {
+    showModal(`Root Contact: ${neighbor.species}`, `<p>${outcome.message}</p><p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
       updateUI();
       render();
       renderActions();
-      showRelationshipChangeModal(neighbor.species, oldState, newState, () => {
+      showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, () => {
         updateUI();
         render();
         renderActions();
@@ -977,9 +929,7 @@ function renderActions() {
 
   const noUsableActions = state.actions > 0 && Object.values(categories).every(arr => arr.length === 0);
 
-  let warningHtml = '';
   if (noUsableActions) {
-    warningHtml = `<strong>⚠️ No action available</strong>You do not have enough resources for any currently available action. End the turn to let time move on.`;
     setTurnEndBanner('No usable action remains. You can end the turn once you are ready.');
   }
 
@@ -989,7 +939,6 @@ function renderActions() {
     futureActions,
     categoryNames: CATEGORY_NAMES,
     noUsableActions,
-    warningHtml,
     onUseAction: (action, scaledCost) => {
       engine.executeAction(state, action, scaledCost, {
         spend,
@@ -1073,8 +1022,9 @@ function compareConflictPower(neighbor) {
 function queueHostileTreeThreat(neighbor, events) {
   const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
   const DIPLOMACY_COST = { sunlight: 5, water: 2, nutrients: 3 };
+  const relationName = getRelationshipState(neighbor.relation).name.toLowerCase();
 
-  events.push({ text: `The hostile ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+  events.push({ text: `The ${relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
   state.pendingInteractions.push((done) => {
     const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight &&
                              state.water >= DEFENSE_COST.water &&
@@ -1087,7 +1037,7 @@ function queueHostileTreeThreat(neighbor, events) {
     const diploText = `☀️${DIPLOMACY_COST.sunlight} 💧${DIPLOMACY_COST.water} 🌱${DIPLOMACY_COST.nutrients}`;
 
     showChoiceModal('Hostile Encroachment',
-      `<p><em>A hostile ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p>` +
+      `<p><em>The ${relationName} ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p>` +
       `<p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`, [
       {
         label: canAffordDefense ? `Chemical battle (${costText})` : `Chemical battle (${costText}) — too costly right now`,

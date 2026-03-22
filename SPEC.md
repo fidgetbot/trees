@@ -106,7 +106,7 @@ The current implementation intentionally treats nutrients as a meaningful limiti
 - **Base actions per turn:** 3
 - Actions spend combinations of sunlight, water, and nutrients
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
-- If the player cannot afford any currently available action, the browser UI presents an explicit resource-blocked end-turn state instead of auto-advancing immediately
+- If the player cannot afford any currently available action, the browser UI keeps the end-turn path available instead of auto-advancing immediately
 
 Growth actions are intentionally differentiated:
 - **Grow Leaves** is the cheapest direct sunlight-increase action
@@ -140,11 +140,13 @@ Current relationship states:
 - Hostile
 
 Current diplomacy/rivalry systems include:
-- root connection
+- root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks
 - aid to allies
 - requesting help from allies
-- shading rivals
-- root domination
+- shading neighboring trees starting in the sapling stage, including proactive aggression against neutral, friendly, or allied neighbors
+- confirmation warnings before attacking friendly or allied neighbors, since aggression immediately turns them into rivals
+- proactive aggression is intentionally less rewarding on the first strike than pressing an existing rivalry, so hostile play is viable without making betrayal the dominant opener
+- root domination starting in the mature stage, with direct resource theft from targeted neighbors and proactive escalation into rivalry
 - ally crises and ally neglect consequences
 - betrayal pressure in hostile or strained long-term relationships
 
@@ -170,7 +172,7 @@ Current systems include:
 - seasonal minor events
 - major environmental threats
 - fruit-threat warning/response chains
-- chemical-defense threat chains
+- chemical-defense threat chains that can resolve at the start of the next turn if left unanswered
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
 
@@ -236,8 +238,8 @@ Current responsibilities include:
 - stage progression logic
 - seedable randomness helpers
 - action catalog and availability rules
-- event rolling and event resolution helpers
-- diplomacy and survival helpers
+- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution
+- diplomacy and survival helpers, including shared relationship-resolution, ally-aid resolution, ally-help resolution, and aggression-resolution logic
 - shared engine turn/state flow
 
 ### `ui/`
@@ -264,7 +266,14 @@ Current responsibilities include:
 ### `main.js`
 Browser adapter/controller that wires the browser surface to the shared rules and UI modules.
 
-It still contains some game-specific orchestration and browser runtime glue, but it is no longer the monolithic source of all game logic.
+Current reality:
+- `main.js` still contains some gameplay-bearing orchestration for interactive browser flows
+- this is a transitional state, not the desired final architecture
+
+Architectural intent:
+- `main.js` should become a thin browser adapter
+- gameplay rules, balance numbers, target eligibility, and state transitions should live in shared `core/` modules
+- browser play and headless simulation should consume the same shared gameplay rules path rather than maintaining separate approximations
 
 ## Simulation and Balance Workflow
 
@@ -299,7 +308,7 @@ Detailed simulation usage and output documentation belongs in `sim/README.md`.
 These principles should continue to guide future work:
 
 ### One shared rules engine
-Browser play and headless simulation should continue to rely on the same shared rules/state logic wherever possible.
+Browser play and headless simulation should rely on the same shared rules/state logic for gameplay and balance decisions. Duplicated rule implementations between browser and simulation are considered architectural debt to remove, not a target state.
 
 ### UI stays out of shared rules
 Rendering, modal prose, browser event wiring, and other presentation concerns belong in `ui/` or browser adapter code, not in shared rules modules.

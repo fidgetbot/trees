@@ -6,16 +6,8 @@ export function renderActionPanels({
   onUseAction,
   onFinishTurn,
   noUsableActions = false,
-  warningHtml = '',
 }) {
   els.actionsList.innerHTML = '';
-
-  if (warningHtml) {
-    const warning = document.createElement('div');
-    warning.className = 'nothing-affordable';
-    warning.innerHTML = warningHtml;
-    els.actionsList.appendChild(warning);
-  }
 
   Object.entries(categories).forEach(([catKey, catActions]) => {
     if (catActions.length === 0) return;
