@@ -44,6 +44,9 @@ import {
   resolveConnectionAttempt,
   applyAggressionToNeighbor,
   listAggressionOptions,
+  listConnectionOptions,
+  listAidOptions,
+  listHelpRequestOptions,
   resolveAidToAlly,
   resolveHelpRequestFromAlly,
 } from './core/diplomacy.js';
@@ -702,9 +705,14 @@ function woodSurgeAction(s) {
 }
 
 function offerAidToAlly(s) {
-  const allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
-  if (!allies.length) return resumeTurnFlow();
+  const options = listAidOptions(state, {
+    getRelationshipState,
+    scaledAidNutrientCost,
+  });
+  if (!options.length) return resumeTurnFlow();
   const choose = (neighbor) => {
+    const option = options.find(entry => entry.neighbor === neighbor);
+    if (!option) return resumeTurnFlow();
     const outcome = resolveAidToAlly(state, neighbor, {
       getRelationshipState,
       getAdjustedRelationshipDelta,
@@ -714,14 +722,14 @@ function offerAidToAlly(s) {
       showModal('Aid Sent', `<p>You want to support the ${neighbor.species}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, resumeTurnFlow);
       return;
     }
-    const crisisLine = outcome.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${outcome.crisis.title.toLowerCase()}.</p>` : '';
+    const crisisLine = option.crisis ? `<p>Your aid helps the ${neighbor.species} push back ${option.crisis.title.toLowerCase()}.</p>` : '';
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighbor.species}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
       updateAlliesCount(); updateScore(); updateUI(); render();
       showRelationshipChangeModal(neighbor.species, outcome.oldState, outcome.newState, resumeTurnFlow);
     });
   };
-  if (allies.length === 1) return choose(allies[0]);
-  chooseNeighborModal(choose, n => getRelationshipState(n.relation).name === 'Ally', 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
+  if (options.length === 1) return choose(options[0].neighbor);
+  chooseNeighborModal(choose, n => options.some(option => option.neighbor === n), 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
 }
 
 function runAggressionFlow(kind) {
@@ -773,13 +781,18 @@ function rootDominionAction(s) {
 }
 
 function requestHelpFromAllies(s) {
-  const allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
-  if (!allies.length) {
+  const options = listHelpRequestOptions(state, {
+    getRelationshipState,
+    getNeighborStage,
+  });
+  if (!options.length) {
     showFeedback('No allies are close enough to help', 'warning');
     resumeTurnFlow();
     return;
   }
   const askOne = (neighbor) => {
+    const option = options.find(entry => entry.neighbor === neighbor);
+    if (!option) return resumeTurnFlow();
     const outcome = resolveHelpRequestFromAlly(state, neighbor, {
       getRelationshipState,
       getAdjustedRelationshipDelta,
@@ -795,12 +808,16 @@ function requestHelpFromAllies(s) {
       });
     });
   };
-  if (allies.length === 1) return askOne(allies[0]);
-  chooseNeighborModal(askOne, n => getRelationshipState(n.relation).name === 'Ally', 'Ask an ally for help', 'Choose which allied tree you are asking to support you.', true);
+  if (options.length === 1) return askOne(options[0].neighbor);
+  chooseNeighborModal(askOne, n => options.some(option => option.neighbor === n), 'Ask an ally for help', 'Choose which allied tree you are asking to support you.', true);
 }
 
 function attemptConnection(s) {
+  const options = listConnectionOptions(state, { getRelationshipState });
+  if (!options.length) return resumeTurnFlow();
   chooseNeighborModal((neighbor) => {
+    const option = options.find(entry => entry.neighbor === neighbor);
+    if (!option) return resumeTurnFlow();
     const outcome = resolveConnectionAttempt(state, neighbor, {
       getRelationshipState,
       getAdjustedRelationshipDelta,
@@ -826,7 +843,7 @@ function attemptConnection(s) {
         renderActions();
       });
     });
-  });
+  }, n => options.some(option => option.neighbor === n), 'Reach toward which neighbor?', 'Choose a neighboring tree to contact through the soil.', true);
 }
 
 function getNeighborTree(idx) {

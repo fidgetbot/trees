@@ -100,6 +100,75 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
   };
 }
 
+export function listConnectionOptions(state, deps = {}) {
+  const { getRelationshipState } = deps;
+
+  return state.neighbors
+    .filter(neighbor => !neighbor.dead)
+    .map((neighbor, index) => {
+      const relationName = getRelationshipState(neighbor.relation).name;
+      return {
+        index,
+        neighbor,
+        species: neighbor.species,
+        relationName,
+        canStrengthenAlliance: relationName === 'Ally',
+        isRisky: relationName === 'Rival' || relationName === 'Hostile',
+      };
+    });
+}
+
+export function listAidOptions(state, deps = {}) {
+  const {
+    getRelationshipState,
+    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 8,
+  } = deps;
+
+  return state.neighbors
+    .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+    .map((neighbor, index) => {
+      const crisis = (neighbor.activeCrises || [])[0] || null;
+      const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
+      const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
+      return {
+        index,
+        neighbor,
+        species: neighbor.species,
+        relationName: 'Ally',
+        crisis,
+        nutrientCost,
+        waterCost,
+        affordable: state.nutrients >= nutrientCost && state.water >= waterCost,
+      };
+    });
+}
+
+export function listHelpRequestOptions(state, deps = {}) {
+  const {
+    getRelationshipState,
+    getNeighborStage = () => ({ rank: 1 }),
+  } = deps;
+
+  return state.neighbors
+    .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+    .map((neighbor, index) => {
+      const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
+      const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
+      let toneHint = 'steady';
+      if (favorBalance < -2) toneHint = 'strained';
+      else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
+      return {
+        index,
+        neighbor,
+        species: neighbor.species,
+        relationName: 'Ally',
+        favorBalance,
+        stageBonus,
+        toneHint,
+      };
+    });
+}
+
 export function resolveConnectionAttempt(state, neighbor, deps = {}) {
   const {
     getRelationshipState,

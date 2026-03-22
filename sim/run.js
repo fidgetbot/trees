@@ -6,7 +6,7 @@ import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtR
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects } from '../core/events.js';
-import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
+import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, listConnectionOptions, listAidOptions, listHelpRequestOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
 function loadVersion() {
@@ -265,9 +265,10 @@ function createHeadlessGame(seed, speciesName) {
     resinReserveAction: s => { s.defense += 1; },
     woodSurgeAction: s => { s.trunk += 1; s.rootZones += 1; },
     attemptConnection: s => {
-      const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name !== 'Ally');
-      if (!target) return;
-      resolveConnectionAttempt(s, target, {
+      const options = listConnectionOptions(s, { getRelationshipState });
+      const targetOption = options.find(option => option.relationName !== 'Ally') || options[0];
+      if (!targetOption) return;
+      resolveConnectionAttempt(s, targetOption.neighbor, {
         getRelationshipState,
         recordDamage: (amount, cause) => recordDamageForState(s, amount, cause),
         random: rng,
@@ -275,17 +276,22 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     offerAidToAlly: s => {
-      const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
-      if (!target) return;
-      resolveAidToAlly(s, target, {
+      const options = listAidOptions(s, { getRelationshipState });
+      const targetOption = options.find(option => option.affordable && option.crisis) || options.find(option => option.affordable) || options[0];
+      if (!targetOption) return;
+      resolveAidToAlly(s, targetOption.neighbor, {
         getRelationshipState,
       });
       updateAlliesCount(s, getRelationshipState);
     },
     requestHelpFromAllies: s => {
-      const target = s.neighbors.find(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
-      if (!target) return;
-      resolveHelpRequestFromAlly(s, target, {
+      const options = listHelpRequestOptions(s, {
+        getRelationshipState,
+        getNeighborStage,
+      });
+      const targetOption = options.find(option => option.toneHint === 'warm') || options[0];
+      if (!targetOption) return;
+      resolveHelpRequestFromAlly(s, targetOption.neighbor, {
         getRelationshipState,
         getNeighborStage,
         random: rng,
