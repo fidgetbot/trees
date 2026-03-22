@@ -72,30 +72,7 @@ export function getBrowserElements(documentRef = document) {
     actionsBanner: documentRef.getElementById('actions-banner'),
     actionsRemaining: documentRef.getElementById('actions-remaining'),
     turnEndBanner: documentRef.getElementById('turn-end-banner'),
-    mapToggle: documentRef.getElementById('map-toggle'),
-    mapDrawer: documentRef.getElementById('map-drawer'),
-    mapClose: documentRef.getElementById('map-close'),
-    resourcesToggle: documentRef.getElementById('resources-toggle'),
-    resourcesDrawer: documentRef.getElementById('resources-drawer'),
-    resourcesClose: documentRef.getElementById('resources-close'),
   };
-}
-
-export function initFloatingPanelsUI(els) {
-  const bindDrawer = (toggle, drawer, close, expandedLabel, collapsedLabel) => {
-    if (!toggle || !drawer || !close) return;
-    const setOpen = (open) => {
-      drawer.classList.toggle('minimized', !open);
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggle.textContent = open ? collapsedLabel : expandedLabel;
-    };
-    toggle.onclick = () => setOpen(drawer.classList.contains('minimized'));
-    close.onclick = () => setOpen(false);
-    setOpen(false);
-  };
-
-  bindDrawer(els.mapToggle, els.mapDrawer, els.mapClose, '🗺️ Show Map', '🗺️ Hide Map');
-  bindDrawer(els.resourcesToggle, els.resourcesDrawer, els.resourcesClose, '📊 Show Status', '📊 Hide Status');
 }
 
 export function initSpeciesSelectController({ state, speciesNames, chooseRandomIndex, renderSpeciesSelect }) {
@@ -107,14 +84,12 @@ export function initSpeciesSelectController({ state, speciesNames, chooseRandomI
 
 export function startBrowserGame({
   state,
-  els,
   selectedSpecies,
   species,
   initialLifeStage,
   makeStartingNeighbors,
   initTooltips,
   initCollapsibleGroups,
-  initFloatingPanels,
   addLog,
   updateUI,
   showResourcePhase,
@@ -174,7 +149,6 @@ export function startBrowserGame({
   showGamePanels();
   initTooltips();
   initCollapsibleGroups();
-  initFloatingPanels?.(els);
   addLog('You begin as a seed, buried in the dark soil.');
   updateUI();
   showResourcePhase();

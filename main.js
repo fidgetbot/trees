@@ -63,7 +63,7 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
 import { renderForestScene } from './ui/canvas.js';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
-import { createInitialBrowserState, getBrowserElements, initSpeciesSelectController, initFloatingPanelsUI, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
+import { createInitialBrowserState, getBrowserElements, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -269,14 +269,12 @@ function startGame() {
   const spec = SPECIES[state.selectedSpecies];
   return startBrowserGame({
     state,
-    els,
     selectedSpecies: state.selectedSpecies,
     species: spec,
     initialLifeStage: LIFE_STAGES[0],
     makeStartingNeighbors,
     initTooltips,
     initCollapsibleGroups,
-    initFloatingPanels: initFloatingPanelsUI,
     addLog,
     updateUI,
     showResourcePhase,

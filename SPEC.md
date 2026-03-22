@@ -127,7 +127,6 @@ Action categories currently include:
 Current browser HUD behavior:
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
-- the map and status/resources panel now live in minimized floating drawers that players can expand and re-minimize on demand to cut down on scrolling
 
 ### Seasonal Constraints
 

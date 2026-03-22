@@ -54,82 +54,15 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: 280px 1fr 340px;
   gap: 16px;
   margin-top: 16px;
-  align-items: start;
 }
 .panel {
   background: var(--panel);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-.center-panel,
-.right-panel {
-  position: relative;
-}
-.floating-drawer {
-  position: fixed;
-  z-index: 40;
-}
-#map-drawer {
-  left: 16px;
-  bottom: 16px;
-  width: min(540px, calc(100vw - 32px));
-}
-#resources-drawer {
-  right: 16px;
-  top: 90px;
-  width: min(360px, calc(100vw - 32px));
-}
-.drawer-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  position: fixed;
-  z-index: 41;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-.map-toggle {
-  left: 16px;
-  bottom: 16px;
-}
-.resources-toggle {
-  right: 16px;
-  top: 16px;
-}
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  background: var(--panel);
-  border-radius: 16px 16px 0 0;
-  padding: 14px 14px 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-.drawer-header h3 {
-  margin: 0;
-}
-.drawer-close {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid rgba(125, 211, 252, 0.35);
-  padding: 8px 12px;
-}
-.drawer-panel {
-  padding: 14px;
-  max-height: calc(100vh - 140px);
-  overflow: auto;
-}
-.floating-drawer.minimized .drawer-header,
-.floating-drawer.minimized .drawer-panel {
-  display: none;
-}
-.status-drawer-panel {
-  margin-bottom: 16px;
 }
 .species-list, .actions-list {
   display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
@@ -704,27 +637,4 @@ canvas {
 small { color: var(--muted); }
 @media (max-width: 1200px) {
   .layout { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 720px) {
-  #map-drawer,
-  #resources-drawer {
-    left: 12px;
-    right: 12px;
-    width: auto;
-  }
-  #resources-drawer {
-    top: 72px;
-  }
-  #map-drawer {
-    bottom: 72px;
-  }
-  .map-toggle {
-    left: 12px;
-    bottom: 12px;
-  }
-  .resources-toggle {
-    right: 12px;
-    top: 12px;
-  }
 }
