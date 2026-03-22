@@ -239,7 +239,7 @@ Current responsibilities include:
 - seedable randomness helpers
 - action catalog and availability rules
 - event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution
-- diplomacy and survival helpers, including shared relationship-resolution, ally-aid resolution, ally-help resolution, and aggression-resolution logic
+- diplomacy and survival helpers, including shared relationship-resolution, ally-aid resolution, ally-help resolution, aggression target/confirmation option generation, and aggression-resolution logic
 - shared engine turn/state flow
 
 ### `ui/`

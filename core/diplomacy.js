@@ -210,6 +210,45 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
   };
 }
 
+export function listAggressionOptions(state, kind, deps = {}) {
+  const { getRelationshipState } = deps;
+
+  return state.neighbors
+    .filter(neighbor => !neighbor.dead)
+    .map((neighbor, index) => {
+      const relationName = getRelationshipState(neighbor.relation).name;
+      const alreadyContested = relationName === 'Rival' || relationName === 'Hostile';
+      const requiresWarning = relationName === 'Friendly' || relationName === 'Ally';
+      const preview = kind === 'shade'
+        ? {
+            sunlight: alreadyContested ? 2 : 1,
+            water: 0,
+            nutrients: 0,
+            relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
+          }
+        : {
+            sunlight: alreadyContested ? 1 : 0,
+            water: 1,
+            nutrients: 1,
+            relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
+          };
+
+      return {
+        index,
+        neighbor,
+        species: neighbor.species,
+        relationName,
+        alreadyContested,
+        requiresWarning,
+        warningTitle: requiresWarning ? 'Escalate against this tree?' : null,
+        warningBody: requiresWarning
+          ? `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`
+          : null,
+        preview,
+      };
+    });
+}
+
 export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
   const { getRelationshipState } = deps;
   const relationName = getRelationshipState(neighbor.relation).name;

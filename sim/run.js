@@ -6,7 +6,7 @@ import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtR
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects } from '../core/events.js';
-import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
+import { updateAlliesCount, resolveConnectionAttempt, applyAggressionToNeighbor, listAggressionOptions, resolveAidToAlly, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 
 function loadVersion() {
@@ -293,18 +293,20 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     shadeRivalAction: s => {
-      const target = s.neighbors.find(n => !n.dead);
-      if (!target) return;
-      applyAggressionToNeighbor(s, target, 'shade', { getRelationshipState });
-      target.health = Math.max(0, target.health - 1);
-      if (target.health <= 0) updateNeighborAliveState(s, target);
+      const options = listAggressionOptions(s, 'shade', { getRelationshipState });
+      const chosen = options.find(option => option.alreadyContested) || options[0];
+      if (!chosen) return;
+      applyAggressionToNeighbor(s, chosen.neighbor, 'shade', { getRelationshipState });
+      chosen.neighbor.health = Math.max(0, chosen.neighbor.health - 1);
+      if (chosen.neighbor.health <= 0) updateNeighborAliveState(s, chosen.neighbor);
     },
     rootDominionAction: s => {
-      const target = s.neighbors.find(n => !n.dead);
-      if (!target) return;
-      const outcome = applyAggressionToNeighbor(s, target, 'dominion', { getRelationshipState });
-      target.health = Math.max(0, target.health - (outcome.alreadyContested ? 2 : 1));
-      if (target.health <= 0) updateNeighborAliveState(s, target);
+      const options = listAggressionOptions(s, 'dominion', { getRelationshipState });
+      const chosen = options.find(option => option.alreadyContested) || options[0];
+      if (!chosen) return;
+      const outcome = applyAggressionToNeighbor(s, chosen.neighbor, 'dominion', { getRelationshipState });
+      chosen.neighbor.health = Math.max(0, chosen.neighbor.health - (outcome.alreadyContested ? 2 : 1));
+      if (chosen.neighbor.health <= 0) updateNeighborAliveState(s, chosen.neighbor);
     },
     getRelationshipState,
   });

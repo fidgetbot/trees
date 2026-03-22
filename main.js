@@ -43,6 +43,7 @@ import {
   checkAllyBetrayal as checkAllyBetrayalForState,
   resolveConnectionAttempt,
   applyAggressionToNeighbor,
+  listAggressionOptions,
   resolveAidToAlly,
   resolveHelpRequestFromAlly,
 } from './core/diplomacy.js';
@@ -723,44 +724,52 @@ function offerAidToAlly(s) {
   chooseNeighborModal(choose, n => getRelationshipState(n.relation).name === 'Ally', 'Offer aid to which ally?', 'Choose an allied tree to support.', true);
 }
 
-function confirmAggressionIfNeeded(neighbor, proceed) {
-  const relationName = getRelationshipState(neighbor.relation).name;
-  if (relationName === 'Friendly' || relationName === 'Ally') {
-    showChoiceModal(
-      'Escalate against this tree?',
-      `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`,
-      [
-        { label: 'Yes, turn this relationship hostile', className: 'btn warning', onClick: () => proceed() },
-        { label: 'No, keep the peace', className: 'btn', onClick: () => resumeTurnFlow() },
-      ]
-    );
-    return;
-  }
-  proceed();
+function runAggressionFlow(kind) {
+  const options = listAggressionOptions(state, kind, { getRelationshipState });
+  if (!options.length) return resumeTurnFlow();
+
+  const title = kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?';
+  const body = kind === 'shade'
+    ? 'Choose any neighboring tree to suppress.'
+    : 'Choose any neighboring tree to pressure underground.';
+
+  chooseNeighborModal((neighbor) => {
+    const option = options.find(entry => entry.neighbor === neighbor);
+    if (!option) return resumeTurnFlow();
+
+    const proceed = () => {
+      const outcome = applyAggressionToNeighbor(state, neighbor, kind, { getRelationshipState });
+      if (kind === 'shade') {
+        const sunlightGain = outcome.gains.sunlight;
+        showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighbor.species}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, resumeTurnFlow);
+      } else {
+        const { sunlight, water, nutrients } = outcome.gains;
+        showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighbor.species}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, resumeTurnFlow);
+      }
+    };
+
+    if (option.requiresWarning) {
+      showChoiceModal(
+        option.warningTitle,
+        option.warningBody,
+        [
+          { label: 'Yes, turn this relationship hostile', className: 'btn warning', onClick: () => proceed() },
+          { label: 'No, keep the peace', className: 'btn', onClick: () => resumeTurnFlow() },
+        ]
+      );
+      return;
+    }
+
+    proceed();
+  }, n => options.some(option => option.neighbor === n), title, body, true);
 }
 
 function shadeRivalAction(s) {
-  const targets = state.neighbors.filter(n => !n.dead);
-  if (!targets.length) return resumeTurnFlow();
-  chooseNeighborModal((neighbor) => {
-    confirmAggressionIfNeeded(neighbor, () => {
-      const outcome = applyAggressionToNeighbor(state, neighbor, 'shade', { getRelationshipState });
-      const sunlightGain = outcome.gains.sunlight;
-      showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighbor.species}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, resumeTurnFlow);
-    });
-  }, n => !n.dead, 'Shade which neighbor?', 'Choose any neighboring tree to suppress.', true);
+  return runAggressionFlow('shade');
 }
 
 function rootDominionAction(s) {
-  const targets = state.neighbors.filter(n => !n.dead);
-  if (!targets.length) return resumeTurnFlow();
-  chooseNeighborModal((neighbor) => {
-    confirmAggressionIfNeeded(neighbor, () => {
-      const outcome = applyAggressionToNeighbor(state, neighbor, 'dominion', { getRelationshipState });
-      const { sunlight, water, nutrients } = outcome.gains;
-      showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighbor.species}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, resumeTurnFlow);
-    });
-  }, n => !n.dead, 'Assert dominion over which neighbor?', 'Choose any neighboring tree to pressure underground.', true);
+  return runAggressionFlow('dominion');
 }
 
 function requestHelpFromAllies(s) {
