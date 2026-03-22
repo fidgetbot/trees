@@ -128,10 +128,6 @@ export function buildConnectionDecision(state, deps = {}) {
   });
 }
 
-export function listConnectionOptions(state, deps = {}) {
-  return buildConnectionDecision(state, deps).options;
-}
-
 export function buildAidDecision(state, deps = {}) {
   const {
     getRelationshipState,
@@ -163,10 +159,6 @@ export function buildAidDecision(state, deps = {}) {
         };
       }),
   });
-}
-
-export function listAidOptions(state, deps = {}) {
-  return buildAidDecision(state, deps).options;
 }
 
 export function buildHelpRequestDecision(state, deps = {}) {
@@ -201,10 +193,6 @@ export function buildHelpRequestDecision(state, deps = {}) {
         };
       }),
   });
-}
-
-export function listHelpRequestOptions(state, deps = {}) {
-  return buildHelpRequestDecision(state, deps).options;
 }
 
 export function resolveConnectionAttempt(state, neighbor, deps = {}) {
@@ -365,10 +353,6 @@ export function buildAggressionDecision(state, kind, deps = {}) {
     options,
     meta: { actionKind: kind },
   });
-}
-
-export function listAggressionOptions(state, kind, deps = {}) {
-  return buildAggressionDecision(state, kind, deps).options;
 }
 
 export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {

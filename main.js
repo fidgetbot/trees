@@ -1093,10 +1093,6 @@ function queueHostileTreeThreat(neighbor, events) {
   state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
 }
 
-function queueAllyAidRequest(neighbor, events) {
-  // Ally crises are now managed by advanceAllyCrises().
-}
-
 function queueChemicalDefenseThreat(events) {
   const decision = buildChemicalDefenseDecision(state, {
     computeCurrentLifeStage,

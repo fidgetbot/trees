@@ -323,6 +323,9 @@ When an interactive decision has been built, browser and simulation code should 
 ### Browser adapters should centralize post-outcome UI work
 `main.js` should prefer shared UI continuation helpers for common post-decision work such as refreshing HUD/render state, showing relationship-change followups, and continuing turn flow. Per-flow browser code may still provide bespoke prose, but repeated refresh / modal-chaining logic should be consolidated rather than reimplemented for each choice flow.
 
+### Transitional wrappers should be removed once decision builders are adopted
+When browser/sim callers have moved to shared decision builders plus shared dispatchers, one-off list-wrapper helpers or stale adapter glue that only existed to support older call sites should be removed instead of preserved indefinitely. The target state is a smaller surface area built around decision construction, shared execution, and thin rendering adapters.
+
 ### Simulation informs balance, but does not replace playtesting
 Automated simulation is a balancing and analysis tool. Manual browser playtests remain necessary for feel, pacing, readability, and player experience.
 
