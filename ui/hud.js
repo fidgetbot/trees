@@ -109,9 +109,11 @@ export function updateHudUI({
   if (els.actionsRemaining) {
     if (state.actions > 0) {
       els.actionsRemaining.textContent = `${state.actions} action${state.actions !== 1 ? 's' : ''} remaining`;
+      els.actionsBanner.classList.remove('hidden');
       els.actionsBanner.classList.remove('no-actions');
     } else {
-      els.actionsRemaining.textContent = 'No actions remaining';
+      els.actionsRemaining.textContent = '';
+      els.actionsBanner.classList.add('hidden');
       els.actionsBanner.classList.add('no-actions');
     }
   }

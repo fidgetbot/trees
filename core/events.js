@@ -306,25 +306,43 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
 
   const threat = threats[Math.floor(Math.random() * threats.length)];
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
-  const affordText = canAffordDefense ? 'You can afford this response.' : 'You do not have enough stored resources for this response.';
+  const deficits = {
+    sunlight: Math.max(0, DEFENSE_COST.sunlight - state.sunlight),
+    water: Math.max(0, DEFENSE_COST.water - state.water),
+    nutrients: Math.max(0, DEFENSE_COST.nutrients - state.nutrients),
+  };
+  const deficitParts = [];
+  if (deficits.sunlight) deficitParts.push(`☀️+${deficits.sunlight}`);
+  if (deficits.water) deficitParts.push(`💧+${deficits.water}`);
+  if (deficits.nutrients) deficitParts.push(`🌱+${deficits.nutrients}`);
+  const deficitText = deficitParts.join(' ');
+  const affordText = canAffordDefense
+    ? 'You can afford this response.'
+    : `You do not have enough stored resources for this response. Needed to defend: ${deficitText}.`;
 
   return createDecision({
     kind: 'chemical-defense',
     title: threat.title,
-    body: `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
-    options: [
+    body: `<p><em>${threat.warning}</em></p><p>${canAffordDefense ? 'How do you respond?' : 'You cannot currently afford a chemical defense.'}</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
+    options: canAffordDefense ? [
       {
         id: 'defend',
-        label: canAffordDefense ? `Release defensive compounds (${costText})` : `Release defensive compounds (${costText}) — too costly right now`,
-        affordable: canAffordDefense,
+        label: `Release defensive compounds (${costText})`,
+        affordable: true,
       },
       {
         id: 'conserve',
         label: 'Conserve strength',
         affordable: true,
       }
+    ] : [
+      {
+        id: 'conserve',
+        label: `Not enough resources — need ${deficitText}`,
+        affordable: true,
+      }
     ],
-    meta: { threat, cost: DEFENSE_COST },
+    meta: { threat, cost: DEFENSE_COST, deficits },
   });
 }
 

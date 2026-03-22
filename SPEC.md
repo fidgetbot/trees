@@ -111,6 +111,7 @@ The current implementation intentionally treats nutrients as a meaningful limiti
 - Actions spend combinations of sunlight, water, and nutrients
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
 - If the player cannot afford any currently available action, the browser UI keeps the end-turn path available instead of auto-advancing immediately
+- When a chemical-defense threat appears and the player cannot afford the response, the UI now presents a single acknowledgement button that explicitly shows the missing resources instead of offering a misleading unusable defend option
 
 Growth actions are intentionally differentiated:
 - **Grow Leaves** is the cheapest direct sunlight-increase action
@@ -122,6 +123,10 @@ Action categories currently include:
 - reproduction
 - diplomacy and rivalry
 - advanced late-game sinks
+
+Current browser HUD behavior:
+- the actions-remaining indicator appears above the action list
+- when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
 
 ### Seasonal Constraints
 
