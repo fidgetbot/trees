@@ -239,7 +239,7 @@ Current responsibilities include:
 - seedable randomness helpers
 - action catalog and availability rules
 - event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, and shared chemical-defense threat decision/resolution flow
-- diplomacy and survival helpers, including shared relationship-resolution, connection target option generation, ally-aid target option generation, ally-help target option generation, aggression target/confirmation option generation, and the corresponding shared resolution logic
+- diplomacy and survival helpers, including shared relationship-resolution plus decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic
 - shared engine turn/state flow
 
 ### `ui/`
@@ -333,3 +333,4 @@ The current high-level goals are:
 - continue manual browser playtesting alongside simulation
 - add new gameplay features on top of shared core rules rather than re-entangling UI and rules
 - keep the browser build and simulation harness aligned as the game evolves
+simulation harness aligned as the game evolves

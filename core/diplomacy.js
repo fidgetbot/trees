@@ -100,25 +100,37 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
   };
 }
 
-export function listConnectionOptions(state, deps = {}) {
+export function buildConnectionDecision(state, deps = {}) {
   const { getRelationshipState } = deps;
 
-  return state.neighbors
-    .filter(neighbor => !neighbor.dead)
-    .map((neighbor, index) => {
-      const relationName = getRelationshipState(neighbor.relation).name;
-      return {
-        index,
-        neighbor,
-        species: neighbor.species,
-        relationName,
-        canStrengthenAlliance: relationName === 'Ally',
-        isRisky: relationName === 'Rival' || relationName === 'Hostile',
-      };
-    });
+  return createDecision({
+    kind: 'connection',
+    title: 'Reach toward which neighbor?',
+    body: 'Choose a neighboring tree to contact through the soil.',
+    options: state.neighbors
+      .filter(neighbor => !neighbor.dead)
+      .map((neighbor, index) => {
+        const relationName = getRelationshipState(neighbor.relation).name;
+        return {
+          id: `neighbor-${index}`,
+          label: `${neighbor.species} — ${relationName}`,
+          targetIndex: index,
+          meta: {
+            species: neighbor.species,
+            relationName,
+            canStrengthenAlliance: relationName === 'Ally',
+            isRisky: relationName === 'Rival' || relationName === 'Hostile',
+          },
+        };
+      }),
+  });
 }
 
-export function listAidOptions(state, deps = {}) {
+export function listConnectionOptions(state, deps = {}) {
+  return buildConnectionDecision(state, deps).options;
+}
+
+export function buildAidDecision(state, deps = {}) {
   const {
     getRelationshipState,
     scaledAidNutrientCost = (_base, _neighbor, _crisis) => 8,
@@ -279,10 +291,12 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
   };
 }
 
-export function listAggressionOptions(state, kind, deps = {}) {
+import { createDecision } from './decisions.js';
+
+export function buildAggressionDecision(state, kind, deps = {}) {
   const { getRelationshipState } = deps;
 
-  return state.neighbors
+  const options = state.neighbors
     .filter(neighbor => !neighbor.dead)
     .map((neighbor, index) => {
       const relationName = getRelationshipState(neighbor.relation).name;
@@ -303,19 +317,34 @@ export function listAggressionOptions(state, kind, deps = {}) {
           };
 
       return {
-        index,
-        neighbor,
-        species: neighbor.species,
-        relationName,
-        alreadyContested,
-        requiresWarning,
-        warningTitle: requiresWarning ? 'Escalate against this tree?' : null,
-        warningBody: requiresWarning
-          ? `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`
-          : null,
+        id: `neighbor-${index}`,
+        label: `${neighbor.species} — ${relationName}`,
+        targetIndex: index,
+        requiresConfirmation: requiresWarning,
+        confirmation: requiresWarning ? {
+          title: 'Escalate against this tree?',
+          body: `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`,
+        } : null,
         preview,
+        meta: {
+          species: neighbor.species,
+          relationName,
+          alreadyContested,
+        },
       };
     });
+
+  return createDecision({
+    kind: kind === 'shade' ? 'aggression:shade' : 'aggression:dominion',
+    title: kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?',
+    body: kind === 'shade' ? 'Choose any neighboring tree to suppress.' : 'Choose any neighboring tree to pressure underground.',
+    options,
+    meta: { actionKind: kind },
+  });
+}
+
+export function listAggressionOptions(state, kind, deps = {}) {
+  return buildAggressionDecision(state, kind, deps).options;
 }
 
 export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {

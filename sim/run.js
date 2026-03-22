@@ -336,7 +336,7 @@ function createHeadlessGame(seed, speciesName) {
           getRelationshipState,
           compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
         });
-        events.push({ text: `The ${decision.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
+        events.push({ text: `The ${decision.meta.relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`, effect: 'warning' });
         state.pendingInteractions.push((done) => {
           const choice = decision.options.find(option => option.id === 'chemical-battle' && option.affordable)
             || decision.options.find(option => option.id === 'diplomacy' && option.affordable)

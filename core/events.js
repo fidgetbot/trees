@@ -219,6 +219,8 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
   }
 }
 
+import { createDecision } from './decisions.js';
+
 export function resolveSeedFate(seedCount) { const results=[]; let sprouted=0; for (let i=0;i<seedCount;i++){ const r=Math.random(); if (r<0.22) results.push('A seed was eaten outright before it could travel.'); else if (r<0.42) results.push('A seed landed in deep shade and failed to establish.'); else if (r<0.62) results.push('A bird carried one of your seeds away, but dropped it on poor ground.'); else if (r<0.82) { sprouted += 1; results.push('A seed reached promising soil and sprouted into offspring.'); } else { sprouted += 1; results.push('An animal carried a seed to open ground, where it sprouted successfully.'); } } return { sprouted, results }; }
 
 export function resolvePendingStartOfTurnEffects(state) {
@@ -303,12 +305,10 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
   const affordText = canAffordDefense ? 'You can afford this response.' : 'You do not have enough stored resources for this response.';
 
-  return {
+  return createDecision({
     kind: 'chemical-defense',
     title: threat.title,
     body: `<p><em>${threat.warning}</em></p><p>How do you respond?</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
-    threat,
-    cost: DEFENSE_COST,
     options: [
       {
         id: 'defend',
@@ -320,13 +320,14 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         label: 'Conserve strength',
         affordable: true,
       }
-    ]
-  };
+    ],
+    meta: { threat, cost: DEFENSE_COST },
+  });
 }
 
 export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {}) {
   const { recordDamage = () => {} } = deps;
-  const { threat, cost } = decision;
+  const { threat, cost } = decision.meta;
   const costText = `☀️${cost.sunlight} 💧${cost.water} 🌱${cost.nutrients}`;
 
   if (choiceId === 'defend') {
@@ -384,34 +385,30 @@ export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
   const canAffordDiplomacy = state.sunlight >= DIPLOMACY_COST.sunlight && state.water >= DIPLOMACY_COST.water && state.nutrients >= DIPLOMACY_COST.nutrients;
   const powerPreview = compareConflictPower ? compareConflictPower(neighbor) : null;
 
-  return {
+  return createDecision({
     kind: 'hostile-encroachment',
     title: 'Hostile Encroachment',
     body: `<p><em>The ${relationName} ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`,
-    neighbor,
-    relationName,
     options: [
       {
         id: 'chemical-battle',
         label: canAffordDefense ? `Chemical battle (☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients})` : `Chemical battle (☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}) — too costly right now`,
         affordable: canAffordDefense,
-        cost: DEFENSE_COST,
         preview: powerPreview,
       },
       {
         id: 'diplomacy',
         label: canAffordDiplomacy ? `Attempt diplomacy (☀️${DIPLOMACY_COST.sunlight} 💧${DIPLOMACY_COST.water} 🌱${DIPLOMACY_COST.nutrients})` : `Attempt diplomacy (☀️${DIPLOMACY_COST.sunlight} 💧${DIPLOMACY_COST.water} 🌱${DIPLOMACY_COST.nutrients}) — too costly right now`,
         affordable: canAffordDiplomacy,
-        cost: DIPLOMACY_COST,
       },
       {
         id: 'endure',
         label: 'Endure and conserve strength',
         affordable: true,
-        cost: { sunlight: 0, water: 0, nutrients: 0 },
       },
     ],
-  };
+    meta: { neighbor, relationName, defenseCost: DEFENSE_COST, diplomacyCost: DIPLOMACY_COST },
+  });
 }
 
 export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps = {}) {

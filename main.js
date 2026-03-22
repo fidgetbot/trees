@@ -1081,7 +1081,7 @@ function queueChemicalDefenseThreat(events) {
   const decision = buildChemicalDefenseDecision(state, {
     computeCurrentLifeStage,
   });
-  events.push({ text: decision.threat.warning, effect: 'warning' });
+  events.push({ text: decision.meta.threat.warning, effect: 'warning' });
   state.pendingInteractions.push((done) => {
     showChoiceModal(decision.title, decision.body, decision.options.map(option => ({
       label: option.label,
