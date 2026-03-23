@@ -133,6 +133,7 @@ Current browser HUD behavior:
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
 - all visible trees on the map are labeled; offspring use the parent species and are labeled as offspring allies
+- Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
 
 ### Seasonal Constraints
 

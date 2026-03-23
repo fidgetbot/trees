@@ -316,7 +316,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
         ? {
             sunlight: alreadyContested ? 2 : 1,
             water: 0,
-            nutrients: 0,
+            nutrients: alreadyContested ? 3 : 1,
             relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
           }
         : {
@@ -367,12 +367,14 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
     const stageScoreLoss = alreadyContested ? 30 : 20;
     const relationLoss = alreadyContested ? 4 : 8;
     const sunlightGain = alreadyContested ? 2 : 1;
+    const nutrientGain = alreadyContested ? 3 : 1;
     neighbor.stageScore = Math.max(0, neighbor.stageScore - stageScoreLoss);
     neighbor.relation = Math.max(-100, neighbor.relation - relationLoss);
     state.sunlight += sunlightGain;
+    state.nutrients += nutrientGain;
     return {
       alreadyContested,
-      gains: { sunlight: sunlightGain, water: 0, nutrients: 0 },
+      gains: { sunlight: sunlightGain, water: 0, nutrients: nutrientGain },
       relationStateBefore: relationName,
     };
   }

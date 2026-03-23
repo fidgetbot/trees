@@ -769,8 +769,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 
   if (decision.kind === 'aggression:shade') {
-    const sunlightGain = outcome.gains.sunlight;
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, crowding out its leaves and stealing back light it would have taken from you.</p><p>You gain <strong>${sunlightGain} sunlight</strong>${outcome.alreadyContested ? '' : ', but the act hardens the relationship into open rivalry'}.</p>`, onDone);
+    const { sunlight, nutrients } = outcome.gains;
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, crowding out its leaves and reclaiming resources from the pressure you create.</p><p>You gain <strong>${sunlight} sunlight</strong> and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? ', making the rivalry pay for itself.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
     return;
   }
 
