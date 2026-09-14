@@ -8,20 +8,6 @@
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <div>
-        <h1>Trees</h1>
-        <p class="subtitle">A tree-life survival strategy prototype</p>
-        <p class="build-stamp">Version <span id="build-version">loading…</span></p>
-      </div>
-      <div class="scorebox">
-        <div>Score: <span id="score">0</span></div>
-        <div>Year: <span id="year">1</span></div>
-        <div>Season: <span id="season">Spring</span></div>
-        <div>Stage: <span id="life-stage">Seed</span></div>
-      </div>
-    </header>
-
     <main class="layout">
       <section class="left-panel panel" id="species-panel">
         <div id="species-list" class="species-list"></div>
@@ -33,7 +19,16 @@
         <button id="map-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize map">−</button>
         <button id="map-restore" class="panel-chip hidden" type="button">🗺 Map</button>
         <div id="map-content" class="panel-content">
-          <canvas id="game-canvas" width="900" height="600"></canvas>
+          <div class="map-frame">
+            <div class="map-status" aria-label="Current game status">
+              <div class="map-stat"><span>Score</span><strong id="score">0</strong></div>
+              <div class="map-stat"><span>Year</span><strong id="year">1</strong></div>
+              <div class="map-stat"><span>Season</span><strong id="season">Spring</strong></div>
+              <div class="map-stat"><span>Stage</span><strong id="life-stage">Seed</strong></div>
+              <div class="map-build">v<span id="build-version">…</span></div>
+            </div>
+            <canvas id="game-canvas" width="900" height="600"></canvas>
+          </div>
         </div>
       </section>
 
@@ -172,6 +167,6 @@
         if (el) el.textContent = 'unknown';
       });
   </script>
-  <script type="module" src="main.js?rev=roots-v2"></script>
+  <script type="module" src="main.js?rev=sticky-map-v1"></script>
 </body>
 </html>
