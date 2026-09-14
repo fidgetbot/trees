@@ -26,16 +26,28 @@ function drawFungalNetwork(ctx,positions,groundY,allies){
 function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
-  const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2);
+  const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
   const scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88),seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
-  drawRoots(ctx,x,groundY,roots,scale,habit.bark);
+  drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
   if(stage==='Seed'){ctx.fillStyle='#765b3e';ctx.beginPath();ctx.ellipse(x,groundY-4,8,5,-.15,0,TAU);ctx.fill()}
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed);
   else {const tree=buildTree(seed,branches,leaves,habit,stage);ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);ctx.restore()}
   drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState);
 }
 
-function drawRoots(ctx,x,y,count,scale,color){ctx.save();ctx.strokeStyle=color;ctx.globalAlpha=.7;ctx.lineCap='round';for(let i=0;i<Math.max(1,Math.min(count,8));i++){const d=i%2?-1:1;ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+d*(7+i*3)*scale,y+(7+i*3)*scale,x+d*(14+i*7)*scale,y+(15+i*8)*scale);ctx.lineWidth=Math.max(1.2,2.2*scale);ctx.stroke()}ctx.restore()}
+function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
+  const r=rng(seed+4409),rootCount=Math.max(1,Math.min(count,8)),paths=[];
+  function root(sx,sy,angle,length,width,depth){
+    const bend=(r()-.5)*.5,points=[];
+    for(let i=0;i<=14;i++){const t=i/14,curve=angle+bend*t+Math.sin(t*Math.PI)*(r()-.5)*.12;points.push({x:sx+Math.cos(curve)*length*t,y:sy+Math.sin(curve)*length*t+length*.12*t*t,width:width*(1-.72*t)})}
+    paths.push(points);if(depth>0){const attach=points[8],previous=points[7],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=Math.cos(angle)>=0?1:-1;root(attach.x,attach.y,heading+side*(.48+r()*.35),length*(.42+r()*.14),attach.width*.55,depth-1)}
+  }
+  for(let i=0;i<rootCount;i++){const side=i%2?1:-1,rank=Math.floor(i/2),angle=side>0?.26+r()*.25:Math.PI-(.26+r()*.25),length=(28+rank*8+r()*9)*scale,width=Math.max(1.4,(7-rank*.55)*scale);root(x+side*2*scale,y+2*scale,angle,length,width,player&&count>=4?1:0)}
+  if(taproot>0){const length=Math.min(105,30+taproot*13)*scale;root(x,y+2*scale,Math.PI/2+(r()-.5)*.08,length,Math.max(2.5,(8+taproot*.6)*scale),taproot>=3?1:0)}
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=player ? .92 : .62;
+  paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle='rgba(197,169,117,.2)';ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
+  const flare=11*scale;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x-flare*.55,y-4*scale);ctx.quadraticCurveTo(x-flare*.7,y+3*scale,x-flare*1.45,y+9*scale);ctx.quadraticCurveTo(x-flare*.45,y+7*scale,x,y+5*scale);ctx.quadraticCurveTo(x+flare*.55,y+8*scale,x+flare*1.45,y+9*scale);ctx.quadraticCurveTo(x+flare*.65,y+2*scale,x+flare*.55,y-4*scale);ctx.closePath();ctx.fill();ctx.restore();
+}
 function drawSprout(ctx,x,y,bark,seed){const r=rng(seed);ctx.strokeStyle=bark;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+(r()-.5)*5,y-10,x,y-19);ctx.stroke();[-1,1].forEach(side=>{ctx.save();ctx.translate(x+side*5,y-17);ctx.rotate(side*.45);ctx.fillStyle=side<0?'#7fa65c':'#98ba68';ctx.beginPath();ctx.ellipse(0,0,7,3.5,0,0,TAU);ctx.fill();ctx.restore()})}
 
 function buildTree(seed,branchCount,leafCount,habit,stage){
