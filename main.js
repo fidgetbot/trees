@@ -61,7 +61,7 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
-import { renderForestScene } from './ui/canvas.js?rev=roots-v2';
+import { renderForestScene } from './ui/canvas.js?rev=growth-camera-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 

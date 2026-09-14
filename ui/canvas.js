@@ -1,5 +1,7 @@
 const TAU = Math.PI * 2;
-const STAGE_SCALE = { Seed:.18, Sprout:.28, Seedling:.42, Sapling:.62, 'Small Tree':.82, 'Mature Tree':1.02, Ancient:1.22 };
+const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.72, 'Mature Tree':1, Ancient:1.16 };
+const CAMERA_ZOOM = { Seed:3.25, Sprout:2.65, Seedling:1.9, Sapling:1.38, 'Small Tree':1.08, 'Mature Tree':.86, Ancient:.74 };
+const WORLD_POSITIONS = [-335,-165,0,170,335];
 const HABITS = {
   Plum:{spread:1.12,height:.96,bend:.58,bark:'#695740'}, Peach:{spread:1.22,height:.88,bend:.68,bark:'#735443'},
   Apricot:{spread:1.08,height:.94,bend:.6,bark:'#70553f'}, Pear:{spread:.82,height:1.12,bend:.42,bark:'#625441'},
@@ -10,9 +12,15 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   const w=canvas.width,h=canvas.height;
   ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,h/2);
   ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,h/2,w,h/2); ctx.strokeStyle='#000'; line(ctx,0,h/2,w,h/2);
-  const positions=[120,260,450,640,780];
-  positions.forEach((x,index)=>drawTree({ctx,x,groundY:h/2,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index),state,season:currentSeason.name,playerStageName,getRelationshipState,index}));
-  drawFungalNetwork(ctx,positions,h/2,state.allies);
+  const camera=cameraFor(state,playerStageName),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
+  positions.forEach((x,index)=>drawTree({ctx,x,groundY:h/2,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index),state,season:currentSeason.name,playerStageName,getRelationshipState,index,camera}));
+  if(camera.rank>=2)drawFungalNetwork(ctx,positions,h/2,state.allies);
+}
+
+function cameraFor(state,stage){
+  const order=['Seed','Sprout','Seedling','Sapling','Small Tree','Mature Tree','Ancient'],rank=Math.max(0,order.indexOf(stage));
+  const structuralGrowth=Math.min(.14,((state.rootZones||0)+(state.leafClusters||0)+(state.branches||0))*0.006);
+  return{rank,zoom:(CAMERA_ZOOM[stage]||1)*(1-structuralGrowth)};
 }
 
 function background(ctx,season){const g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,season.top);g.addColorStop(1,season.bottom);return g}
@@ -23,16 +31,16 @@ function drawFungalNetwork(ctx,positions,groundY,allies){
   linked.forEach(index=>{const x=positions[index],y=groundY+70+index*5;ctx.beginPath();ctx.moveTo(positions[2],groundY+30);ctx.bezierCurveTo(positions[2]-(positions[2]-x)*.3,groundY+70,x+(positions[2]-x)*.3,y-20,x,y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
-function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index}){
+function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
-  const scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88),seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
+  const scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
   drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
-  if(stage==='Seed'){ctx.fillStyle='#765b3e';ctx.beginPath();ctx.ellipse(x,groundY-4,8,5,-.15,0,TAU);ctx.fill()}
-  else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed);
+  if(stage==='Seed'){ctx.fillStyle='#765b3e';ctx.beginPath();ctx.ellipse(x,groundY-1.8*camera.zoom,3.1*camera.zoom,1.9*camera.zoom,-.15,0,TAU);ctx.fill()}
+  else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom);
   else {const tree=buildTree(seed,branches,leaves,habit,stage);ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);ctx.restore()}
-  drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState);
+  if(isPlayer||(camera.rank>=3&&x>70&&x<ctx.canvas.width-70))drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState);
 }
 
 function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
@@ -48,7 +56,7 @@ function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
   paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle='rgba(197,169,117,.2)';ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
   const flare=11*scale;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x-flare*.55,y-4*scale);ctx.quadraticCurveTo(x-flare*.7,y+3*scale,x-flare*1.45,y+9*scale);ctx.quadraticCurveTo(x-flare*.45,y+7*scale,x,y+5*scale);ctx.quadraticCurveTo(x+flare*.55,y+8*scale,x+flare*1.45,y+9*scale);ctx.quadraticCurveTo(x+flare*.65,y+2*scale,x+flare*.55,y-4*scale);ctx.closePath();ctx.fill();ctx.restore();
 }
-function drawSprout(ctx,x,y,bark,seed){const r=rng(seed);ctx.strokeStyle=bark;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+(r()-.5)*5,y-10,x,y-19);ctx.stroke();[-1,1].forEach(side=>{ctx.save();ctx.translate(x+side*5,y-17);ctx.rotate(side*.45);ctx.fillStyle=side<0?'#7fa65c':'#98ba68';ctx.beginPath();ctx.ellipse(0,0,7,3.5,0,0,TAU);ctx.fill();ctx.restore()})}
+function drawSprout(ctx,x,y,bark,seed,zoom){const r=rng(seed);ctx.save();ctx.translate(x,y);ctx.scale(zoom,zoom);ctx.strokeStyle=bark;ctx.lineWidth=1.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo((r()-.5)*4,-7,0,-13);ctx.stroke();[-1,1].forEach(side=>{ctx.save();ctx.translate(side*3.7,-11.5);ctx.rotate(side*.45);ctx.fillStyle=side<0?'#7fa65c':'#98ba68';ctx.beginPath();ctx.ellipse(0,0,4.8,2.4,0,0,TAU);ctx.fill();ctx.restore()});ctx.restore()}
 
 function buildTree(seed,branchCount,leafCount,habit,stage){
   const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Sapling'?3:4,structure=Math.max(.72,Math.min(1.2,.78+branchCount*.045));

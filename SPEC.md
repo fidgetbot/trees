@@ -126,6 +126,7 @@ Action categories currently include:
 
 Current browser HUD behavior:
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
+- the map camera begins tightly centered on the realistically small player seed, with only fragments of nearby trees entering the frame, then progressively pulls back as structural growth and life-stage advancement reveal the surrounding grove
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
 - the map and status panels can be minimized with small top-right corner controls and restored with compact chips; both start expanded at the beginning of a run
