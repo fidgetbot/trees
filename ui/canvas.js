@@ -36,13 +36,13 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
 }
 
 function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
-  const r=rng(seed+4409),rootCount=Math.max(1,Math.min(count,8)),paths=[];
+  const r=rng(seed+4409),rootCount=Math.max(1,Math.min(count+(player&&count>0?2:0),8)),paths=[];
   function root(sx,sy,angle,length,width,depth){
-    const bend=(r()-.5)*.5,points=[];
-    for(let i=0;i<=14;i++){const t=i/14,curve=angle+bend*t+Math.sin(t*Math.PI)*(r()-.5)*.12;points.push({x:sx+Math.cos(curve)*length*t,y:sy+Math.sin(curve)*length*t+length*.12*t*t,width:width*(1-.72*t)})}
-    paths.push(points);if(depth>0){const attach=points[8],previous=points[7],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=Math.cos(angle)>=0?1:-1;root(attach.x,attach.y,heading+side*(.48+r()*.35),length*(.42+r()*.14),attach.width*.55,depth-1)}
+    const bend=(r()-.5)*.62,wave=(r()-.5)*.28,points=[];
+    for(let i=0;i<=16;i++){const t=i/16,curve=angle+bend*t+Math.sin(t*Math.PI)*wave;points.push({x:sx+Math.cos(curve)*length*t,y:sy+Math.sin(curve)*length*t+length*.12*t*t,width:width*(1-.76*t)})}
+    paths.push(points);if(depth>0){const attach=points[9],previous=points[8],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=Math.cos(angle)>=0?1:-1;root(attach.x,attach.y,heading+side*(.45+r()*.38),length*(.4+r()*.16),attach.width*.58,depth-1)}
   }
-  for(let i=0;i<rootCount;i++){const side=i%2?1:-1,rank=Math.floor(i/2),angle=side>0?.26+r()*.25:Math.PI-(.26+r()*.25),length=(28+rank*8+r()*9)*scale,width=Math.max(1.4,(7-rank*.55)*scale);root(x+side*2*scale,y+2*scale,angle,length,width,player&&count>=4?1:0)}
+  for(let i=0;i<rootCount;i++){const side=i%2?1:-1,rank=Math.floor(i/2),angle=side>0?.2+r()*.3:Math.PI-(.2+r()*.3),length=(26+rank*7+r()*10)*scale,width=Math.max(1.4,(7.5-rank*.6)*scale),depth=player?(count>=6?2:count>=1?1:0):0;root(x+side*2*scale,y+2*scale,angle,length,width,depth)}
   if(taproot>0){const length=Math.min(105,30+taproot*13)*scale;root(x,y+2*scale,Math.PI/2+(r()-.5)*.08,length,Math.max(2.5,(8+taproot*.6)*scale),taproot>=3?1:0)}
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=player ? .92 : .62;
   paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle='rgba(197,169,117,.2)';ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
