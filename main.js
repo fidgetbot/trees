@@ -59,7 +59,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=clustered-soil-v1';
+import { renderForestScene } from './ui/canvas.js?rev=grove-zoom-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -1251,6 +1251,8 @@ function render() {
   if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
 }
 
+let mapExplorerZoom=1;
+
 function renderMapExplorer() {
   if (!els.mapExplorerCanvas) return;
   renderForestScene({
@@ -1261,18 +1263,46 @@ function renderMapExplorer() {
     playerStageName: computeCurrentLifeStage().name,
     getNeighborTree,
     getRelationshipState,
+    zoomMultiplier: mapExplorerZoom,
+    centerHorizon: true,
   });
+}
+
+function centerMapExplorer() {
+  const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
+  if(!viewport||!canvas)return;
+  viewport.scrollLeft=(canvas.width-viewport.clientWidth)/2;
+  viewport.scrollTop=(canvas.height-viewport.clientHeight)/2;
+}
+
+function setMapExplorerZoom(next,{clientX,clientY}={}) {
+  const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
+  if(!viewport||!canvas)return;
+  const previous=mapExplorerZoom,zoom=Math.max(.03,Math.min(3,next));
+  if(Math.abs(zoom-previous)<.0001)return;
+  const rect=viewport.getBoundingClientRect(),anchorX=clientX==null?viewport.clientWidth/2:clientX-rect.left,anchorY=clientY==null?viewport.clientHeight/2:clientY-rect.top;
+  const canvasX=viewport.scrollLeft+anchorX,canvasY=viewport.scrollTop+anchorY,ratio=zoom/previous;
+  mapExplorerZoom=zoom;renderMapExplorer();
+  viewport.scrollLeft=canvas.width/2+(canvasX-canvas.width/2)*ratio-anchorX;
+  viewport.scrollTop=canvas.height/2+(canvasY-canvas.height/2)*ratio-anchorY;
+  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent=`${Math.round(zoom*100)}%`;
+}
+
+function resetMapExplorer() {
+  mapExplorerZoom=1;renderMapExplorer();
+  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent='100%';
+  centerMapExplorer();
 }
 
 function openMapExplorer() {
   if (!state.started || !els.mapExplorer || !els.mapExplorerViewport) return;
   els.mapExplorer.classList.remove('hidden');
   document.body.classList.add('map-explorer-open');
-  renderMapExplorer();
+  mapExplorerZoom=1;renderMapExplorer();
+  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent='100%';
   requestAnimationFrame(() => {
-    const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
-    viewport.scrollLeft=(canvas.width-viewport.clientWidth)/2;
-    viewport.scrollTop=0;
+    const viewport=els.mapExplorerViewport;
+    centerMapExplorer();
     viewport.focus();
   });
 }
@@ -1290,14 +1320,21 @@ function initMapExplorer() {
   els.canvas.addEventListener('click',openMapExplorer);
   els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
   els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
+  els.mapExplorerZoomIn?.addEventListener('click',()=>setMapExplorerZoom(mapExplorerZoom*1.4));
+  els.mapExplorerZoomOut?.addEventListener('click',()=>setMapExplorerZoom(mapExplorerZoom/1.4));
+  els.mapExplorerReset?.addEventListener('click',resetMapExplorer);
   els.mapExplorer?.addEventListener('click',event=>{if(event.target===els.mapExplorer)closeMapExplorer()});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!els.mapExplorer.classList.contains('hidden'))closeMapExplorer()});
-  let drag=null;
-  viewport.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop,moved:false};viewport.classList.add('dragging')});
-  window.addEventListener('pointermove',event=>{if(!drag)return;event.preventDefault();const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(dx,dy)>7)drag.moved=true;viewport.scrollLeft=drag.left-dx*panSpeed;viewport.scrollTop=drag.top-dy*panSpeed});
-  window.addEventListener('pointerup',()=>{if(!drag)return;const wasTap=!drag.moved;drag=null;viewport.classList.remove('dragging');if(wasTap)closeMapExplorer()});
-  window.addEventListener('pointercancel',()=>{drag=null;viewport.classList.remove('dragging')});
-  viewport.addEventListener('wheel',event=>{event.preventDefault();viewport.scrollLeft+=event.deltaX*wheelSpeed;viewport.scrollTop+=event.deltaY*wheelSpeed},{passive:false});
+  const pointers=new Map();let drag=null,pinch=null;
+  const pointerDistance=()=>{const [a,b]=[...pointers.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
+  const pointerMidpoint=()=>{const [a,b]=[...pointers.values()];return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};
+  viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse'&&event.button!==0)return;event.preventDefault();pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});viewport.classList.add('dragging');if(pointers.size===1)drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop,moved:false};else if(pointers.size===2){pinch={distance:pointerDistance(),zoom:mapExplorerZoom};drag=null}});
+  window.addEventListener('pointermove',event=>{if(!pointers.has(event.pointerId))return;event.preventDefault();pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pinch&&pointers.size>=2){const midpoint=pointerMidpoint();setMapExplorerZoom(pinch.zoom*pointerDistance()/Math.max(1,pinch.distance),{clientX:midpoint.x,clientY:midpoint.y});return}if(!drag||drag.id!==event.pointerId)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(dx,dy)>7)drag.moved=true;viewport.scrollLeft=drag.left-dx*panSpeed;viewport.scrollTop=drag.top-dy*panSpeed});
+  const endPointer=event=>{if(!pointers.has(event.pointerId))return;const wasTap=drag?.id===event.pointerId&&!drag.moved&&!pinch;pointers.delete(event.pointerId);if(pointers.size===0){drag=null;pinch=null;viewport.classList.remove('dragging');if(wasTap)closeMapExplorer()}else if(pointers.size===1){const [id,point]=[...pointers.entries()][0];pinch=null;drag={id,x:point.x,y:point.y,left:viewport.scrollLeft,top:viewport.scrollTop,moved:true}}};
+  window.addEventListener('pointerup',endPointer);
+  window.addEventListener('pointercancel',endPointer);
+  viewport.addEventListener('wheel',event=>{event.preventDefault();if(event.ctrlKey||event.metaKey){setMapExplorerZoom(mapExplorerZoom*Math.exp(-event.deltaY*.002),{clientX:event.clientX,clientY:event.clientY});return}viewport.scrollLeft+=event.deltaX*wheelSpeed;viewport.scrollTop+=event.deltaY*wheelSpeed},{passive:false});
+  viewport.addEventListener('keydown',event=>{if(event.key==='+'||event.key==='='){event.preventDefault();setMapExplorerZoom(mapExplorerZoom*1.4)}else if(event.key==='-'){event.preventDefault();setMapExplorerZoom(mapExplorerZoom/1.4)}else if(event.key==='0'){event.preventDefault();resetMapExplorer()}});
 }
 
 els.startGame.addEventListener('click', startGame);

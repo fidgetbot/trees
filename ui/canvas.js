@@ -12,9 +12,10 @@ const SEED_PALETTES = {
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false}) {
   const w=canvas.width,h=canvas.height;
-  const camera=cameraFor(state,playerStageName),groundY=Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
+  const camera=cameraFor(state,playerStageName);camera.zoom*=zoomMultiplier;
+  const centered=centerHorizon||playerStageName==='Seed',groundY=centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
   canvas.dataset.groundY=String(groundY);
   ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,groundY);
   ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='#000'; line(ctx,0,groundY,w,groundY);
