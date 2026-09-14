@@ -34,9 +34,10 @@ function playerHeight(state,stage,camera){
 
 function drawNearGround(ctx,w,h,groundY,rank){
   if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.42;ctx.save();ctx.globalAlpha=alpha;
-  for(let i=0;i<(rank===0?82:34);i++){const x=r()*w,y=groundY+8+r()*(h-groundY)*.86,size=.55+r()*(rank===0?1.55:1.1),angle=r()*TAU;ctx.fillStyle=r()>.42?'rgba(126,116,103,.38)':'rgba(186,169,143,.2)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.18+r()*.24),angle,0,TAU);ctx.fill();if(r()>.7){ctx.strokeStyle='rgba(87,79,72,.22)';ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(x-Math.cos(angle)*size*1.5,y-Math.sin(angle)*size*1.5);ctx.lineTo(x+Math.cos(angle)*size*1.5,y+Math.sin(angle)*size*1.5);ctx.stroke()}}
-  ctx.fillStyle='#716b61';ctx.beginPath();ctx.ellipse(w*.32,groundY+44,31,14,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(213,205,185,.18)';ctx.beginPath();ctx.ellipse(w*.31,groundY+39,17,5,-.16,0,TAU);ctx.fill();
-  ctx.strokeStyle='#806846';ctx.lineWidth=rank===0?7:3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,groundY+88);ctx.quadraticCurveTo(w*.64,groundY+58,w*.59,groundY+77);ctx.stroke();ctx.restore();
+  for(let i=0;i<(rank===0?10:6);i++){const x=r()*w,y=groundY+12+r()*(h-groundY)*.82,rx=9+r()*20;ctx.fillStyle=r()>.5?'rgba(132,113,91,.032)':'rgba(43,36,31,.045)';ctx.beginPath();ctx.ellipse(x,y,rx,rx*(.35+r()*.35),r()*TAU,0,TAU);ctx.fill()}
+  for(let i=0;i<(rank===0?28:14);i++){const x=r()*w,y=groundY+10+r()*(h-groundY)*.84,size=.5+r()*.95;ctx.fillStyle=r()>.45?'rgba(136,121,102,.15)':'rgba(45,39,34,.13)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.55+r()*.35),r()*TAU,0,TAU);ctx.fill()}
+  ctx.fillStyle='rgba(113,107,97,.72)';ctx.beginPath();ctx.ellipse(w*.32,groundY+44,22,9,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(213,205,185,.11)';ctx.beginPath();ctx.ellipse(w*.31,groundY+41,11,3,-.16,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(121,99,69,.42)';ctx.lineWidth=rank===0?2.2:1.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,groundY+88);ctx.quadraticCurveTo(w*.64,groundY+58,w*.59,groundY+77);ctx.stroke();ctx.restore();
 }
 
 function cameraFor(state,stage){
