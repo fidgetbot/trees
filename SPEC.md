@@ -125,7 +125,7 @@ Action categories currently include:
 - advanced late-game sinks
 
 Current browser HUD behavior:
-- the map stays pinned at the top of the viewport while the player scrolls through status, actions, and the log; score, year, season, and life stage appear as a compact overlay inside the map
+- the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
 - the map and status panels can be minimized with small top-right corner controls and restored with compact chips; both start expanded at the beginning of a run
