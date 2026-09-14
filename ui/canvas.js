@@ -1,5 +1,5 @@
 const TAU = Math.PI * 2;
-const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.72, 'Mature Tree':1, Ancient:1.16 };
+const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
 const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Small Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
 const WORLD_POSITIONS = [-335,-165,0,170,335];
 const HABITS = {
@@ -45,7 +45,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
   const scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
   drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
-  if(stage==='Seed'){ctx.fillStyle='#765b3e';ctx.beginPath();ctx.ellipse(x,groundY-1.8*camera.zoom,3.1*camera.zoom,1.9*camera.zoom,-.15,0,TAU);ctx.fill()}
+  if(stage==='Seed'){ctx.fillStyle='#765b3e';ctx.beginPath();ctx.ellipse(x,groundY-1.05*camera.zoom,1.7*camera.zoom,1.05*camera.zoom,-.15,0,TAU);ctx.fill()}
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom);
   else {const tree=buildTree(seed,branches,leaves,habit,stage);ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);ctx.restore()}
   if(isPlayer||(camera.rank>=3&&x>70&&x<ctx.canvas.width-70))drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState);

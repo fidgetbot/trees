@@ -61,7 +61,7 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
-import { renderForestScene } from './ui/canvas.js?rev=map-explorer-v1';
+import { renderForestScene } from './ui/canvas.js?rev=map-explorer-v2';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -1301,16 +1301,18 @@ function closeMapExplorer() {
 function initMapExplorer() {
   const viewport=els.mapExplorerViewport;
   if (!viewport) return;
+  const panSpeed=2.75,wheelSpeed=4;
   els.canvas.addEventListener('click',openMapExplorer);
   els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
   els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
   els.mapExplorer?.addEventListener('click',event=>{if(event.target===els.mapExplorer)closeMapExplorer()});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!els.mapExplorer.classList.contains('hidden'))closeMapExplorer()});
   let drag=null;
-  viewport.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};viewport.classList.add('dragging')});
-  window.addEventListener('pointermove',event=>{if(!drag)return;event.preventDefault();viewport.scrollLeft=drag.left-(event.clientX-drag.x);viewport.scrollTop=drag.top-(event.clientY-drag.y)});
-  const endDrag=()=>{drag=null;viewport.classList.remove('dragging')};
-  window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
+  viewport.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop,moved:false};viewport.classList.add('dragging')});
+  window.addEventListener('pointermove',event=>{if(!drag)return;event.preventDefault();const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(dx,dy)>7)drag.moved=true;viewport.scrollLeft=drag.left-dx*panSpeed;viewport.scrollTop=drag.top-dy*panSpeed});
+  window.addEventListener('pointerup',()=>{if(!drag)return;const wasTap=!drag.moved;drag=null;viewport.classList.remove('dragging');if(wasTap)closeMapExplorer()});
+  window.addEventListener('pointercancel',()=>{drag=null;viewport.classList.remove('dragging')});
+  viewport.addEventListener('wheel',event=>{event.preventDefault();viewport.scrollLeft+=event.deltaX*wheelSpeed;viewport.scrollTop+=event.deltaY*wheelSpeed},{passive:false});
 }
 
 els.startGame.addEventListener('click', startGame);
