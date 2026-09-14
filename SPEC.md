@@ -127,7 +127,7 @@ Action categories currently include:
 Current browser HUD behavior:
 - species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
-- the map camera begins at a macro scale tightly centered on the player seed, where soil grains, a pebble, and nearby debris establish a world only inches wide; it pulls back as the player grows, allowing fragments of neighboring trees to enter during early growth before life-stage advancement reveals the surrounding grove
+- the map camera begins at a macro scale tightly centered on the player seed, where soil grains, a pebble, and nearby debris establish a world only inches wide; it pulls back as the player grows, and its upper edge tracks just above the player's current height so neighboring trees reveal only roots and lower trunk at seed scale and progressively more structure as the player grows
 - the fixed map no longer has a minimize control; clicking it opens a larger scrollable grove explorer that preserves the player's current biological scale, supports accelerated wheel and drag panning, and closes with a simple tap inside the view
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt

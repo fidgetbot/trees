@@ -61,7 +61,7 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
-import { renderForestScene } from './ui/canvas.js?rev=map-explorer-v2';
+import { renderForestScene } from './ui/canvas.js?rev=height-tracking-camera-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -1262,6 +1262,7 @@ function render() {
     playerStageName: computeCurrentLifeStage().name,
     getNeighborTree,
     getRelationshipState,
+    topInset: 92,
   });
   if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
 }
@@ -1287,7 +1288,7 @@ function openMapExplorer() {
   requestAnimationFrame(() => {
     const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
     viewport.scrollLeft=(canvas.width-viewport.clientWidth)/2;
-    viewport.scrollTop=canvas.height/2-viewport.clientHeight*.52;
+    viewport.scrollTop=0;
     viewport.focus();
   });
 }

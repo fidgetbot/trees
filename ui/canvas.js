@@ -8,21 +8,31 @@ const HABITS = {
   Citrus:{spread:.96,height:.88,bend:.48,bark:'#65513a'}, Cherry:{spread:1.18,height:.92,bend:.62,bark:'#684b45'},
 };
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0}) {
   const w=canvas.width,h=canvas.height;
-  ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,h/2);
-  ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,h/2,w,h/2); ctx.strokeStyle='#000'; line(ctx,0,h/2,w,h/2);
-  const camera=cameraFor(state,playerStageName),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
-  drawNearGround(ctx,w,h,camera.rank);
-  positions.forEach((x,index)=>drawTree({ctx,x,groundY:h/2,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index),state,season:currentSeason.name,playerStageName,getRelationshipState,index,camera}));
-  if(camera.rank>=2)drawFungalNetwork(ctx,positions,h/2,state.allies);
+  const camera=cameraFor(state,playerStageName),groundY=Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
+  canvas.dataset.groundY=String(groundY);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,groundY);
+  ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='#000'; line(ctx,0,groundY,w,groundY);
+  drawNearGround(ctx,w,h,groundY,camera.rank);
+  positions.forEach((x,index)=>drawTree({ctx,x,groundY,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index),state,season:currentSeason.name,playerStageName,getRelationshipState,index,camera}));
+  if(camera.rank>=2)drawFungalNetwork(ctx,positions,groundY,state.allies);
 }
 
-function drawNearGround(ctx,w,h,rank){
+function playerHeight(state,stage,camera){
+  if(stage==='Seed')return 2.1*camera.zoom;
+  if(stage==='Sprout')return 15*camera.zoom;
+  const species=state.selectedSpecies||'Plum',habit=HABITS[species]||HABITS.Plum,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+(state.trunk||0)*.025)*camera.zoom;
+  const tree=buildTree(hash(`${species}:2:resident`),state.branches||0,state.leafClusters||0,habit,stage);
+  let top=0;tree.wood.forEach(branch=>branch.points.forEach(point=>{top=Math.min(top,point.y)}));tree.clusters.forEach(cluster=>{top=Math.min(top,cluster.y-cluster.size*1.35)});
+  return Math.max(12,-top*scale);
+}
+
+function drawNearGround(ctx,w,h,groundY,rank){
   if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.42;ctx.save();ctx.globalAlpha=alpha;
-  for(let i=0;i<(rank===0?55:26);i++){const x=r()*w,y=h/2+8+r()*h*.43,size=1.5+r()*(rank===0?5:2.5);ctx.fillStyle=r()>.35?'rgba(112,87,61,.7)':'rgba(192,157,107,.35)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.35+r()*.35),r()*TAU,0,TAU);ctx.fill()}
-  ctx.fillStyle='#756049';ctx.beginPath();ctx.ellipse(w*.32,h/2+44,31,14,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(220,190,137,.2)';ctx.beginPath();ctx.ellipse(w*.31,h/2+39,17,5,-.16,0,TAU);ctx.fill();
-  ctx.strokeStyle='#806846';ctx.lineWidth=rank===0?7:3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,h/2+88);ctx.quadraticCurveTo(w*.64,h/2+58,w*.59,h/2+77);ctx.stroke();ctx.restore();
+  for(let i=0;i<(rank===0?55:26);i++){const x=r()*w,y=groundY+8+r()*(h-groundY)*.86,size=1.5+r()*(rank===0?5:2.5);ctx.fillStyle=r()>.35?'rgba(112,87,61,.7)':'rgba(192,157,107,.35)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.35+r()*.35),r()*TAU,0,TAU);ctx.fill()}
+  ctx.fillStyle='#756049';ctx.beginPath();ctx.ellipse(w*.32,groundY+44,31,14,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(220,190,137,.2)';ctx.beginPath();ctx.ellipse(w*.31,groundY+39,17,5,-.16,0,TAU);ctx.fill();
+  ctx.strokeStyle='#806846';ctx.lineWidth=rank===0?7:3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,groundY+88);ctx.quadraticCurveTo(w*.64,groundY+58,w*.59,groundY+77);ctx.stroke();ctx.restore();
 }
 
 function cameraFor(state,stage){
