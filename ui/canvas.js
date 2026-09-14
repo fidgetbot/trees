@@ -1,6 +1,6 @@
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.72, 'Mature Tree':1, Ancient:1.16 };
-const CAMERA_ZOOM = { Seed:3.25, Sprout:2.65, Seedling:1.9, Sapling:1.38, 'Small Tree':1.08, 'Mature Tree':.86, Ancient:.74 };
+const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Small Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
 const WORLD_POSITIONS = [-335,-165,0,170,335];
 const HABITS = {
   Plum:{spread:1.12,height:.96,bend:.58,bark:'#695740'}, Peach:{spread:1.22,height:.88,bend:.68,bark:'#735443'},
@@ -13,8 +13,16 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,h/2);
   ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,h/2,w,h/2); ctx.strokeStyle='#000'; line(ctx,0,h/2,w,h/2);
   const camera=cameraFor(state,playerStageName),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom);
+  drawNearGround(ctx,w,h,camera.rank);
   positions.forEach((x,index)=>drawTree({ctx,x,groundY:h/2,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index),state,season:currentSeason.name,playerStageName,getRelationshipState,index,camera}));
   if(camera.rank>=2)drawFungalNetwork(ctx,positions,h/2,state.allies);
+}
+
+function drawNearGround(ctx,w,h,rank){
+  if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.42;ctx.save();ctx.globalAlpha=alpha;
+  for(let i=0;i<(rank===0?55:26);i++){const x=r()*w,y=h/2+8+r()*h*.43,size=1.5+r()*(rank===0?5:2.5);ctx.fillStyle=r()>.35?'rgba(112,87,61,.7)':'rgba(192,157,107,.35)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.35+r()*.35),r()*TAU,0,TAU);ctx.fill()}
+  ctx.fillStyle='#756049';ctx.beginPath();ctx.ellipse(w*.32,h/2+44,31,14,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(220,190,137,.2)';ctx.beginPath();ctx.ellipse(w*.31,h/2+39,17,5,-.16,0,TAU);ctx.fill();
+  ctx.strokeStyle='#806846';ctx.lineWidth=rank===0?7:3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,h/2+88);ctx.quadraticCurveTo(w*.64,h/2+58,w*.59,h/2+77);ctx.stroke();ctx.restore();
 }
 
 function cameraFor(state,stage){
