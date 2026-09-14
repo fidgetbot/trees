@@ -220,6 +220,7 @@ Non-fruiting trees such as oak or redwood are intentionally deferred for later, 
 
 The current codebase includes:
 - the full seasonal resource → action → event loop
+- persistent, species-shaped Canvas trees with connected curved branches, layered painterly foliage, spring blossoms, summer fruit, autumn color, and bare winter silhouettes
 - automatic life-stage progression
 - six playable fruit-tree species
 - a rebalanced pear profile that no longer starts with an extra trunk and no longer sits above the roster as the default strongest survival pick
