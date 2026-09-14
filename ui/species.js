@@ -7,10 +7,6 @@ export function renderSpeciesSummary(speciesName, species, options = {}) {
     compact = false,
   } = options;
 
-  const startingEdge = [];
-  if (species.health > 10) startingEdge.push(`Health ${species.health}`);
-  if (species.trunk > 1) startingEdge.push(`Trunk ${species.trunk}`);
-
   return `
     <div class="species-summary ${compact ? 'compact' : ''}">
       <div class="species-summary-head">
@@ -24,10 +20,6 @@ export function renderSpeciesSummary(speciesName, species, options = {}) {
         <p class="species-summary-description">${species.description}</p>
       </div>
       <div class="species-summary-bonus"><strong>Bonus:</strong> ${species.bonusTitle} — ${species.bonusText}</div>
-      <div class="species-summary-meta">
-        <div><strong>Pollinators:</strong> ${species.pollinators.join(', ')}</div>
-        <div><strong>Starting edge:</strong> ${startingEdge.length ? startingEdge.join(' · ') : 'Balanced baseline'}</div>
-      </div>
     </div>`;
 }
 

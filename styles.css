@@ -233,7 +233,7 @@ canvas {
   position: absolute;
   top: 10px;
   left: 10px;
-  right: 46px;
+  right: 10px;
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
@@ -248,6 +248,49 @@ canvas {
   backdrop-filter: blur(7px);
   pointer-events: none;
 }
+#game-canvas { cursor: zoom-in; }
+#game-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.map-explorer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 7, 10, .82);
+}
+.map-explorer-shell {
+  width: min(1180px, 100%);
+  min-width: 0;
+  max-height: calc(100vh - 36px);
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0,0,0,.55);
+}
+.map-explorer-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.map-explorer-header h2 { margin: 0 0 3px; }
+.map-explorer-header p { margin: 0; color: var(--muted); font-size: 13px; }
+#map-explorer-close { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border-radius: 999px; font-size: 24px; line-height: 1; }
+.map-explorer-viewport {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: min(76vh, 760px);
+  overflow: auto;
+  border-radius: 12px;
+  background: #111;
+  cursor: grab;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+.map-explorer-open { overflow: hidden; }
+.map-explorer-viewport.dragging { cursor: grabbing; user-select: none; }
+.map-explorer-viewport canvas { width: 4096px; height: 1200px; max-width: none; border-radius: 0; }
 .map-stat {
   display: flex;
   align-items: baseline;
@@ -706,8 +749,7 @@ canvas {
   margin: 0;
   color: var(--accent);
 }
-.species-summary-description,
-.species-summary-meta {
+.species-summary-description {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
@@ -719,11 +761,6 @@ canvas {
   color: var(--text);
   font-size: 13px;
   line-height: 1.4;
-}
-.species-summary-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 .stat-icon {
   display: inline-block;
@@ -747,9 +784,13 @@ small { color: var(--muted); }
 @media (max-width: 560px) {
   #app { padding: 6px; }
   .panel { padding: 8px; border-radius: 12px; }
-  .map-status { top: 6px; left: 6px; right: 38px; gap: 3px; padding: 5px 6px; }
+  .map-status { top: 6px; left: 6px; right: 6px; gap: 3px; padding: 5px 6px; }
   .map-stat { display: block; text-align: center; }
   .map-stat span { display: block; font-size: 8px; }
   .map-stat strong { display: block; font-size: 11px; }
   .map-build { display: none; }
+  .map-explorer { padding: 6px; }
+  .map-explorer-shell { max-height: calc(100vh - 12px); padding: 8px; }
+  .map-explorer-header p { font-size: 11px; }
+  .map-explorer-viewport { height: calc(100vh - 92px); }
 }

@@ -72,9 +72,10 @@ export function getBrowserElements(documentRef = document) {
     actionsBanner: documentRef.getElementById('actions-banner'),
     actionsRemaining: documentRef.getElementById('actions-remaining'),
     turnEndBanner: documentRef.getElementById('turn-end-banner'),
-    mapMinimize: documentRef.getElementById('map-minimize'),
-    mapRestore: documentRef.getElementById('map-restore'),
-    mapContent: documentRef.getElementById('map-content'),
+    mapExplorer: documentRef.getElementById('map-explorer'),
+    mapExplorerCanvas: documentRef.getElementById('map-explorer-canvas'),
+    mapExplorerViewport: documentRef.getElementById('map-explorer-viewport'),
+    mapExplorerClose: documentRef.getElementById('map-explorer-close'),
     hudMinimize: documentRef.getElementById('hud-minimize'),
     hudRestore: documentRef.getElementById('hud-restore'),
     hudContent: documentRef.getElementById('hud-content'),
@@ -99,7 +100,6 @@ export function initPanelCollapseUI(els) {
     setCollapsed(false);
   };
 
-  bindPanel({ panel: els.gamePanel, content: els.mapContent, minimize: els.mapMinimize, restore: els.mapRestore, chipLabel: '🗺 Map', buttonLabel: 'map' });
   bindPanel({ panel: els.hudPanel, content: els.hudContent, minimize: els.hudMinimize, restore: els.hudRestore, chipLabel: '📊 Status', buttonLabel: 'status' });
 }
 

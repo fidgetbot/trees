@@ -125,11 +125,13 @@ Action categories currently include:
 - advanced late-game sinks
 
 Current browser HUD behavior:
+- species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
 - the map camera begins at a macro scale tightly centered on the player seed, where soil grains, a pebble, and nearby debris establish a world only inches wide; it pulls back as the player grows, allowing fragments of neighboring trees to enter during early growth before life-stage advancement reveals the surrounding grove
+- the fixed map no longer has a minimize control; clicking it opens a larger scrollable grove explorer that supports drag-to-pan and preserves the player's current biological scale
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
-- the map and status panels can be minimized with small top-right corner controls and restored with compact chips; both start expanded at the beginning of a run
+- the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
 - health and allies now appear under Resources instead of a separate Ecology section, with only a subtle divider separating spendable resources from status values
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”

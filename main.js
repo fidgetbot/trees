@@ -61,7 +61,7 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
-import { renderForestScene } from './ui/canvas.js?rev=growth-camera-v2';
+import { renderForestScene } from './ui/canvas.js?rev=map-explorer-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -1263,9 +1263,58 @@ function render() {
     getNeighborTree,
     getRelationshipState,
   });
+  if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
+}
+
+function renderMapExplorer() {
+  if (!els.mapExplorerCanvas) return;
+  renderForestScene({
+    ctx: els.mapExplorerCanvas.getContext('2d'),
+    canvas: els.mapExplorerCanvas,
+    state,
+    currentSeason: currentSeason(),
+    playerStageName: computeCurrentLifeStage().name,
+    getNeighborTree,
+    getRelationshipState,
+  });
+}
+
+function openMapExplorer() {
+  if (!state.started || !els.mapExplorer || !els.mapExplorerViewport) return;
+  els.mapExplorer.classList.remove('hidden');
+  document.body.classList.add('map-explorer-open');
+  renderMapExplorer();
+  requestAnimationFrame(() => {
+    const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
+    viewport.scrollLeft=(canvas.width-viewport.clientWidth)/2;
+    viewport.scrollTop=canvas.height/2-viewport.clientHeight*.52;
+    viewport.focus();
+  });
+}
+
+function closeMapExplorer() {
+  els.mapExplorer?.classList.add('hidden');
+  document.body.classList.remove('map-explorer-open');
+  els.canvas?.focus();
+}
+
+function initMapExplorer() {
+  const viewport=els.mapExplorerViewport;
+  if (!viewport) return;
+  els.canvas.addEventListener('click',openMapExplorer);
+  els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
+  els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
+  els.mapExplorer?.addEventListener('click',event=>{if(event.target===els.mapExplorer)closeMapExplorer()});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!els.mapExplorer.classList.contains('hidden'))closeMapExplorer()});
+  let drag=null;
+  viewport.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};viewport.classList.add('dragging')});
+  window.addEventListener('pointermove',event=>{if(!drag)return;event.preventDefault();viewport.scrollLeft=drag.left-(event.clientX-drag.x);viewport.scrollTop=drag.top-(event.clientY-drag.y)});
+  const endDrag=()=>{drag=null;viewport.classList.remove('dragging')};
+  window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
 }
 
 els.startGame.addEventListener('click', startGame);
 els.viewLeaderboard?.addEventListener('click', showLeaderboardModal);
+initMapExplorer();
 initSpeciesSelect();
 render();
