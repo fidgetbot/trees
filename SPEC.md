@@ -127,7 +127,7 @@ Action categories currently include:
 Current browser HUD behavior:
 - species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
-- the map camera begins at a macro scale tightly centered on a painterly, species-tinted seed with a tapered shell, seam, and highlight; sparse, low-contrast mottling and occasional soft mineral grains keep the soil quiet while establishing a world only inches wide; it pulls back as the player grows, and its upper edge tracks just above the player's current height so neighboring trees reveal only roots and lower trunk at seed scale and progressively more structure as the player grows
+- the map camera begins at a macro scale tightly centered on a painterly, species-tinted seed with a tapered shell, seam, and highlight; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and its upper edge tracks just above the player's current height so neighboring trees reveal only roots and lower trunk at seed scale and progressively more structure as the player grows
 - the fixed map no longer has a minimize control; clicking it opens a larger scrollable grove explorer that preserves the player's current biological scale, supports accelerated wheel and drag panning, and closes with a simple tap inside the view
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
@@ -202,7 +202,6 @@ Current systems include:
 - Reaching **Ancient** is the current victory threshold
 - Runs may continue after victory
 - Death may end the run or transition into succession if offspring remain
-- Browser play also maintains a local grove-record leaderboard
 
 ## Species Scope
 
@@ -223,7 +222,7 @@ Non-fruiting trees such as oak or redwood are intentionally deferred for later, 
 ### Implemented now
 
 The current codebase includes:
-- the full seasonal resource → action → event loop
+- the full seasonal resource → action → event loop, with the opening turn ready for inspection and play without a forced resource-summary modal
 - persistent, species-shaped Canvas trees with connected curved branches, tapered branching root systems, layered painterly foliage, spring blossoms, summer fruit, autumn color, and bare winter silhouettes
 - automatic life-stage progression
 - six playable fruit-tree species
@@ -240,7 +239,6 @@ The current codebase includes:
 - ally crises and neglect consequences
 - succession on death when lineage remains
 - scoring, Ancient victory, and post-victory continuation
-- local browser leaderboard storage
 - headless seeded simulation for automated playtests and balance analysis
 
 ### Current simplifications / limitations
@@ -250,7 +248,6 @@ The current build still simplifies several systems:
 - succession currently uses curated heir archetypes rather than fully simulated offspring individuals
 - neighbors are persistent and meaningful, but not fully mirrored player-equivalents
 - some diplomacy/interaction-heavy flows still use simplified handling in headless simulation
-- the browser leaderboard is local-only; there is no shared online leaderboard yet
 
 ## Architecture Overview
 
@@ -276,7 +273,7 @@ Current responsibilities include:
 - action panel rendering
 - resource/event/outcome modal bodies
 - species selection UI
-- leaderboard presentation/storage helpers
+- a visible build number on both the opening species screen and the in-game map
 - forest canvas rendering
 - HUD updates and browser interaction wiring
 - browser app bootstrap helpers

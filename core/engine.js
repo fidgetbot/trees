@@ -18,7 +18,6 @@ export function createEngine(deps) {
     showModal,
     processPendingInteractions,
     maybeShowHealthWarning,
-    saveCurrentRunToLeaderboard,
     deathFlavor,
     generateSuccessionChoices,
     continueAsSuccessor,
@@ -100,7 +99,6 @@ export function createEngine(deps) {
 
     if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
       state.victoryAchieved = true;
-      if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('reached Ancient');
       showModal('Victory!', renderVictoryBody({ score: state.score }), () => {});
     }
 
@@ -275,7 +273,6 @@ export function createEngine(deps) {
     } else {
       state.gameOver = true;
       const flavor = deathFlavor(state.lastDamageCause);
-      if (!state.recordsSavedThisRun) saveCurrentRunToLeaderboard('lineage ended');
       showModal('Game Over', renderGameOverBody({ flavor, score: state.score }), () => {});
     }
   }

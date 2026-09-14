@@ -33,11 +33,25 @@ function playerHeight(state,stage,camera){
 }
 
 function drawNearGround(ctx,w,h,groundY,rank){
-  if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.42;ctx.save();ctx.globalAlpha=alpha;
-  for(let i=0;i<(rank===0?10:6);i++){const x=r()*w,y=groundY+12+r()*(h-groundY)*.82,rx=9+r()*20;ctx.fillStyle=r()>.5?'rgba(132,113,91,.032)':'rgba(43,36,31,.045)';ctx.beginPath();ctx.ellipse(x,y,rx,rx*(.35+r()*.35),r()*TAU,0,TAU);ctx.fill()}
-  for(let i=0;i<(rank===0?28:14);i++){const x=r()*w,y=groundY+10+r()*(h-groundY)*.84,size=.5+r()*.95;ctx.fillStyle=r()>.45?'rgba(136,121,102,.15)':'rgba(45,39,34,.13)';ctx.beginPath();ctx.ellipse(x,y,size,size*(.55+r()*.35),r()*TAU,0,TAU);ctx.fill()}
-  ctx.fillStyle='rgba(113,107,97,.72)';ctx.beginPath();ctx.ellipse(w*.32,groundY+44,22,9,-.16,0,TAU);ctx.fill();ctx.fillStyle='rgba(213,205,185,.11)';ctx.beginPath();ctx.ellipse(w*.31,groundY+41,11,3,-.16,0,TAU);ctx.fill();
-  ctx.strokeStyle='rgba(121,99,69,.42)';ctx.lineWidth=rank===0?2.2:1.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w*.7,groundY+88);ctx.quadraticCurveTo(w*.64,groundY+58,w*.59,groundY+77);ctx.stroke();ctx.restore();
+  if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.48;ctx.save();ctx.globalAlpha=alpha;
+  const clusters=rank===0?14:8,depth=Math.max(1,h-groundY-18);
+  function pebble(x,y,size,color){
+    const points=4+Math.floor(r()*3),rotation=r()*TAU;
+    ctx.fillStyle=color;ctx.beginPath();
+    for(let p=0;p<points;p++){const angle=rotation+p*TAU/points,radius=size*(.72+r()*.34),px=x+Math.cos(angle)*radius,py=y+Math.sin(angle)*radius*.68;p?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(218,196,157,.36)';ctx.beginPath();ctx.arc(x-size*.2,y-size*.2,Math.max(.18,size*.16),0,TAU);ctx.fill();
+  }
+  for(let c=0;c<clusters;c++){
+    const cx=24+r()*(w-48),cy=groundY+16+r()*depth*.86,total=4+Math.floor(r()*5);
+    for(let i=0;i<total;i++){
+      const angle=r()*TAU,distance=2+r()*9,size=.55+r()*1.15;
+      const colors=['rgba(148,132,108,.80)','rgba(126,110,91,.62)','rgba(168,145,108,.96)','rgba(52,43,36,.48)'];
+      pebble(cx+Math.cos(angle)*distance,cy+Math.sin(angle)*distance*.55,size,colors[Math.floor(r()*colors.length)]);
+    }
+  }
+  for(let i=0;i<(rank===0?16:8);i++){ctx.fillStyle=i%2?'rgba(151,132,105,.48)':'rgba(43,35,30,.40)';ctx.beginPath();ctx.arc(10+r()*(w-20),groundY+12+r()*depth*.9,.3+r()*.48,0,TAU);ctx.fill()}
+  ctx.restore();
 }
 
 function cameraFor(state,stage){

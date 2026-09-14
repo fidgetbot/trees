@@ -30,15 +30,12 @@ button {
   cursor: pointer;
 }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
-.secondary-button {
+.start-build {
   margin-top: 10px;
-  width: 100%;
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid rgba(125, 211, 252, 0.45);
-}
-.secondary-button:hover:not(:disabled) {
-  background: rgba(125, 211, 252, 0.08);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0.04em;
 }
 #app { max-width: 1400px; margin: 0 auto; padding: 16px; }
 .layout {

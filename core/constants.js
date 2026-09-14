@@ -23,8 +23,6 @@ export const SEASONAL_ACTIONS = {
   mastYear: ['Spring'],
 };
 
-export const LEADERBOARD_KEY = 'trees-grove-records-v1';
-
 export const RELATIONSHIP_STATES = {
   ALLY: { min: 50, name: 'Ally', color: '#4CAF50' },
   FRIENDLY: { min: 10, name: 'Friendly', color: '#8BC34A' },

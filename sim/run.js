@@ -123,7 +123,6 @@ function createInitialState(speciesName, rng) {
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
-    recordsSavedThisRun: false,
     phase: 'action',
   };
 }
@@ -396,7 +395,6 @@ function createHeadlessGame(seed, speciesName) {
       done?.();
     },
     maybeShowHealthWarning,
-    saveCurrentRunToLeaderboard: () => {},
     deathFlavor: cause => deathFlavorForCause(cause),
     generateSuccessionChoices: () => [],
     continueAsSuccessor: () => {},

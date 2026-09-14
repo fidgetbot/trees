@@ -3,7 +3,6 @@ import {
   LIFE_STAGES,
   STAGE_BY_NAME,
   SEASONAL_ACTIONS,
-  LEADERBOARD_KEY,
   RELATIONSHIP_STATES,
   getRelationshipState,
   getLifeStage,
@@ -60,8 +59,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { createLeaderboardStore, createRunRecord, renderLeaderboardBody } from './ui/leaderboard.js';
-import { renderForestScene } from './ui/canvas.js?rev=quiet-soil-v1';
+import { renderForestScene } from './ui/canvas.js?rev=clustered-soil-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -293,23 +291,6 @@ function showModal(title, body, onContinue) {
   return showStandardModal(els, title, body, onContinue);
 }
 
-const leaderboard = createLeaderboardStore({
-  storage: localStorage,
-  storageKey: LEADERBOARD_KEY,
-  limit: 10,
-});
-
-function saveCurrentRunToLeaderboard(reason = 'game over') {
-  const entry = createRunRecord(state, reason);
-  leaderboard.saveRun(entry);
-  state.recordsSavedThisRun = true;
-  return entry;
-}
-
-function showLeaderboardModal() {
-  showModal('Grove Records', renderLeaderboardBody(leaderboard.load()), () => {});
-}
-
 function generateSuccessionChoices(count = 3) {
   const templates = [
     {
@@ -387,7 +368,7 @@ function processPendingInteractions(onDone) {
   interaction(() => processPendingInteractions(onDone));
 }
 
-function showResourcePhase() {
+function showResourcePhase({ quiet = false } = {}) {
   if (state.gameOver) return;
   setTurnEndBanner('');
   const pendingStartOfTurn = resolvePendingStartOfTurnEffects(state);
@@ -407,6 +388,10 @@ function showResourcePhase() {
   return engine.startTurn(state, {
     addLog,
     presentResources: (gains) => {
+      if (quiet) {
+        renderActions();
+        return;
+      }
       showModal('Your Tree Gathers...', renderResourcePhaseBody({ state, gains }), () => {
         renderActions();
       });
@@ -1034,7 +1019,6 @@ engine = createEngine({
   showModal,
   processPendingInteractions,
   maybeShowHealthWarning,
-  saveCurrentRunToLeaderboard,
   deathFlavor,
   generateSuccessionChoices,
   continueAsSuccessor,
@@ -1317,7 +1301,6 @@ function initMapExplorer() {
 }
 
 els.startGame.addEventListener('click', startGame);
-els.viewLeaderboard?.addEventListener('click', showLeaderboardModal);
 initMapExplorer();
 initSpeciesSelect();
 render();

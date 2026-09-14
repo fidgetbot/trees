@@ -48,7 +48,6 @@ export function createInitialBrowserState({ initialLifeStage }) {
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
-    recordsSavedThisRun: false,
   };
 }
 
@@ -65,7 +64,6 @@ export function getBrowserElements(documentRef = document) {
     modalBody: documentRef.getElementById('modal-body'),
     modalButton: documentRef.getElementById('modal-button'),
     actionsList: documentRef.getElementById('actions-list'),
-    viewLeaderboard: documentRef.getElementById('view-leaderboard'),
     log: documentRef.getElementById('log'),
     feedbackContainer: documentRef.getElementById('feedback-container'),
     tooltip: documentRef.getElementById('tooltip'),
@@ -171,7 +169,6 @@ export function startBrowserGame({
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
-    recordsSavedThisRun: false,
   });
 
   state.selectedSpecies = selectedSpecies;
@@ -181,7 +178,7 @@ export function startBrowserGame({
   initPanelCollapse?.();
   addLog('You begin as a seed, buried in the dark soil.');
   updateUI();
-  showResourcePhase();
+  showResourcePhase({ quiet: true });
 }
 
 export function showGamePanelsUI(els) {
