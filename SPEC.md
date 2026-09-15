@@ -136,7 +136,7 @@ Current browser HUD behavior:
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
-- all visible trees on the map are labeled; offspring use the parent species and are labeled as offspring allies
+- all visible trees on the map are labeled with species and growth stage on the primary line; the player is identified as “(You)” beneath it, offspring use the parent species, and Canvas label type scales up at narrow display widths for phone readability
 - Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
 
 ### Seasonal Constraints
@@ -181,6 +181,8 @@ The current reproduction chain is:
 - seeds
 - spring seed-fate resolution
 - offspring pool / offspring trees
+
+Pear's **Dependable fruit** species bonus reduces each developing fruit's chance of being lost to pests or human harvest by 20%. This modifies fruit retention rather than pollination, keeping Pear distinct from Citrus's pollinator-attraction bonus.
 
 If the current tree dies but viable lineage remains, the game can continue through succession rather than ending immediately.
 

@@ -1,4 +1,5 @@
 import { randomChoice, randomInt } from './random.js';
+import { getFruitLossMultiplier } from './species.js';
 
 export function createMajorEvents(deps) {
   const {
@@ -190,6 +191,7 @@ export function resolveFruitThreats(state, events) { /* unchanged below */
     if (threat.type === 'human') lossChance -= 0.12 * defensePower;
     if (threat.type === 'bird') lossChance -= 0.08 * defensePower;
     if (threat.type === 'chewer') lossChance -= 0.1 * defensePower;
+    lossChance *= getFruitLossMultiplier(state);
     lossChance = Math.max(0.05, Math.min(0.95, lossChance));
     if (Math.random() < lossChance) losses += 1; else saved += 1;
   }

@@ -26,10 +26,10 @@ export const SPECIES = {
   Pear: {
     icon: '🍐',
     description: 'Steady pear tree with durable wood and dependable fruit.',
-    bonusTitle: 'Steady heartwood',
-    bonusText: 'Balanced durability with dependable fruit, not dominant survivability',
+    bonusTitle: 'Dependable fruit',
+    bonusText: '20% less fruit lost to pests and harvest',
     branches: 1, rootZones: 2, trunk: 1, health: 10,
-    growthRate: 0.98, droughtResist: 0.28, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
+    growthRate: 0.98, droughtResist: 0.28, fruitLossMultiplier: 0.8, pollinators: ['hoverflies', 'honeybees', 'solitary bees'],
   },
   Citrus: {
     icon: '🍋',
@@ -87,4 +87,8 @@ export function getPollinatorChance(state, baseChance) {
 
 export function getDroughtResistance(state) {
   return getCurrentSpeciesSpec(state)?.droughtResist || 0;
+}
+
+export function getFruitLossMultiplier(state) {
+  return getCurrentSpeciesSpec(state)?.fruitLossMultiplier || 1;
 }

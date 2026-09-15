@@ -78,7 +78,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   if(stage==='Seed')drawSeed(ctx,x,groundY,species,camera.zoom,seed);
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom);
   else {const tree=buildTree(seed,branches,leaves,habit,stage);ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);ctx.restore()}
-  if(isPlayer||(camera.rank>=3&&x>70&&x<ctx.canvas.width-70))drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState);
+  if((isPlayer||neighbor)&&x>24&&x<ctx.canvas.width-24)drawLabel(ctx,x,groundY,isPlayer,neighbor,state,playerStageName,getRelationshipState,index,camera.zoom);
 }
 
 function drawSeed(ctx,x,y,species,zoom,seed){
@@ -130,6 +130,33 @@ function palette(season){if(season==='Spring')return['#bdd58b','#9fc276','#7eaa6
 function drawBlossoms(ctx,tree,seed,count){const r=rng(seed+1907),total=Math.min(70,10+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.75,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=.8+r()*1.25,open=.28+r()*.72;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);if(open<.4){ctx.fillStyle='#ddaeb1';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fff5e6':'#edc7c7';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#b8914e';ctx.beginPath();ctx.arc(0,0,size*.3,0,TAU);ctx.fill()}ctx.restore()}}
 function drawFruit(ctx,tree,seed,count,species){const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}}
 
-function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState){if(!isPlayer&&!neighbor)return;const relation=isPlayer?'You':neighbor?.offspring?'Offspring — Ally':(neighbor?.relationName||(neighbor?.ally?'Ally':'Neutral')),species=isPlayer?(state.selectedSpecies||'Tree'):(neighbor?.species||'Tree');ctx.fillStyle=isPlayer?'rgba(255,255,255,.82)':'rgba(255,255,255,.52)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(`${species} — ${relation}`,x,y+110);const stageName=isPlayer?stage:neighbor?.stageName;if(stageName){ctx.font='10px sans-serif';ctx.fillStyle=isPlayer?'rgba(255,255,255,.68)':'rgba(255,255,255,.42)';ctx.fillText(stageName,x,y+124)}if(!isPlayer&&neighbor&&typeof neighbor.health==='number'&&typeof neighbor.maxHealth==='number'&&!neighbor.offspring){ctx.fillStyle=getRelationshipState(neighbor.relation).name==='Ally'?'rgba(187,247,208,.9)':'rgba(255,255,255,.55)';ctx.fillText(`Health ${neighbor.health}/${neighbor.maxHealth}`,x,y+138)}}
+function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,index,zoom){
+  if(!isPlayer&&!neighbor)return;
+  const relation=isPlayer?'You':neighbor?.offspring?'Offspring — Ally':(neighbor?.relationName||(neighbor?.ally?'Ally':'Neutral')),
+        species=isPlayer?(state.selectedSpecies||'Tree'):(neighbor?.species||'Tree'),
+        stageName=isPlayer?stage:(neighbor?.stageName||'Sapling'),
+        displayWidth=ctx.canvas.clientWidth||ctx.canvas.width,
+        phoneScale=Math.max(1,Math.min(2.2,ctx.canvas.width/Math.max(1,displayWidth))),
+        tight=zoom<.55,
+        rowOffset=tight?([0,2,1,3,4][index]||0)*36*phoneScale:0,
+        labelY=y+110*phoneScale+rowOffset;
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.font=`600 ${13*phoneScale}px sans-serif`;
+  ctx.lineWidth=Math.max(2,2.4*phoneScale);ctx.strokeStyle='rgba(30,25,20,.72)';
+  ctx.strokeText(`${species} — ${stageName}`,x,labelY);
+  ctx.fillStyle=isPlayer?'rgba(255,255,255,.96)':'rgba(255,255,255,.84)';
+  ctx.fillText(`${species} — ${stageName}`,x,labelY);
+  ctx.font=`${12*phoneScale}px sans-serif`;
+  ctx.strokeText(`(${relation})`,x,labelY+16*phoneScale);
+  ctx.fillStyle=isPlayer?'rgba(255,255,255,.9)':'rgba(255,255,255,.72)';
+  ctx.fillText(`(${relation})`,x,labelY+16*phoneScale);
+  if(!isPlayer&&neighbor&&typeof neighbor.health==='number'&&typeof neighbor.maxHealth==='number'&&!neighbor.offspring){
+    ctx.font=`${11*phoneScale}px sans-serif`;
+    ctx.strokeText(`Health ${neighbor.health}/${neighbor.maxHealth}`,x,labelY+31*phoneScale);
+    ctx.fillStyle=getRelationshipState(neighbor.relation).name==='Ally'?'rgba(187,247,208,.95)':'rgba(255,255,255,.68)';
+    ctx.fillText(`Health ${neighbor.health}/${neighbor.maxHealth}`,x,labelY+31*phoneScale);
+  }
+  ctx.restore();
+}
 function hash(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
