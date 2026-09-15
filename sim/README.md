@@ -40,6 +40,7 @@ The runner prints JSON with these top-level sections:
 
 - win/loss counts
 - average score, years, turns played, allies, viable seeds, offspring pool, and ending health
+- average living offspring, protected-grove progress, regional human pressure, and accumulated cutting damage
 - score/year percentiles
 - final-stage counts
 - stage reach counts and rates
@@ -56,6 +57,7 @@ The runner prints JSON with these top-level sections:
 - turns played
 - final year / stage / score
 - allies / viable seeds / offspring pool
+- living offspring / protection progress / human pressure / cutting progress / fungal rumors heard
 - ending health
 - victory / game-over state
 - death cause and death flavor when applicable

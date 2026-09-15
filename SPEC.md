@@ -78,9 +78,9 @@ Trees progress automatically when their stage requirements are met. Growth is no
 | **Sprout** | After first action (grow roots) | First leaves, basic photosynthesis | Drought, herbivory |
 | **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections | Aphids, browsing animals |
 | **Sapling** | 4 seasons + survive 1 major event | Branch growth, chemical defense | Wind, competition |
-| **Small Tree** | 2 years + 2 branches | Flowers, reproduction | Lightning, disease |
-| **Mature Tree** | 3 years + first fruit | Full canopy, ally support | Fire, beetle swarms, ally betrayal |
-| **Ancient** | 3 years + survive 2 major events + 1 ally | Victory state / long-term resilience | Highly resilient |
+| **Small Tree** | 2 years + 2 branches | Flowers, reproduction, thorns, toxic foliage | Lightning, disease, first human surveys |
+| **Mature Tree** | 3 years + first fruit | Full canopy, ally and offspring support | Fire, beetle swarms, ally betrayal, logging pressure |
+| **Ancient** | 3 years + survive 2 major events + 1 allied or child tree | Long-term resilience and protected-grove endgame | Repeated human attention |
 
 Current score thresholds in implementation:
 - Mature Tree: 3300
@@ -124,6 +124,8 @@ Action categories currently include:
 - diplomacy and rivalry
 - advanced late-game sinks
 
+Late-game defensive actions include permanent investments in **Thorns** and **Toxic Leaves**. During an active human encounter the player may also sacrifice a branch for an immediate defense or call through the fungal network for help.
+
 Current browser HUD behavior:
 - species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
@@ -141,6 +143,7 @@ Current browser HUD behavior:
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
 - Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
+- pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
 
 ### Seasonal Constraints
 
@@ -172,6 +175,7 @@ Current diplomacy/rivalry systems include:
 - root domination starting in the mature stage, with direct resource theft from targeted neighbors and proactive escalation into rivalry
 - ally crises and ally neglect consequences
 - betrayal pressure in hostile or strained long-term relationships
+- aid contributes directly to the recipient's growth and records whether the player began supporting it before maturity; this support history determines whether a large ally can help satisfy the protected-grove victory
 
 Neighbors are persistent actors, but they are still simplified relative to the player tree.
 
@@ -184,6 +188,8 @@ The current reproduction chain is:
 - seeds
 - spring seed-fate resolution
 - offspring pool / offspring trees
+
+Established offspring are persistent lightweight tree records rather than only a count. Each child has its own species, growth score, health, and nurture history. **Nurture Offspring** supports one actual child, improving its growth and health instead of creating additional offspring.
 
 Pear's **Dependable fruit** species bonus reduces each developing fruit's chance of being lost to pests or human harvest by 20%. This modifies fruit retention rather than pollination, keeping Pear distinct from Citrus's pollinator-attraction bonus.
 
@@ -200,11 +206,17 @@ Current systems include:
 - chemical-defense threat chains that can resolve at the start of the next turn if left unanswered
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
+- a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer
+- human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
+- delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
+- cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll
 
 ### Scoring, Victory, and Continuation
 
 - Score updates continuously during play
-- Reaching **Ancient** is the current victory threshold
+- Reaching **Ancient** is a major milestone, not an automatic victory
+- Victory requires two additional Mature-or-Ancient trees that the player materially helped: allied neighbors need a real history of aid, while children need repeated nurture investment
+- Once the player and two supported companions qualify, conservation-minded humans inspect the grove and designate it as a protected ecosystem
 - Runs may continue after victory
 - Death may end the run or transition into succession if offspring remain
 
@@ -241,16 +253,18 @@ The current codebase includes:
 - diplomacy/rivalry actions and ally-state tracking
 - reproduction through flowers, fruit, seeds, and spring seed fate
 - threat-response chains for fruit threats and chemical defense
+- escalating fungal rumors, visible human encounters, permanent human deterrence, cutting scars, and branch/network encounter responses
 - ally crises and neglect consequences
+- persistent individual offspring with growth, health, and nurture history
 - succession on death when lineage remains
-- scoring, Ancient victory, and post-victory continuation
+- scoring, protected-ecosystem victory, and post-victory continuation
 - headless seeded simulation for automated playtests and balance analysis
 
 ### Current simplifications / limitations
 
 The current build still simplifies several systems:
 - flowering is season-locked, but most other actions are still available year-round
-- succession currently uses curated heir archetypes rather than fully simulated offspring individuals
+- succession still uses curated heir archetypes, although living offspring now persist individually for growth, nurture, map display, and victory qualification
 - neighbors are persistent and meaningful, but not fully mirrored player-equivalents
 - some diplomacy/interaction-heavy flows still use simplified handling in headless simulation
 
@@ -268,6 +282,7 @@ Current responsibilities include:
 - seedable randomness helpers
 - action catalog and availability rules
 - event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, shared chemical-defense threat decision/resolution flow, and shared decision-runner dispatch for interactive event choices
+- shared human-pressure and conservation rules, including fungal-rumor sequencing, offspring records, encounter decisions, cutting resolution, and protected-grove qualification
 - diplomacy and survival helpers, including shared relationship-resolution plus normalized decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic and shared diplomacy-decision dispatch
 - shared engine turn/state flow
 

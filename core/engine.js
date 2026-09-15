@@ -1,3 +1,5 @@
+import { createOffspringRecords } from './humans.js';
+
 export function createEngine(deps) {
   const {
     SEASONS,
@@ -25,7 +27,6 @@ export function createEngine(deps) {
     renderSpringSeedFateBody,
     renderGameOverBody,
     renderSuccessionBody,
-    renderVictoryBody,
   } = deps;
 
   function currentSeason(state) {
@@ -97,11 +98,6 @@ export function createEngine(deps) {
   function updateScoreState(state) {
     state.score = calculateScore(state);
 
-    if (state.lifeStage.name === 'Ancient' && !state.victoryAchieved) {
-      state.victoryAchieved = true;
-      showModal('Victory!', renderVictoryBody({ score: state.score }), () => {});
-    }
-
     return state.score;
   }
 
@@ -133,7 +129,7 @@ export function createEngine(deps) {
     const fate = resolveSeedFate(state.seeds);
     state.viableSeeds += fate.sprouted;
     state.offspringPool += fate.sprouted;
-    state.offspringTrees += fate.sprouted;
+    createOffspringRecords(state, fate.sprouted);
     state.seeds = 0;
     showModal('Spring Seed Fate', renderSpringSeedFateBody({ prevSeeds, fate }), () => onContinue?.(fate, prevSeeds));
     return true;
@@ -221,7 +217,7 @@ export function createEngine(deps) {
     if (action.key === 'thicken') addLog?.('Your trunk thickens and your body grows sturdier.');
     if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
     if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
-    if (action.key === 'nurtureOffspring') addLog?.(`You invest in offspring. Pool: ${state.offspringPool}, established: ${state.offspringTrees}.`);
+    if (action.key === 'nurtureOffspring') addLog?.(`You send water, nutrients, and stored energy to one of your child trees.`);
     updateScoreState(state);
     updateUI();
     render();

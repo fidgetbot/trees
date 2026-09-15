@@ -40,7 +40,7 @@ export function currentStageRequirements(state) {
       return [
         { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
         { key: 'major', label: 'Survive 2 major events', met: state.majorEventsSurvivedInStage >= 2 },
-        { key: 'allies', label: 'Have 1 ally', met: state.allies >= 1 },
+        { key: 'allies', label: 'Have 1 allied or child tree', met: state.allies >= 1 },
       ];
     default:
       return [];

@@ -8,6 +8,13 @@ import { createActions, getActionAvailability } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
 import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
+import {
+  advanceHumanSystem,
+  growOffspringRecords,
+  nurtureOffspring,
+  resolveHumanDecision,
+  updateProtectionProgress,
+} from '../core/humans.js';
 
 function loadVersion() {
   const raw = readFileSync(new URL('../version.json', import.meta.url), 'utf8');
@@ -59,6 +66,8 @@ function makeStartingNeighbors(rng) {
       hostile: false,
       ally: false,
       helpGivenToThem: 0,
+      growthAidReceived: 0,
+      firstAidStageScore: null,
       helpRefusedToThem: 0,
       helpReceivedFromThem: 0,
       timesAskedThemForHelp: 0,
@@ -102,9 +111,25 @@ function createInitialState(speciesName, rng) {
     defense: 0,
     fruitDefense: 0,
     offspringTrees: 0,
+    offspringRecords: [],
+    alliedNeighbors: 0,
     pendingFruitThreat: null,
     pendingOffspringThreat: false,
     pendingChemicalThreat: null,
+    pendingHumanEncounter: null,
+    humanPressure: 0,
+    humanAttention: 0,
+    humanCooldown: 0,
+    humanStoryTurns: 0,
+    humanRumorIndex: 0,
+    lastHumanRumorTurn: -99,
+    lastPressureYear: 0,
+    cuttingProgress: 0,
+    thornDefense: 0,
+    toxicLeaves: 0,
+    protectionProgress: 0,
+    protectionEligible: false,
+    protectionDesignated: false,
     taprootDepth: 0,
     canopySpread: 0,
     log: [],
@@ -249,6 +274,7 @@ function createHeadlessGame(seed, speciesName) {
         state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.08;
       }
     });
+    growOffspringRecords(state, rng);
   }
 
   const majorEvents = createMajorEvents({
@@ -276,7 +302,10 @@ function createHeadlessGame(seed, speciesName) {
     },
     offerAidToAlly: s => {
       const decision = buildAidDecision(s, { getRelationshipState });
-      const targetOption = decision.options.find(option => option.affordable && option.meta?.crisis) || decision.options.find(option => option.affordable) || decision.options[0];
+      const affordable = decision.options.filter(option => option.affordable);
+      const targetOption = affordable.find(option => option.meta?.crisis)
+        || affordable.sort((a, b) => (s.neighbors[a.targetIndex]?.helpGivenToThem || 0) - (s.neighbors[b.targetIndex]?.helpGivenToThem || 0))[0]
+        || decision.options[0];
       if (!targetOption) return;
       resolveDiplomacyDecision(s, decision, targetOption.id, {
         getRelationshipState,
@@ -321,6 +350,7 @@ function createHeadlessGame(seed, speciesName) {
       neighbor.health = Math.max(0, neighbor.health - (resolved.outcome.alreadyContested ? 2 : 1));
       if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
     },
+    nurtureOffspringAction: s => nurtureOffspring(s),
     getRelationshipState,
   });
 
@@ -459,6 +489,11 @@ function createHeadlessGame(seed, speciesName) {
       if (allyAction) return allyAction;
     }
 
+    if (state.lifeStage.name === 'Ancient' && (state.protectionProgress || 0) < 2) {
+      const groveAction = pick(['nurtureOffspring', 'aidAlly', 'connect']);
+      if (groveAction) return groveAction;
+    }
+
     if (state.flowers > 0 && seasonName === 'Spring') {
       const moreFlowers = pick(['massFlower', 'flower']);
       if (moreFlowers) return moreFlowers;
@@ -466,7 +501,7 @@ function createHeadlessGame(seed, speciesName) {
 
     const priorities = [
       'growLeaves', 'growBranch', 'taproot', 'canopy', 'thicken',
-      'bark', 'flower', 'massFlower', 'connect', 'aidAlly',
+      'growThorns', 'toxicLeaves', 'bark', 'flower', 'massFlower', 'connect', 'aidAlly',
       'requestHelp', 'rhizosphere', 'shelterGrove', 'resinReserve',
       'woodSurge', 'nurtureOffspring', 'shadeRival', 'rootDominion',
       'mastYear', 'extendRoot'
@@ -514,6 +549,25 @@ function createHeadlessGame(seed, speciesName) {
       const eventResult = engine.showEventPhase(state);
       state.majorEvent = eventResult.major;
       state.minorEvent = eventResult.minors;
+
+      const humanUpdate = state.health > 0 ? advanceHumanSystem(state, {
+        getRelationshipState,
+        getNeighborStage,
+        random: rng,
+      }) : {};
+      if (humanUpdate.event) {
+        eventResult.minors.push(humanUpdate.event);
+      }
+      if (humanUpdate.rumor) addLog(state, `Fungal rumor: ${humanUpdate.rumor.body}`);
+      if (humanUpdate.decision) {
+        const choice = humanUpdate.decision.options.find(option => option.id === 'receive-inspection')
+          || humanUpdate.decision.options.find(option => option.id === 'drop-branch' && state.cuttingProgress >= 2)
+          || humanUpdate.decision.options.find(option => option.id === 'call-network' && option.affordable)
+          || humanUpdate.decision.options.find(option => option.id === 'use-defenses')
+          || humanUpdate.decision.options.find(option => option.affordable !== false);
+        if (choice) resolveHumanDecision(state, humanUpdate.decision, choice.id, { random: rng });
+      }
+      updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
 
       if (eventResult.major?.key) incrementCounter(metrics.majorEvents, eventResult.major.key);
       for (const event of eventResult.minors) incrementCounter(metrics.minorEffects, event.effect || 'unknown');
@@ -568,6 +622,11 @@ function createHeadlessGame(seed, speciesName) {
       allies: state.allies,
       viableSeeds: state.viableSeeds,
       offspringPool: state.offspringPool,
+      offspringTrees: state.offspringTrees,
+      protectionProgress: state.protectionProgress,
+      humanPressure: state.humanPressure,
+      cuttingProgress: state.cuttingProgress,
+      rumorsHeard: state.humanRumorIndex,
       health: state.health,
       maxHealth: state.maxHealth,
       victoryAchieved: state.victoryAchieved,
@@ -593,6 +652,10 @@ function summarizeGames(games) {
     averageAllies: average(games.map(g => g.allies)),
     averageViableSeeds: average(games.map(g => g.viableSeeds)),
     averageOffspringPool: average(games.map(g => g.offspringPool)),
+    averageOffspringTrees: average(games.map(g => g.offspringTrees)),
+    averageProtectionProgress: average(games.map(g => g.protectionProgress)),
+    averageHumanPressure: average(games.map(g => g.humanPressure)),
+    averageCuttingProgress: average(games.map(g => g.cuttingProgress)),
     averageEndingHealth: average(games.map(g => g.health)),
     scorePercentiles: {
       p25: percentile(games.map(g => g.score), 25),

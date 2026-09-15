@@ -82,7 +82,11 @@ export function updateHudUI({
   if (growthHint) {
     const reqs = currentStageRequirements;
     const missing = reqs.filter(r => !r.met);
-    if (!reqs.length || state.lifeStage.name === 'Ancient') {
+    if (state.victoryAchieved) {
+      growthHint.textContent = 'Protected ecosystem established.';
+    } else if (state.lifeStage.name === 'Ancient') {
+      growthHint.textContent = `Protection: ${state.protectionProgress || 0}/2 supported Mature-or-better allies or children`;
+    } else if (!reqs.length) {
       growthHint.textContent = 'Fully grown.';
     } else if (missing.length === 0) {
       growthHint.textContent = 'Growth is imminent.';

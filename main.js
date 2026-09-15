@@ -5,7 +5,6 @@ import {
   SEASONAL_ACTIONS,
   RELATIONSHIP_STATES,
   getRelationshipState,
-  getLifeStage,
   getNeighborStage,
 } from './core/constants.js';
 import {
@@ -25,7 +24,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js?rev=action-first-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js?rev=protected-grove-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +37,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js';
+} from './core/events.js?rev=protected-grove-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -49,19 +48,26 @@ import {
   buildAidDecision,
   buildHelpRequestDecision,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js';
-import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js';
-import { createEngine } from './core/engine.js';
+} from './core/diplomacy.js?rev=protected-grove-v1';
+import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
+import {
+  advanceHumanSystem,
+  growOffspringRecords,
+  nurtureOffspring,
+  resolveHumanDecision,
+  updateProtectionProgress,
+} from './core/humans.js?rev=protected-grove-v1';
+import { createEngine } from './core/engine.js?rev=protected-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=action-first-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
-import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
+import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=neighbor-identity-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
+import { renderForestScene } from './ui/canvas.js?rev=protected-grove-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=protected-grove-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=protected-grove-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -249,6 +255,7 @@ const ACTIONS = createActions({
   requestHelpFromAllies,
   shadeRivalAction,
   rootDominionAction,
+  nurtureOffspringAction: nurtureOffspring,
   getRelationshipState,
 });
 
@@ -338,7 +345,8 @@ function generateSuccessionChoices(count = 3) {
 
 function continueAsSuccessor(choice) {
   state.offspringPool = Math.max(0, state.offspringPool - 1);
-  state.offspringTrees = Math.max(0, state.offspringTrees - 1);
+  const successor = state.offspringRecords?.find(child => !child.dead);
+  if (successor) successor.dead = true;
   state.health = choice.stats.health;
   state.maxHealth = choice.stats.maxHealth;
   state.branches = choice.stats.branches;
@@ -434,6 +442,8 @@ function makeStartingNeighbors() {
       hostile: false,
       ally: false,
       helpGivenToThem: 0,
+      growthAidReceived: 0,
+      firstAidStageScore: null,
       helpRefusedToThem: 0,
       helpReceivedFromThem: 0,
       timesAskedThemForHelp: 0,
@@ -463,6 +473,7 @@ function growNeighbors() {
       state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.08;
     }
   });
+  growOffspringRecords(state);
 }
 
 function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false) {
@@ -740,7 +751,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
       return;
     }
     const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid helps the ${neighborName} push back ${resolved.option.meta.crisis.title.toLowerCase()}.</p>` : '';
-    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
+    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
     });
@@ -856,22 +867,6 @@ function attemptConnection(s) {
 
 function getNeighborTree(idx) {
   if (idx === 2) return null;
-  if (idx === 0 && state.offspringTrees > 0) {
-    const childStage = getLifeStage(Math.max(120, state.score * 0.2));
-    return {
-      species: state.selectedSpecies || 'Plum',
-      age: Math.max(0.25, childStage.threshold / 2000),
-      health: 0.8,
-      branches: Math.max(1, Math.min(4, Math.floor(childStage.threshold / 300) + 1)),
-      roots: Math.max(2, Math.min(4, Math.floor(childStage.threshold / 300) + 2)),
-      trunk: Math.max(1, Math.min(3, Math.floor(childStage.threshold / 800) + 1)),
-      ally: true,
-      offspring: true,
-      relation: 100,
-      relationName: 'Ally',
-      stageName: childStage.name,
-    };
-  }
   const base = getNeighborAtSlot(idx);
   if (!base) return null;
   const stage = getNeighborStage(base.stageScore);
@@ -1159,6 +1154,17 @@ function applyEventEffects(major, minors) {
 function showEventPhase() {
   setTurnEndBanner('');
   const { major, minors, consequences } = engine.showEventPhase(state);
+  const humanUpdate = state.health > 0 ? advanceHumanSystem(state, {
+    getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
+  }) : {};
+  if (humanUpdate.event) minors.push(humanUpdate.event);
+  if (humanUpdate.rumor) {
+    addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
+    state.pendingInteractions.push(done => showModal(humanUpdate.rumor.title, `<p><em>${humanUpdate.rumor.body}</em></p>`, done));
+  }
+  if (humanUpdate.decision) state.pendingInteractions.push(done => queueHumanDecision(humanUpdate.decision, done));
   if (major?.title) addLog(`Major event: ${major.title}.`);
   minors.forEach(event => event?.text && addLog(event.text));
   consequences.forEach(text => text && addLog(text));
@@ -1176,6 +1182,33 @@ function showEventPhase() {
       },
     });
   });
+}
+
+function queueHumanDecision(decision, done) {
+  const choices = decision.options
+    .filter(option => option.affordable !== false)
+    .map(option => ({
+      label: option.label,
+      onChoose: () => {
+        const outcome = resolveHumanDecision(state, decision, option.id, { random: Math.random });
+        const logBody = outcome.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        addLog(`${outcome.title}: ${logBody}`);
+        updateAlliesCount();
+        updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
+        updateScore();
+        updateUI();
+        render();
+        const body = outcome.victory ? renderVictoryBody({ score: state.score }) : outcome.body;
+        showModal(outcome.title, body, () => {
+          if (outcome.fatal || state.health <= 0) {
+            handleDeath();
+            return;
+          }
+          done?.();
+        });
+      },
+    }));
+  showChoiceModal(decision.title, decision.body, choices);
 }
 
 function handleSpringViability(onContinue) {
@@ -1224,6 +1257,7 @@ function initCollapsibleGroups() {
 }
 
 function updateUI() {
+  updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
   return updateHudUI({
     els,
     state,

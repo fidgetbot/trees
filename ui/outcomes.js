@@ -8,18 +8,17 @@ export function renderSpringSeedFateBody({ prevSeeds, fate }) {
 
 export function renderVictoryBody({ score }) {
   return `
-    <h2>🌳 You have become Ancient! 🌳</h2>
-    <p>Your roots run deep. Your canopy towers above the forest.</p>
-    <p>You have successfully established yourself in the ecosystem.</p>
-    <p><em>Your offspring will flourish here and provide shade for generations to come.</em></p>
+    <h2>Your Grove Is Protected</h2>
+    <p>You grew ancient, and you helped two other trees become great and resilient beside you.</p>
+    <p>Humans recognize the grove as a living ecosystem rather than a source of timber. Its boundaries are protected from cutting.</p>
+    <p><em>Your roots remain connected. Your descendants will inherit a forest that is still alive.</em></p>
     <p>Current Score: <strong>${score}</strong></p>
-    <p>Your milestone has been added to the grove records.</p>
     <p><small>Continue playing to see how long your lineage lasts...</small></p>
   `;
 }
 
 export function renderGameOverBody({ flavor, score }) {
-  return `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${score}</strong></p><p>Your run has been added to the grove records.</p>`;
+  return `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${score}</strong></p>`;
 }
 
 export function renderSuccessionBody({ generated }) {

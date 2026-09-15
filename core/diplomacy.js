@@ -7,7 +7,9 @@ export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelati
 }
 
 export function updateAlliesCount(state, getRelationshipState) {
-  state.allies = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally').length + state.offspringTrees;
+  state.alliedNeighbors = state.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally').length;
+  if (Array.isArray(state.offspringRecords)) state.offspringTrees = state.offspringRecords.filter(child => !child.dead).length;
+  state.allies = state.alliedNeighbors + state.offspringTrees;
   return state.allies;
 }
 
@@ -43,6 +45,9 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   }
 
   neighbor.helpGivenToThem += 1;
+  neighbor.growthAidReceived = (neighbor.growthAidReceived || 0) + 1;
+  if (neighbor.firstAidStageScore == null) neighbor.firstAidStageScore = neighbor.stageScore;
+  neighbor.stageScore += crisis ? 120 : 180;
   neighbor.lastAidMemory = 'you-gave-freely';
   const adjusted = getAdjustedRelationshipDelta(state, crisis ? 10 : 8);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjusted));

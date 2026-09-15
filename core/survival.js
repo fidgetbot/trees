@@ -42,6 +42,7 @@ export function deathFlavorForCause(cause) {
     insects: 'Too many mouths found you tender. Piece by piece, stress and hunger hollowed out your strength.',
     frost: 'Cold entered the living places within you and would not leave. By thaw, too much had already died.',
     chemicals: 'Hostile compounds burned through the delicate balance that kept you alive. The soil itself became an enemy.',
+    logging: 'Human tools cut through the wood that held your years. Your crown fell, and your voice vanished from the fungal network.',
     decline: 'Season by season, loss outweighed recovery. At last, your strength failed, and the forest closed over your absence.',
   };
   return map[cause] || map.decline;
