@@ -128,7 +128,7 @@ Current browser HUD behavior:
 - species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
 - the map camera begins at a macro scale with the painterly, species-tinted seed and soil horizon centered both horizontally and vertically; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and later stages keep the upper edge just above the player's current height so neighboring trees reveal progressively more structure as the player grows
-- the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; closing the explorer always returns to the centered stage-appropriate default map
+- the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
 - the actions-remaining indicator appears above the action list
 - when the player is out of actions, the HUD hides that indicator instead of redundantly showing both “no actions remaining” and the end-turn prompt
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
@@ -136,7 +136,7 @@ Current browser HUD behavior:
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
-- all visible trees on the map are labeled with species and growth stage on the primary line; the player is identified as “(You)” beneath it, offspring use the parent species, and Canvas label type scales up at narrow display widths for phone readability
+- all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
 - Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
 
 ### Seasonal Constraints

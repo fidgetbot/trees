@@ -292,6 +292,7 @@ canvas {
 .map-explorer-open { overflow: hidden; }
 .map-explorer-viewport.dragging { cursor: grabbing; user-select: none; }
 .map-explorer-viewport canvas { width: 4096px; height: 1200px; max-width: none; border-radius: 0; }
+.map-explorer-viewport canvas.zoom-preview { will-change: transform; }
 .map-stat {
   display: flex;
   align-items: baseline;
