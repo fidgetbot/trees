@@ -1,6 +1,7 @@
 export function renderActionPanels({
   els,
   categories,
+  unavailableActions = [],
   futureActions,
   categoryNames,
   onUseAction,
@@ -41,6 +42,27 @@ export function renderActionPanels({
     details.appendChild(wrap);
     els.actionsList.appendChild(details);
   });
+
+  if (unavailableActions.length > 0) {
+    const section = document.createElement('section');
+    section.className = 'unavailable-actions';
+    section.setAttribute('aria-label', 'Other actions available at this growth stage');
+    section.innerHTML = '<h4>Other actions at this stage</h4>';
+    const wrap = document.createElement('div');
+    wrap.className = 'unavailable-actions-list';
+    unavailableActions.forEach(({ action, costsHtml, reason }) => {
+      const row = document.createElement('div');
+      row.className = 'unavailable-action';
+      row.innerHTML = `
+        <div class="unavailable-action-title"><strong>${action.name}</strong><span>${action.icon}</span></div>
+        <p>${action.help}</p>
+        ${costsHtml}
+        <p class="unavailable-reason">${reason}.</p>`;
+      wrap.appendChild(row);
+    });
+    section.appendChild(wrap);
+    els.actionsList.appendChild(section);
+  }
 
   if (futureActions.length > 0) {
     const details = document.createElement('details');

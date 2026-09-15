@@ -341,6 +341,71 @@ canvas {
 .actions-banner.no-actions .actions-count {
   color: var(--warn);
 }
+.growth-hint {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(134, 239, 172, 0.18);
+  border-radius: 9px;
+  background: rgba(134, 239, 172, 0.07);
+  color: #bbf7d0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.actions-header { margin-bottom: 10px; }
+.status-header {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,0.09);
+}
+.unavailable-actions {
+  padding-top: 4px;
+}
+.unavailable-actions > h4 {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.unavailable-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.unavailable-action {
+  padding: 9px 10px;
+  border-left: 2px solid rgba(255,255,255,0.12);
+  border-radius: 0 7px 7px 0;
+  background: rgba(255,255,255,0.025);
+  color: var(--muted);
+  opacity: 0.66;
+}
+.unavailable-action-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+.unavailable-action p {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.unavailable-action .action-costs {
+  margin: 6px 0 4px;
+}
+.unavailable-reason {
+  color: var(--bad);
+}
+.action-unlock {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--good);
+  border-radius: 0 8px 8px 0;
+  background: rgba(134, 239, 172, 0.08);
+}
 .turn-end-banner {
   margin: -4px 0 16px;
   padding: 12px 14px;

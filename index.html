@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
-  <link rel="stylesheet" href="styles.css?rev=compact-map-labels-v1" />
+  <link rel="stylesheet" href="styles.css?rev=action-first-v1" />
 </head>
 <body>
   <div id="app">
@@ -34,13 +34,21 @@
         <button id="hud-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize status">−</button>
         <button id="hud-restore" class="panel-chip hidden" type="button">📊 Status</button>
         <div id="hud-content" class="panel-content">
-        <div class="hud-header">
-          <h2>Status</h2>
+        <div id="turn-end-banner" class="turn-end-banner hidden" aria-live="polite"></div>
+        <div id="growth-hint" class="growth-hint">Next growth: Take your first action: grow roots</div>
+        <div class="hud-header actions-header">
+          <h2>Actions</h2>
           <span id="phase-indicator" class="phase-pill">Action Phase</span>
         </div>
+        <div id="actions-banner" class="actions-banner">
+          <span class="actions-count" id="actions-remaining">3 actions remaining</span>
+        </div>
+        <div id="actions-list" class="actions-list"></div>
+
+        <div class="hud-header status-header">
+          <h2>Status</h2>
+        </div>
         <div id="species-badge" class="species-badge"></div>
-        <div id="turn-end-banner" class="turn-end-banner hidden" aria-live="polite"></div>
-        <div id="growth-hint" class="species-badge">Next growth: Take your first action: grow roots</div>
         <div class="stats-container">
           <div class="stat-group" data-group="resources">
             <h4 class="stat-group-title">📊 Resources</h4>
@@ -129,12 +137,6 @@
           
         </div>
 
-        <h3>Actions</h3>
-        <div id="actions-banner" class="actions-banner">
-          <span class="actions-count" id="actions-remaining">3 actions remaining</span>
-        </div>
-        <div id="actions-list" class="actions-list"></div>
-
         <h3>Log</h3>
         <div id="log" class="log"></div>
         </div>
@@ -186,6 +188,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=neighbor-identity-v1"></script>
+  <script type="module" src="main.js?rev=action-first-v1"></script>
 </body>
 </html>

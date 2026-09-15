@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js';
+import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js?rev=action-first-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -52,7 +52,7 @@ import {
 } from './core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js';
 import { createEngine } from './core/engine.js';
-import { renderActionPanels } from './ui/actions.js';
+import { renderActionPanels } from './ui/actions.js?rev=action-first-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
@@ -195,8 +195,11 @@ function tryAdvanceLifeStage(onContinue) {
     state.lifeStage = next;
     resetStageProgressCounters();
     addLog(`You have grown. You are now a ${next.name}.`);
+    const unlockedActions = next.unlocks.map(key => ACTIONS.find(action => action.key === key)).filter(Boolean);
+    unlockedActions.forEach(action => addLog(`You can now ${action.name}: ${action.help}`));
+    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${action.help}</p>`).join('');
     showFeedback(`You are now a ${next.name}!`, 'success');
-    showModal(next.name, `<p><em>${next.popup}</em></p>`, () => {
+    showModal(next.name, `<p><em>${next.popup}</em></p>${unlockHtml}`, () => {
       updateScore();
       updateUI();
       render();
@@ -916,6 +919,7 @@ function renderActions() {
 
   // Group actions by category
   const categories = { growth: [], defense: [], diplomacy: [], reproduction: [] };
+  const unavailableActions = [];
   const futureActions = [];
 
   ACTIONS.forEach(action => {
@@ -932,7 +936,7 @@ function renderActions() {
     });
     if (availability.hidden) return;
 
-    const { scaledCost, usable, reason } = availability;
+    const { scaledCost, usable, unlocked, reason } = availability;
 
     const sunRequired = scaledCost.sunlight || 0;
     const waterRequired = scaledCost.water || 0;
@@ -956,6 +960,8 @@ function renderActions() {
       if (categories[action.category]) {
         categories[action.category].push(actionData);
       }
+    } else if (unlocked) {
+      unavailableActions.push({ ...actionData, reason });
     } else {
       futureActions.push({ ...actionData, reason });
     }
@@ -966,6 +972,7 @@ function renderActions() {
   renderActionPanels({
     els,
     categories,
+    unavailableActions,
     futureActions,
     categoryNames: CATEGORY_NAMES,
     noUsableActions,

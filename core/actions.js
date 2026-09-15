@@ -28,6 +28,11 @@ export function getActionAvailability({
   const allowedSeasons = seasonalActions[action.key];
   const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeasonName);
   const usable = prereqOk && affordable && state.actions > 0 && !seasonLocked && unlocked;
+  const shortfalls = {
+    sunlight: Math.max(0, (scaledCost.sunlight || 0) - state.sunlight),
+    water: Math.max(0, (scaledCost.water || 0) - state.water),
+    nutrients: Math.max(0, (scaledCost.nutrients || 0) - state.nutrients),
+  };
 
   let reason = null;
   if (!usable) {
@@ -37,7 +42,15 @@ export function getActionAvailability({
       if (action.key === 'connect') reason = 'Your roots must reach deeper first';
       else if (action.key === 'requestHelp') reason = state.allies < 1 ? 'You need an ally to call on' : 'You would only ask for help when wounded';
       else reason = 'The moment is not right yet';
-    } else if (!affordable || state.actions <= 0) reason = 'You lack the resources right now';
+    } else if (state.actions <= 0) reason = 'No actions remain this turn';
+    else if (!affordable) {
+      const missing = [
+        ['sunlight', 'sunlight', shortfalls.sunlight],
+        ['water', 'water', shortfalls.water],
+        ['nutrient', 'nutrients', shortfalls.nutrients],
+      ].filter(([, , amount]) => amount > 0).map(([singular, plural, amount]) => `${amount} more ${amount === 1 ? singular : plural}`);
+      reason = `You need ${missing.join(' and ')}`;
+    }
     else reason = 'Unavailable';
   }
 
@@ -49,6 +62,7 @@ export function getActionAvailability({
     unlocked,
     allowedSeasons,
     seasonLocked,
+    shortfalls,
     usable,
     reason,
   };
