@@ -134,6 +134,7 @@ Current browser HUD behavior:
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
 - health and allies now appear under Resources instead of a separate Ecology section, with only a subtle divider separating spendable resources from status values
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
+- diplomacy choices retain each neighbor's persistent state index after filtering; action results, relationship text, map labels, and fungal root links must all resolve to that same neighbor and map slot
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
@@ -342,6 +343,8 @@ Rendering, modal prose, browser event wiring, and other presentation concerns be
 
 ### Shared decisions use one normalized shape
 Interactive browser/sim choice flows should prefer a normalized shared decision object shape, with per-flow details attached under `decision.meta` / `option.meta` and stable selection identifiers such as `option.id` and `option.targetIndex`. Frontends may render or choose from that data differently, but they should not depend on ad hoc per-flow field names.
+
+Filtering ineligible or dead neighbors must never renumber targets. `option.targetIndex` remains the selected neighbor's index in persistent `state.neighbors`, so later resolution and rendering cannot silently substitute another species.
 
 ### Shared decision execution should dispatch through one boundary
 When an interactive decision has been built, browser and simulation code should submit a chosen `option.id` back through a shared resolver/dispatcher rather than calling per-flow resolver functions directly. The adapter layer may still decide how to present or pick options, but execution and outcome production should flow through one shared decision-running boundary. Event decisions and diplomacy/action decisions may currently dispatch through separate shared boundaries, but direct adapter-to-per-flow execution should continue shrinking over time.

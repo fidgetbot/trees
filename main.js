@@ -59,7 +59,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=compact-map-labels-v1';
+import { renderForestScene } from './ui/canvas.js?rev=neighbor-identity-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js';
 
@@ -864,6 +864,7 @@ function getNeighborTree(idx) {
       trunk: Math.max(1, Math.min(3, Math.floor(childStage.threshold / 800) + 1)),
       ally: true,
       offspring: true,
+      relation: 100,
       relationName: 'Ally',
       stageName: childStage.name,
     };
@@ -879,6 +880,7 @@ function getNeighborTree(idx) {
     roots: Math.max(2, Math.min(6, Math.floor(stage.threshold / 300) + 2)),
     trunk: Math.max(1, Math.min(4, Math.floor(stage.threshold / 700) + 1)),
     ally: getRelationshipState(base.relation).name === 'Ally',
+    relation: base.relation,
     relationName: getRelationshipState(base.relation).name,
     stageName: stage.name,
   };

@@ -108,13 +108,14 @@ export function buildConnectionDecision(state, deps = {}) {
     title: 'Reach toward which neighbor?',
     body: 'Choose a neighboring tree to contact through the soil.',
     options: state.neighbors
-      .filter(neighbor => !neighbor.dead)
-      .map((neighbor, index) => {
+      .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
+      .filter(({ neighbor }) => !neighbor.dead)
+      .map(({ neighbor, targetIndex }) => {
         const relationName = getRelationshipState(neighbor.relation).name;
         return {
-          id: `neighbor-${index}`,
+          id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — ${relationName}`,
-          targetIndex: index,
+          targetIndex,
           meta: {
             species: neighbor.species,
             relationName,
@@ -137,15 +138,16 @@ export function buildAidDecision(state, deps = {}) {
     title: 'Offer aid to which ally?',
     body: 'Choose an allied tree to support.',
     options: state.neighbors
-      .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
-      .map((neighbor, index) => {
+      .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
+      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+      .map(({ neighbor, targetIndex }) => {
         const crisis = (neighbor.activeCrises || [])[0] || null;
         const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
         const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
         return {
-          id: `neighbor-${index}`,
+          id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — Ally`,
-          targetIndex: index,
+          targetIndex,
           affordable: state.nutrients >= nutrientCost && state.water >= waterCost,
           meta: {
             species: neighbor.species,
@@ -170,17 +172,18 @@ export function buildHelpRequestDecision(state, deps = {}) {
     title: 'Ask an ally for help',
     body: 'Choose which allied tree you are asking to support you.',
     options: state.neighbors
-      .filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
-      .map((neighbor, index) => {
+      .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
+      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+      .map(({ neighbor, targetIndex }) => {
         const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
         const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
         let toneHint = 'steady';
         if (favorBalance < -2) toneHint = 'strained';
         else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
         return {
-          id: `neighbor-${index}`,
+          id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — Ally`,
-          targetIndex: index,
+          targetIndex,
           meta: {
             species: neighbor.species,
             relationName: 'Ally',
@@ -307,8 +310,9 @@ export function buildAggressionDecision(state, kind, deps = {}) {
   const { getRelationshipState } = deps;
 
   const options = state.neighbors
-    .filter(neighbor => !neighbor.dead)
-    .map((neighbor, index) => {
+    .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
+    .filter(({ neighbor }) => !neighbor.dead)
+    .map(({ neighbor, targetIndex }) => {
       const relationName = getRelationshipState(neighbor.relation).name;
       const alreadyContested = relationName === 'Rival' || relationName === 'Hostile';
       const requiresWarning = relationName === 'Friendly' || relationName === 'Ally';
@@ -327,9 +331,9 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           };
 
       return {
-        id: `neighbor-${index}`,
+        id: `neighbor-${targetIndex}`,
         label: `${neighbor.species} — ${relationName}`,
-        targetIndex: index,
+        targetIndex,
         requiresConfirmation: requiresWarning,
         confirmation: requiresWarning ? {
           title: 'Escalate against this tree?',

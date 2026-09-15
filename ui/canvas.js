@@ -21,7 +21,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='#000'; line(ctx,0,groundY,w,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
   trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera}));
-  if(camera.rank>=2)drawFungalNetwork(ctx,positions,groundY,state.allies);
+  if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
   trees.filter(tree=>(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
 }
@@ -66,9 +66,15 @@ function cameraFor(state,stage){
 function background(ctx,season){const g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,season.top);g.addColorStop(1,season.bottom);return g}
 function line(ctx,x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 
-function drawFungalNetwork(ctx,positions,groundY,allies){
-  if(!allies)return; const linked=[0,1,3,4].slice(0,allies); ctx.strokeStyle='rgba(180,220,255,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
-  linked.forEach(index=>{const x=positions[index],y=groundY+70+index*5;ctx.beginPath();ctx.moveTo(positions[2],groundY+30);ctx.bezierCurveTo(positions[2]-(positions[2]-x)*.3,groundY+70,x+(positions[2]-x)*.3,y-20,x,y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
+function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
+  const player=trees.find(tree=>tree.isPlayer),linked=trees.filter(tree=>{
+    const neighbor=tree.neighbor;
+    if(!neighbor||neighbor.dead)return false;
+    return neighbor.offspring||neighbor.relationName==='Ally'||getRelationshipState(neighbor.relation).name==='Ally';
+  });
+  if(!player||!linked.length)return;
+  ctx.strokeStyle='rgba(180,220,255,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  linked.forEach(tree=>{const x=tree.x,y=groundY+70+tree.index*5;ctx.beginPath();ctx.moveTo(player.x,groundY+30);ctx.bezierCurveTo(player.x-(player.x-x)*.3,groundY+70,x+(player.x-x)*.3,y-20,x,y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
 function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera}){
