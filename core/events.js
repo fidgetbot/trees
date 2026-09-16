@@ -248,7 +248,7 @@ export function resolvePendingStartOfTurnEffects(state) {
 }
 
 export function buildChemicalDefenseDecision(state, deps = {}) {
-  const { computeCurrentLifeStage } = deps;
+  const { computeCurrentLifeStage, threat: preservedThreat = null } = deps;
   const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
   const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
 
@@ -308,7 +308,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
     ];
   }
 
-  const threat = threats[Math.floor(Math.random() * threats.length)];
+  const threat = preservedThreat || threats[Math.floor(Math.random() * threats.length)];
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
   const deficits = {
     sunlight: Math.max(0, DEFENSE_COST.sunlight - state.sunlight),
@@ -369,7 +369,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
       };
       return {
         title: threat.title,
-        body: `<p>You do not have enough reserves to mount a chemical defense. The danger will crest next turn.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
+        body: `<p>You do not have enough reserves to mount a chemical defense. You have not contained the threat.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
         threatStatus: 'growing',
       };
     }
@@ -395,7 +395,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   };
   return {
     title: threat.title,
-    body: `<p>You conserve your reserves. The danger is not gone; it will break over you next turn.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
+    body: `<p>You conserve your reserves. You have not contained the threat.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
     threatStatus: 'growing',
   };
 }
@@ -600,6 +600,71 @@ export function resolveSharedDecision(state, decision, choiceId, deps = {}) {
   throw new Error(`Unsupported shared decision kind: ${decision.kind}`);
 }
 
+export function getAmbientFlavorPool(stageName) {
+  if (stageName === 'Seed') {
+    return [
+      'A beetle trundles past your seed, unaware of the life within.',
+      'A gentle rain soaks the earth above your seed, promising moisture to come.',
+      'Ants march in lines across the soil surface above you.',
+      'The soil shifts slightly as a mole tunnels past, deep below.',
+    ];
+  }
+  if (stageName === 'Sprout' || stageName === 'Seedling') {
+    return [
+      'A ladybird climbs your tender stem before opening its wings.',
+      'Earthworms turn the soil beside your young roots.',
+      'A small spider anchors a strand of silk between your first leaves.',
+      'A gentle breeze trembles through your new leaves.',
+      'Ants explore the soil around your widening roots.',
+    ];
+  }
+  if (stageName === 'Sapling') {
+    return [
+      'A robin pauses on one of your young branches.',
+      'A fox rests briefly in the small patch of shade you cast.',
+      'Rain beads along your bark and gathers at your roots.',
+      'A gentle breeze moves through your growing crown.',
+    ];
+  }
+  if (stageName === 'Small Tree') {
+    return [
+      'Two crows inspect your branches as a possible nesting place.',
+      'A squirrel races along your bark and vanishes into the canopy.',
+      'A fox sleeps for an afternoon in your shade.',
+      'Robins tug worms from the damp soil near your roots.',
+    ];
+  }
+  return [
+    'Birdsong moves through the shelter of your broad canopy.',
+    'A squirrel crosses your oldest branches without touching the ground.',
+    'A fox sleeps for an afternoon in the deep shade you cast.',
+    'Robins tug worms from the rich soil among your roots.',
+    'Small lives shelter in the hollows and folds of your bark.',
+  ];
+}
+
+export const WINTER_PRECIPITATION = [
+  { text: 'Soft snow settles around your roots, holding a little moisture for the thaw. (+1 water)', water: 1, effect: 'snow' },
+  { text: 'Icicles form along your branches, then melt into the soil during a pale afternoon. (+1 water)', water: 1, effect: 'snow' },
+  { text: 'A brief winter rain darkens the frozen soil. (+2 water)', water: 2, effect: 'rain' },
+];
+
+export function applyHeavySnow(state, events, stageByName, random = Math.random) {
+  const isVulnerable = state.branches > 1 && state.lifeStage.rank >= stageByName['Sapling'].rank;
+  if (!isVulnerable || random() >= 0.04) return false;
+  state.branches -= 1;
+  events.push({ text: 'Heavy snow builds until one burdened branch gives way. (-1 branch)', effect: 'damage' });
+  return true;
+}
+
+export function getLivingNeighborsByDisposition(state, getRelationshipState) {
+  const living = state.neighbors.filter(neighbor => !neighbor.dead);
+  return {
+    allied: living.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Ally'),
+    contested: living.filter(neighbor => ['Rival', 'Hostile'].includes(getRelationshipState(neighbor.relation).name)),
+  };
+}
+
 export function rollMinorEvents(state, deps) {
   const {
     currentSeasonName,
@@ -631,20 +696,32 @@ export function rollMinorEvents(state, deps) {
   }
   processSeasonalReproduction(state, events, () => currentSeasonName);
   if (Math.random() < 0.25) { state.nutrients += 1; events.push({ text: 'Forest animals left nitrogen-rich gifts near your trunk. (+1 nutrient)', effect: 'nutrients' }); }
-  if (Math.random() < 0.25) { state.water += 2; state.eventModifiers.rainChain += 1; events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' }); if (state.eventModifiers.rainChain >= 3) { state.health -= 1; recordDamage(1, 'blight'); events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' }); } } else state.eventModifiers.rainChain = 0;
+  if (Math.random() < 0.25) {
+    if (currentSeasonName === 'Winter') {
+      const weather = randomChoice(WINTER_PRECIPITATION);
+      state.water += weather.water;
+      state.eventModifiers.rainChain = 0;
+      events.push({ text: weather.text, effect: weather.effect });
+    } else {
+      state.water += 2;
+      state.eventModifiers.rainChain += 1;
+      events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
+      if (state.eventModifiers.rainChain >= 3) {
+        state.health -= 1;
+        recordDamage(1, 'blight');
+        events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' });
+      }
+    }
+  } else state.eventModifiers.rainChain = 0;
+  if (currentSeasonName === 'Winter') applyHeavySnow(state, events, STAGE_BY_NAME);
   if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) { state.branches -= 1; events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' }); }
-  const alliedNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Ally');
-  const hostileNeighbors = state.neighbors.filter(n => getRelationshipState(n.relation).name === 'Hostile');
-  const contestedNeighbors = state.neighbors.filter(n => ['Rival', 'Hostile'].includes(getRelationshipState(n.relation).name));
+  const { allied: alliedNeighbors, contested: contestedNeighbors } = getLivingNeighborsByDisposition(state, getRelationshipState);
   if (alliedNeighbors.length > 0) { advanceAllyCrises(events); checkAllyBetrayal(events); }
   if (contestedNeighbors.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(contestedNeighbors), events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
   if (Math.random() < 0.12) {
     const currentStage = computeCurrentLifeStage().name;
-    const early = ['A beetle trundles past your seed, unaware of the life within.','Earthworms turn the soil nearby, aerating the ground you will soon reach for.','A gentle rain soaks the earth above you, promising moisture to come.','Ants march in lines across the soil surface, busy with their own purposes.','The soil shifts slightly as a mole tunnels past, deep below.'];
-    const mid = ['Two hopeful crows have chosen your branches to make a nest for their young.','A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.','A fox sleeps for an afternoon in the small shade you cast.','Robins tug worms from the damp soil near your roots.','A gentle breeze rustles your new leaves.'];
-    const late = ['Two hopeful crows have chosen your branches to make a nest for their young.','A squirrel vanishes along your bark with one of your seeds, perhaps to lose it somewhere generous.','Bees drift lazily through your flowers, dusted gold with pollen.','A fox sleeps for an afternoon in the shade you cast.','Robins tug worms from the damp soil near your roots.'];
-    const flavor = (currentStage === 'Seed' || currentStage === 'Sprout' || currentStage === 'Seedling') ? randomChoice(early) : (currentStage === 'Sapling' || currentStage === 'Small Tree') ? randomChoice(mid) : randomChoice(late);
+    const flavor = randomChoice(getAmbientFlavorPool(currentStage));
     events.push({ text: flavor, effect: 'flavor' });
   }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }

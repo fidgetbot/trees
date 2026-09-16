@@ -23,6 +23,15 @@ export const SEASONAL_ACTIONS = {
   mastYear: ['Spring'],
 };
 
+// A Sapling develops its new capabilities across its first three seasons instead
+// of receiving the entire midgame action set at once.
+export const PROGRESSIVE_ACTION_UNLOCKS = {
+  taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
+  canopy: { stage: 'Sapling', turnsInStage: 3, label: 'after 1 season as a Sapling' },
+  aidAlly: { stage: 'Sapling', turnsInStage: 6, label: 'after 2 seasons as a Sapling' },
+  shadeRival: { stage: 'Sapling', turnsInStage: 9, label: 'after 3 seasons as a Sapling' },
+};
+
 export const RELATIONSHIP_STATES = {
   ALLY: { min: 50, name: 'Ally', color: '#4CAF50' },
   FRIENDLY: { min: 10, name: 'Friendly', color: '#8BC34A' },

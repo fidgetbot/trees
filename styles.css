@@ -565,6 +565,38 @@ canvas {
   font-size: 12px;
   color: var(--muted);
 }
+.season-guide {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted);
+  font-size: 11px;
+}
+.season-guide summary {
+  cursor: pointer;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+.season-guide-grid {
+  display: grid;
+  gap: 2px;
+  margin-top: 7px;
+}
+.season-guide-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.season-guide-row.current {
+  background: rgba(125,211,252,0.09);
+  color: var(--text);
+}
+.season-guide p {
+  margin: 7px 6px 2px;
+  line-height: 1.35;
+}
 
 /* Tooltip */
 .tooltip {

@@ -64,6 +64,7 @@ export function updateHudUI({
   state,
   currentSeasonName,
   currentStage,
+  seasons = [],
   currentStageRequirements,
   affordableActions,
   speciesBadgeHtml,
@@ -115,6 +116,18 @@ export function updateHudUI({
   document.getElementById('allies').textContent = state.allies;
   document.getElementById('health').textContent = state.health;
   document.getElementById('max-health').textContent = `/ ${state.maxHealth}`;
+
+  const seasonGuideSummary = document.getElementById('season-guide-summary');
+  const seasonGuideGrid = document.getElementById('season-guide-grid');
+  if (seasonGuideSummary && seasonGuideGrid && seasons.length) {
+    const current = seasons.find(season => season.name === currentSeasonName) || seasons[0];
+    const pct = factor => `${Math.round(factor * 100)}%`;
+    seasonGuideSummary.textContent = `Seasonal gathering · ${current.name}: ${pct(current.factorSun)} light, ${pct(current.factorWater)} water`;
+    seasonGuideGrid.innerHTML = seasons.map(season => `
+      <div class="season-guide-row${season.name === currentSeasonName ? ' current' : ''}">
+        <strong>${season.name}</strong><span>☀️ ${pct(season.factorSun)}</span><span>💧 ${pct(season.factorWater)}</span>
+      </div>`).join('');
+  }
 
   if (els.actionsRemaining) {
     els.actionsRemaining.textContent = `(${state.actions} remaining)`;

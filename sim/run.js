@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { createEngine } from '../core/engine.js';
 import { createSeededRng } from '../core/random.js';
-import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, getRelationshipState } from '../core/constants.js';
+import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
-import { createActions, getActionAvailability } from '../core/actions.js';
+import { createActions, getActionAvailability, getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
-import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
+import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 import {
   advanceHumanSystem,
@@ -175,11 +175,11 @@ function getScaledCost(state, actionKey, baseCost) {
 }
 
 function isActionUnlocked(state, actionKey) {
-  return LIFE_STAGES.some(stage => stage.rank <= state.lifeStage.rank && stage.unlocks.includes(actionKey));
+  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
 }
 
 function updateNeighborAliveState(state, neighbor) {
-  if (neighbor.health <= 0) neighbor.dead = true;
+  markNeighborDead(state, neighbor, 'simulation hardship', { getRelationshipState });
   updateAlliesCount(state, getRelationshipState);
 }
 
@@ -369,6 +369,7 @@ function createHeadlessGame(seed, speciesName) {
       advanceAllyCrises: () => {},
       checkAllyBetrayal: () => false,
       queueHostileTreeThreat: (neighbor, events) => {
+        if (!neighbor || neighbor.dead) return;
         const decision = buildHostileEncroachmentDecision(state, neighbor, {
           getRelationshipState,
           compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
@@ -376,11 +377,16 @@ function createHeadlessGame(seed, speciesName) {
         const prompt = describeDecisionPrompt(decision);
         if (prompt) events.push(prompt);
         state.pendingInteractions.push((done) => {
-          const choice = decision.options.find(option => option.id === 'chemical-battle' && option.affordable)
-            || decision.options.find(option => option.id === 'diplomacy' && option.affordable)
-            || decision.options.find(option => option.id === 'endure');
+          if (neighbor.dead) return done?.();
+          const currentDecision = buildHostileEncroachmentDecision(state, neighbor, {
+            getRelationshipState,
+            compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
+          });
+          const choice = currentDecision.options.find(option => option.id === 'chemical-battle' && option.affordable)
+            || currentDecision.options.find(option => option.id === 'diplomacy' && option.affordable)
+            || currentDecision.options.find(option => option.id === 'endure');
           if (!choice) return done?.();
-          resolveSharedDecision(state, decision, choice.id, {
+          resolveSharedDecision(state, currentDecision, choice.id, {
             getRelationshipState,
             compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
             applyRelationshipDelta: (target, delta) => { target.relation = Math.max(-100, Math.min(100, target.relation + delta)); },
@@ -396,10 +402,14 @@ function createHeadlessGame(seed, speciesName) {
         const prompt = describeDecisionPrompt(decision);
         if (prompt) events.push(prompt);
         state.pendingInteractions.push((done) => {
-          const choice = decision.options.find(option => option.id === 'defend' && option.affordable)
-            || decision.options.find(option => option.id === 'conserve');
+          const currentDecision = buildChemicalDefenseDecision(state, {
+            computeCurrentLifeStage: () => computeCurrentLifeStage(state),
+            threat: decision.meta?.threat,
+          });
+          const choice = currentDecision.options.find(option => option.id === 'defend' && option.affordable)
+            || currentDecision.options.find(option => option.id === 'conserve');
           if (!choice) return done?.();
-          resolveSharedDecision(state, decision, choice.id, {
+          resolveSharedDecision(state, currentDecision, choice.id, {
             recordDamage: (amount, cause) => recordDamageForState(state, amount, cause),
           });
           done?.();
@@ -450,6 +460,7 @@ function createHeadlessGame(seed, speciesName) {
           getScaledCost: cost => getScaledCost(state, action.key, cost),
           canAfford: cost => canAfford(state, cost),
           isActionUnlocked: key => isActionUnlocked(state, key),
+          getUnlockReason: key => getActionUnlockReason(key, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS),
         }),
       }))
       .filter(entry => !entry.availability.hidden && entry.availability.usable);

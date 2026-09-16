@@ -35,6 +35,27 @@ export function getActionUnlockExplanation(action) {
     || `This gives you a new ability: ${action.help.charAt(0).toLowerCase()}${action.help.slice(1)}`;
 }
 
+export function isActionUnlockedForState(actionKey, state, lifeStages, progressiveUnlocks = {}) {
+  const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
+  const currentStage = state.lifeStage;
+  if (!unlockStage || !currentStage || currentStage.rank < unlockStage.rank) return false;
+  const progressive = progressiveUnlocks[actionKey];
+  if (!progressive || currentStage.name !== progressive.stage) return true;
+  return (state.turnsInStage || 0) >= progressive.turnsInStage;
+}
+
+export function getActionUnlockReason(actionKey, state, lifeStages, progressiveUnlocks = {}) {
+  const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
+  if (!unlockStage || !state.lifeStage || state.lifeStage.rank < unlockStage.rank) {
+    return `Awakens at the ${unlockStage?.name || 'next stage'}`;
+  }
+  const progressive = progressiveUnlocks[actionKey];
+  if (progressive && state.lifeStage.name === progressive.stage && (state.turnsInStage || 0) < progressive.turnsInStage) {
+    return `Awakens ${progressive.label}`;
+  }
+  return null;
+}
+
 export function getActionAvailability({
   action,
   state,
@@ -45,6 +66,7 @@ export function getActionAvailability({
   getScaledCost,
   canAfford,
   isActionUnlocked,
+  getUnlockReason,
 }) {
   if (action.hideAt) {
     const hideStage = lifeStages.find(s => s.name === action.hideAt);
@@ -66,7 +88,7 @@ export function getActionAvailability({
 
   let reason = null;
   if (!usable) {
-    if (!unlocked) reason = `Awakens at the ${lifeStages.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
+    if (!unlocked) reason = getUnlockReason?.(action.key) || `Awakens at the ${lifeStages.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
     else if (seasonLocked) reason = `Best attempted in ${allowedSeasons.join('/')}`;
     else if (!prereqOk) {
       if (action.key === 'connect') reason = 'Your roots must reach deeper first';

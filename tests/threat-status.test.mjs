@@ -63,6 +63,8 @@ test('an unanswered chemical threat reports its final damaging conclusion', () =
     const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
     const deferred = resolveChemicalDefenseChoice(s, decision, 'conserve');
     assert.equal(deferred.threatStatus, 'growing');
+    assert.match(deferred.body, /have not contained the threat/i);
+    assert.doesNotMatch(deferred.body, /next turn/i);
     const [resolved] = resolvePendingStartOfTurnEffects(s);
     assert.match(resolved.body, /Threat status: ended after causing damage/);
     assert.equal(s.pendingChemicalThreat, null);

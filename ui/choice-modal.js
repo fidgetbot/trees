@@ -11,6 +11,7 @@ export function showChoiceModalUI(els, title, body, choices) {
     const btn = document.createElement('button');
     btn.className = 'neighbor-choice';
     btn.textContent = choice.label;
+    btn.disabled = choice.disabled === true;
     btn.onclick = () => {
       els.modal.classList.add('hidden');
       els.modalButton.style.display = '';

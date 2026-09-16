@@ -25,6 +25,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   canvas.dataset.groundY=String(groundY);
   ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,groundY);
   ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='#000'; line(ctx,0,groundY,w,groundY);
+  if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
   trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera}));
   drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state);
@@ -99,6 +100,16 @@ function drawNearGround(ctx,w,h,groundY,rank){
     }
   }
   for(let i=0;i<(rank===0?16:8);i++){ctx.fillStyle=i%2?'rgba(151,132,105,.48)':'rgba(43,35,30,.40)';ctx.beginPath();ctx.arc(10+r()*(w-20),groundY+12+r()*depth*.9,.3+r()*.48,0,TAU);ctx.fill()}
+  ctx.restore();
+}
+
+function drawWinterWeather(ctx,w,h,groundY){
+  const r=rng(77213);ctx.save();
+  const snow=ctx.createLinearGradient(0,groundY-4,0,groundY+18);snow.addColorStop(0,'rgba(250,253,255,.94)');snow.addColorStop(1,'rgba(218,231,240,.72)');
+  ctx.fillStyle=snow;ctx.beginPath();ctx.moveTo(0,groundY+13);
+  for(let x=0;x<=w;x+=24){ctx.lineTo(x,groundY+5+Math.sin(x*.035)*3+r()*2)}
+  ctx.lineTo(w,groundY+18);ctx.lineTo(0,groundY+18);ctx.closePath();ctx.fill();
+  for(let i=0;i<46;i++){const x=r()*w,y=8+r()*Math.max(16,groundY-18),radius=.7+r()*1.7;ctx.fillStyle=`rgba(248,252,255,${.42+r()*.42})`;ctx.beginPath();ctx.arc(x,y,radius,0,TAU);ctx.fill()}
   ctx.restore();
 }
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
-  <link rel="stylesheet" href="styles.css?rev=growth-threat-clarity-v1" />
+  <link rel="stylesheet" href="styles.css?rev=season-neighbor-integrity-v1" />
 </head>
 <body>
   <div id="app">
@@ -80,6 +80,11 @@
                 <span class="stat-name">Allies</span>
                 <span class="stat-value" id="allies">0</span>
               </div>
+              <details class="season-guide" id="season-guide">
+                <summary id="season-guide-summary">Seasonal gathering</summary>
+                <div class="season-guide-grid" id="season-guide-grid"></div>
+                <p>Nutrient gathering has no direct seasonal penalty.</p>
+              </details>
             </div>
           </div>
           
@@ -188,6 +193,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=growth-threat-clarity-v1"></script>
+  <script type="module" src="main.js?rev=season-neighbor-integrity-v1"></script>
 </body>
 </html>

@@ -13,6 +13,18 @@ export function updateAlliesCount(state, getRelationshipState) {
   return state.allies;
 }
 
+export function markNeighborDead(state, neighbor, cause = 'hardship', deps = {}) {
+  const { getRelationshipState = () => ({ name: 'Neutral' }) } = deps;
+  if (!neighbor || neighbor.dead || neighbor.health > 0) return { changed: false };
+  const relationship = getRelationshipState(neighbor.relation).name;
+  neighbor.health = 0;
+  neighbor.dead = true;
+  neighbor.ally = false;
+  neighbor.activeCrises = [];
+  neighbor.deathCause = cause;
+  return { changed: true, relationship, cause };
+}
+
 export function compareConflictPower(state, neighbor, getNeighborStage) {
   const yourPower = state.defense + state.rootZones + state.branches + state.trunk + Math.floor(state.leafClusters / 2);
   const neighborStage = getNeighborStage(neighbor.stageScore).rank + 1;
@@ -497,6 +509,7 @@ export function checkAllyBetrayal(state, events, deps) {
   let allyThreatTriggered = false;
 
   for (const neighbor of state.neighbors) {
+    if (neighbor.dead) continue;
     if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
     if (capAllyThreats && allyThreatTriggered) break;
 

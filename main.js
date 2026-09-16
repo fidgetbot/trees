@@ -3,10 +3,11 @@ import {
   LIFE_STAGES,
   STAGE_BY_NAME,
   SEASONAL_ACTIONS,
+  PROGRESSIVE_ACTION_UNLOCKS,
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js';
+} from './core/constants.js?rev=season-neighbor-integrity-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -24,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation } from './core/actions.js?rev=action-heading-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=season-neighbor-integrity-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -37,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=growth-threat-clarity-v1';
+} from './core/events.js?rev=season-neighbor-integrity-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -47,8 +48,9 @@ import {
   buildConnectionDecision,
   buildAidDecision,
   buildHelpRequestDecision,
+  markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=growth-threat-clarity-v1';
+} from './core/diplomacy.js?rev=season-neighbor-integrity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -61,13 +63,13 @@ import { createEngine } from './core/engine.js?rev=protected-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
-import { showChoiceModalUI } from './ui/choice-modal.js';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=growth-threat-clarity-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=resource-compare-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=action-heading-v1';
+import { renderForestScene } from './ui/canvas.js?rev=season-neighbor-integrity-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=season-neighbor-integrity-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=season-neighbor-integrity-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -201,7 +203,11 @@ function tryAdvanceLifeStage(onContinue) {
     state.lifeStage = next;
     resetStageProgressCounters();
     addLog(`You have grown. You are now a ${next.name}.`);
-    const unlockedActions = next.unlocks.map(key => ACTIONS.find(action => action.key === key)).filter(Boolean);
+    const unlockedActions = next.unlocks.map(key => ACTIONS.find(action => action.key === key)).filter(Boolean).filter(action => isActionUnlocked(action.key));
+    state.announcedActionUnlocks ||= [];
+    unlockedActions.forEach(action => {
+      if (!state.announcedActionUnlocks.includes(action.key)) state.announcedActionUnlocks.push(action.key);
+    });
     unlockedActions.forEach(action => addLog(`You can now ${action.name}! ${getActionUnlockExplanation(action)}`));
     const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
     showFeedback(`You are now a ${next.name}!`, 'success');
@@ -215,6 +221,19 @@ function tryAdvanceLifeStage(onContinue) {
     return true;
   }
   return false;
+}
+
+function maybeAnnounceProgressiveActionUnlocks(onContinue) {
+  state.announcedActionUnlocks ||= [];
+  const newlyUnlocked = ACTIONS.filter(action => isActionUnlocked(action.key) && !state.announcedActionUnlocks.includes(action.key));
+  if (!newlyUnlocked.length) return false;
+  newlyUnlocked.forEach(action => {
+    state.announcedActionUnlocks.push(action.key);
+    addLog(`You can now ${action.name}! ${getActionUnlockExplanation(action)}`);
+  });
+  const body = newlyUnlocked.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
+  showModal('New Growth Possibilities', body, onContinue);
+  return true;
 }
 
 
@@ -396,6 +415,7 @@ function showResourcePhase({ quiet = false } = {}) {
     });
     return;
   }
+  if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
   return engine.startTurn(state, {
     addLog,
     presentResources: (gains) => {
@@ -570,18 +590,18 @@ function scaledAidNutrientCost(base = 10, neighbor = null, crisis = null) {
 }
 
 function updateNeighborAliveState(neighbor, cause = 'hardship') {
-  if (!neighbor || neighbor.health > 0) return false;
-  const oldState = getRelationshipState(neighbor.relation).name;
-  neighbor.health = 0;
-  neighbor.relation = -100;
-  neighbor.ally = false;
-  neighbor.dead = true;
-  neighbor.activeCrises = [];
+  const death = markNeighborDead(state, neighbor, cause, { getRelationshipState });
+  if (!death.changed) return false;
   addLog(`The ${neighbor.species} dies from ${cause}.`);
   updateAlliesCount();
-  showModal('Ally Lost', `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health has reached zero, and its roots no longer answer yours.</p><p><strong>Cause:</strong> ${cause}</p>`, () => {
-    continueWithRelationshipChange(neighbor.species, oldState, 'Dead');
-  });
+  const impact = death.relationship === 'Ally'
+    ? 'You lose an ally, its resource contribution, and its place in the protected-grove goal.'
+    : 'It can no longer act, compete, form relationships, or be targeted.';
+  state.pendingInteractions.push(done => showModal(
+    death.relationship === 'Ally' ? 'Ally Tree Dies' : 'Neighbor Tree Dies',
+    `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health reached zero. It is dead, and its roots no longer answer yours.</p><p><strong>Relationship at death:</strong> ${death.relationship}</p><p><strong>Impact:</strong> ${impact}</p><p><strong>Cause:</strong> ${cause}</p>`,
+    done,
+  ));
   return true;
 }
 
@@ -623,24 +643,30 @@ function maybeAddAllyCrisis(neighbor) {
 
 function advanceAllyCrises(events) {
   for (const neighbor of state.neighbors) {
+    if (neighbor.dead) continue;
     if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
     neighbor.activeCrises = neighbor.activeCrises || [];
     if (neighbor.activeCrises.length === 0 && Math.random() < (state.allies === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
     for (const crisis of [...neighbor.activeCrises]) {
       const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
       events.push({ text: `${flavor} Threat status: growing.`, effect: 'warning' });
-      state.pendingInteractions.push((done) => showAllyAidRequest(neighbor, crisis, done));
       crisis.stage += 1;
       neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
       if (neighbor.health <= 0) {
         events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. Threat status: ended after the loss.`, effect: 'damage' });
         updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
+        continue;
       }
+      state.pendingInteractions.push((done) => showAllyAidRequest(neighbor, crisis, done));
     }
   }
 }
 
 function showAllyAidRequest(neighbor, crisis, done) {
+  if (!neighbor || neighbor.dead) {
+    done?.();
+    return;
+  }
   const resIcon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
   const oldState = getRelationshipState(neighbor.relation).name;
   const available = state[crisis.kind];
@@ -887,10 +913,11 @@ function getNeighborTree(idx) {
 }
 
 function isActionUnlocked(actionKey) {
-  const unlockStage = LIFE_STAGES.find(stage => stage.unlocks.includes(actionKey));
-  const currentStage = computeCurrentLifeStage();
-  if (!unlockStage || !currentStage) return false;
-  return currentStage.rank >= unlockStage.rank;
+  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+}
+
+function actionUnlockReason(actionKey) {
+  return getActionUnlockReason(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
 }
 
 function getAffordableActions() {
@@ -930,6 +957,7 @@ function renderActions() {
       getScaledCost,
       canAfford,
       isActionUnlocked,
+      getUnlockReason: actionUnlockReason,
     });
     if (availability.hidden) return;
 
@@ -1059,13 +1087,32 @@ function compareConflictPower(neighbor) {
 }
 
 function queueSharedDecisionInteraction(decision, done) {
+  let currentDecision = decision;
+  if (decision.kind === 'chemical-defense') {
+    currentDecision = buildChemicalDefenseDecision(state, {
+      computeCurrentLifeStage,
+      threat: decision.meta?.threat,
+    });
+  } else if (decision.kind === 'hostile-encroachment') {
+    const neighbor = decision.meta?.neighbor;
+    if (!neighbor || neighbor.dead) {
+      addLog(`The hostile encounter ends because the ${neighbor?.species || 'neighboring tree'} is dead.`);
+      done?.();
+      return;
+    }
+    currentDecision = buildHostileEncroachmentDecision(state, neighbor, {
+      getRelationshipState,
+      compareConflictPower,
+    });
+  }
   showChoiceModal(
-    decision.title,
-    decision.body,
-    decision.options.map(option => ({
+    currentDecision.title,
+    currentDecision.body,
+    currentDecision.options.map(option => ({
       label: option.label,
+      disabled: option.affordable === false,
       onChoose: () => {
-        const outcome = resolveSharedDecision(state, decision, option.id, {
+        const outcome = resolveSharedDecision(state, currentDecision, option.id, {
           getRelationshipState,
           compareConflictPower,
           applyRelationshipDelta,
@@ -1074,7 +1121,7 @@ function queueSharedDecisionInteraction(decision, done) {
         });
         showModal(outcome.title, outcome.body, () => {
           refreshMainView();
-          const neighborName = decision.meta?.neighbor?.species;
+          const neighborName = currentDecision.meta?.neighbor?.species;
           if (neighborName && outcome.oldState && outcome.newState) {
             continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, done);
             return;
@@ -1087,6 +1134,7 @@ function queueSharedDecisionInteraction(decision, done) {
 }
 
 function queueHostileTreeThreat(neighbor, events) {
+  if (!neighbor || neighbor.dead) return;
   const decision = buildHostileEncroachmentDecision(state, neighbor, {
     getRelationshipState,
     compareConflictPower,
@@ -1271,6 +1319,7 @@ function updateUI() {
     state,
     currentSeasonName: currentSeason().name,
     currentStage: computeCurrentLifeStage(),
+    seasons: SEASONS,
     currentStageRequirements: currentStageRequirements(),
     affordableActions: getAffordableActions(),
     speciesBadgeHtml: state.selectedSpecies

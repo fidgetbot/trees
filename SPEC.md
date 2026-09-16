@@ -77,7 +77,7 @@ Trees progress automatically when their stage requirements are met. Growth is no
 | **Seed** | — | Basic growth only | All threats fatal |
 | **Sprout** | After first action (grow roots) | First leaves, basic photosynthesis | Drought, herbivory |
 | **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections | Aphids, browsing animals |
-| **Sapling** | 4 seasons + survive 1 major event | Branch growth, chemical defense | Wind, competition |
+| **Sapling** | 4 seasons + survive 1 major event | Branch growth immediately; taproot, canopy, ally aid, and shading emerge across the first three Sapling seasons | Wind, competition |
 | **Small Tree** | 2 years + 2 branches | Flowers, reproduction, thorns, toxic foliage | Lightning, disease, first human surveys |
 | **Mature Tree** | 3 years + first fruit | Full canopy, ally and offspring support | Fire, beetle swarms, ally betrayal, logging pressure |
 | **Ancient** | 3 years + survive 2 major events + 1 allied or child tree | Long-term resilience and protected-grove endgame | Repeated human attention |
@@ -105,6 +105,8 @@ Generated from roots and fungal/allied support, reduced by upkeep and adverse co
 
 The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
 
+Season directly modifies gathering: Spring produces 80% normal sunlight and 100% water, Summer 120% sunlight and 60% water, Autumn 60% sunlight and 80% water, and Winter 20% sunlight and 40% water. Nutrients have no direct seasonal multiplier. A compact expandable guide beneath Resources exposes these values and highlights the current season.
+
 ### Action Economy
 
 - **Base actions per turn:** 3
@@ -131,6 +133,7 @@ Current browser HUD behavior:
 - the map is a fixed foreground layer at the top of the viewport while status, actions, and the log scroll beneath it; score, year, season, and life stage are part of the map layer as a compact overlay inside the picture
 - immediately below the fixed map, Next Growth appears directly above Actions; usable actions come first, followed by subdued compact summaries of other actions unlocked at the current stage with their full scaled costs and a specific explanation of the current shortage or prerequisite; future-stage actions remain separately collapsed
 - each life-stage transition announces every newly unlocked real action with a complete, natural sentence explaining what the action lets the player do, and records the same unlock in the log
+- Sapling capabilities are intentionally staggered instead of arriving as a five-action dump: Grow Branch unlocks immediately, followed by Taproot after one turn, Canopy after one season, Aid Ally after two seasons, and Shade Neighbor after three seasons; each delayed action uses the normal unlock announcement when it becomes available
 - the map camera begins at a macro scale with the painterly, species-tinted seed and soil horizon centered both horizontally and vertically; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and later stages keep the upper edge just above the player's current height so neighboring trees reveal progressively more structure as the player grows
 - structural growth is persistent and visually inspectable on the Canvas: root zones add lateral roots, taproot growth deepens the central root, leaves add foliage, branches add stable shoots, trunk growth thickens the wood, and canopy growth widens the crown; the map redraws immediately after each completed growth action
 - the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
@@ -146,6 +149,7 @@ Current browser HUD behavior:
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
 - Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
 - pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
+- Winter adds visible snow to the Canvas and mixes snow, icicle melt, and rain into precipitation messages; heavy accumulation has a rare chance to break a branch on Sapling-or-larger trees
 
 ### Seasonal Constraints
 
@@ -178,6 +182,7 @@ Current diplomacy/rivalry systems include:
 - ally crises and ally neglect consequences
 - betrayal pressure in hostile or strained long-term relationships
 - aid contributes directly to the recipient's growth and records whether the player began supporting it before maturity; this support history determines whether a large ally can help satisfy the protected-grove victory
+- neighbor life state is tracked separately from relationship state: zero health means death, but the relationship at death is retained for history; dead trees cannot act, threaten, compete, contribute resources, qualify for protection, or appear in action targets, and their death receives a dedicated message explaining the loss and its impact
 
 Neighbors are persistent actors, but they are still simplified relative to the player tree.
 
@@ -205,13 +210,15 @@ Current systems include:
 - seasonal minor events
 - major environmental threats
 - fruit-threat warning/response chains
-- chemical-defense threat chains that can resolve at the start of the next turn if left unanswered
+- chemical-defense threat chains that resolve after an unanswered warning; the warning says only that the threat was not contained, and the subsequent consequence supplies the logical damage conclusion without redundantly forecasting an immediately following message
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
 - a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages explicitly conclude whether danger is **growing**, **shrinking but unresolved**, **solved**, or **ended after damage**; allied help clears an active chemical threat such as aphids in addition to restoring health
+- queued chemical and hostile-tree defense decisions refresh their affordability from current resources immediately before display, so preceding event interactions cannot leave a stale “not enough resources” choice on screen
+- ambient flavor is selected from stage-specific pools so seed-only observations do not appear after germination
 - cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll
 
 ### Scoring, Victory, and Continuation
