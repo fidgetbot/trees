@@ -320,25 +320,13 @@ canvas {
   display: none;
 }
 
-/* Actions Banner */
-.actions-banner {
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0.15), rgba(125, 211, 252, 0.05));
-  border: 1px solid rgba(125, 211, 252, 0.3);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-  text-align: center;
-}
-.actions-banner.no-actions {
-  background: linear-gradient(90deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
-  border-color: rgba(251, 191, 36, 0.3);
-}
-.actions-count {
-  font-weight: 700;
+.actions-heading-count {
   color: var(--accent);
-  font-size: 15px;
+  font-size: 0.66em;
+  font-weight: 650;
+  white-space: nowrap;
 }
-.actions-banner.no-actions .actions-count {
+.actions-heading-count.no-actions {
   color: var(--warn);
 }
 .growth-hint {

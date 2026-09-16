@@ -111,15 +111,8 @@ export function updateHudUI({
   document.getElementById('max-health').textContent = `/ ${state.maxHealth}`;
 
   if (els.actionsRemaining) {
-    if (state.actions > 0) {
-      els.actionsRemaining.textContent = `${state.actions} action${state.actions !== 1 ? 's' : ''} remaining`;
-      els.actionsBanner.classList.remove('hidden');
-      els.actionsBanner.classList.remove('no-actions');
-    } else {
-      els.actionsRemaining.textContent = '';
-      els.actionsBanner.classList.add('hidden');
-      els.actionsBanner.classList.add('no-actions');
-    }
+    els.actionsRemaining.textContent = `(${state.actions} remaining)`;
+    els.actionsRemaining.classList.toggle('no-actions', state.actions <= 0);
   }
 
   els.log.innerHTML = state.log.map(line => `<div class="log-entry">${line}</div>`).join('');

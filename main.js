@@ -24,7 +24,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability } from './core/actions.js?rev=protected-grove-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation } from './core/actions.js?rev=action-heading-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -66,8 +66,8 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=protected-grove-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=protected-grove-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=protected-grove-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=action-heading-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=action-heading-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -202,8 +202,8 @@ function tryAdvanceLifeStage(onContinue) {
     resetStageProgressCounters();
     addLog(`You have grown. You are now a ${next.name}.`);
     const unlockedActions = next.unlocks.map(key => ACTIONS.find(action => action.key === key)).filter(Boolean);
-    unlockedActions.forEach(action => addLog(`You can now ${action.name}: ${action.help}`));
-    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${action.help}</p>`).join('');
+    unlockedActions.forEach(action => addLog(`You can now ${action.name}! ${getActionUnlockExplanation(action)}`));
+    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
     showFeedback(`You are now a ${next.name}!`, 'success');
     showModal(next.name, `<p><em>${next.popup}</em></p>${unlockHtml}`, () => {
       updateScore();

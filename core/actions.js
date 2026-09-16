@@ -5,6 +5,36 @@ export const CATEGORY_NAMES = {
   reproduction: '🌸 Reproduction',
 };
 
+export const ACTION_UNLOCK_EXPLANATIONS = {
+  growBranch: 'This lets you add woody structure and new foliage, improving future sunlight collection and flowering capacity.',
+  extendRoot: 'This lets you reach more soil for nutrients, stability, and future fungal connections.',
+  growLeaves: 'This lets you grow new leaves that collect more sunlight each turn.',
+  thicken: 'This lets you strengthen your trunk, store more water, and withstand drought and storms.',
+  taproot: 'This lets you drive a deeper anchor into the soil for more water and greater drought resistance.',
+  canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
+  bark: 'This lets you build tougher bark that resists insects, fire, and woodpeckers.',
+  rhizosphere: 'This lets you enrich the soil community around your roots for greater future nutrient gains.',
+  growThorns: 'This lets you grow permanent thorns that deter humans and browsing animals.',
+  toxicLeaves: 'This lets you grow chemically defended leaves that discourage humans and herbivores.',
+  shelterGrove: 'This lets you brace yourself and your allies against the next hardship.',
+  resinReserve: 'This lets you store a concentrated defensive reserve for the next serious threat.',
+  woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
+  connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
+  aidAlly: 'This lets you send water and nutrients to help an allied tree grow and recover.',
+  requestHelp: 'This lets you call on allied trees for resources and resilience when you are wounded.',
+  shadeRival: 'This lets you crowd a neighboring tree out of light and reclaim some of its nutrients.',
+  rootDominion: 'This lets you pressure a neighboring root system and take water and nutrients from it.',
+  flower: 'This lets you produce blossoms that pollinators can turn into fruit and seeds.',
+  massFlower: 'This lets you create a burst of blossoms for a larger but riskier reproductive effort.',
+  nurtureOffspring: 'This lets you support an individual child tree, improving its health and accelerating its growth.',
+  mastYear: 'This lets you make an immense reproductive push, filling the canopy with flowers and future seeds.',
+};
+
+export function getActionUnlockExplanation(action) {
+  return ACTION_UNLOCK_EXPLANATIONS[action.key]
+    || `This gives you a new ability: ${action.help.charAt(0).toLowerCase()}${action.help.slice(1)}`;
+}
+
 export function getActionAvailability({
   action,
   state,

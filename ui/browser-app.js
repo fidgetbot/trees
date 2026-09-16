@@ -83,7 +83,6 @@ export function getBrowserElements(documentRef = document) {
     log: documentRef.getElementById('log'),
     feedbackContainer: documentRef.getElementById('feedback-container'),
     tooltip: documentRef.getElementById('tooltip'),
-    actionsBanner: documentRef.getElementById('actions-banner'),
     actionsRemaining: documentRef.getElementById('actions-remaining'),
     turnEndBanner: documentRef.getElementById('turn-end-banner'),
     mapExplorer: documentRef.getElementById('map-explorer'),
