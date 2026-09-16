@@ -6,7 +6,7 @@ import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtR
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability, getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
-import { updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
+import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 import {
   advanceHumanSystem,
@@ -303,11 +303,10 @@ function createHeadlessGame(seed, speciesName) {
       });
       updateAlliesCount(s, getRelationshipState);
     },
-    offerAidToAlly: s => {
-      const decision = buildAidDecision(s, { getRelationshipState });
-      const affordable = decision.options.filter(option => option.affordable);
-      const targetOption = affordable.find(option => option.meta?.crisis)
-        || affordable.sort((a, b) => (s.neighbors[a.targetIndex]?.helpGivenToThem || 0) - (s.neighbors[b.targetIndex]?.helpGivenToThem || 0))[0]
+    offerAidToAlly: (s, paidCost) => {
+      const decision = buildAidDecision(s, { getRelationshipState, paidCost });
+      const targetOption = decision.options.find(option => option.meta?.crisis)
+        || [...decision.options].sort((a, b) => (s.neighbors[a.targetIndex]?.helpGivenToThem || 0) - (s.neighbors[b.targetIndex]?.helpGivenToThem || 0))[0]
         || decision.options[0];
       if (!targetOption) return;
       resolveDiplomacyDecision(s, decision, targetOption.id, {
@@ -392,7 +391,7 @@ function createHeadlessGame(seed, speciesName) {
           resolveSharedDecision(state, currentDecision, choice.id, {
             getRelationshipState,
             compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
-            applyRelationshipDelta: (target, delta) => { target.relation = Math.max(-100, Math.min(100, target.relation + delta)); },
+            applyRelationshipDelta: (target, delta) => applyRelationshipDelta(state, target, delta, (_state, amount) => amount),
             random: rng,
           });
           done?.();
@@ -446,6 +445,7 @@ function createHeadlessGame(seed, speciesName) {
     renderGameOverBody: () => '',
     renderSuccessionBody: () => '',
     renderVictoryBody: () => '',
+    getRelationshipState,
   });
 
   function chooseAction() {

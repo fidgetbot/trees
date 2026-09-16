@@ -135,3 +135,59 @@ test('a storm never reports that zero branches snapped', () => {
   assert.ok(effects.every(line => !/^0 branch/.test(line)));
   assert.ok(effects.some(line => /only branch.*held fast/i.test(line)));
 });
+
+test('wildfire can be fully resisted and records one correct damage cause', () => {
+  const recorded = [];
+  const fire = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: (amount, cause) => recorded.push({ amount, cause }),
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'Fire');
+  const protectedState = {
+    trunk: 4,
+    health: 10,
+    eventModifiers: { shelter: 0 },
+  };
+  const protectedEffects = fire.apply(protectedState);
+  assert.equal(protectedState.health, 10);
+  assert.deepEqual(recorded, []);
+  assert.ok(protectedEffects.some(line => /completely protected/i.test(line)));
+
+  const exposedState = {
+    trunk: 0,
+    health: 10,
+    eventModifiers: { shelter: 0 },
+  };
+  fire.apply(exposedState);
+  assert.equal(exposedState.health, 8);
+  assert.deepEqual(recorded, [{ amount: 2, cause: 'fire' }]);
+});
+
+test('fungal bloom rewards connected allied neighbors, not offspring counts', () => {
+  const bloom = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage() {},
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'MycorrhizalBloom');
+  const childrenOnly = {
+    nutrients: 0,
+    allies: 2,
+    neighbors: [{ relation: 0, dead: false }],
+  };
+  assert.deepEqual(bloom.apply(childrenOnly), ['+3 nutrients from fungal bloom']);
+  assert.equal(childrenOnly.nutrients, 3);
+
+  const connectedAlly = {
+    nutrients: 0,
+    allies: 1,
+    neighbors: [{ relation: 70, dead: false }],
+  };
+  assert.deepEqual(bloom.apply(connectedAlly), ['+4 nutrients from fungal bloom', 'Connected allies strengthened the bloom!']);
+  assert.equal(connectedAlly.nutrients, 4);
+});

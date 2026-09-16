@@ -27,6 +27,7 @@ export function createEngine(deps) {
     renderSpringSeedFateBody,
     renderGameOverBody,
     renderSuccessionBody,
+    getRelationshipState = () => ({ name: 'Neutral' }),
   } = deps;
 
   function currentSeason(state) {
@@ -38,7 +39,7 @@ export function createEngine(deps) {
     return {
       shadedNeighbors: livingNeighbors.filter(neighbor => neighbor.playerShading).length,
       crowdingNeighbors: livingNeighbors.filter(neighbor => neighbor.shadingPlayer).length,
-      connectedAllies: Math.max(0, state.allies || 0),
+      connectedAllies: livingNeighbors.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Ally').length,
     };
   }
 
@@ -243,7 +244,7 @@ export function createEngine(deps) {
     } = hooks;
 
     spend(scaledCost);
-    action.effect(state);
+    action.effect(state, { scaledCost });
     if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
     showFeedback?.(`${action.name} succeeded!`, 'success');
     addLog?.(`Action: ${action.name}.`);

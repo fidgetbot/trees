@@ -74,11 +74,10 @@ export function createMajorEvents(deps) {
       key: 'Fire', name: 'Wildfire', icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical',
       apply: (s) => {
         const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
-        const damage = Math.max(1, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
+        const damage = Math.max(0, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
         s.health -= damage;
-        recordDamage(damage, 'storm');
         const effects = [];
-        recordDamage(damage, 'fire');
+        if (damage > 0) recordDamage(damage, 'fire');
         if (damage === 0) effects.push('Thick bark completely protected you!');
         else effects.push(`Health -${damage} from fire damage`);
         if (barkProtection > 0) effects.push('Thicker trunk reduced some fire damage');
@@ -145,10 +144,13 @@ export function createMajorEvents(deps) {
     {
       key: 'MycorrhizalBloom', name: 'Mycorrhizal Bloom', icon: '✨', desc: 'The fungal network flourishes, sharing nutrients generously.', severity: 'good',
       apply: (s) => {
+        const connectedAllies = s.neighbors.filter(neighbor => (
+          !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally'
+        )).length;
         s.nutrients += 3;
-        if (s.allies > 0) {
-          s.nutrients += s.allies;
-          return [`+${3 + s.allies} nutrients from fungal bloom`, 'Allies boosted the bonus!'];
+        if (connectedAllies > 0) {
+          s.nutrients += connectedAllies;
+          return [`+${3 + connectedAllies} nutrients from fungal bloom`, 'Connected allies strengthened the bloom!'];
         }
         return ['+3 nutrients from fungal bloom'];
       }
@@ -205,6 +207,8 @@ export function resolveFruitThreats(state, events) { /* unchanged below */
 
 export function processSeasonalReproduction(state, events, getCurrentSeasonName) { /* unchanged */
   const season = getCurrentSeasonName();
+  const pendingFruitThreatAtStart = Boolean(state.pendingFruitThreat);
+  if (pendingFruitThreatAtStart) resolveFruitThreats(state, events);
   if (season === 'Summer' && state.pollinated > 0) {
     const ripened = state.pollinated;
     state.developing += ripened;
@@ -212,12 +216,11 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
     if (ripened > 0) state.hasProducedFruit = true;
     events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
-  if (season === 'Summer' && state.developing > 0 && !state.pendingFruitThreat && Math.random() < 0.45) {
+  if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && !state.pendingFruitThreat && Math.random() < 0.45) {
     const threats = [{ type:'human', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' }, { type:'bird', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' }, { type:'chewer', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' }];
     state.pendingFruitThreat = randomChoice(threats);
-    events.push({ text: `${state.pendingFruitThreat.warning} You could invest in Chemical Defense before the danger peaks. The danger is still gathering.`, effect: 'warning' });
+    events.push({ text: `${state.pendingFruitThreat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`, effect: 'warning' });
   }
-  if (season === 'Summer' && state.pendingFruitThreat) resolveFruitThreats(state, events);
   if (season === 'Autumn' && state.developing > 0) {
     const matured = state.developing;
     state.seeds += matured;

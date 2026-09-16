@@ -110,6 +110,7 @@ Season directly modifies gathering: Spring produces 80% normal sunlight and 100%
 ### Action Economy
 
 - **Base actions per turn:** 3
+- High gathering yields award one additional action per complete five resources gathered; the gathering summary reports the exact number earned
 - Actions spend combinations of sunlight, water, and nutrients
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
 - If the player cannot afford any currently available action, the browser UI keeps the end-turn path available instead of auto-advancing immediately
@@ -144,12 +145,13 @@ Current browser HUD behavior:
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
 - health is repeated prominently in the live Actions strip as well as under Resources; allies remain under Resources instead of a separate Ecology section
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
+- requesting help likewise requires a living allied neighbor; offspring count toward lineage and grove-protection goals but do not masquerade as connected allies in diplomacy or resource sharing
 - diplomacy choices retain each neighbor's persistent state index after filtering; action results, relationship text, map labels, and fungal root links must all resolve to that same neighbor and map slot
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
 - Shade Neighbor is limited to the immediate left/right trees and establishes a persistent visible canopy arrangement rather than a one-time payout; shading a neighbor improves sunlight and nutrient gathering each turn, while a neighboring rival that crowds the player reduces both until the arrangement changes, the relationship is repaired, or one tree dies
-- connected allies contribute both water and nutrients each turn; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
+- connected living neighbor allies contribute both water and nutrients each turn and strengthen a Mycorrhizal Bloom; offspring do not receive or grant these ally-only bonuses; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
 - pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
 - Winter adds visible snow to the Canvas and mixes snow, icicle melt, and rain into precipitation messages; heavy accumulation has a rare chance to break a branch on Sapling-or-larger trees
 
@@ -266,6 +268,8 @@ The current codebase includes:
 - diplomacy/rivalry actions and ally-state tracking
 - reproduction through flowers, fruit, seeds, and spring seed fate
 - threat-response chains for fruit threats and chemical defense
+- fruit-threat warnings persist through a full action phase before resolution, and a resolved threat cannot be replaced by another warning in the same event phase
+- wildfire records fire as its sole damage cause and can be fully resisted by sufficient bark/shelter protection
 - escalating fungal rumors, visible human encounters, permanent human deterrence, cutting scars, and branch/network encounter responses
 - ally crises and neglect consequences
 - persistent individual offspring with growth, health, and nurture history

@@ -4,6 +4,7 @@ export function renderResourcePhaseBody({ state, gains }) {
   const baseline = gains.neutralGains || { sunlight: gains.sunlightGain, water: gains.waterGain, nutrients: gains.nutrientGain };
   const deltas = gains.relationDeltas || { sunlight: 0, water: 0, nutrients: 0 };
   const relations = gains.relations || { shadedNeighbors: 0, crowdingNeighbors: 0, connectedAllies: 0 };
+  const bonusActions = Math.max(0, state.actions - 3);
 
   const comparison = (kind, delta, neutral, causes) => {
     const activeCauses = causes.filter(Boolean).join(' · ');
@@ -46,7 +47,7 @@ export function renderResourcePhaseBody({ state, gains }) {
       </div>
       <div class="actions-earned">
         <strong>${state.actions} actions</strong> available this turn
-        ${gains.sunlightGain + gains.waterGain + gains.nutrientGain >= 5 ? '<br><small>+1 bonus action from high resource yield</small>' : ''}
+        ${bonusActions > 0 ? `<br><small>+${bonusActions} bonus action${bonusActions === 1 ? '' : 's'} from high resource yield</small>` : ''}
       </div>
     </div>
   `;

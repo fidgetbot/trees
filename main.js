@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=grove-balance-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=review-integrity-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=grove-balance-v1';
+} from './core/events.js?rev=review-integrity-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=grove-balance-v1';
+} from './core/diplomacy.js?rev=review-integrity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -59,12 +59,12 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=grove-balance-v1';
-import { createEngine } from './core/engine.js?rev=grove-balance-v1';
+import { createEngine } from './core/engine.js?rev=review-integrity-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=grove-balance-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=review-integrity-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=grove-balance-v1';
@@ -586,12 +586,6 @@ function maybeTriggerActionMilestone(actionKey) {
 
 
 
-function scaledAidNutrientCost(base = 10, neighbor = null, crisis = null) {
-  const stageRank = computeCurrentLifeStage().rank;
-  const severity = crisis?.severity || 1;
-  return Math.min(25, Math.max(6, base + (stageRank - 1) * 2 + (severity - 1) * 4));
-}
-
 function updateNeighborAliveState(neighbor, cause = 'hardship') {
   const death = markNeighborDead(state, neighbor, cause, { getRelationshipState });
   if (!death.changed) return false;
@@ -649,7 +643,7 @@ function advanceAllyCrises(events) {
     if (neighbor.dead) continue;
     if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
     neighbor.activeCrises = neighbor.activeCrises || [];
-    if (neighbor.activeCrises.length === 0 && Math.random() < (state.allies === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
+    if (neighbor.activeCrises.length === 0 && Math.random() < (state.alliedNeighbors === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
     for (const crisis of [...neighbor.activeCrises]) {
       const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
       events.push({ text: `${flavor} The crisis is deepening.`, effect: 'warning' });
@@ -776,11 +770,12 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
         showModal('Aid Cancelled', `<p>The ${neighborName} is not currently an ally, so you cannot send ally aid to it.</p><p><strong>Current relationship:</strong> ${outcome.oldState}</p>`, onDone);
         return;
       }
-      showModal('Aid Sent', `<p>You want to support the ${neighborName}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
+      showModal('Aid Cancelled', `<p>The ${neighborName} can no longer receive ally aid.</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
     const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
-    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
+    const paid = outcome.paidCost || { sunlight: 0, water: 0, nutrients: 0 };
+    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
     });
@@ -822,7 +817,6 @@ function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTu
         getRelationshipState,
         getAdjustedRelationshipDelta,
         getNeighborStage,
-        scaledAidNutrientCost,
         recordDamage,
         random: Math.random,
       });
@@ -858,10 +852,10 @@ function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTu
   );
 }
 
-function offerAidToAlly(s) {
+function offerAidToAlly(s, paidCost) {
   return runDiplomacyDecision(buildAidDecision(state, {
     getRelationshipState,
-    scaledAidNutrientCost,
+    paidCost,
   }), {
     emptyMessage: 'No allied trees are available to receive aid',
   });
@@ -1072,6 +1066,7 @@ engine = createEngine({
   renderGameOverBody,
   renderSuccessionBody,
   renderVictoryBody,
+  getRelationshipState,
 });
 
 function resolveFruitThreats(events) {

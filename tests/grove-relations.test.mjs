@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createEngine } from '../core/engine.js';
-import { applyAggressionToNeighbor, buildAggressionDecision } from '../core/diplomacy.js';
+import { createActions } from '../core/actions.js';
+import { applyAggressionToNeighbor, applyRelationshipDelta, buildAggressionDecision, buildAidDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getRelationshipState } from '../core/constants.js';
@@ -35,6 +36,7 @@ function engine() {
     SEASONS: [{ name: 'Summer', factorSun: 1.2, factorWater: 1 }],
     updateUI() {},
     render() {},
+    getRelationshipState,
   });
 }
 
@@ -54,14 +56,14 @@ test('shade targets only immediate neighbors and establishes a persistent arrang
 
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {
   const state = gatheringState({
-    allies: 3,
     neighbors: [
-      { slot: 1, dead: false, playerShading: true },
-      { slot: 3, dead: false, shadingPlayer: true },
+      { slot: 0, relation: 70, dead: false },
+      { slot: 1, relation: 0, dead: false, playerShading: true },
+      { slot: 3, relation: -60, dead: false, shadingPlayer: true },
     ],
   });
   const gains = engine().collectResources(state);
-  assert.equal(gains.relations.connectedAllies, 3);
+  assert.equal(gains.relations.connectedAllies, 1);
   assert.equal(gains.relations.shadedNeighbors, 1);
   assert.equal(gains.relations.crowdingNeighbors, 1);
   assert.ok(gains.allyNutrients > 0);
@@ -71,6 +73,65 @@ test('allies and persistent canopy positions change gathering relative to neutra
   assert.match(summary, /neutral-grove baseline/i);
   assert.match(summary, /connected allies|ally shares|allies share/i);
   assert.match(summary, /crowd you|crowded by/i);
+});
+
+test('offspring do not masquerade as connected allied neighbors during gathering', () => {
+  const state = gatheringState({
+    neighbors: [{ slot: 1, relation: 0, dead: false }],
+    offspringRecords: [{ id: 'child-1', dead: false }, { id: 'child-2', dead: false }],
+    offspringTrees: 2,
+    allies: 2,
+  });
+  const gains = engine().collectResources(state);
+  assert.equal(gains.relations.connectedAllies, 0);
+  assert.equal(gains.allyWater, 0);
+  assert.equal(gains.allyNutrients, 0);
+});
+
+test('offspring do not unlock requests for help from allied neighbors', () => {
+  const actions = createActions({
+    resinReserveAction() {},
+    woodSurgeAction() {},
+    attemptConnection() {},
+    offerAidToAlly() {},
+    requestHelpFromAllies() {},
+    shadeRivalAction() {},
+    rootDominionAction() {},
+    getRelationshipState,
+  });
+  const requestHelp = actions.find(action => action.key === 'requestHelp');
+  const childrenOnly = {
+    allies: 2,
+    alliedNeighbors: 0,
+    health: 5,
+    maxHealth: 10,
+    neighbors: [{ relation: 0, dead: false }],
+  };
+  assert.equal(requestHelp.prereq(childrenOnly), false);
+  childrenOnly.neighbors.push({ relation: 70, dead: false });
+  assert.equal(requestHelp.prereq(childrenOnly), true);
+});
+
+test('offer aid reports the exact scaled action cost that was already paid', () => {
+  const paidCost = { sunlight: 0, water: 5, nutrients: 20 };
+  const ally = {
+    species: 'Pear', relation: 70, dead: false, health: 6, maxHealth: 10,
+    stageScore: 1200, helpGivenToThem: 0, growthAidReceived: 0,
+    firstAidStageScore: null, activeCrises: [],
+  };
+  const state = { neighbors: [ally] };
+  const decision = buildAidDecision(state, { getRelationshipState, paidCost });
+  const resolved = resolveDiplomacyDecision(state, decision, decision.options[0].id, { getRelationshipState });
+  assert.deepEqual(decision.options[0].meta.paidCost, paidCost);
+  assert.deepEqual(resolved.outcome.paidCost, paidCost);
+});
+
+test('relationship repair clears persistent canopy pressure through the shared helper', () => {
+  const neighbor = { relation: -15, playerShading: true, shadingPlayer: true };
+  applyRelationshipDelta({}, neighbor, 20, (_state, amount) => amount);
+  assert.equal(getRelationshipState(neighbor.relation).name, 'Neutral');
+  assert.equal(neighbor.playerShading, false);
+  assert.equal(neighbor.shadingPlayer, false);
 });
 
 test('deepening a taproot adds nutrient access beyond its ordinary root zone', () => {
@@ -88,4 +149,30 @@ test('canopy arrangements visibly move and lean the participating trees', () => 
   assert.ok(getCanopyArrangement(state, 1, false, shaded).worldOffset < 0);
   assert.ok(getCanopyArrangement(state, 3, false, crowding).worldOffset < 0);
   assert.ok(getCanopyArrangement(state, 3, false, crowding).canopyLean < 0);
+});
+
+test('gathering summary reports the actual number of bonus actions', () => {
+  const state = gatheringState({ actions: 5 });
+  const gains = {
+    season: { name: 'Summer', factorSun: 1.2, factorWater: 1 },
+    exposure: 1,
+    sunlightGain: 5,
+    waterGain: 4,
+    nutrientGain: 3,
+    neutralGains: { sunlight: 5, water: 4, nutrients: 3 },
+    relationDeltas: { sunlight: 0, water: 0, nutrients: 0 },
+    relations: { shadedNeighbors: 0, crowdingNeighbors: 0, connectedAllies: 0 },
+    canopyBonus: 0,
+    taprootBonus: 0,
+    rootNutrients: 2.8,
+    taprootNutrients: 0,
+    allyNutrients: 0,
+    allyWater: 0,
+    shadeNutrients: 0,
+    crowdingNutrients: 0,
+    soilBonus: 0,
+    maintenanceCost: 0,
+  };
+  const summary = renderResourcePhaseBody({ state, gains });
+  assert.match(summary, /\+2 bonus actions from high resource yield/);
 });

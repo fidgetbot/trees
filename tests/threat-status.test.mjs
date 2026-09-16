@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildChemicalDefenseDecision,
+  processSeasonalReproduction,
   resolveChemicalDefenseChoice,
   resolvePendingStartOfTurnEffects,
 } from '../core/events.js';
@@ -90,4 +91,53 @@ test('ally help clears a pending aphid threat as well as restoring health', () =
   assert.equal(outcome.threatStatus, 'solved');
   assert.equal(s.pendingChemicalThreat, null);
   assert.ok(outcome.actualHeal > 0);
+});
+
+test('a new fruit threat remains pending until a later event phase', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const s = state({ developing: 2, selectedSpecies: 'Plum' });
+    const warningEvents = [];
+    processSeasonalReproduction(s, warningEvents, () => 'Summer');
+    assert.equal(warningEvents.length, 1);
+    assert.match(warningEvents[0].text, /until the next event phase/i);
+    assert.ok(s.pendingFruitThreat);
+    assert.equal(s.developing, 2);
+
+    s.defense = 2;
+    Math.random = () => 0.99;
+    const resolutionEvents = [];
+    processSeasonalReproduction(s, resolutionEvents, () => 'Autumn');
+    assert.equal(resolutionEvents.length, 2);
+    assert.match(resolutionEvents[0].text, /danger to this season's fruit has passed/i);
+    assert.match(resolutionEvents[1].text, /hardened into/i);
+    assert.equal(s.pendingFruitThreat, null);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test('resolving a fruit threat does not immediately replace it in the same summer event phase', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const s = state({
+      developing: 2,
+      selectedSpecies: 'Plum',
+      pendingFruitThreat: {
+        type: 'bird',
+        warning: 'Birds gather.',
+        baseLoss: 0,
+        outcome: () => 'Fruit was lost.',
+        safeText: 'The birds moved on.',
+      },
+    });
+    const events = [];
+    processSeasonalReproduction(s, events, () => 'Summer');
+    assert.equal(events.length, 1);
+    assert.equal(s.pendingFruitThreat, null);
+  } finally {
+    Math.random = originalRandom;
+  }
 });

@@ -42,13 +42,11 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
     getAdjustedRelationshipDelta = (_state, delta) => delta,
-    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 4,
+    paidCost = { sunlight: 0, water: 0, nutrients: 0 },
   } = deps;
 
   const oldState = getRelationshipState(neighbor.relation).name;
   const crisis = (neighbor.activeCrises || [])[0] || null;
-  const nutrientCost = scaledAidNutrientCost(4, neighbor, crisis);
-  const waterCost = crisis?.kind === 'water' ? Math.min(4, Math.max(1, crisis.amount)) : 1;
 
   if (oldState !== 'Ally') {
     return {
@@ -56,8 +54,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
       oldState,
       newState: oldState,
       crisis,
-      nutrientCost,
-      waterCost,
+      paidCost,
       reason: 'not-an-ally',
     };
   }
@@ -78,8 +75,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
     oldState,
     newState,
     crisis,
-    nutrientCost,
-    waterCost,
+    paidCost,
   };
 }
 
@@ -159,7 +155,7 @@ export function buildConnectionDecision(state, deps = {}) {
 export function buildAidDecision(state, deps = {}) {
   const {
     getRelationshipState,
-    scaledAidNutrientCost = (_base, _neighbor, _crisis) => 4,
+    paidCost = { sunlight: 0, water: 0, nutrients: 0 },
   } = deps;
 
   return createDecision({
@@ -171,19 +167,16 @@ export function buildAidDecision(state, deps = {}) {
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
       .map(({ neighbor, targetIndex }) => {
         const crisis = (neighbor.activeCrises || [])[0] || null;
-        const nutrientCost = scaledAidNutrientCost(8, neighbor, crisis);
-        const waterCost = crisis?.kind === 'water' ? Math.min(10, Math.max(3, crisis.amount)) : 2;
         return {
           id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — Ally`,
           targetIndex,
-          affordable: state.nutrients >= nutrientCost && state.water >= waterCost,
+          affordable: true,
           meta: {
             species: neighbor.species,
             relationName: 'Ally',
             crisis,
-            nutrientCost,
-            waterCost,
+            paidCost,
           },
         };
       }),
@@ -469,7 +462,7 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
       outcome: resolveAidToAlly(state, neighbor, {
         getRelationshipState: deps.getRelationshipState,
         getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
-        scaledAidNutrientCost: deps.scaledAidNutrientCost,
+        paidCost: option.meta?.paidCost,
       }),
     };
   }
