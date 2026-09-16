@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=height-competition-v1';
+} from './core/constants.js?rev=height-balance-v2';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=height-competition-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=height-competition-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=height-balance-v2';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -61,15 +61,15 @@ import {
 } from './core/humans.js?rev=grove-balance-v1';
 import { createEngine } from './core/engine.js?rev=height-competition-v1';
 import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
-import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
+import { renderActionPanels } from './ui/actions.js?rev=height-balance-v2';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=height-competition-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=height-balance-v2';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=height-competition-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-competition-v1';
+import { renderForestScene } from './ui/canvas.js?rev=height-balance-v2';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=height-competition-v1';
 
 function computeCurrentLifeStage() {
@@ -897,7 +897,9 @@ function getNeighborTree(idx) {
   return {
     species: base.species,
     age: Math.max(0.25, stage.threshold / 2000),
-    health: 0.6 + Math.min(0.3, stage.threshold / 6000),
+    health: base.health,
+    maxHealth: base.maxHealth,
+    healthRatio: base.maxHealth > 0 ? base.health / base.maxHealth : 0,
     branches: isSeed ? 0 : Math.max(1, Math.min(5, Math.floor(stage.threshold / 300) + 1)),
     roots: isSeed ? 0 : Math.max(2, Math.min(6, Math.floor(stage.threshold / 300) + 2)),
     trunk: isSeed ? 0 : Math.max(1, Math.min(4, Math.floor(stage.threshold / 700) + 1)),
@@ -985,7 +987,7 @@ function renderActions() {
     if (nutRequired > 0) costsHtml += resourceCost('🌱', 'nutrients', nutRequired, nutClass);
     costsHtml += '</div>';
 
-    const actionData = { action, scaledCost, costsHtml, sunRequired, waterRequired, nutRequired };
+    const actionData = { action, scaledCost, costsHtml, statusText: action.status?.(state) || '', sunRequired, waterRequired, nutRequired };
 
     if (usable) {
       if (categories[action.category]) {

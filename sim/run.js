@@ -449,8 +449,18 @@ function createHeadlessGame(seed, speciesName) {
     const unmet = currentStageRequirements(state).filter(req => !req.met).map(req => req.key);
 
     if (state.health <= Math.max(2, Math.floor(state.maxHealth * 0.4))) {
-      const rescue = pick(['requestHelp', 'bark', 'thicken', 'taproot', 'shelterGrove']);
+      const rescue = pick(['requestHelp', 'bark', 'taproot', 'shelterGrove']);
       if (rescue) return rescue;
+    }
+
+    if ((state.spindlyGrowth || 0) >= 2) {
+      const brace = pick(['bark']);
+      if (brace) return brace;
+    }
+
+    if ((state.heightGrowth || 0) < 2 && (state.spindlyGrowth || 0) < 2) {
+      const height = pick(['growTaller']);
+      if (height) return height;
     }
 
     if (unmet.includes('firstRoot')) {
@@ -491,7 +501,7 @@ function createHeadlessGame(seed, speciesName) {
     }
 
     const priorities = [
-      'growLeaves', 'growBranch', 'taproot', 'canopy', 'thicken',
+      'growLeaves', 'growBranch', 'taproot', 'canopy', 'growTaller',
       'growThorns', 'toxicLeaves', 'bark', 'flower', 'massFlower', 'connect', 'aidAlly',
       'requestHelp', 'rhizosphere', 'shelterGrove', 'resinReserve',
       'woodSurge', 'nurtureOffspring', 'shadeRival', 'rootDominion',

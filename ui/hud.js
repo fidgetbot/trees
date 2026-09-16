@@ -111,6 +111,10 @@ export function updateHudUI({
   document.getElementById('root-zones').textContent = state.rootZones;
   document.getElementById('branches').textContent = state.branches;
   document.getElementById('trunk').textContent = state.trunk;
+  const heightGrowth = document.getElementById('height-growth');
+  const spindlyGrowth = document.getElementById('spindly-growth');
+  if (heightGrowth) heightGrowth.textContent = `+${state.heightGrowth || 0}`;
+  if (spindlyGrowth) spindlyGrowth.textContent = (state.spindlyGrowth || 0) > 0 ? `+${state.spindlyGrowth} damage` : 'None';
   document.getElementById('flowers').textContent = state.flowers;
   document.getElementById('pollinated').textContent = state.pollinated;
   document.getElementById('developing').textContent = state.developing;

@@ -97,7 +97,7 @@ test('height growth adds sunlight while remaining part of the neutral baseline',
   assert.equal(tall.relationDeltas.sunlight, 0);
 });
 
-test('growing taller creates spindly height that trunk thickening can brace', () => {
+test('growing taller creates spindly height that fortified bark can brace', () => {
   const actions = createActions({
     resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
     requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
@@ -106,9 +106,42 @@ test('growing taller creates spindly height that trunk thickening can brace', ()
   actions.find(action => action.key === 'growTaller').effect(state);
   assert.equal(state.heightGrowth, 1);
   assert.equal(state.spindlyGrowth, 1);
-  actions.find(action => action.key === 'thicken').effect(state);
+  actions.find(action => action.key === 'bark').effect(state);
   assert.equal(state.spindlyGrowth, 0);
   assert.equal(state.trunk, 3);
+  assert.equal(state.defense, 1);
+  assert.equal(state.maxHealth, 11);
+  assert.equal(state.health, 11);
+});
+
+test('three unbraced height levels require fortified bark before further bolting', () => {
+  const growTaller = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  }).find(action => action.key === 'growTaller');
+  const state = gatheringState({
+    lifeStage: LIFE_STAGES.find(stage => stage.name === 'Sapling'),
+    heightGrowth: 3,
+    spindlyGrowth: 3,
+    actions: 3,
+    sunlight: 30,
+    water: 30,
+    nutrients: 30,
+  });
+  const availability = getActionAvailability({
+    action: growTaller,
+    state,
+    lifeStages: LIFE_STAGES,
+    currentStageRank: state.lifeStage.rank,
+    currentSeasonName: 'Summer',
+    seasonalActions: SEASONAL_ACTIONS,
+    getScaledCost: cost => cost,
+    canAfford: () => true,
+    isActionUnlocked: () => true,
+  });
+  assert.equal(availability.usable, false);
+  assert.match(availability.reason, /Fortify Bark/);
+  assert.match(growTaller.status(state), /3\/3/);
 });
 
 test('offspring do not masquerade as connected allied neighbors during gathering', () => {
@@ -211,6 +244,28 @@ test('gathering summary reports the actual number of bonus actions', () => {
   };
   const summary = renderResourcePhaseBody({ state, gains });
   assert.match(summary, /\+2 bonus actions from high resource yield/);
+});
+
+test('gathering summary separates bonuses and penalties into readable factors', () => {
+  const state = gatheringState({
+    heightGrowth: 2,
+    taprootDepth: 1,
+    branches: 5,
+    eventModifiers: { drought: 0.5, disease: 0.75, soilBonus: 0.5 },
+    neighbors: [
+      { slot: 1, relation: 70, stageScore: 3300, dead: false, playerShading: true },
+      { slot: 3, relation: -40, stageScore: 1000, dead: false, shadingPlayer: true },
+    ],
+  });
+  const gains = engine().collectResources(state);
+  const summary = renderResourcePhaseBody({ state, gains });
+  assert.match(summary, /resource-factor positive[^>]*>Height \+2/);
+  assert.match(summary, /resource-factor positive[^>]*>Taproot \+/);
+  assert.match(summary, /resource-factor positive[^>]*>Allies \+/);
+  assert.match(summary, /resource-factor negative[^>]*>Crowding/);
+  assert.match(summary, /resource-factor negative[^>]*>Drought ×0\.5/);
+  assert.match(summary, /resource-factor negative[^>]*>Disease ×0\.75/);
+  assert.doesNotMatch(summary, /roots .*including taproot.*allies .*canopy advantage/i);
 });
 
 test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {

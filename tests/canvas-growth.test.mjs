@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCanopyArrangement, getPlayerVisualProfile, shouldDrawPlayerBlossoms } from '../ui/canvas.js';
+import { getCanopyArrangement, getPlayerVisualProfile, getTreeLabelText, shouldDrawPlayerBlossoms } from '../ui/canvas.js';
+import { getRelationshipState } from '../core/constants.js';
 
 function state(overrides = {}) {
   return {
@@ -49,4 +50,12 @@ test('shading creates a dramatic lean toward the adjacent rival', () => {
   assert.ok(player.canopyLean <= -1.5);
   assert.ok(rival.worldOffset <= -30);
   assert.ok(Math.abs(rival.canopyLean) >= 0.8);
+});
+
+test('map labels show health for allies without cluttering non-allies', () => {
+  const state = { selectedSpecies: 'Plum' };
+  const ally = getTreeLabelText(false, { species: 'Pear', stageName: 'Sapling', relation: 70, health: 6, maxHealth: 10 }, state, 'Seed', getRelationshipState);
+  const neutral = getTreeLabelText(false, { species: 'Cherry', stageName: 'Sapling', relation: 0, health: 8, maxHealth: 10 }, state, 'Seed', getRelationshipState);
+  assert.match(ally.secondary, /Ally.*♥ 6\/10/);
+  assert.doesNotMatch(neutral.secondary, /♥|8\/10/);
 });

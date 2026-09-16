@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=grove-balance-v1" />
+  <link rel="stylesheet" href="styles.css?rev=height-balance-v2" />
 </head>
 <body>
   <div id="app">
@@ -97,6 +97,16 @@
                 <span class="stat-icon">🪵</span>
                 <span class="stat-name">Trunk</span>
                 <span class="stat-value" id="trunk">0</span>
+              </div>
+              <div class="stat-row" data-stat="height-growth" data-help="Extra trunk height gathers more sunlight and lets you shade shorter trees.">
+                <span class="stat-icon">↟</span>
+                <span class="stat-name">Extra height</span>
+                <span class="stat-value" id="height-growth">0</span>
+              </div>
+              <div class="stat-row" data-stat="spindly-growth" data-help="Each unbraced height level adds one damage in storms. Fortify Bark braces one level.">
+                <span class="stat-icon">🌬️</span>
+                <span class="stat-name">Wind penalty</span>
+                <span class="stat-value" id="spindly-growth">None</span>
               </div>
               <div class="stat-row" data-stat="branches" data-help="More branches support more leaf clusters.">
                 <span class="stat-icon">🌿</span>
@@ -195,6 +205,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=height-competition-v1"></script>
+  <script type="module" src="main.js?rev=height-balance-v2"></script>
 </body>
 </html>

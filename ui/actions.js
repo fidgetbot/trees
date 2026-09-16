@@ -21,7 +21,7 @@ export function renderActionPanels({
     const wrap = document.createElement('div');
     wrap.className = 'category-actions';
 
-    catActions.forEach(({ action, scaledCost, costsHtml }) => {
+    catActions.forEach(({ action, scaledCost, costsHtml, statusText }) => {
       const card = document.createElement('div');
       card.className = 'action-card';
       card.innerHTML = `
@@ -30,6 +30,7 @@ export function renderActionPanels({
           <span class="action-icon">${action.icon}</span>
         </div>
         <p class="action-help">${action.help}</p>
+        ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}`;
 
       const btn = document.createElement('button');
@@ -50,12 +51,13 @@ export function renderActionPanels({
     section.innerHTML = '<h4>Other actions at this stage</h4>';
     const wrap = document.createElement('div');
     wrap.className = 'unavailable-actions-list';
-    unavailableActions.forEach(({ action, costsHtml, reason }) => {
+    unavailableActions.forEach(({ action, costsHtml, statusText, reason }) => {
       const row = document.createElement('div');
       row.className = 'unavailable-action';
       row.innerHTML = `
         <div class="unavailable-action-title"><strong>${action.name}</strong><span>${action.icon}</span></div>
         <p>${action.help}</p>
+        ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}
         <p class="unavailable-reason">${reason}.</p>`;
       wrap.appendChild(row);
@@ -70,7 +72,7 @@ export function renderActionPanels({
     details.innerHTML = `<summary>🔒 Future Growth (${futureActions.length})</summary>`;
     const wrap = document.createElement('div');
     wrap.className = 'future-actions-list';
-    futureActions.forEach(({ action, costsHtml, reason }) => {
+    futureActions.forEach(({ action, costsHtml, statusText, reason }) => {
       const card = document.createElement('div');
       card.className = 'action-card disabled';
       card.innerHTML = `
@@ -80,6 +82,7 @@ export function renderActionPanels({
         </div>
         <span class="prereq-missing">Locked</span>
         <p class="action-help">${action.help}</p>
+        ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}
         <p class="future-reason">${reason}</p>`;
       wrap.appendChild(card);

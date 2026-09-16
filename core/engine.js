@@ -295,7 +295,7 @@ export function createEngine(deps) {
       if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');
       if (action.key === 'growLeaves') addLog?.('Fresh leaves unfurl to gather more light.');
       if (action.key === 'growTaller') addLog?.('Your trunk reaches upward for more light, leaving the new height slender in the wind.');
-      if (action.key === 'thicken') addLog?.('Your trunk thickens and your body grows sturdier.');
+      if (action.key === 'bark') addLog?.('Your bark and trunk thicken, bracing slender growth against the wind.');
       if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
       if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
       if (action.key === 'nurtureOffspring') addLog?.(`You send water, nutrients, and stored energy to one of your child trees.`);
