@@ -389,6 +389,12 @@ canvas {
 .action-resource-total.res-sun { color: var(--sun); }
 .action-resource-total.res-water { color: var(--water); }
 .action-resource-total.res-nutrient { color: var(--nutrient); }
+.action-resource-total.res-health {
+  min-width: 52px;
+  color: #f6a6a6;
+  border-left: 1px solid rgba(255,255,255,0.12);
+  padding-left: 7px;
+}
 .post-actions-status {
   margin-top: 22px;
   padding-top: 18px;
@@ -409,6 +415,16 @@ canvas {
   background: rgba(56, 118, 71, 0.12);
   color: #9bd4a7;
 }
+.grove-effect {
+  display: block;
+  grid-column: 2 / -1;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.grove-effect.positive { color: #9bd4a7; }
+.grove-effect.negative { color: #f1aa85; }
+.grove-effect.neutral { color: var(--muted); }
 .unavailable-actions {
   padding-top: 4px;
 }

@@ -39,16 +39,16 @@ function ally() {
   };
 }
 
-test('chemical defense labels the threat growing and then solved', () => {
+test('chemical defense describes the danger naturally as gathering and then passed', () => {
   const originalRandom = Math.random;
   Math.random = () => 0;
   try {
     const s = state();
     const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
-    assert.match(decision.body, /Threat status:<\/strong> growing/);
+    assert.match(decision.body, /danger is still gathering/i);
     const outcome = resolveChemicalDefenseChoice(s, decision, 'defend');
     assert.equal(outcome.threatStatus, 'solved');
-    assert.match(outcome.body, /Threat status:<\/strong> solved/);
+    assert.match(outcome.body, /danger has passed/i);
     assert.equal(s.pendingChemicalThreat, null);
   } finally {
     Math.random = originalRandom;
@@ -66,7 +66,7 @@ test('an unanswered chemical threat reports its final damaging conclusion', () =
     assert.match(deferred.body, /have not contained the threat/i);
     assert.doesNotMatch(deferred.body, /next turn/i);
     const [resolved] = resolvePendingStartOfTurnEffects(s);
-    assert.match(resolved.body, /Threat status: ended after causing damage/);
+    assert.match(resolved.body, /danger has passed, though it left damage behind/i);
     assert.equal(s.pendingChemicalThreat, null);
   } finally {
     Math.random = originalRandom;

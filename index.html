@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
-  <link rel="stylesheet" href="styles.css?rev=season-neighbor-integrity-v1" />
+  <link rel="stylesheet" href="styles.css?rev=grove-balance-v1" />
 </head>
 <body>
   <div id="app">
@@ -45,6 +45,7 @@
           <span class="action-resource-total res-sun"><span aria-hidden="true">☀️</span><strong id="action-sunlight">0</strong></span>
           <span class="action-resource-total res-water"><span aria-hidden="true">💧</span><strong id="action-water">0</strong></span>
           <span class="action-resource-total res-nutrient"><span aria-hidden="true">🌱</span><strong id="action-nutrients">0</strong></span>
+          <span class="action-resource-total res-health" aria-label="Current health"><span aria-hidden="true">❤️</span><strong id="action-health">0/0</strong></span>
         </div>
         <div id="actions-list" class="actions-list"></div>
 
@@ -193,6 +194,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=season-neighbor-integrity-v1"></script>
+  <script type="module" src="main.js?rev=grove-balance-v1"></script>
 </body>
 </html>

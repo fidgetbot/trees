@@ -3,6 +3,10 @@ import { createDecision, findDecisionOption } from './decisions.js';
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
+  if (neighbor.relation >= 0) {
+    neighbor.playerShading = false;
+    neighbor.shadingPlayer = false;
+  }
   return adjustedDelta;
 }
 
@@ -21,6 +25,8 @@ export function markNeighborDead(state, neighbor, cause = 'hardship', deps = {})
   neighbor.dead = true;
   neighbor.ally = false;
   neighbor.activeCrises = [];
+  neighbor.playerShading = false;
+  neighbor.shadingPlayer = false;
   neighbor.deathCause = cause;
   return { changed: true, relationship, cause };
 }
@@ -159,7 +165,7 @@ export function buildAidDecision(state, deps = {}) {
   return createDecision({
     kind: 'ally-aid',
     title: 'Offer aid to which ally?',
-    body: 'Choose an allied tree to support.',
+    body: 'Choose an allied tree to heal and help grow. Repeated support strengthens the bond and can qualify the tree for the protected-grove goal.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
@@ -320,6 +326,10 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
 
   const newState = getRelationshipState(neighbor.relation).name;
   neighbor.ally = newState === 'Ally';
+  if (newState === 'Neutral' || newState === 'Friendly' || newState === 'Ally') {
+    neighbor.playerShading = false;
+    neighbor.shadingPlayer = false;
+  }
 
   return {
     oldState,
@@ -334,17 +344,18 @@ export function buildAggressionDecision(state, kind, deps = {}) {
 
   const options = state.neighbors
     .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
-    .filter(({ neighbor }) => !neighbor.dead)
+    .filter(({ neighbor }) => !neighbor.dead && (kind !== 'shade' || neighbor.slot === 1 || neighbor.slot === 3))
     .map(({ neighbor, targetIndex }) => {
       const relationName = getRelationshipState(neighbor.relation).name;
       const alreadyContested = relationName === 'Rival' || relationName === 'Hostile';
       const requiresWarning = relationName === 'Friendly' || relationName === 'Ally';
       const preview = kind === 'shade'
         ? {
-            sunlight: alreadyContested ? 2 : 1,
+            sunlight: 0,
             water: 0,
-            nutrients: alreadyContested ? 3 : 1,
+            nutrients: 0,
             relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
+            persistent: 'future sunlight and nutrients each turn',
           }
         : {
             sunlight: alreadyContested ? 1 : 0,
@@ -374,7 +385,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
   return createDecision({
     kind: kind === 'shade' ? 'aggression:shade' : 'aggression:dominion',
     title: kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?',
-    body: kind === 'shade' ? 'Choose any neighboring tree to suppress.' : 'Choose any neighboring tree to pressure underground.',
+    body: kind === 'shade' ? 'Choose the living tree immediately to your left or right. Your crown will remain leaned over it until the arrangement changes.' : 'Choose any neighboring tree to pressure underground.',
     options,
     meta: { actionKind: kind },
   });
@@ -393,16 +404,17 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
   if (kind === 'shade') {
     const stageScoreLoss = alreadyContested ? 30 : 20;
     const relationLoss = alreadyContested ? 4 : 8;
-    const sunlightGain = alreadyContested ? 2 : 1;
-    const nutrientGain = alreadyContested ? 3 : 1;
+    const sunlightGain = 0;
+    const nutrientGain = 0;
     neighbor.stageScore = Math.max(0, neighbor.stageScore - stageScoreLoss);
     neighbor.relation = Math.max(-100, neighbor.relation - relationLoss);
-    state.sunlight += sunlightGain;
-    state.nutrients += nutrientGain;
+    neighbor.playerShading = true;
+    neighbor.shadingPlayer = false;
     return {
       alreadyContested,
       gains: { sunlight: sunlightGain, water: 0, nutrients: nutrientGain },
       relationStateBefore: relationName,
+      persistentCanopyAdvantage: true,
     };
   }
 

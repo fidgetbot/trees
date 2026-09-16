@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=season-neighbor-integrity-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=grove-balance-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=season-neighbor-integrity-v1';
+} from './core/events.js?rev=grove-balance-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=season-neighbor-integrity-v1';
+} from './core/diplomacy.js?rev=grove-balance-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -58,17 +58,17 @@ import {
   nurtureOffspring,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=growth-threat-clarity-v1';
-import { createEngine } from './core/engine.js?rev=protected-grove-v1';
+} from './core/humans.js?rev=grove-balance-v1';
+import { createEngine } from './core/engine.js?rev=grove-balance-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
-import { renderResourcePhaseBody } from './ui/resources.js';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=grove-balance-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=season-neighbor-integrity-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=season-neighbor-integrity-v1';
+import { renderForestScene } from './ui/canvas.js?rev=grove-balance-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=grove-balance-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=season-neighbor-integrity-v1';
 
 function computeCurrentLifeStage() {
@@ -473,6 +473,8 @@ function makeStartingNeighbors() {
       activeCrises: [],
       crisisCounter: 0,
       dead: false,
+      playerShading: false,
+      shadingPlayer: false,
     };
   });
 }
@@ -489,8 +491,9 @@ function growNeighbors() {
   state.neighbors.forEach(n => {
     if (n.dead) return;
     n.stageScore += 20 + Math.floor(Math.random() * 35);
-    if (getRelationshipState(n.relation).name === 'Hostile' && Math.random() < 0.25) {
-      state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.08;
+    if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && Math.random() < 0.25) {
+      n.shadingPlayer = true;
+      n.playerShading = false;
     }
   });
   growOffspringRecords(state);
@@ -649,11 +652,11 @@ function advanceAllyCrises(events) {
     if (neighbor.activeCrises.length === 0 && Math.random() < (state.allies === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
     for (const crisis of [...neighbor.activeCrises]) {
       const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
-      events.push({ text: `${flavor} Threat status: growing.`, effect: 'warning' });
+      events.push({ text: `${flavor} The crisis is deepening.`, effect: 'warning' });
       crisis.stage += 1;
       neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
       if (neighbor.health <= 0) {
-        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. Threat status: ended after the loss.`, effect: 'damage' });
+        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. The crisis ends in silence.`, effect: 'damage' });
         updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
         continue;
       }
@@ -671,7 +674,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
   const oldState = getRelationshipState(neighbor.relation).name;
   const available = state[crisis.kind];
   const title = `${neighbor.species} asks for help`;
-  showChoiceModal(title, `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p><p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
+  showChoiceModal(title, `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p class="threat-status threat-growing">The crisis is deepening.</p><p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
     {
       label: 'Give what you can',
       onChoose: () => {
@@ -683,16 +686,16 @@ function showAllyAidRequest(neighbor, crisis, done) {
           relationDelta = 12;
           neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + crisis.healthLoss + 2);
           neighbor.activeCrises = (neighbor.activeCrises || []).filter(c => c.id !== crisis.id);
-          body = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity. <strong>Threat status: solved.</strong>`;
+          body = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity. The crisis has passed.`;
         } else if (given > 0) {
           relationDelta = 2;
           neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + 1);
           crisis.amount = Math.max(1, crisis.amount - given);
-          body = `You send ${given} ${crisis.kind}. It helps, but the crisis is not over. <strong>Threat status: shrinking, but unresolved.</strong>`;
+          body = `You send ${given} ${crisis.kind}. It helps: the crisis eases, but has not yet passed.`;
         } else {
           relationDelta = -8;
           crisis.amount += 2;
-          body = `You cannot send any of what it needs. The ${neighbor.species} feels the failure sharply. <strong>Threat status: growing.</strong>`;
+          body = `You cannot send any of what it needs. The ${neighbor.species} feels the failure sharply, and the crisis worsens.`;
         }
         neighbor.helpGivenToThem += given > 0 ? 1 : 0;
         neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
@@ -711,7 +714,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
         crisis.amount += 2;
         neighbor.relation = Math.max(-100, neighbor.relation - 12);
         const newState = getRelationshipState(neighbor.relation).name;
-        showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p><strong>Threat status: growing.</strong></p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
+        showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p>The crisis worsens.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
           refreshMainView();
           continueWithRelationshipChange(neighbor.species, oldState, newState, done);
         });
@@ -776,7 +779,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
       showModal('Aid Sent', `<p>You want to support the ${neighborName}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
-    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}.</p><p><strong>Threat status: solved.</strong></p>` : '';
+    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
@@ -785,9 +788,9 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 
   if (decision.kind === 'ally-help-request') {
-    const threatConclusion = outcome.clearedThreat ? ` The ${outcome.clearedThreat.title.toLowerCase()} is cleared. Threat status: solved.` : '';
+    const threatConclusion = outcome.clearedThreat ? ` The ${outcome.clearedThreat.title.toLowerCase()} is cleared, and the danger has passed.` : '';
     addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.${threatConclusion}`);
-    const threatBody = outcome.clearedThreat ? `<p>The ${outcome.clearedThreat.title.toLowerCase()} is cleared by the allied response.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved.</p>` : '';
+    const threatBody = outcome.clearedThreat ? `<p>The ${outcome.clearedThreat.title.toLowerCase()} is cleared by the allied response.</p><p class="threat-status threat-solved">The danger has passed.</p>` : '';
     showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>${threatBody}`, () => {
       refreshMainView({ actions: true });
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
@@ -796,8 +799,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 
   if (decision.kind === 'aggression:shade') {
-    const { sunlight, nutrients } = outcome.gains;
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, crowding out its leaves and reclaiming resources from the pressure you create.</p><p>You gain <strong>${sunlight} sunlight</strong> and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? ', making the rivalry pay for itself.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, visibly crowding its canopy and claiming more of the nearby light and soil.</p><p>While this arrangement lasts, it improves your <strong>sunlight and nutrient gathering every turn</strong>${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
     return;
   }
 
@@ -909,6 +911,9 @@ function getNeighborTree(idx) {
     relation: base.relation,
     relationName: getRelationshipState(base.relation).name,
     stageName: stage.name,
+    slot: base.slot,
+    playerShading: Boolean(base.playerShading),
+    shadingPlayer: Boolean(base.shadingPlayer),
   };
 }
 

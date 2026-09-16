@@ -213,7 +213,7 @@ function failEncounter(state, encounter) {
     state.pendingHumanEncounter = null;
     return {
       title: 'The Tree Is Marked',
-      body: '<p>The humans paint a bright mark low on your trunk. They leave for now, but the fungal network carries an uneasy certainty: they intend to return.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>',
+      body: '<p>The humans paint a bright mark low on your trunk. They leave for now, but the fungal network carries an uneasy certainty: they intend to return.</p><p class="threat-status threat-growing">The danger is drawing closer.</p>',
     };
   }
 
@@ -229,13 +229,13 @@ function failEncounter(state, encounter) {
     state.lastDamageCause = 'logging';
     return {
       title: 'Felled',
-      body: '<p>The final cuts pass through your remaining wood. Your crown falls, and your root-signals break into silence.</p><p><strong>Threat status:</strong> ended after felling the tree.</p>',
+      body: '<p>The final cuts pass through your remaining wood. Your crown falls, and your root-signals break into silence.</p><p>The cutting ends only when the tree is gone.</p>',
       fatal: true,
     };
   }
   return {
     title: 'A Deep Cut',
-    body: `<p>The humans carve deeply into your trunk before leaving. You lose <strong>${damage} health</strong> and one level of trunk growth.</p><p><strong>Cutting damage:</strong> ${state.cuttingProgress}/3</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
+    body: `<p>The humans carve deeply into your trunk before leaving. You lose <strong>${damage} health</strong> and one level of trunk growth.</p><p><strong>Cutting damage:</strong> ${state.cuttingProgress}/3</p><p class="threat-status threat-growing">They have withdrawn, but they mean to return.</p>`,
   };
 }
 
@@ -251,7 +251,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     state.pendingHumanEncounter = null;
     return {
       title: 'A Protected Ecosystem',
-      body: '<p>The visitors recognize that this is not merely valuable timber, but a rare community of great trees supporting one another across generations.</p><p>Boundaries are drawn around the grove. Cutting is forbidden. Your ecosystem will be allowed to endure.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved permanently.</p>',
+      body: '<p>The visitors recognize that this is not merely valuable timber, but a rare community of great trees supporting one another across generations.</p><p>Boundaries are drawn around the grove. Cutting is forbidden. Your ecosystem will be allowed to endure.</p><p class="threat-status threat-solved">The axes will not return.</p>',
       victory: true,
     };
   }
@@ -267,7 +267,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     state.pendingHumanEncounter = null;
     return {
       title: 'Branchfall',
-      body: '<p>You release a heavy branch. It crashes into the ground beside the humans, who abandon their tools and flee.</p><p>You lose <strong>1 branch</strong> and up to <strong>2 leaf clusters</strong>.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved for now.</p>',
+      body: '<p>You release a heavy branch. It crashes into the ground beside the humans, who abandon their tools and flee.</p><p>You lose <strong>1 branch</strong> and up to <strong>2 leaf clusters</strong>.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
       repelled: true,
     };
   }
@@ -290,8 +290,8 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     return {
       title: 'The Humans Retreat',
       body: option.id === 'call-network'
-        ? '<p>Alarm pulses race through the connected grove. Roots shift, branches move, and the humans find themselves surrounded by signs of a living forest. They retreat.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved for now.</p>'
-        : '<p>Your thorns, toxic foliage, and imposing movement make the work too dangerous. The humans withdraw from the grove.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved for now.</p>',
+        ? '<p>Alarm pulses race through the connected grove. Roots shift, branches move, and the humans find themselves surrounded by signs of a living forest. They retreat.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+        : '<p>Your thorns, toxic foliage, and imposing movement make the work too dangerous. The humans withdraw from the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
       repelled: true,
     };
   }
@@ -347,8 +347,8 @@ export function advanceHumanSystem(state, deps = {}) {
   return {
     event: {
       text: phase === 'survey'
-        ? 'Humans have entered the grove and are measuring your trunk. They remain visible on the map. Threat status: growing.'
-        : 'The marked humans have returned with cutting tools. They remain beside your trunk until you respond. Threat status: growing.',
+        ? 'Humans have entered the grove and are measuring your trunk. They remain visible on the map, and their interest is growing.'
+        : 'The marked humans have returned with cutting tools. They remain beside your trunk until you respond.',
       effect: 'human-warning',
     },
   };

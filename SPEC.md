@@ -98,10 +98,10 @@ Resources persist between turns and represent stored biological capital.
 Generated primarily from leaves and canopy exposure, modified by season and competition.
 
 #### Water
-Generated from trunk storage, roots, and taproot depth, modified by season and drought pressure.
+Generated from trunk storage, roots, taproot depth, and connected allies, modified by season and drought pressure. An ordinary root improves water storage and nutrient gathering; a taproot adds an ordinary root zone plus extra deep-water and nutrient access.
 
 #### Nutrients
-Generated from roots and fungal/allied support, reduced by upkeep and adverse conditions.
+Generated from roots, taproots, fungal/allied support, and persistent canopy advantages, reduced by upkeep, hostile crowding, and adverse conditions.
 
 The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
 
@@ -118,6 +118,7 @@ Season directly modifies gathering: Spring produces 80% normal sunlight and 100%
 Growth actions are intentionally differentiated:
 - **Grow Leaves** is the cheapest direct sunlight-increase action
 - **Grow Branch** adds structure and a larger burst of new foliage, making it a stronger but pricier way to improve future sunlight collection
+- **Extend Root** improves both water storage and nutrient gathering, while **Deepen Taproot** adds a root zone plus additional deep water, nutrients, health, and drought resilience
 
 Action categories currently include:
 - growth and structure
@@ -138,16 +139,17 @@ Current browser HUD behavior:
 - structural growth is persistent and visually inspectable on the Canvas: root zones add lateral roots, taproot growth deepens the central root, leaves add foliage, branches add stable shoots, trunk growth thickens the wood, and canopy growth widens the crown; the map redraws immediately after each completed growth action
 - the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
 - the Actions heading contains the live action count in the compact form **Actions (3 remaining)** and updates through zero without a separate banner
-- a compact live resource strip sits directly beneath the Actions heading; action cards show only their required amounts with a small `cost` label, while shortages receive a stronger warning treatment, avoiding repeated `cost / yours` figures now that current totals remain visible beside the list
+- a compact live resource-and-health strip sits directly beneath the Actions heading; action cards show only their required amounts with a small `cost` label, while shortages receive a stronger warning treatment, avoiding repeated `cost / yours` figures now that current totals remain visible beside the list
 - the stats groups follow the action list without a redundant top-level **Status** heading
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
-- health and allies now appear under Resources instead of a separate Ecology section, with only a subtle divider separating spendable resources from status values
+- health is repeated prominently in the live Actions strip as well as under Resources; allies remain under Resources instead of a separate Ecology section
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
 - diplomacy choices retain each neighbor's persistent state index after filtering; action results, relationship text, map labels, and fungal root links must all resolve to that same neighbor and map slot
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, and offspring establishment
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
-- Shade Neighbor now returns nutrients as well as sunlight, with existing rivalries providing enough nutrient swing to create a real net incentive
+- Shade Neighbor is limited to the immediate left/right trees and establishes a persistent visible canopy arrangement rather than a one-time payout; shading a neighbor improves sunlight and nutrient gathering each turn, while a neighboring rival that crowds the player reduces both until the arrangement changes, the relationship is repaired, or one tree dies
+- connected allies contribute both water and nutrients each turn; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
 - pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
 - Winter adds visible snow to the Canvas and mixes snow, icicle melt, and rain into precipitation messages; heavy accumulation has a rare chance to break a branch on Sapling-or-larger trees
 
@@ -175,13 +177,14 @@ Current diplomacy/rivalry systems include:
 - root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks
 - aid to allies
 - requesting help from allies
-- shading neighboring trees starting in the sapling stage, including proactive aggression against neutral, friendly, or allied neighbors
+- shading the immediately adjacent left/right trees starting in the sapling stage, including proactive aggression against neutral, friendly, or allied neighbors; canopy advantage/crowding persists in both rules and Canvas geometry
 - confirmation warnings before attacking friendly or allied neighbors, since aggression immediately turns them into rivals
 - proactive aggression is intentionally less rewarding on the first strike than pressing an existing rivalry, so hostile play is viable without making betrayal the dominant opener
 - root domination starting in the mature stage, with direct resource theft from targeted neighbors and proactive escalation into rivalry
 - ally crises and ally neglect consequences
 - betrayal pressure in hostile or strained long-term relationships
 - aid contributes directly to the recipient's growth and records whether the player began supporting it before maturity; this support history determines whether a large ally can help satisfy the protected-grove victory
+- Offer Aid descriptions state this full strategic role: spending water/nutrients heals and grows the ally, strengthens the bond/favor history, and builds protection-goal support
 - neighbor life state is tracked separately from relationship state: zero health means death, but the relationship at death is retained for history; dead trees cannot act, threaten, compete, contribute resources, qualify for protection, or appear in action targets, and their death receives a dedicated message explaining the loss and its impact
 
 Neighbors are persistent actors, but they are still simplified relative to the player tree.
@@ -216,7 +219,7 @@ Current systems include:
 - a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
-- persistent threat messages explicitly conclude whether danger is **growing**, **shrinking but unresolved**, **solved**, or **ended after damage**; allied help clears an active chemical threat such as aphids in addition to restoring health
+- persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health
 - queued chemical and hostile-tree defense decisions refresh their affordability from current resources immediately before display, so preceding event interactions cannot leave a stale “not enough resources” choice on screen
 - ambient flavor is selected from stage-specific pools so seed-only observations do not appear after germination
 - cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll

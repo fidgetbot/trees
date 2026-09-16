@@ -16,7 +16,10 @@ const SEED_PALETTES = {
 export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false}) {
   const w=canvas.width,h=canvas.height;
   const camera=cameraFor(state,playerStageName);camera.zoom*=zoomMultiplier;
-  const centered=centerHorizon||playerStageName==='Seed',groundY=centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom),residentTrees=positions.map((x,index)=>({x,index,isPlayer:index===2,neighbor:index===2?null:getNeighborTree(index)}));
+  const centered=centerHorizon||playerStageName==='Seed',groundY=centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom),residentTrees=positions.map((baseX,index)=>{
+    const neighbor=index===2?null:getNeighborTree(index),arrangement=getCanopyArrangement(state,index,index===2,neighbor);
+    return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean};
+  });
   const childTrees=(state.offspringRecords||[]).filter(child=>!child.dead).slice(0,CHILD_WORLD_POSITIONS.length).map((child,index)=>{
     const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Small Tree','Mature Tree','Ancient'].indexOf(stageName);
     return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,relation:100,relationName:'Ally',childId:child.id}};
@@ -133,7 +136,20 @@ function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
   linked.forEach(tree=>{const x=tree.x,y=groundY+70+tree.index*5;ctx.beginPath();ctx.moveTo(player.x,groundY+30);ctx.bezierCurveTo(player.x-(player.x-x)*.3,groundY+70,x+(player.x-x)*.3,y-20,x,y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
-function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera}){
+export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
+  if(isPlayer){
+    const nearby=(state.neighbors||[]).filter(tree=>!tree.dead&&tree.playerShading&&(tree.slot===1||tree.slot===3));
+    const canopyLean=nearby.reduce((sum,tree)=>sum+(tree.slot<2?-1:1),0);
+    return{worldOffset:0,canopyLean:Math.max(-1,Math.min(1,canopyLean))};
+  }
+  if(!neighbor)return{worldOffset:0,canopyLean:0};
+  const side=slot<2?-1:1;
+  if(neighbor.shadingPlayer)return{worldOffset:-side*24,canopyLean:-side};
+  if(neighbor.playerShading)return{worldOffset:side*16,canopyLean:side*.45};
+  return{worldOffset:0,canopyLean:0};
+}
+
+function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
@@ -143,7 +159,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom,leaves,trunk);
   else {
     const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0);
-    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);
+    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
     drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);
     if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
     if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);

@@ -6,11 +6,11 @@ export const CATEGORY_NAMES = {
 };
 
 export const ACTION_UNLOCK_EXPLANATIONS = {
-  growBranch: 'This lets you add woody structure and new foliage, improving future sunlight collection and flowering capacity.',
-  extendRoot: 'This lets you reach more soil for nutrients, stability, and future fungal connections.',
+  growBranch: 'This lets you add a visible new branch and two leaf clusters, increasing sunlight gathered on future turns and supporting flowers.',
+  extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
   growLeaves: 'This lets you grow new leaves that collect more sunlight each turn.',
   thicken: 'This lets you strengthen your trunk, store more water, and withstand drought and storms.',
-  taproot: 'This lets you drive a deeper anchor into the soil for more water and greater drought resistance.',
+  taproot: 'This lets you drive a deeper anchor into the soil, adding more water storage and nutrient access than an ordinary root while improving drought resistance.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
   bark: 'This lets you build tougher bark that resists insects, fire, and woodpeckers.',
   rhizosphere: 'This lets you enrich the soil community around your roots for greater future nutrient gains.',
@@ -20,9 +20,9 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   resinReserve: 'This lets you store a concentrated defensive reserve for the next serious threat.',
   woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
   connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
-  aidAlly: 'This lets you send water and nutrients to help an allied tree grow and recover.',
+  aidAlly: 'This lets you spend water and nutrients to heal an ally, accelerate its growth, strengthen your bond, and build the support needed for grove protection.',
   requestHelp: 'This lets you call on allied trees for resources and resilience when you are wounded.',
-  shadeRival: 'This lets you crowd a neighboring tree out of light and reclaim some of its nutrients.',
+  shadeRival: 'This lets you lean over an immediately adjacent tree, creating a visible and persistent sunlight-and-nutrient advantage until the canopy arrangement changes.',
   rootDominion: 'This lets you pressure a neighboring root system and take water and nutrients from it.',
   flower: 'This lets you produce blossoms that pollinators can turn into fruit and seeds.',
   massFlower: 'This lets you create a burst of blossoms for a larger but riskier reproductive effort.',
@@ -134,11 +134,11 @@ export function createActions(deps) {
   } = deps;
 
   return [
-    { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds woody structure and supports future leaves and flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
-    { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Expands nutrient access, storm stability, and fungal networking reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
+    { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds one visible branch and two leaf clusters, increasing future sunlight collection and supporting flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
+    { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Adds a root zone that improves water storage, nutrient gathering, storm stability, and fungal reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
     { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
     { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.defense += 1; s.health += 1; s.maxHealth += 1; } },
-    { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Drive a deeper anchor into the soil, greatly boosting water collection and drought resilience.', baseCost: { sunlight: 3, water: 1, nutrients: 3 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
+    { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Adds a root zone plus deep water access, improving water and nutrients more than an ordinary root while resisting drought.', baseCost: { sunlight: 3, water: 1, nutrients: 3 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
 
     { key: 'bark', name: 'Fortify Bark', icon: '🛡️', category: 'defense', help: 'Lay down denser protective tissue to resist insects, fire, and woodpeckers.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
@@ -150,9 +150,9 @@ export function createActions(deps) {
     { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Choose a nutrient-heavy growth push for trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: s => woodSurgeAction(s) },
 
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: s => attemptConnection(s) },
-    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Send substantial reserves to support an ally and improve its health.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: s => offerAidToAlly(s) },
+    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Spend water and nutrients to heal an ally, speed its growth, strengthen your bond, and build protection-goal support.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: s => offerAidToAlly(s) },
     { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.allies >= 1 && s.health < s.maxHealth, effect: s => requestHelpFromAllies(s) },
-    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Crowd a neighboring tree out of light and reclaim nutrients. Pressing an existing rivalry can now return more nutrients than the action costs.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead), effect: s => shadeRivalAction(s) },
+    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over the tree immediately to your left or right, gaining sunlight and nutrients every turn until the canopy arrangement changes.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: s => shadeRivalAction(s) },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Assert territorial pressure on a neighboring tree, stealing water and nutrients. Established rivalries pay off better than fresh betrayals.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: s => rootDominionAction(s) },
 
     { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },

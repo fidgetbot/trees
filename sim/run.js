@@ -77,6 +77,8 @@ function makeStartingNeighbors(rng) {
       activeCrises: [],
       crisisCounter: 0,
       dead: false,
+      playerShading: false,
+      shadingPlayer: false,
     };
   });
 }
@@ -270,8 +272,9 @@ function createHeadlessGame(seed, speciesName) {
     state.neighbors.forEach(n => {
       if (n.dead) return;
       n.stageScore += 20 + Math.floor(rng() * 35);
-      if (getRelationshipState(n.relation).name === 'Hostile' && rng() < 0.25) {
-        state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.08;
+      if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && rng() < 0.25) {
+        n.shadingPlayer = true;
+        n.playerShading = false;
       }
     });
     growOffspringRecords(state, rng);

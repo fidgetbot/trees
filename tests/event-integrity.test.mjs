@@ -9,6 +9,7 @@ import {
   getAmbientFlavorPool,
   getLivingNeighborsByDisposition,
   WINTER_PRECIPITATION,
+  createMajorEvents,
 } from '../core/events.js';
 import {
   buildAggressionDecision,
@@ -111,4 +112,26 @@ test('seasonal gathering factors expose the real light and water difficulty', ()
       ['Winter', 0.2, 0.4],
     ],
   );
+});
+
+test('a storm never reports that zero branches snapped', () => {
+  const storm = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage() {},
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'Storm');
+  const effects = storm.apply({
+    lifeStage: LIFE_STAGES[3],
+    trunk: 8,
+    rootZones: 8,
+    branches: 1,
+    leafClusters: 2,
+    health: 10,
+    eventModifiers: { shelter: 0 },
+  });
+  assert.ok(effects.every(line => !/^0 branch/.test(line)));
+  assert.ok(effects.some(line => /only branch.*held fast/i.test(line)));
 });

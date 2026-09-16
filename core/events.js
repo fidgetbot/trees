@@ -58,7 +58,7 @@ export function createMajorEvents(deps) {
           const prevBranches = s.branches;
           s.branches = Math.max(1, s.branches - 1);
           const lost = prevBranches - s.branches;
-          effects.push(`${lost} branch snapped by wind`);
+          effects.push(lost > 0 ? '1 branch snapped by wind' : 'Your only branch bent low, but held fast');
         } else if (s.leafClusters > 0) {
           s.leafClusters = Math.max(0, s.leafClusters - 1);
           effects.push('Wind shreds your tender top growth before any true branch can form');
@@ -198,7 +198,7 @@ export function resolveFruitThreats(state, events) { /* unchanged below */
   }
   state.developing = Math.max(0, state.developing - losses);
   const conclusion = losses > 0 ? threat.outcome(losses, saved, defensePower > 0) : threat.safeText;
-  events.push({ text: `${conclusion} Threat status: ended.`, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe' });
+  events.push({ text: `${conclusion} The danger to this season's fruit has passed.`, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe' });
   state.pendingFruitThreat = null;
   state.fruitDefense = Math.max(0, state.fruitDefense - 1);
 }
@@ -215,7 +215,7 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
   if (season === 'Summer' && state.developing > 0 && !state.pendingFruitThreat && Math.random() < 0.45) {
     const threats = [{ type:'human', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' }, { type:'bird', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' }, { type:'chewer', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' }];
     state.pendingFruitThreat = randomChoice(threats);
-    events.push({ text: `${state.pendingFruitThreat.warning} You could invest in Chemical Defense before the danger peaks. Threat status: growing.`, effect: 'warning' });
+    events.push({ text: `${state.pendingFruitThreat.warning} You could invest in Chemical Defense before the danger peaks. The danger is still gathering.`, effect: 'warning' });
   }
   if (season === 'Summer' && state.pendingFruitThreat) resolveFruitThreats(state, events);
   if (season === 'Autumn' && state.developing > 0) {
@@ -240,7 +240,7 @@ export function resolvePendingStartOfTurnEffects(state) {
       key: 'pendingChemicalThreat',
       title: delayed.title,
       warning: delayed.warning,
-      body: `${delayed.ignore()} Threat status: ended after causing damage.`,
+      body: `${delayed.ignore()} The danger has passed, though it left damage behind.`,
     });
   }
 
@@ -327,7 +327,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   return createDecision({
     kind: 'chemical-defense',
     title: threat.title,
-    body: `<p><em>${threat.warning}</em></p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p><p>${canAffordDefense ? 'How do you respond?' : 'You cannot currently afford a chemical defense.'}</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
+    body: `<p><em>${threat.warning}</em></p><p class="threat-status threat-growing">The danger is still gathering.</p><p>${canAffordDefense ? 'How do you respond?' : 'You cannot currently afford a chemical defense.'}</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
     options: canAffordDefense ? [
       {
         id: 'defend',
@@ -369,7 +369,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
       };
       return {
         title: threat.title,
-        body: `<p>You do not have enough reserves to mount a chemical defense. You have not contained the threat.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
+        body: `<p>You do not have enough reserves to mount a chemical defense. You have not contained the threat.</p><p class="threat-status threat-growing">The danger continues to gather.</p>`,
         threatStatus: 'growing',
       };
     }
@@ -379,7 +379,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
     const body = threat.defend();
     return {
       title: threat.title,
-      body: `<p>${body}</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved.</p><p><em>Spent: ${costText}</em></p>`,
+      body: `<p>${body}</p><p class="threat-status threat-solved">The danger has passed.</p><p><em>Spent: ${costText}</em></p>`,
       threatStatus: 'solved',
     };
   }
@@ -395,7 +395,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   };
   return {
     title: threat.title,
-    body: `<p>You conserve your reserves. You have not contained the threat.</p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p>`,
+    body: `<p>You conserve your reserves. You have not contained the threat.</p><p class="threat-status threat-growing">The danger continues to gather.</p>`,
     threatStatus: 'growing',
   };
 }
@@ -453,7 +453,8 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   if (choiceId === 'chemical-battle') {
     const hasResources = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
     if (!hasResources) {
-      state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
+      neighbor.shadingPlayer = true;
+      neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, 2);
       state.sunlight -= lostSun;
       neighbor.relation = Math.max(-100, neighbor.relation - 4);
@@ -473,6 +474,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     const swing = yourPower - theirPower + Math.floor(random() * 5) - 2;
     let body = '';
     if (swing >= 2) {
+      neighbor.shadingPlayer = false;
       const stolenSun = Math.max(1, Math.min(3, Math.floor(random() * 3) + 1));
       const stolenWater = Math.max(0, Math.min(2, Math.floor(random() * 2)));
       const stolenNutrients = Math.max(1, Math.min(3, Math.floor(random() * 3) + 1));
@@ -481,6 +483,8 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
       neighbor.relation = Math.max(-100, neighbor.relation - 6);
       body = `Your chemistry turns the contested ground against the ${neighbor.species}. You siphon <strong>${stolenSun} sunlight</strong>, <strong>${stolenWater} water</strong>, and <strong>${stolenNutrients} nutrients</strong>.`;
     } else if (swing <= -2) {
+      neighbor.shadingPlayer = true;
+      neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, Math.max(1, Math.floor(random() * 3) + 1));
       const lostWater = Math.min(state.water, Math.max(0, Math.floor(random() * 2)));
       const lostNutrients = Math.min(state.nutrients, Math.max(1, Math.floor(random() * 3) + 1));
@@ -489,6 +493,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
       neighbor.relation = Math.max(-100, neighbor.relation - 8);
       body = `The ${neighbor.species} overpowers you in the soil-war, stripping away <strong>${lostSun} sunlight</strong>, <strong>${lostWater} water</strong>, and <strong>${lostNutrients} nutrients</strong>.`;
     } else {
+      neighbor.shadingPlayer = false;
       neighbor.relation = Math.max(-100, neighbor.relation - 2);
       body = `The struggle poisons the ground between you, but neither of you yields. You repel the ${neighbor.species}, for now.`;
     }
@@ -503,7 +508,8 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   if (choiceId === 'diplomacy') {
     const hasResources = state.sunlight >= DIPLOMACY_COST.sunlight && state.water >= DIPLOMACY_COST.water && state.nutrients >= DIPLOMACY_COST.nutrients;
     if (!hasResources) {
-      state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
+      neighbor.shadingPlayer = true;
+      neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, 2);
       state.sunlight -= lostSun;
       neighbor.relation = Math.max(-100, neighbor.relation - 4);
@@ -525,6 +531,8 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     let title = 'Diplomacy Attempt';
     if (roll < 0.35 + rootBonus) {
       applyRelationshipDelta(neighbor, 25);
+      neighbor.shadingPlayer = false;
+      neighbor.playerShading = false;
       neighbor.stageScore = Math.max(0, neighbor.stageScore - 20);
       body = `You extend your roots with gifts of nutrients and a tentative truce. The ${neighbor.species} hesitates, then accepts. The hostility between you softens into wary neutrality.`;
       title = 'Diplomacy Succeeded';
@@ -544,7 +552,8 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     };
   }
 
-  state.eventModifiers.shade = (state.eventModifiers.shade || 0) + 0.12;
+  neighbor.shadingPlayer = true;
+  neighbor.playerShading = false;
   const lostSun = Math.min(state.sunlight, 2);
   state.sunlight -= lostSun;
   const oldState = getRelationshipState(neighbor.relation).name;
@@ -570,7 +579,7 @@ export function describeDecisionPrompt(decision) {
   }
   if (decision.kind === 'chemical-defense') {
     return {
-      text: `${decision.meta?.threat?.warning || 'A chemical threat rises around you.'} Threat status: growing.`,
+      text: `${decision.meta?.threat?.warning || 'A chemical threat rises around you.'} The danger is still gathering.`,
       effect: 'warning',
     };
   }
@@ -717,7 +726,8 @@ export function rollMinorEvents(state, deps) {
   if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) { state.branches -= 1; events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' }); }
   const { allied: alliedNeighbors, contested: contestedNeighbors } = getLivingNeighborsByDisposition(state, getRelationshipState);
   if (alliedNeighbors.length > 0) { advanceAllyCrises(events); checkAllyBetrayal(events); }
-  if (contestedNeighbors.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(contestedNeighbors), events);
+  const adjacentContested = contestedNeighbors.filter(neighbor => neighbor.slot === 1 || neighbor.slot === 3);
+  if (adjacentContested.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(adjacentContested), events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
   if (Math.random() < 0.12) {
     const currentStage = computeCurrentLifeStage().name;
@@ -727,7 +737,7 @@ export function rollMinorEvents(state, deps) {
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage' }); } }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Small Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage' }); } }
-  if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) { state.pendingOffspringThreat = true; events.push({ text: 'Your young offspring is under aphid pressure. Chemical Defense this turn may save it. Threat status: growing.', effect: 'warning' }); }
-  else if (state.pendingOffspringThreat) { state.pendingOffspringThreat = false; if (state.defense > 0 || state.fruitDefense > 0) events.push({ text: 'You shielded your offspring with defensive chemistry. It survives the aphid attack. Threat status: solved. (+offspring survives)', effect: 'offspring-safe' }); else if (Math.random() < 0.5) { const lost = loseYoungestOffspring(state); if (lost) state.offspringPool = Math.max(0, state.offspringPool - 1); events.push({ text: lost ? 'A young offspring succumbed to aphids before it could establish itself. Threat status: ended after the loss. (-1 offspring)' : 'The aphids find no living offspring to attack. Threat status: ended.', effect: lost ? 'offspring-loss' : 'warning' }); } else events.push({ text: 'Your offspring weathered the aphids on its own, but only barely. Threat status: ended. (+offspring survives)', effect: 'offspring-safe' }); }
+  if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) { state.pendingOffspringThreat = true; events.push({ text: 'Your young offspring is under aphid pressure. Chemical Defense this turn may save it. The infestation is spreading.', effect: 'warning' }); }
+  else if (state.pendingOffspringThreat) { state.pendingOffspringThreat = false; if (state.defense > 0 || state.fruitDefense > 0) events.push({ text: 'You shielded your offspring with defensive chemistry. The aphids fall away, and the young tree survives. (+offspring survives)', effect: 'offspring-safe' }); else if (Math.random() < 0.5) { const lost = loseYoungestOffspring(state); if (lost) state.offspringPool = Math.max(0, state.offspringPool - 1); events.push({ text: lost ? 'The aphids are gone, but the young tree did not survive. (-1 offspring)' : 'The aphids disperse without finding a living offspring.', effect: lost ? 'offspring-loss' : 'warning' }); } else events.push({ text: 'The aphids finally disperse. Your offspring survives, though only barely. (+offspring survives)', effect: 'offspring-safe' }); }
   return events;
 }
