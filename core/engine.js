@@ -1,5 +1,16 @@
 import { createOffspringRecords } from './humans.js';
 
+export const BASE_ACTIONS_PER_TURN = 3;
+export const MAX_BONUS_ACTIONS_PER_TURN = 3;
+
+export function actionsForGathering(totalGathered) {
+  const bonusActions = Math.min(
+    MAX_BONUS_ACTIONS_PER_TURN,
+    Math.floor(Math.max(0, totalGathered) / 5),
+  );
+  return BASE_ACTIONS_PER_TURN + bonusActions;
+}
+
 export function createEngine(deps) {
   const {
     SEASONS,
@@ -79,7 +90,7 @@ export function createEngine(deps) {
     state.sunlight += sunlightGain;
     state.water += waterGain;
     state.nutrients += nutrientGain;
-    state.actions = 3 + Math.floor((sunlightGain + waterGain + nutrientGain) / 5);
+    state.actions = actionsForGathering(sunlightGain + waterGain + nutrientGain);
 
     return {
       sunlightGain,
@@ -243,31 +254,57 @@ export function createEngine(deps) {
       showEventPhase,
     } = hooks;
 
-    spend(scaledCost);
-    action.effect(state, { scaledCost });
-    if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
-    showFeedback?.(`${action.name} succeeded!`, 'success');
-    addLog?.(`Action: ${action.name}.`);
-    if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
-    if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');
-    if (action.key === 'growLeaves') addLog?.('Fresh leaves unfurl to gather more light.');
-    if (action.key === 'thicken') addLog?.('Your trunk thickens and your body grows sturdier.');
-    if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
-    if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
-    if (action.key === 'nurtureOffspring') addLog?.(`You send water, nutrients, and stored energy to one of your child trees.`);
-    updateScoreState(state);
-    updateUI();
-    render();
-    if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
-      if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
-    }
-    if (maybeTriggerActionMilestone?.(action.key)) return true;
-    if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
-    renderActions?.();
-    if (state.actions <= 0) {
-      showEventPhase?.();
+    let status = 'pending';
+    let completed = false;
+
+    const commit = () => {
+      if (status !== 'pending') return status === 'committed';
+      spend(scaledCost);
+      status = 'committed';
       return true;
-    }
+    };
+
+    const cancel = () => {
+      if (status !== 'pending') return false;
+      status = 'cancelled';
+      showFeedback?.(`${action.name} cancelled — nothing spent.`, 'info');
+      updateUI();
+      render();
+      renderActions?.();
+      return true;
+    };
+
+    const complete = () => {
+      if (completed || status === 'cancelled') return false;
+      commit();
+      completed = true;
+      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
+      showFeedback?.(`${action.name} succeeded!`, 'success');
+      addLog?.(`Action: ${action.name}.`);
+      if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
+      if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');
+      if (action.key === 'growLeaves') addLog?.('Fresh leaves unfurl to gather more light.');
+      if (action.key === 'thicken') addLog?.('Your trunk thickens and your body grows sturdier.');
+      if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
+      if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
+      if (action.key === 'nurtureOffspring') addLog?.(`You send water, nutrients, and stored energy to one of your child trees.`);
+      updateScoreState(state);
+      updateUI();
+      render();
+      if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed' && state.firstRootActionTaken) {
+        if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
+      }
+      if (maybeTriggerActionMilestone?.(action.key)) return true;
+      if (tryAdvanceLifeStage(() => { resumeTurnFlow?.(); })) return true;
+      renderActions?.();
+      if (state.actions <= 0) showEventPhase?.();
+      return true;
+    };
+
+    const transaction = { commit, cancel, complete };
+    const result = action.effect(state, { scaledCost, transaction });
+    if (result?.deferred) return true;
+    complete();
     return true;
   }
 

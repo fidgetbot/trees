@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=review-integrity-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=bounded-actions-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -59,7 +59,7 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=grove-balance-v1';
-import { createEngine } from './core/engine.js?rev=review-integrity-v1';
+import { createEngine } from './core/engine.js?rev=bounded-actions-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
@@ -499,7 +499,7 @@ function growNeighbors() {
   growOffspringRecords(state);
 }
 
-function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false) {
+function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow) {
   const choices = state.neighbors
     .filter(n => !n.dead)
     .filter(filterFn)
@@ -508,7 +508,7 @@ function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a ne
       const healthText = typeof n.health === 'number' && typeof n.maxHealth === 'number' ? ` · ${n.health}/${n.maxHealth} health` : '';
       return { label: `${n.species} (${rel}${healthText})`, onChoose: () => onPick(n) };
     });
-  if (includeBack) choices.push({ label: 'Back', onChoose: () => resumeTurnFlow() });
+  if (includeBack) choices.push({ label: 'Back', onChoose: () => onBack?.() });
   showChoiceModal(title, `<p>${body}</p>`, choices);
 }
 
@@ -731,20 +731,34 @@ function checkAllyBetrayal(events) {
   });
 }
 
-function resinReserveAction(s) {
+function resinReserveAction(s, context = {}) {
+  const { transaction } = context;
+  const finish = (applyChoice, title, body) => {
+    transaction?.commit();
+    applyChoice();
+    showModal(title, body, () => transaction?.complete());
+  };
   showChoiceModal('Resin Reserve', '<p>How will you spend this dense pulse of nutrients?</p>', [
-    { label: 'Saturate bark with bitter resin (−12🌱)', onChoose: () => { state.nutrients = Math.max(0, state.nutrients - 12); state.defense += 2; state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.95); showModal('Resin Reserve', '<p>Your tissues run bitter and guarded. Insects and infection will have a harder time taking hold.</p>', resumeTurnFlow); } },
-    { label: 'Build emergency defensive stores (−16🌱)', onChoose: () => { state.nutrients = Math.max(0, state.nutrients - 16); state.fruitDefense += 2; state.eventModifiers.shelter = (state.eventModifiers.shelter || 0) + 1; showModal('Resin Reserve', '<p>You bank dense reserves against the next hardship, thickening your defensive chemistry.</p>', resumeTurnFlow); } },
-    { label: 'Back', onChoose: () => resumeTurnFlow() }
+    { label: 'Saturate bark with bitter resin (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.defense += 2; state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.95); }, 'Resin Reserve', '<p>Your tissues run bitter and guarded. Insects and infection will have a harder time taking hold.</p>') },
+    { label: 'Build emergency defensive stores (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.fruitDefense += 2; state.eventModifiers.shelter = (state.eventModifiers.shelter || 0) + 1; }, 'Resin Reserve', '<p>You bank dense reserves against the next hardship, thickening your defensive chemistry.</p>') },
+    { label: 'Back', onChoose: () => transaction?.cancel() }
   ]);
+  return { deferred: true };
 }
 
-function woodSurgeAction(s) {
+function woodSurgeAction(s, context = {}) {
+  const { transaction } = context;
+  const finish = (applyChoice, body) => {
+    transaction?.commit();
+    applyChoice();
+    showModal('Wood Surge', body, () => transaction?.complete());
+  };
   showChoiceModal('Wood Surge', '<p>How will you spend this growth surge?</p>', [
-    { label: 'Drive down and outward (−12🌱)', onChoose: () => { state.nutrients = Math.max(0, state.nutrients - 12); state.rootZones += 1; state.taprootDepth += 1; showModal('Wood Surge', '<p>You invest heavily belowground. Your roots thicken and your taproot pushes toward deeper water.</p>', resumeTurnFlow); } },
-    { label: 'Lay on wood and crown (−16🌱)', onChoose: () => { state.nutrients = Math.max(0, state.nutrients - 16); state.trunk += 1; state.canopySpread += 1; state.leafClusters += 1; state.maxHealth += 1; state.health = Math.min(state.maxHealth, state.health + 1); showModal('Wood Surge', '<p>You turn surplus nutrients into wood, crown, and living strength.</p>', resumeTurnFlow); } },
-    { label: 'Back', onChoose: () => resumeTurnFlow() }
+    { label: 'Drive down and outward (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.rootZones += 1; state.taprootDepth += 1; }, '<p>You invest heavily belowground. Your roots thicken and your taproot pushes toward deeper water.</p>') },
+    { label: 'Lay on wood and crown (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.trunk += 1; state.canopySpread += 1; state.leafClusters += 1; state.maxHealth += 1; state.health = Math.min(state.maxHealth, state.health + 1); }, '<p>You turn surplus nutrients into wood, crown, and living strength.</p>') },
+    { label: 'Back', onChoose: () => transaction?.cancel() }
   ]);
+  return { deferred: true };
 }
 
 function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFlow) {
@@ -804,15 +818,18 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 }
 
-function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTurnFlow } = {}) {
+function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null } = {}) {
+  const cancel = () => transaction?.cancel();
+  const complete = () => transaction?.complete();
   if (!decision.options.length) {
     if (emptyMessage) showFeedback(emptyMessage, 'warning');
-    onDone?.();
-    return;
+    cancel();
+    return { deferred: true };
   }
 
   const execute = (option) => {
     const proceed = () => {
+      transaction?.commit();
       const resolved = resolveDiplomacyDecision(state, decision, option.id, {
         getRelationshipState,
         getAdjustedRelationshipDelta,
@@ -820,13 +837,13 @@ function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTu
         recordDamage,
         random: Math.random,
       });
-      showResolvedDiplomacyDecision(decision, resolved, onDone);
+      showResolvedDiplomacyDecision(decision, resolved, complete);
     };
 
     if (option.requiresConfirmation && option.confirmation) {
       showChoiceModal(option.confirmation.title, option.confirmation.body, [
         { label: 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
-        { label: 'No, keep the peace', className: 'btn', onChoose: () => onDone?.() },
+        { label: 'No, keep the peace', className: 'btn', onChoose: cancel },
       ]);
       return;
     }
@@ -836,57 +853,62 @@ function runDiplomacyDecision(decision, { emptyMessage = null, onDone = resumeTu
 
   if (decision.options.length === 1) {
     execute(decision.options[0]);
-    return;
+    return { deferred: true };
   }
 
   chooseNeighborModal(
     (neighbor) => {
       const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-      if (!option) return onDone?.();
+      if (!option) return cancel();
       execute(option);
     },
     n => decision.options.some(option => option.targetIndex === state.neighbors.indexOf(n)),
     decision.title,
     decision.body,
-    true
+    true,
+    cancel,
   );
+  return { deferred: true };
 }
 
-function offerAidToAlly(s, paidCost) {
+function offerAidToAlly(s, context = {}) {
   return runDiplomacyDecision(buildAidDecision(state, {
     getRelationshipState,
-    paidCost,
+    paidCost: context.scaledCost,
   }), {
     emptyMessage: 'No allied trees are available to receive aid',
+    transaction: context.transaction,
   });
 }
 
-function runAggressionFlow(kind) {
-  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState }));
+function runAggressionFlow(kind, context = {}) {
+  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState }), {
+    transaction: context.transaction,
+  });
 }
 
-function shadeRivalAction(s) {
-  return runAggressionFlow('shade');
+function shadeRivalAction(s, context) {
+  return runAggressionFlow('shade', context);
 }
 
-function rootDominionAction(s) {
-  return runAggressionFlow('dominion');
+function rootDominionAction(s, context) {
+  return runAggressionFlow('dominion', context);
 }
 
-function requestHelpFromAllies(s) {
+function requestHelpFromAllies(s, context = {}) {
   return runDiplomacyDecision(buildHelpRequestDecision(state, {
     getRelationshipState,
     getNeighborStage,
   }), {
     emptyMessage: 'No allies are close enough to help',
-    onDone: () => {
-      if (state.actions <= 0) showEventPhase();
-    },
+    transaction: context.transaction,
   });
 }
 
-function attemptConnection(s) {
-  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState }));
+function attemptConnection(s, context = {}) {
+  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState }), {
+    transaction: context.transaction,
+  });
 }
 
 function getNeighborTree(idx) {

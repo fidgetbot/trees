@@ -110,8 +110,9 @@ Season directly modifies gathering: Spring produces 80% normal sunlight and 100%
 ### Action Economy
 
 - **Base actions per turn:** 3
-- High gathering yields award one additional action per complete five resources gathered; the gathering summary reports the exact number earned
+- High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; the gathering summary reports the exact number earned
 - Actions spend combinations of sunlight, water, and nutrients
+- Multi-step actions remain pending until the player confirms a final target or investment; backing out, declining confirmation, or losing every valid target spends no resources and no action
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful
 - If the player cannot afford any currently available action, the browser UI keeps the end-turn path available instead of auto-advancing immediately
 - When a chemical-defense threat appears and the player cannot afford the response, the UI now presents a single acknowledgement button that explicitly shows the missing resources instead of offering a misleading unusable defend option

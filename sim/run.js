@@ -303,8 +303,8 @@ function createHeadlessGame(seed, speciesName) {
       });
       updateAlliesCount(s, getRelationshipState);
     },
-    offerAidToAlly: (s, paidCost) => {
-      const decision = buildAidDecision(s, { getRelationshipState, paidCost });
+    offerAidToAlly: (s, context = {}) => {
+      const decision = buildAidDecision(s, { getRelationshipState, paidCost: context.scaledCost });
       const targetOption = decision.options.find(option => option.meta?.crisis)
         || [...decision.options].sort((a, b) => (s.neighbors[a.targetIndex]?.helpGivenToThem || 0) - (s.neighbors[b.targetIndex]?.helpGivenToThem || 0))[0]
         || decision.options[0];
