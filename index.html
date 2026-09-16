@@ -40,6 +40,12 @@
           <h2>Actions <span class="actions-heading-count" id="actions-remaining" aria-live="polite">(3 remaining)</span></h2>
           <span id="phase-indicator" class="phase-pill">Action Phase</span>
         </div>
+        <div class="action-resource-strip" aria-label="Resources available for actions">
+          <span class="action-resource-label">You have</span>
+          <span class="action-resource-total res-sun"><span aria-hidden="true">☀️</span><strong id="action-sunlight">0</strong></span>
+          <span class="action-resource-total res-water"><span aria-hidden="true">💧</span><strong id="action-water">0</strong></span>
+          <span class="action-resource-total res-nutrient"><span aria-hidden="true">🌱</span><strong id="action-nutrients">0</strong></span>
+        </div>
         <div id="actions-list" class="actions-list"></div>
 
         <div class="hud-header status-header">
@@ -185,6 +191,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=action-heading-v1"></script>
+  <script type="module" src="main.js?rev=resource-compare-v1"></script>
 </body>
 </html>

@@ -98,6 +98,12 @@ export function updateHudUI({
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
   document.getElementById('nutrients').textContent = state.nutrients;
+  const actionSunlight = document.getElementById('action-sunlight');
+  const actionWater = document.getElementById('action-water');
+  const actionNutrients = document.getElementById('action-nutrients');
+  if (actionSunlight) actionSunlight.textContent = state.sunlight;
+  if (actionWater) actionWater.textContent = state.water;
+  if (actionNutrients) actionNutrients.textContent = state.nutrients;
   document.getElementById('leaf-clusters').textContent = state.leafClusters;
   document.getElementById('root-zones').textContent = state.rootZones;
   document.getElementById('branches').textContent = state.branches;

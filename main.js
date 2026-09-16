@@ -58,7 +58,7 @@ import {
   updateProtectionProgress,
 } from './core/humans.js?rev=protected-grove-v1';
 import { createEngine } from './core/engine.js?rev=protected-grove-v1';
-import { renderActionPanels } from './ui/actions.js?rev=action-first-v1';
+import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js';
@@ -66,7 +66,7 @@ import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=protected-grove-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=action-heading-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=resource-compare-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=action-heading-v1';
 
 function computeCurrentLifeStage() {
@@ -943,10 +943,18 @@ function renderActions() {
     const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
     const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
 
-    let costsHtml = '<div class="action-costs">';
-    if (sunRequired > 0) costsHtml += `<span class="cost ${sunClass}">☀️${sunRequired}</span>`;
-    if (waterRequired > 0) costsHtml += `<span class="cost ${waterClass}">💧${waterRequired}</span>`;
-    if (nutRequired > 0) costsHtml += `<span class="cost ${nutClass}">🌱${nutRequired}</span>`;
+    const resourceCost = (icon, name, required, owned, className) => `
+      <span class="cost ${className}" aria-label="${required} ${name} cost; ${owned} available">
+        <span class="cost-icon" aria-hidden="true">${icon}</span>
+        <span class="cost-number"><strong>${required}</strong><small>cost</small></span>
+        <span class="cost-divider" aria-hidden="true">/</span>
+        <span class="cost-number cost-owned"><strong>${owned}</strong><small>yours</small></span>
+      </span>`;
+
+    let costsHtml = '<div class="action-costs" aria-label="Action cost compared with your resources">';
+    if (sunRequired > 0) costsHtml += resourceCost('☀️', 'sunlight', sunRequired, state.sunlight, sunClass);
+    if (waterRequired > 0) costsHtml += resourceCost('💧', 'water', waterRequired, state.water, waterClass);
+    if (nutRequired > 0) costsHtml += resourceCost('🌱', 'nutrients', nutRequired, state.nutrients, nutClass);
     costsHtml += '</div>';
 
     const actionData = { action, scaledCost, costsHtml, sunRequired, waterRequired, nutRequired };
