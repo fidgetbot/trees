@@ -159,7 +159,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .cost {
   display: inline-grid;
-  grid-template-columns: auto auto auto auto;
+  grid-template-columns: auto auto;
   align-items: center;
   gap: 4px;
   padding: 5px 7px;
@@ -187,10 +187,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   text-transform: uppercase;
   opacity: 0.68;
 }
-.cost-divider {
-  color: rgba(255,255,255,0.28);
-  font-size: 12px;
-}
 .cost.res-sun { color: var(--sun); }
 .cost.res-water { color: var(--water); }
 .cost.res-nutrient { color: var(--nutrient); }
@@ -200,11 +196,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .cost.res-low {
   border-color: rgba(252,165,165,0.32);
-}
-.cost.res-low .cost-owned {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 2px;
 }
 .phase-indicator {
   display: flex;
@@ -398,10 +389,25 @@ canvas {
 .action-resource-total.res-sun { color: var(--sun); }
 .action-resource-total.res-water { color: var(--water); }
 .action-resource-total.res-nutrient { color: var(--nutrient); }
-.status-header {
+.post-actions-status {
   margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid rgba(255,255,255,0.09);
+}
+
+.threat-status {
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+}
+
+.threat-growing {
+  background: rgba(157, 72, 42, 0.12);
+  color: #f1aa85;
+}
+
+.threat-solved {
+  background: rgba(56, 118, 71, 0.12);
+  color: #9bd4a7;
 }
 .unavailable-actions {
   padding-top: 4px;

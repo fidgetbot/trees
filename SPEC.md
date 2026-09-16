@@ -132,9 +132,11 @@ Current browser HUD behavior:
 - immediately below the fixed map, Next Growth appears directly above Actions; usable actions come first, followed by subdued compact summaries of other actions unlocked at the current stage with their full scaled costs and a specific explanation of the current shortage or prerequisite; future-stage actions remain separately collapsed
 - each life-stage transition announces every newly unlocked real action with a complete, natural sentence explaining what the action lets the player do, and records the same unlock in the log
 - the map camera begins at a macro scale with the painterly, species-tinted seed and soil horizon centered both horizontally and vertically; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and later stages keep the upper edge just above the player's current height so neighboring trees reveal progressively more structure as the player grows
+- structural growth is persistent and visually inspectable on the Canvas: root zones add lateral roots, taproot growth deepens the central root, leaves add foliage, branches add stable shoots, trunk growth thickens the wood, and canopy growth widens the crown; the map redraws immediately after each completed growth action
 - the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
 - the Actions heading contains the live action count in the compact form **Actions (3 remaining)** and updates through zero without a separate banner
-- a compact live resource strip sits directly beneath the Actions heading, and every action cost pairs each required amount with the player's current amount (`cost / yours`); shortages receive a stronger warning treatment so phone players do not need to scroll back to Status or remember totals
+- a compact live resource strip sits directly beneath the Actions heading; action cards show only their required amounts with a small `cost` label, while shortages receive a stronger warning treatment, avoiding repeated `cost / yours` figures now that current totals remain visible beside the list
+- the stats groups follow the action list without a redundant top-level **Status** heading
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
 - health and allies now appear under Resources instead of a separate Ecology section, with only a subtle divider separating spendable resources from status values
 - ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
@@ -209,6 +211,7 @@ Current systems include:
 - a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
+- persistent threat messages explicitly conclude whether danger is **growing**, **shrinking but unresolved**, **solved**, or **ended after damage**; allied help clears an active chemical threat such as aphids in addition to restoring health
 - cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll
 
 ### Scoring, Victory, and Continuation

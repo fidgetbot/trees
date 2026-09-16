@@ -37,7 +37,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=protected-grove-v1';
+} from './core/events.js?rev=growth-threat-clarity-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -48,7 +48,7 @@ import {
   buildAidDecision,
   buildHelpRequestDecision,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=protected-grove-v1';
+} from './core/diplomacy.js?rev=growth-threat-clarity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -56,7 +56,7 @@ import {
   nurtureOffspring,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=protected-grove-v1';
+} from './core/humans.js?rev=growth-threat-clarity-v1';
 import { createEngine } from './core/engine.js?rev=protected-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
@@ -65,7 +65,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js';
 import { renderResourcePhaseBody } from './ui/resources.js';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=protected-grove-v1';
+import { renderForestScene } from './ui/canvas.js?rev=growth-threat-clarity-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=resource-compare-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=action-heading-v1';
 
@@ -628,12 +628,12 @@ function advanceAllyCrises(events) {
     if (neighbor.activeCrises.length === 0 && Math.random() < (state.allies === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
     for (const crisis of [...neighbor.activeCrises]) {
       const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
-      events.push({ text: flavor, effect: 'warning' });
+      events.push({ text: `${flavor} Threat status: growing.`, effect: 'warning' });
       state.pendingInteractions.push((done) => showAllyAidRequest(neighbor, crisis, done));
       crisis.stage += 1;
       neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
       if (neighbor.health <= 0) {
-        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}.`, effect: 'damage' });
+        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. Threat status: ended after the loss.`, effect: 'damage' });
         updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
       }
     }
@@ -645,7 +645,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
   const oldState = getRelationshipState(neighbor.relation).name;
   const available = state[crisis.kind];
   const title = `${neighbor.species} asks for help`;
-  showChoiceModal(title, `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
+  showChoiceModal(title, `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p class="threat-status threat-growing"><strong>Threat status:</strong> growing.</p><p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
     {
       label: 'Give what you can',
       onChoose: () => {
@@ -657,16 +657,16 @@ function showAllyAidRequest(neighbor, crisis, done) {
           relationDelta = 12;
           neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + crisis.healthLoss + 2);
           neighbor.activeCrises = (neighbor.activeCrises || []).filter(c => c.id !== crisis.id);
-          body = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity.`;
+          body = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity. <strong>Threat status: solved.</strong>`;
         } else if (given > 0) {
           relationDelta = 2;
           neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + 1);
           crisis.amount = Math.max(1, crisis.amount - given);
-          body = `You send ${given} ${crisis.kind}. It helps, but the crisis is not over.`;
+          body = `You send ${given} ${crisis.kind}. It helps, but the crisis is not over. <strong>Threat status: shrinking, but unresolved.</strong>`;
         } else {
           relationDelta = -8;
           crisis.amount += 2;
-          body = `You cannot send any of what it needs. The ${neighbor.species} feels the failure sharply.`;
+          body = `You cannot send any of what it needs. The ${neighbor.species} feels the failure sharply. <strong>Threat status: growing.</strong>`;
         }
         neighbor.helpGivenToThem += given > 0 ? 1 : 0;
         neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
@@ -685,7 +685,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
         crisis.amount += 2;
         neighbor.relation = Math.max(-100, neighbor.relation - 12);
         const newState = getRelationshipState(neighbor.relation).name;
-        showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
+        showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p><strong>Threat status: growing.</strong></p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
           refreshMainView();
           continueWithRelationshipChange(neighbor.species, oldState, newState, done);
         });
@@ -750,7 +750,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
       showModal('Aid Sent', `<p>You want to support the ${neighborName}, but you do not have the reserves to send meaningful help.</p><p><strong>Needed:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
-    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid helps the ${neighborName} push back ${resolved.option.meta.crisis.title.toLowerCase()}.</p>` : '';
+    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}.</p><p><strong>Threat status: solved.</strong></p>` : '';
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> 🌱${outcome.nutrientCost} · 💧${outcome.waterCost}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
@@ -759,8 +759,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 
   if (decision.kind === 'ally-help-request') {
-    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.`);
-    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>`, () => {
+    const threatConclusion = outcome.clearedThreat ? ` The ${outcome.clearedThreat.title.toLowerCase()} is cleared. Threat status: solved.` : '';
+    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.${threatConclusion}`);
+    const threatBody = outcome.clearedThreat ? `<p>The ${outcome.clearedThreat.title.toLowerCase()} is cleared by the allied response.</p><p class="threat-status threat-solved"><strong>Threat status:</strong> solved.</p>` : '';
+    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>${threatBody}`, () => {
       refreshMainView({ actions: true });
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });
@@ -943,18 +945,16 @@ function renderActions() {
     const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
     const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
 
-    const resourceCost = (icon, name, required, owned, className) => `
-      <span class="cost ${className}" aria-label="${required} ${name} cost; ${owned} available">
+    const resourceCost = (icon, name, required, className) => `
+      <span class="cost ${className}" aria-label="${required} ${name} cost">
         <span class="cost-icon" aria-hidden="true">${icon}</span>
         <span class="cost-number"><strong>${required}</strong><small>cost</small></span>
-        <span class="cost-divider" aria-hidden="true">/</span>
-        <span class="cost-number cost-owned"><strong>${owned}</strong><small>yours</small></span>
       </span>`;
 
-    let costsHtml = '<div class="action-costs" aria-label="Action cost compared with your resources">';
-    if (sunRequired > 0) costsHtml += resourceCost('☀️', 'sunlight', sunRequired, state.sunlight, sunClass);
-    if (waterRequired > 0) costsHtml += resourceCost('💧', 'water', waterRequired, state.water, waterClass);
-    if (nutRequired > 0) costsHtml += resourceCost('🌱', 'nutrients', nutRequired, state.nutrients, nutClass);
+    let costsHtml = '<div class="action-costs" aria-label="Action cost">';
+    if (sunRequired > 0) costsHtml += resourceCost('☀️', 'sunlight', sunRequired, sunClass);
+    if (waterRequired > 0) costsHtml += resourceCost('💧', 'water', waterRequired, waterClass);
+    if (nutRequired > 0) costsHtml += resourceCost('🌱', 'nutrients', nutRequired, nutClass);
     costsHtml += '</div>';
 
     const actionData = { action, scaledCost, costsHtml, sunRequired, waterRequired, nutRequired };

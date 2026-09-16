@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
-  <link rel="stylesheet" href="styles.css?rev=resource-compare-v1" />
+  <link rel="stylesheet" href="styles.css?rev=growth-threat-clarity-v1" />
 </head>
 <body>
   <div id="app">
@@ -48,10 +48,7 @@
         </div>
         <div id="actions-list" class="actions-list"></div>
 
-        <div class="hud-header status-header">
-          <h2>Status</h2>
-        </div>
-        <div id="species-badge" class="species-badge"></div>
+        <div id="species-badge" class="species-badge post-actions-status"></div>
         <div class="stats-container">
           <div class="stat-group" data-group="resources">
             <h4 class="stat-group-title">📊 Resources</h4>
@@ -191,6 +188,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=resource-compare-v1"></script>
+  <script type="module" src="main.js?rev=growth-threat-clarity-v1"></script>
 </body>
 </html>

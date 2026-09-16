@@ -89,19 +89,25 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
     tone = `The ${neighbor.species} remembers that you answered its need before. It sends help with warmth.`;
   }
 
+  const clearedThreat = state.pendingChemicalThreat
+    ? { title: state.pendingChemicalThreat.title, warning: state.pendingChemicalThreat.warning }
+    : null;
+  if (clearedThreat) state.pendingChemicalThreat = null;
   state.health += actualHeal;
   neighbor.helpReceivedFromThem += 1;
   const oldState = getRelationshipState(neighbor.relation).name;
   const adjusted = getAdjustedRelationshipDelta(state, relationShift);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjusted));
   const newState = getRelationshipState(neighbor.relation).name;
-  neighbor.lastAidMemory = actualHeal > 0 ? 'helped-you' : 'could-not-help';
+  neighbor.lastAidMemory = actualHeal > 0 || clearedThreat ? 'helped-you' : 'could-not-help';
 
   return {
     oldState,
     newState,
     tone,
     actualHeal,
+    clearedThreat,
+    threatStatus: clearedThreat ? 'solved' : null,
   };
 }
 
