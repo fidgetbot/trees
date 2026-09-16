@@ -124,10 +124,11 @@ export function updateHudUI({
   if (seasonGuideSummary && seasonGuideGrid && seasons.length) {
     const current = seasons.find(season => season.name === currentSeasonName) || seasons[0];
     const pct = factor => `${Math.round(factor * 100)}%`;
-    seasonGuideSummary.textContent = `Seasonal gathering · ${current.name}: ${pct(current.factorSun)} light, ${pct(current.factorWater)} water`;
+    const dormancy = current.name === 'Winter' ? ' · leaf growth rests, upkeep is halved' : '';
+    seasonGuideSummary.textContent = `Seasonal gathering · ${current.name}: ${pct(current.factorSun)} light, ${pct(current.factorWater)} water${dormancy}`;
     seasonGuideGrid.innerHTML = seasons.map(season => `
       <div class="season-guide-row${season.name === currentSeasonName ? ' current' : ''}">
-        <strong>${season.name}</strong><span>☀️ ${pct(season.factorSun)}</span><span>💧 ${pct(season.factorWater)}</span>
+        <strong>${season.name}</strong><span>☀️ ${pct(season.factorSun)}</span><span>💧 ${pct(season.factorWater)}${season.name === 'Winter' ? ' · dormant' : ''}</span>
       </div>`).join('');
   }
 

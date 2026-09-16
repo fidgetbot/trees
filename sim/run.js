@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createEngine } from '../core/engine.js';
+import { createStartingNeighbors } from '../core/neighbors.js';
 import { createSeededRng } from '../core/random.js';
 import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
@@ -50,37 +51,7 @@ function percentile(values, pct) {
 }
 
 function makeStartingNeighbors(rng) {
-  const speciesNames = Object.keys(SPECIES);
-  const shuffled = [...speciesNames].sort(() => rng() - 0.5);
-  const positions = [0, 1, 3, 4];
-  return positions.map((slot, i) => {
-    const species = shuffled[i % shuffled.length];
-    const stageChoices = ['Sprout', 'Seedling', 'Sapling', 'Small Tree', 'Mature Tree'];
-    const stageName = stageChoices[Math.floor(rng() * stageChoices.length)];
-    const stage = LIFE_STAGES.find(x => x.name === stageName) || LIFE_STAGES[1];
-    return {
-      slot,
-      species,
-      relation: 0,
-      stageScore: stage.threshold + Math.floor(rng() * 160),
-      hostile: false,
-      ally: false,
-      helpGivenToThem: 0,
-      growthAidReceived: 0,
-      firstAidStageScore: null,
-      helpRefusedToThem: 0,
-      helpReceivedFromThem: 0,
-      timesAskedThemForHelp: 0,
-      lastAidMemory: '',
-      maxHealth: 10,
-      health: 10,
-      activeCrises: [],
-      crisisCounter: 0,
-      dead: false,
-      playerShading: false,
-      shadingPlayer: false,
-    };
-  });
+  return createStartingNeighbors(Object.keys(SPECIES), LIFE_STAGES, rng);
 }
 
 function createInitialState(speciesName, rng) {
@@ -101,6 +72,8 @@ function createInitialState(speciesName, rng) {
     rootZones: spec.rootZones || 0,
     leafClusters: 0,
     trunk: spec.trunk || 1,
+    heightGrowth: 0,
+    spindlyGrowth: 0,
     flowers: 0,
     pollinated: 0,
     developing: 0,
@@ -329,11 +302,13 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     shadeRivalAction: s => {
-      const decision = buildAggressionDecision(s, 'shade', { getRelationshipState });
-      const chosen = decision.options.find(option => option.meta?.alreadyContested) || decision.options[0];
+      const decision = buildAggressionDecision(s, 'shade', { getRelationshipState, getNeighborStage });
+      const eligible = decision.options.filter(option => !option.meta?.blockedReason);
+      const chosen = eligible.find(option => option.meta?.alreadyContested) || eligible[0];
       if (!chosen) return;
       const resolved = resolveDiplomacyDecision(s, decision, chosen.id, {
         getRelationshipState,
+        getNeighborStage,
       });
       const neighbor = s.neighbors[resolved.targetIndex];
       if (!neighbor) return;
@@ -354,6 +329,7 @@ function createHeadlessGame(seed, speciesName) {
     },
     nurtureOffspringAction: s => nurtureOffspring(s),
     getRelationshipState,
+    getNeighborStage,
   });
 
   const engine = createEngine({
@@ -446,6 +422,7 @@ function createHeadlessGame(seed, speciesName) {
     renderSuccessionBody: () => '',
     renderVictoryBody: () => '',
     getRelationshipState,
+    getNeighborStage,
   });
 
   function chooseAction() {

@@ -79,7 +79,7 @@ function playerHeight(state,stage,camera){
   if(stage==='Seed')return 2.6*camera.zoom;
   if(stage==='Sprout')return 15*camera.zoom;
   const species=state.selectedSpecies||'Plum',habit=HABITS[species]||HABITS.Plum,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+(state.trunk||0)*.025)*camera.zoom;
-  const tree=buildTree(hash(`${species}:2:resident`),state.branches||0,state.leafClusters||0,habit,stage,state.trunk||0,state.canopySpread||0);
+  const tree=buildTree(hash(`${species}:2:resident`),state.branches||0,state.leafClusters||0,habit,stage,state.trunk||0,state.canopySpread||0,state.heightGrowth||0);
   let top=0;tree.wood.forEach(branch=>branch.points.forEach(point=>{top=Math.min(top,point.y)}));tree.clusters.forEach(cluster=>{top=Math.min(top,cluster.y-cluster.size*1.35)});
   return Math.max(12,-top*scale);
 }
@@ -140,12 +140,12 @@ export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
   if(isPlayer){
     const nearby=(state.neighbors||[]).filter(tree=>!tree.dead&&tree.playerShading&&(tree.slot===1||tree.slot===3));
     const canopyLean=nearby.reduce((sum,tree)=>sum+(tree.slot<2?-1:1),0);
-    return{worldOffset:0,canopyLean:Math.max(-1,Math.min(1,canopyLean))};
+    return{worldOffset:nearby.length?Math.max(-12,Math.min(12,canopyLean*7)):0,canopyLean:Math.max(-1,Math.min(1,canopyLean))*1.55};
   }
   if(!neighbor)return{worldOffset:0,canopyLean:0};
   const side=slot<2?-1:1;
-  if(neighbor.shadingPlayer)return{worldOffset:-side*24,canopyLean:-side};
-  if(neighbor.playerShading)return{worldOffset:side*16,canopyLean:side*.45};
+  if(neighbor.shadingPlayer)return{worldOffset:-side*32,canopyLean:-side*1.25};
+  if(neighbor.playerShading)return{worldOffset:side*34,canopyLean:side*.85};
   return{worldOffset:0,canopyLean:0};
 }
 
@@ -153,20 +153,22 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
-  const scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
-  drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
+  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
+  if(stage!=='Seed'||roots>0)drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
   if(stage==='Seed')drawSeed(ctx,x,groundY,species,camera.zoom,seed);
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom,leaves,trunk);
   else {
-    const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0);
-    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+    const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0,heightGrowth);
+    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.28,1,0,0);
     drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true);
     if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
-    if(isPlayer&&season==='Spring'&&state.flowers>0)drawBlossoms(ctx,tree,seed,state.flowers);
+    if(isPlayer&&shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers);
     if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
     ctx.restore();
   }
 }
+
+export function shouldDrawPlayerBlossoms(state,season){return season==='Spring'&&(state.flowers||0)>0}
 
 function drawPlayerDefenses(ctx,tree,state,seed){
   const r=rng(seed+7117),thornCount=Math.min(28,(state.thornDefense||0)*8),toxicCount=Math.min(34,(state.toxicLeaves||0)*9);
@@ -226,13 +228,14 @@ export function getPlayerVisualProfile(state,stage=state.lifeStage?.name||'Seed'
     foliageDensity:leafCount===0?0:Math.min(30,5+leafCount*2),
     trunkWidth:(stage==='Seedling'?6:10)+Math.min(8,trunkLevel*1.2)+Math.min(6,branchCount*.55),
     canopySpreadFactor:1+Math.min(.38,canopySpread*.07),
+    heightFactor:1+Math.min(.5,Math.max(0,state.heightGrowth||0)*.075),
     rootBranches:Math.max(1,Math.min((state.rootZones||0)+((state.rootZones||0)>0?2:0),8)),
     taprootDepth:Math.max(0,state.taprootDepth||0),
   };
 }
 
-function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpread=0){
-  const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Sapling'?3:4,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
+function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpread=0,heightGrowth=0){
+  const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Sapling'?3:4,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
   function limb(x,y,angle,length,width,remaining,turn=0,z=r()){
     const bend=(r()-.5)*habit.bend,endAngle=angle+turn+bend,p0={x,y},p1={x:x+Math.cos(angle)*length*.38,y:y+Math.sin(angle)*length*.38},p3={x:x+Math.cos(angle+turn*.65+bend*.45)*length*habit.spread*profile.canopySpreadFactor,y:y+Math.sin(angle+turn*.65+bend*.45)*length},p2={x:p3.x-Math.cos(endAngle)*length*.32,y:p3.y-Math.sin(endAngle)*length*.32},points=[];
     for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-.52*t)})}wood.push({points,z});
@@ -240,7 +243,7 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
     const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.65+r()*.08),end.width*.58,remaining-1,(r()-.5)*.2,z+.01);
     [-1,1].forEach(side=>{const k=9+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.15),p.width*.54,remaining-1,side*(.62+r()*.42),z+side*.08)})
   }
-  limb(0,0,-Math.PI/2,62*habit.height*structure,profile.trunkWidth,depth);
+  limb(0,0,-Math.PI/2,62*habit.height*structure*profile.heightFactor,profile.trunkWidth,depth);
   const establishedWood=[...wood];
   for(let i=0;i<profile.branchShoots;i+=1){const host=establishedWood[(i*7+3)%establishedWood.length],attachIndex=5+((i*3)%8),attach=host.points[Math.min(attachIndex,host.points.length-2)],previous=host.points[Math.max(0,attachIndex-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=i%2?1:-1;limb(attach.x,attach.y,heading,15+(i%4)*2.5,Math.max(1.4,attach.width*.52),0,side*(.58+(i%3)*.12),host.z+side*.11)}
   return{wood,clusters,leafCount,profile};
@@ -253,7 +256,7 @@ function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p
 function drawFoliage(ctx,tree,season,seed,player,front){if(season==='Winter')return;const colors=palette(season),ordered=player?[...tree.clusters].map((cluster,index)=>({cluster,index,priority:hash(`${seed}:leaf:${index}`)})).sort((a,b)=>a.priority-b.priority).slice(0,Math.min(tree.clusters.length,tree.profile?.foliageClusters||0)):tree.clusters.map((cluster,index)=>({cluster,index}));ordered.forEach(({cluster:c,index:k})=>{if((c.z>.48)!==front)return;const r=rng(seed+k*701+91),density=player?(tree.profile?.foliageDensity||0):14;for(let i=0;i<density;i++){const a=r()*TAU,d=Math.sqrt(r()),x=c.x+Math.cos(a)*d*c.size,y=c.y+Math.sin(a)*d*c.size*.72;ctx.fillStyle=colors[Math.floor(r()*colors.length)];ctx.globalAlpha=.72+r()*.25;ctx.beginPath();ctx.ellipse(x,y,2.1+r()*2.5,1.2+r()*1.5,r()*Math.PI,0,TAU);ctx.fill()}});ctx.globalAlpha=1}
 function palette(season){if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
 
-function drawBlossoms(ctx,tree,seed,count){const r=rng(seed+1907),total=Math.min(70,10+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.75,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=.8+r()*1.25,open=.28+r()*.72;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);if(open<.4){ctx.fillStyle='#ddaeb1';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fff5e6':'#edc7c7';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#b8914e';ctx.beginPath();ctx.arc(0,0,size*.3,0,TAU);ctx.fill()}ctx.restore()}}
+function drawBlossoms(ctx,tree,seed,count){if(count<=0||!tree.clusters.length)return;const r=rng(seed+1907),total=Math.min(78,7+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.72,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=1.8+r()*2.1,open=.3+r()*.7;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);ctx.shadowColor='rgba(255,236,224,.92)';ctx.shadowBlur=2.2;if(open<.4){ctx.fillStyle='#cf718b';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fffaf0':'#e99aac';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#9d6227';ctx.beginPath();ctx.arc(0,0,size*.36,0,TAU);ctx.fill()}ctx.restore()}}
 function drawFruit(ctx,tree,seed,count,species){const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}}
 
 function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,rows){

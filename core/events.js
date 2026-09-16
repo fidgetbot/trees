@@ -50,7 +50,8 @@ export function createMajorEvents(deps) {
       key: 'Storm', name: 'Autumn Storm', icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad',
       apply: (s) => {
         const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
-        const damage = Math.max(0, 4 + stagePressure - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
+        const spindlyPenalty = Math.max(0, s.spindlyGrowth || 0);
+        const damage = Math.max(0, 4 + stagePressure + spindlyPenalty - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
         s.health -= damage;
         recordDamage(damage, 'storm');
         const effects = [];
@@ -67,6 +68,7 @@ export function createMajorEvents(deps) {
         }
         if (damage > 0) effects.push(`Health -${damage} (roots and trunk were not strong enough)`);
         else effects.push('Deep roots and a strong trunk resisted damage');
+        if (spindlyPenalty > 0) effects.push(`Spindly height growth added ${spindlyPenalty} wind damage`);
         return effects;
       }
     },

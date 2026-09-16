@@ -8,28 +8,39 @@ export const SEASONS = [
 export const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
   { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },
-  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
-  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly', 'shadeRival'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
-  { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'bark', 'rhizosphere', 'growThorns', 'toxicLeaves'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
-  { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['thicken', 'massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
+  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp', 'growTaller'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
+  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly', 'shadeRival', 'bark', 'rhizosphere'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
+  { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'growThorns', 'toxicLeaves', 'thicken'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
+  { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
   { name: 'Ancient', rank: 6, threshold: 10200, unlocks: ['mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you. Now the survival of the wider grove will decide your legacy.' },
 ];
 
 export const STAGE_BY_NAME = Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, stage]));
 
 export const SEASONAL_ACTIONS = {
+  growLeaves: ['Spring', 'Summer', 'Autumn'],
   flower: ['Spring'],
   massFlower: ['Spring'],
   mastYear: ['Spring'],
 };
 
-// A Sapling develops its new capabilities across its first three seasons instead
-// of receiving the entire midgame action set at once.
+// New capabilities emerge over time within a stage instead of arriving in
+// large stage-transition bundles. Some defensive growth begins before the
+// next named life stage so discovery continues between major transformations.
 export const PROGRESSIVE_ACTION_UNLOCKS = {
+  growTaller: { stage: 'Seedling', turnsInStage: 6, label: 'after 2 seasons as a Seedling' },
   taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
   canopy: { stage: 'Sapling', turnsInStage: 3, label: 'after 1 season as a Sapling' },
   aidAlly: { stage: 'Sapling', turnsInStage: 6, label: 'after 2 seasons as a Sapling' },
   shadeRival: { stage: 'Sapling', turnsInStage: 9, label: 'after 3 seasons as a Sapling' },
+  bark: { stage: 'Sapling', turnsInStage: 12, label: 'after 4 seasons as a Sapling' },
+  rhizosphere: { stage: 'Sapling', turnsInStage: 15, label: 'after 5 seasons as a Sapling' },
+  growThorns: { stage: 'Small Tree', turnsInStage: 3, label: 'after 1 season as a Small Tree' },
+  toxicLeaves: { stage: 'Small Tree', turnsInStage: 6, label: 'after 2 seasons as a Small Tree' },
+  thicken: { stage: 'Small Tree', turnsInStage: 9, label: 'after 3 seasons as a Small Tree' },
+  nurtureOffspring: { stage: 'Mature Tree', turnsInStage: 3, label: 'after 1 season as a Mature Tree' },
+  shelterGrove: { stage: 'Mature Tree', turnsInStage: 6, label: 'after 2 seasons as a Mature Tree' },
+  rootDominion: { stage: 'Mature Tree', turnsInStage: 9, label: 'after 3 seasons as a Mature Tree' },
 };
 
 export const RELATIONSHIP_STATES = {

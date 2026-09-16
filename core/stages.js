@@ -8,6 +8,16 @@ export function turnsForYears(years) {
   return years * 12;
 }
 
+function stageTimeRequirement(state, years, stageName) {
+  const elapsedTurns = Math.max(0, state.turnsInStage || 0);
+  const requiredTurns = turnsForYears(years);
+  return {
+    key: 'time',
+    label: `Spend ${years} years as a ${stageName} (${Math.min(elapsedTurns, requiredTurns)}/${requiredTurns} turns)`,
+    met: elapsedTurns >= requiredTurns,
+  };
+}
+
 export function currentStageRequirements(state) {
   const stage = computeCurrentLifeStage(state).name;
   switch (stage) {
@@ -28,17 +38,17 @@ export function currentStageRequirements(state) {
       ];
     case 'Sapling':
       return [
-        { key: 'time', label: 'Live 2 years', met: state.turnsInStage >= turnsForYears(2) },
+        stageTimeRequirement(state, 2, 'Sapling'),
         { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
       ];
     case 'Small Tree':
       return [
-        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
+        stageTimeRequirement(state, 3, 'Small Tree'),
         { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
       ];
     case 'Mature Tree':
       return [
-        { key: 'time', label: 'Live 3 years', met: state.turnsInStage >= turnsForYears(3) },
+        stageTimeRequirement(state, 3, 'Mature Tree'),
         { key: 'major', label: 'Survive 2 major events', met: state.majorEventsSurvivedInStage >= 2 },
         { key: 'allies', label: 'Have 1 allied or child tree', met: state.allies >= 1 },
       ];

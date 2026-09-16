@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=season-neighbor-integrity-v1';
+} from './core/constants.js?rev=height-competition-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -23,9 +23,9 @@ import {
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js';
+} from './core/stages.js?rev=height-competition-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=bounded-actions-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=height-competition-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=review-integrity-v1';
+} from './core/events.js?rev=height-competition-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=review-integrity-v1';
+} from './core/diplomacy.js?rev=height-competition-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -59,17 +59,18 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=grove-balance-v1';
-import { createEngine } from './core/engine.js?rev=bounded-actions-v1';
+import { createEngine } from './core/engine.js?rev=height-competition-v1';
+import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
 import { renderActionPanels } from './ui/actions.js?rev=resource-compare-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=review-integrity-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=height-competition-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=grove-balance-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=grove-balance-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=season-neighbor-integrity-v1';
+import { renderForestScene } from './ui/canvas.js?rev=height-competition-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-competition-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=height-competition-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -372,6 +373,8 @@ function continueAsSuccessor(choice) {
   state.rootZones = choice.stats.rootZones;
   state.leafClusters = choice.stats.leafClusters;
   state.trunk = choice.stats.trunk;
+  state.heightGrowth = 0;
+  state.spindlyGrowth = 0;
   state.flowers = 0;
   state.pollinated = 0;
   state.developing = 0;
@@ -445,38 +448,7 @@ function spend(cost) {
 }
 
 function makeStartingNeighbors() {
-  const speciesNames = Object.keys(SPECIES);
-  // Shuffle species and pick first 4 (or cycle if fewer than 4)
-  const shuffled = [...speciesNames].sort(() => Math.random() - 0.5);
-  const positions = [0, 1, 3, 4];
-  return positions.map((slot, i) => {
-    const species = shuffled[i % shuffled.length];
-    const stageChoices = ['Sprout', 'Seedling', 'Sapling', 'Small Tree', 'Mature Tree'];
-    const stageName = stageChoices[Math.floor(Math.random() * stageChoices.length)];
-    const stage = LIFE_STAGES.find(x => x.name === stageName) || LIFE_STAGES[1];
-    return {
-      slot,
-      species,
-      relation: 0,
-      stageScore: stage.threshold + Math.floor(Math.random() * 160),
-      hostile: false,
-      ally: false,
-      helpGivenToThem: 0,
-      growthAidReceived: 0,
-      firstAidStageScore: null,
-      helpRefusedToThem: 0,
-      helpReceivedFromThem: 0,
-      timesAskedThemForHelp: 0,
-      lastAidMemory: '',
-      maxHealth: 10,
-      health: 10,
-      activeCrises: [],
-      crisisCounter: 0,
-      dead: false,
-      playerShading: false,
-      shadingPlayer: false,
-    };
-  });
+  return createStartingNeighbors(Object.keys(SPECIES), LIFE_STAGES, Math.random);
 }
 
 function getNeighborAtSlot(idx) {
@@ -828,6 +800,11 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
   }
 
   const execute = (option) => {
+    if (option.meta?.blockedReason === 'too-short') {
+      const neighbor = state.neighbors[option.targetIndex];
+      showModal('Not Tall Enough', `<p>The ${neighbor?.species || 'neighboring tree'} still rises above your crown. You cannot cast lasting shade over a taller tree.</p><p><strong>Grow Taller</strong> or wait until your next life stage, then try again.</p>`, cancel);
+      return;
+    }
     const proceed = () => {
       transaction?.commit();
       const resolved = resolveDiplomacyDecision(state, decision, option.id, {
@@ -882,7 +859,7 @@ function offerAidToAlly(s, context = {}) {
 }
 
 function runAggressionFlow(kind, context = {}) {
-  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState }), {
+  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState, getNeighborStage }), {
     transaction: context.transaction,
   });
 }
@@ -916,13 +893,15 @@ function getNeighborTree(idx) {
   const base = getNeighborAtSlot(idx);
   if (!base) return null;
   const stage = getNeighborStage(base.stageScore);
+  const isSeed = stage.name === 'Seed';
   return {
     species: base.species,
     age: Math.max(0.25, stage.threshold / 2000),
     health: 0.6 + Math.min(0.3, stage.threshold / 6000),
-    branches: Math.max(1, Math.min(5, Math.floor(stage.threshold / 300) + 1)),
-    roots: Math.max(2, Math.min(6, Math.floor(stage.threshold / 300) + 2)),
-    trunk: Math.max(1, Math.min(4, Math.floor(stage.threshold / 700) + 1)),
+    branches: isSeed ? 0 : Math.max(1, Math.min(5, Math.floor(stage.threshold / 300) + 1)),
+    roots: isSeed ? 0 : Math.max(2, Math.min(6, Math.floor(stage.threshold / 300) + 2)),
+    trunk: isSeed ? 0 : Math.max(1, Math.min(4, Math.floor(stage.threshold / 700) + 1)),
+    heightGrowth: base.heightGrowth || 0,
     ally: getRelationshipState(base.relation).name === 'Ally',
     relation: base.relation,
     relationName: getRelationshipState(base.relation).name,
@@ -1089,6 +1068,7 @@ engine = createEngine({
   renderSuccessionBody,
   renderVictoryBody,
   getRelationshipState,
+  getNeighborStage,
 });
 
 function resolveFruitThreats(events) {

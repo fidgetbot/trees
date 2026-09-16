@@ -136,6 +136,40 @@ test('a storm never reports that zero branches snapped', () => {
   assert.ok(effects.some(line => /only branch.*held fast/i.test(line)));
 });
 
+test('spindly height growth increases storm damage until trunk growth braces it', () => {
+  const recorded = [];
+  const storm = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: amount => recorded.push(amount),
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'Storm');
+  const base = {
+    lifeStage: LIFE_STAGES[3], trunk: 4, rootZones: 4, branches: 2,
+    leafClusters: 3, health: 20, eventModifiers: { shelter: 0 },
+  };
+  const stable = { ...base, spindlyGrowth: 0 };
+  const spindly = { ...base, spindlyGrowth: 3 };
+  storm.apply(stable);
+  storm.apply(spindly);
+  assert.ok(spindly.health < stable.health);
+  assert.ok(recorded[1] > recorded[0]);
+});
+
+test('shade decisions mark taller adjacent rivals as unreachable', () => {
+  const state = {
+    lifeStage: LIFE_STAGES[3], heightGrowth: 0,
+    neighbors: [{ slot: 1, species: 'Pear', relation: -30, stageScore: 3300, dead: false }],
+  };
+  const decision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  assert.equal(decision.options[0].meta.blockedReason, 'too-short');
+  state.heightGrowth = 9;
+  const tallerDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  assert.equal(tallerDecision.options[0].meta.blockedReason, null);
+});
+
 test('wildfire can be fully resisted and records one correct damage cause', () => {
   const recorded = [];
   const fire = createMajorEvents({

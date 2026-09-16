@@ -1,4 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
+import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel } from './growth.js?rev=height-competition-v1';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -333,7 +334,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
 }
 
 export function buildAggressionDecision(state, kind, deps = {}) {
-  const { getRelationshipState } = deps;
+  const { getRelationshipState, getNeighborStage = () => ({ rank: 0 }) } = deps;
 
   const options = state.neighbors
     .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
@@ -342,6 +343,9 @@ export function buildAggressionDecision(state, kind, deps = {}) {
       const relationName = getRelationshipState(neighbor.relation).name;
       const alreadyContested = relationName === 'Rival' || relationName === 'Hostile';
       const requiresWarning = relationName === 'Friendly' || relationName === 'Ally';
+      const shadeAllowed = kind !== 'shade' || canPlayerShadeNeighbor(state, neighbor, getNeighborStage);
+      const playerHeight = playerHeightLevel(state);
+      const targetHeight = kind === 'shade' ? neighborHeightLevel(neighbor, getNeighborStage) : null;
       const preview = kind === 'shade'
         ? {
             sunlight: 0,
@@ -371,6 +375,9 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           species: neighbor.species,
           relationName,
           alreadyContested,
+          blockedReason: shadeAllowed ? null : 'too-short',
+          playerHeight,
+          targetHeight,
         },
       };
     });
@@ -385,9 +392,22 @@ export function buildAggressionDecision(state, kind, deps = {}) {
 }
 
 export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
-  const { getRelationshipState } = deps;
+  const { getRelationshipState, getNeighborStage } = deps;
   const relationName = getRelationshipState(neighbor.relation).name;
   const alreadyContested = relationName === 'Rival' || relationName === 'Hostile';
+
+  if (kind === 'shade' && getNeighborStage && !canPlayerShadeNeighbor(state, neighbor, getNeighborStage)) {
+    return {
+      ok: false,
+      reason: 'too-short',
+      playerHeight: playerHeightLevel(state),
+      targetHeight: neighborHeightLevel(neighbor, getNeighborStage),
+      alreadyContested,
+      gains: { sunlight: 0, water: 0, nutrients: 0 },
+      relationStateBefore: relationName,
+      persistentCanopyAdvantage: false,
+    };
+  }
 
   if (relationName === 'Friendly' || relationName === 'Neutral' || relationName === 'Ally') {
     neighbor.relation = -35;
@@ -491,6 +511,7 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
       option,
       outcome: applyAggressionToNeighbor(state, neighbor, actionKind, {
         getRelationshipState: deps.getRelationshipState,
+        getNeighborStage: deps.getNeighborStage,
       }),
     };
   }

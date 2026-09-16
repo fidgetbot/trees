@@ -9,6 +9,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   growBranch: 'This lets you add a visible new branch and two leaf clusters, increasing sunlight gathered on future turns and supporting flowers.',
   extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
   growLeaves: 'This lets you grow new leaves that collect more sunlight each turn.',
+  growTaller: 'This lets you lengthen your trunk to reach more light and overtop nearby trees, but the spindly new growth takes extra wind damage until you thicken it.',
   thicken: 'This lets you strengthen your trunk, store more water, and withstand drought and storms.',
   taproot: 'This lets you drive a deeper anchor into the soil, adding more water storage and nutrient access than an ordinary root while improving drought resistance.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
@@ -89,7 +90,11 @@ export function getActionAvailability({
   let reason = null;
   if (!usable) {
     if (!unlocked) reason = getUnlockReason?.(action.key) || `Awakens at the ${lifeStages.find(stage => stage.unlocks.includes(action.key))?.name || 'next stage'}`;
-    else if (seasonLocked) reason = `Best attempted in ${allowedSeasons.join('/')}`;
+    else if (seasonLocked) {
+      reason = action.key === 'growLeaves'
+        ? 'Winter dormancy: new leaves can unfurl when spring returns'
+        : `Best attempted in ${allowedSeasons.join('/')}`;
+    }
     else if (!prereqOk) {
       if (action.key === 'connect') reason = 'Your roots must reach deeper first';
       else if (action.key === 'requestHelp') reason = (state.alliedNeighbors || 0) < 1 ? 'You need a living allied neighbor to call on' : 'You would only ask for help when wounded';
@@ -137,7 +142,8 @@ export function createActions(deps) {
     { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds one visible branch and two leaf clusters, increasing future sunlight collection and supporting flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
     { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Adds a root zone that improves water storage, nutrient gathering, storm stability, and fungal reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
     { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
-    { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, and helps survive drought and storms.', baseCost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.defense += 1; s.health += 1; s.maxHealth += 1; } },
+    { key: 'growTaller', name: 'Grow Taller', icon: '↟', category: 'growth', help: 'Lengthens your trunk for more light and greater shading reach, but spindly growth suffers extra wind damage until the trunk is thickened.', baseCost: { sunlight: 3, water: 2, nutrients: 1 }, effect: s => { s.heightGrowth = (s.heightGrowth || 0) + 1; s.spindlyGrowth = (s.spindlyGrowth || 0) + 1; } },
+    { key: 'thicken', name: 'Thicken Trunk', icon: '🪵', category: 'growth', help: 'Stores more water, improves health, resists drought and storms, and braces one level of spindly height growth.', baseCost: { sunlight: 4, water: 2, nutrients: 2 }, effect: s => { s.trunk += 1; s.defense += 1; s.health += 1; s.maxHealth += 1; s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
     { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Adds a root zone plus deep water access, improving water and nutrients more than an ordinary root while resisting drought.', baseCost: { sunlight: 3, water: 1, nutrients: 3 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
 

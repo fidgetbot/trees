@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createEngine } from '../core/engine.js';
-import { createActions } from '../core/actions.js';
+import { createActions, getActionAvailability } from '../core/actions.js';
 import { applyAggressionToNeighbor, applyRelationshipDelta, buildAggressionDecision, buildAidDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
-import { getRelationshipState } from '../core/constants.js';
+import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
+import { currentStageRequirements } from '../core/stages.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -37,6 +38,7 @@ function engine() {
     updateUI() {},
     render() {},
     getRelationshipState,
+    getNeighborStage,
   });
 }
 
@@ -73,6 +75,40 @@ test('allies and persistent canopy positions change gathering relative to neutra
   assert.match(summary, /neutral-grove baseline/i);
   assert.match(summary, /connected allies|ally shares|allies share/i);
   assert.match(summary, /crowd you|crowded by/i);
+});
+
+test('larger allied trees share more resources than seed allies', () => {
+  const seedAlly = engine().collectResources(gatheringState({
+    neighbors: [{ slot: 1, relation: 70, stageScore: 0, dead: false }],
+  }));
+  const matureAlly = engine().collectResources(gatheringState({
+    neighbors: [{ slot: 1, relation: 70, stageScore: 3300, dead: false }],
+  }));
+  assert.ok(matureAlly.relations.connectedAllyStrength > seedAlly.relations.connectedAllyStrength);
+  assert.ok(matureAlly.allyWater > seedAlly.allyWater);
+  assert.ok(matureAlly.allyNutrients > seedAlly.allyNutrients);
+});
+
+test('height growth adds sunlight while remaining part of the neutral baseline', () => {
+  const short = engine().collectResources(gatheringState({ heightGrowth: 0 }));
+  const tall = engine().collectResources(gatheringState({ heightGrowth: 2 }));
+  assert.equal(tall.heightSunlightBonus, 2);
+  assert.ok(tall.sunlightGain > short.sunlightGain);
+  assert.equal(tall.relationDeltas.sunlight, 0);
+});
+
+test('growing taller creates spindly height that trunk thickening can brace', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  });
+  const state = { heightGrowth: 0, spindlyGrowth: 0, trunk: 2, defense: 0, health: 10, maxHealth: 10 };
+  actions.find(action => action.key === 'growTaller').effect(state);
+  assert.equal(state.heightGrowth, 1);
+  assert.equal(state.spindlyGrowth, 1);
+  actions.find(action => action.key === 'thicken').effect(state);
+  assert.equal(state.spindlyGrowth, 0);
+  assert.equal(state.trunk, 3);
 });
 
 test('offspring do not masquerade as connected allied neighbors during gathering', () => {
@@ -175,4 +211,48 @@ test('gathering summary reports the actual number of bonus actions', () => {
   };
   const summary = renderResourcePhaseBody({ state, gains });
   assert.match(summary, /\+2 bonus actions from high resource yield/);
+});
+
+test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {
+  const winterEngine = createEngine({
+    SEASONS: [{ name: 'Winter', factorSun: 0.2, factorWater: 0.4 }],
+    updateUI() {},
+    render() {},
+    getRelationshipState,
+    getNeighborStage,
+  });
+  const state = gatheringState({ branches: 6, leafClusters: 12, trunk: 6, rootZones: 8 });
+  const gains = winterEngine.collectResources(state);
+  assert.equal(gains.maintenanceCost, Math.floor(gains.baseMaintenanceCost / 2));
+  assert.equal(gains.dormancySavings, gains.baseMaintenanceCost - gains.maintenanceCost);
+
+  const growLeaves = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  }).find(action => action.key === 'growLeaves');
+  const availability = getActionAvailability({
+    action: growLeaves,
+    state: { ...state, lifeStage: LIFE_STAGES.find(stage => stage.name === 'Sapling'), actions: 3 },
+    lifeStages: LIFE_STAGES,
+    currentStageRank: 3,
+    currentSeasonName: 'Winter',
+    seasonalActions: SEASONAL_ACTIONS,
+    getScaledCost: cost => cost,
+    canAfford: () => true,
+    isActionUnlocked: () => true,
+  });
+  assert.equal(availability.usable, false);
+  assert.match(availability.reason, /winter dormancy/i);
+  assert.match(availability.reason, /spring/i);
+});
+
+test('stage-time growth requirements name the current stage and show exact progress', () => {
+  const requirements = currentStageRequirements({
+    lifeStage: LIFE_STAGES.find(stage => stage.name === 'Small Tree'),
+    turnsInStage: 24,
+    hasProducedFruit: false,
+  });
+  assert.equal(requirements[0].met, false);
+  assert.match(requirements[0].label, /Small Tree/);
+  assert.match(requirements[0].label, /24\/36 turns/);
 });
