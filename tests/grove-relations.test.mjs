@@ -8,7 +8,7 @@ import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 import { currentStageRequirements } from '../core/stages.js';
-import { reconcileCanopyHeight } from '../core/growth.js';
+import { neighborGrowthFromLight, reconcileCanopyHeight, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -55,6 +55,13 @@ test('shade targets only immediate neighbors and establishes a persistent arrang
   assert.equal(left.shadingPlayer, false);
   assert.equal(result.persistentCanopyAdvantage, true);
   assert.deepEqual(result.gains, { sunlight: 0, water: 0, nutrients: 0 });
+
+  const switched = applyAggressionToNeighbor(state, right, 'shade', { getRelationshipState });
+  assert.equal(left.playerShading, false);
+  assert.equal(right.playerShading, true);
+  assert.equal(switched.releasedShadeTarget, left);
+  assert.equal(switched.sunlightPerTurn, SHADE_SUNLIGHT_BONUS);
+  assert.equal(switched.targetGrowthMultiplier, SHADED_NEIGHBOR_GROWTH_MULTIPLIER);
 });
 
 test('equal-height trees cannot shade, and an overtaking rival reverses the canopy contest', () => {
@@ -62,15 +69,30 @@ test('equal-height trees cannot shade, and an overtaking rival reverses the cano
   const state = { lifeStage: LIFE_STAGES[3], heightGrowth: 0, neighbors: [neighbor] };
   const equalDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
   assert.equal(equalDecision.options[0].meta.blockedReason, 'too-short');
+  assert.match(equalDecision.options[0].label, /Grow Taller \(1 more\)/);
 
   state.heightGrowth = 1;
-  assert.equal(buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage }).options[0].meta.blockedReason, null);
+  const shadeableDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  assert.equal(shadeableDecision.options[0].meta.blockedReason, null);
+  assert.match(shadeableDecision.options[0].label, /Shadeable/);
   neighbor.heightGrowth = 2;
   const change = reconcileCanopyHeight(state, neighbor, getNeighborStage, getRelationshipState);
   assert.equal(change.kind, 'reversed');
   assert.equal(neighbor.playerShading, false);
   assert.equal(neighbor.shadingPlayer, true);
   assert.match(change.message, /grown taller|can no longer shade/i);
+});
+
+test('shading is a sizable sunlight-only advantage and slows the target instead of stealing nutrients', () => {
+  const neutral = engine().collectResources(gatheringState());
+  const shaded = engine().collectResources(gatheringState({
+    neighbors: [{ slot: 1, relation: -40, dead: false, playerShading: true }],
+  }));
+  assert.equal(shaded.canopyAdvantage, SHADE_SUNLIGHT_BONUS);
+  assert.equal(shaded.sunlightGain - neutral.sunlightGain, SHADE_SUNLIGHT_BONUS);
+  assert.equal(shaded.nutrientGain, neutral.nutrientGain);
+  assert.equal(neighborGrowthFromLight(50, { playerShading: true }), 30);
+  assert.equal(neighborGrowthFromLight(50, { playerShading: false }), 50);
 });
 
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {
@@ -87,7 +109,8 @@ test('allies and persistent canopy positions change gathering relative to neutra
   assert.equal(gains.relations.crowdingNeighbors, 1);
   assert.ok(gains.allyNutrients > 0);
   assert.ok(gains.allyWater > 0);
-  assert.notDeepEqual(gains.relationDeltas, { sunlight: 0, water: 0, nutrients: 0 });
+  assert.equal(gains.canopyAdvantage, SHADE_SUNLIGHT_BONUS);
+  assert.ok(gains.exposure < 1);
   const summary = renderResourcePhaseBody({ state, gains });
   assert.match(summary, /neutral-grove baseline/i);
   assert.match(summary, /connected allies|ally shares|allies share/i);
@@ -129,6 +152,15 @@ test('growing taller creates spindly height that fortified bark can brace', () =
   assert.equal(state.defense, 1);
   assert.equal(state.maxHealth, 11);
   assert.equal(state.health, 11);
+});
+
+test('single-leaf growth is named in the singular', () => {
+  const growLeaf = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  }).find(action => action.key === 'growLeaves');
+  assert.equal(growLeaf.name, 'Grow Leaf');
+  assert.match(growLeaf.help, /one leaf/i);
 });
 
 test('three unbraced height levels require fortified bark before further bolting', () => {
@@ -254,8 +286,6 @@ test('gathering summary reports the actual number of bonus actions', () => {
     taprootNutrients: 0,
     allyNutrients: 0,
     allyWater: 0,
-    shadeNutrients: 0,
-    crowdingNutrients: 0,
     soilBonus: 0,
     maintenanceCost: 0,
   };
@@ -279,6 +309,7 @@ test('gathering summary separates bonuses and penalties into readable factors', 
   assert.match(summary, /resource-factor positive[^>]*>Height \+2/);
   assert.match(summary, /resource-factor positive[^>]*>Taproot \+/);
   assert.match(summary, /resource-factor positive[^>]*>Allies \+/);
+  assert.match(summary, /resource-factor positive[^>]*>Shading \+2/);
   assert.match(summary, /resource-factor negative[^>]*>Crowding/);
   assert.match(summary, /resource-factor negative[^>]*>Drought ×0\.5/);
   assert.match(summary, /resource-factor negative[^>]*>Disease ×0\.75/);

@@ -9,7 +9,7 @@ import { createActions, getActionAvailability, getActionUnlockReason, isActionUn
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
 import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
-import { canNeighborShadePlayer, reconcileCanopyHeight } from '../core/growth.js';
+import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from '../core/growth.js';
 import {
   advanceHumanSystem,
   growOffspringRecords,
@@ -244,9 +244,11 @@ function createHeadlessGame(seed, speciesName) {
   }
 
   function growNeighbors() {
+    const activeShadeTarget = normalizePlayerShadeTarget(state);
     state.neighbors.forEach(n => {
       if (n.dead) return;
-      n.stageScore += 20 + Math.floor(rng() * 35);
+      const baseGrowth = 20 + Math.floor(rng() * 35);
+      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget);
       const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
       if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
       if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && rng() < 0.25) {

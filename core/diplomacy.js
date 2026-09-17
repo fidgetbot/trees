@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
-import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel } from './growth.js?rev=canopy-competition-v2';
+import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=directional-shade-v1';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -346,13 +346,14 @@ export function buildAggressionDecision(state, kind, deps = {}) {
       const shadeAllowed = kind !== 'shade' || canPlayerShadeNeighbor(state, neighbor, getNeighborStage);
       const playerHeight = playerHeightLevel(state);
       const targetHeight = kind === 'shade' ? neighborHeightLevel(neighbor, getNeighborStage) : null;
+      const heightNeeded = kind === 'shade' ? Math.max(0, targetHeight - playerHeight + 1) : 0;
       const preview = kind === 'shade'
         ? {
             sunlight: 0,
             water: 0,
             nutrients: 0,
             relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
-            persistent: 'future sunlight and nutrients each turn',
+            persistent: `+${SHADE_SUNLIGHT_BONUS} sunlight each turn; slows the neighbor's growth`,
           }
         : {
             sunlight: alreadyContested ? 1 : 0,
@@ -363,7 +364,9 @@ export function buildAggressionDecision(state, kind, deps = {}) {
 
       return {
         id: `neighbor-${targetIndex}`,
-        label: `${neighbor.species} — ${relationName}`,
+        label: kind === 'shade'
+          ? `${neighbor.species} — ${shadeAllowed ? 'Shadeable' : `Grow Taller (${heightNeeded} more)`}`
+          : `${neighbor.species} — ${relationName}`,
         targetIndex,
         requiresConfirmation: requiresWarning,
         confirmation: requiresWarning ? {
@@ -378,6 +381,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           blockedReason: shadeAllowed ? null : 'too-short',
           playerHeight,
           targetHeight,
+          heightNeeded,
         },
       };
     });
@@ -385,7 +389,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
   return createDecision({
     kind: kind === 'shade' ? 'aggression:shade' : 'aggression:dominion',
     title: kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?',
-    body: kind === 'shade' ? 'Choose a shorter living tree immediately to your left or right. Your crown will remain leaned over it only while you stay taller.' : 'Choose any neighboring tree to pressure underground.',
+    body: kind === 'shade' ? 'Choose one living tree immediately to your left or right. Shadeable trees are shorter than you. Choosing a new target releases your previous one.' : 'Choose any neighboring tree to pressure underground.',
     options,
     meta: { actionKind: kind },
   });
@@ -415,19 +419,19 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
   }
 
   if (kind === 'shade') {
-    const stageScoreLoss = alreadyContested ? 30 : 20;
     const relationLoss = alreadyContested ? 4 : 8;
     const sunlightGain = 0;
     const nutrientGain = 0;
-    neighbor.stageScore = Math.max(0, neighbor.stageScore - stageScoreLoss);
     neighbor.relation = Math.max(-100, neighbor.relation - relationLoss);
-    neighbor.playerShading = true;
-    neighbor.shadingPlayer = false;
+    const releasedShadeTarget = setPlayerShadeTarget(state, neighbor);
     return {
       alreadyContested,
       gains: { sunlight: sunlightGain, water: 0, nutrients: nutrientGain },
       relationStateBefore: relationName,
       persistentCanopyAdvantage: true,
+      sunlightPerTurn: SHADE_SUNLIGHT_BONUS,
+      targetGrowthMultiplier: SHADED_NEIGHBOR_GROWTH_MULTIPLIER,
+      releasedShadeTarget,
     };
   }
 

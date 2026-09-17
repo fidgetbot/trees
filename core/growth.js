@@ -1,5 +1,44 @@
+export const SHADE_SUNLIGHT_BONUS = 2;
+export const SHADED_NEIGHBOR_GROWTH_MULTIPLIER = 0.6;
+
 export function playerHeightLevel(state) {
   return ((state.lifeStage?.rank || 0) * 4) + Math.max(0, state.heightGrowth || 0);
+}
+
+export function getPlayerShadeTarget(state) {
+  return (state.neighbors || []).find(neighbor => (
+    !neighbor.dead
+    && neighbor.playerShading
+    && (neighbor.slot === 1 || neighbor.slot === 3)
+  )) || null;
+}
+
+export function normalizePlayerShadeTarget(state) {
+  const target = getPlayerShadeTarget(state);
+  (state.neighbors || []).forEach(neighbor => {
+    if (neighbor !== target) neighbor.playerShading = false;
+  });
+  return target;
+}
+
+export function setPlayerShadeTarget(state, target) {
+  let releasedTarget = null;
+  (state.neighbors || []).forEach(neighbor => {
+    if (neighbor !== target && neighbor.playerShading) {
+      releasedTarget ||= neighbor;
+      neighbor.playerShading = false;
+    }
+  });
+  if (target) {
+    target.playerShading = true;
+    target.shadingPlayer = false;
+  }
+  return releasedTarget;
+}
+
+export function neighborGrowthFromLight(baseGrowth, neighbor, activeTarget = neighbor) {
+  if (!neighbor?.playerShading || neighbor !== activeTarget) return baseGrowth;
+  return Math.max(1, Math.round(baseGrowth * SHADED_NEIGHBOR_GROWTH_MULTIPLIER));
 }
 
 export function neighborHeightLevel(neighbor, getNeighborStage) {

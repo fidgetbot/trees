@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCanopyArrangement, getPlayerVisualProfile, getTreeLabelText, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms } from '../ui/canvas.js';
+import { getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
+import { normalizePlayerShadeTarget } from '../core/growth.js';
 
 function state(overrides = {}) {
   return {
@@ -52,10 +53,42 @@ test('shading creates a dramatic lean toward the adjacent rival', () => {
   assert.ok(Math.abs(rival.canopyLean) >= 0.8);
 });
 
+test('legacy dual shade flags still resolve to one visible outgoing direction', () => {
+  const left = { slot: 1, dead: false, playerShading: true };
+  const right = { slot: 3, dead: false, playerShading: true };
+  const arrangement = getCanopyArrangement({ neighbors: [left, right] }, 2, true);
+  assert.ok(arrangement.canopyLean < 0);
+  assert.equal(normalizePlayerShadeTarget({ neighbors: [left, right] }), left);
+  assert.equal(right.playerShading, false);
+});
+
 test('resident grove positions keep immediate neighbors close enough for overlapping crowns', () => {
-  assert.deepEqual(RESIDENT_WORLD_POSITIONS, [-250, -112, 0, 114, 250]);
-  assert.ok(RESIDENT_WORLD_POSITIONS[2] - RESIDENT_WORLD_POSITIONS[1] <= 120);
-  assert.ok(RESIDENT_WORLD_POSITIONS[3] - RESIDENT_WORLD_POSITIONS[2] <= 120);
+  assert.deepEqual(RESIDENT_WORLD_POSITIONS, [-180, -70, 0, 72, 180]);
+  assert.ok(RESIDENT_WORLD_POSITIONS[2] - RESIDENT_WORLD_POSITIONS[1] <= 75);
+  assert.ok(RESIDENT_WORLD_POSITIONS[3] - RESIDENT_WORLD_POSITIONS[2] <= 75);
+});
+
+test('the cast shadow begins at the shading tree and points toward its target', () => {
+  const left = getCanopyShadowGeometry(450, 250, 300);
+  const right = getCanopyShadowGeometry(450, 650, 300);
+  assert.equal(left.sourceX, 450);
+  assert.ok(left.targetX < left.sourceX);
+  assert.ok(right.targetX > right.sourceX);
+  assert.ok(left.endHalfWidth > left.startHalfWidth);
+});
+
+test('shaded foliage uses an unmistakably darker palette', () => {
+  assert.notDeepEqual(getFoliagePalette('Spring', true), getFoliagePalette('Spring', false));
+  assert.equal(getFoliagePalette('Spring', true)[0], '#587653');
+  const stored = { slot: 1, dead: false, playerShading: true };
+  assert.equal(isTreeShaded({ neighbors: [stored] }, { ...stored }), true);
+});
+
+test('a rooted seed shows a radicle before its first leaf', () => {
+  assert.equal(shouldDrawSeedRadicle('Seed', 1, 0), true);
+  assert.equal(shouldDrawSeedRadicle('Sprout', 1, 0), true);
+  assert.equal(shouldDrawSeedRadicle('Seed', 1, 1), false);
+  assert.equal(shouldDrawSeedRadicle('Sprout', 1, 1), false);
 });
 
 test('map labels show health for allies without cluttering non-allies', () => {

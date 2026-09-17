@@ -1,4 +1,4 @@
-import { reconcileCanopyHeight } from './growth.js?rev=canopy-competition-v2';
+import { reconcileCanopyHeight } from './growth.js?rev=directional-shade-v1';
 
 export const CATEGORY_NAMES = {
   growth: '🌱 Growth',
@@ -12,7 +12,7 @@ export const MAX_UNBRACED_HEIGHT = 3;
 export const ACTION_UNLOCK_EXPLANATIONS = {
   growBranch: 'This lets you add a new branch and two leaf clusters, increasing sunlight gathered on future turns and supporting flowers.',
   extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
-  growLeaves: 'This lets you grow new leaves that collect more sunlight each turn.',
+  growLeaves: 'This lets you grow a new leaf that collects more sunlight each turn.',
   growTaller: 'This lets you lengthen your trunk to reach more light and overtop nearby trees, but each unbraced level adds wind damage; Fortify Bark braces it.',
   taproot: 'This lets you drive a deeper anchor into the soil, adding more water storage and nutrient access than an ordinary root while improving drought resistance.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
@@ -26,7 +26,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
   aidAlly: 'This lets you spend water and nutrients to heal an ally, accelerate its growth, strengthen your bond, and build the support needed for grove protection.',
   requestHelp: 'This lets you call on allied trees for resources and resilience when you are wounded.',
-  shadeRival: 'This lets you lean over a shorter immediately adjacent tree, gaining sunlight and nutrients while your crown remains higher than its crown.',
+  shadeRival: 'This lets you lean over one shorter adjacent tree for +2 sunlight each turn while slowing its growth; choosing another target releases the first.',
   rootDominion: 'This lets you pressure a neighboring root system and take water and nutrients from it.',
   flower: 'This lets you produce blossoms that pollinators can turn into fruit and seeds.',
   massFlower: 'This lets you create a burst of blossoms for a larger but riskier reproductive effort.',
@@ -146,7 +146,7 @@ export function createActions(deps) {
   return [
     { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds one branch and two leaf clusters, increasing future sunlight collection and supporting flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
     { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Adds a root zone that improves water storage, nutrient gathering, storm stability, and fungal reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
-    { key: 'growLeaves', name: 'Grow Leaves', icon: '🍃', category: 'growth', help: 'Increases sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
+    { key: 'growLeaves', name: 'Grow Leaf', icon: '🍃', category: 'growth', help: 'Grows one leaf, increasing sunlight collection.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Small Tree', effect: s => { s.leafClusters += 1; } },
     { key: 'growTaller', name: 'Grow Taller', icon: '↟', category: 'growth', help: 'Lengthens your trunk for +1 sunlight each turn and greater shading reach. Each unbraced level adds +1 storm damage; use Fortify Bark to brace it.', status: s => { const risk = Math.max(0, s.spindlyGrowth || 0); return risk ? `${risk}/${MAX_UNBRACED_HEIGHT} height levels unbraced · +${risk} storm damage` : 'No unbraced height · no extra storm damage'; }, baseCost: { sunlight: 3, water: 2, nutrients: 1 }, prereq: s => (s.spindlyGrowth || 0) < MAX_UNBRACED_HEIGHT, effect: s => { s.heightGrowth = (s.heightGrowth || 0) + 1; s.spindlyGrowth = (s.spindlyGrowth || 0) + 1; if (getNeighborStage) { const changes = (s.neighbors || []).map(neighbor => reconcileCanopyHeight(s, neighbor, getNeighborStage, getRelationshipState)).filter(Boolean); if (changes.length) s.pendingCanopyNotices = [...(s.pendingCanopyNotices || []), ...changes]; } } },
     { key: 'taproot', name: 'Deepen Taproot', icon: '⬇️', category: 'growth', help: 'Adds a root zone plus deep water access, improving water and nutrients more than an ordinary root while resisting drought.', baseCost: { sunlight: 3, water: 1, nutrients: 3 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
@@ -162,7 +162,7 @@ export function createActions(deps) {
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: (s, context) => attemptConnection(s, context) },
     { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Spend water and nutrients to heal an ally, speed its growth, strengthen your bond, and build protection-goal support.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => offerAidToAlly(s, context) },
     { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally') && s.health < s.maxHealth, effect: (s, context) => requestHelpFromAllies(s, context) },
-    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over a shorter tree immediately to your left or right, gaining sunlight and nutrients each turn while you remain taller.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
+    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over one shorter adjacent tree for +2 sunlight each turn, slowing its growth while you remain taller. Choosing another target releases the first.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Assert territorial pressure on a neighboring tree, stealing water and nutrients. Established rivalries pay off better than fresh betrayals.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },
 
     { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },

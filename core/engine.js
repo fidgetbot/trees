@@ -1,5 +1,5 @@
 import { createOffspringRecords } from './humans.js';
-import { allyResourceWeight } from './growth.js?rev=canopy-competition-v2';
+import { allyResourceWeight, normalizePlayerShadeTarget, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=directional-shade-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -51,7 +51,7 @@ export function createEngine(deps) {
     const livingNeighbors = (state.neighbors || []).filter(neighbor => !neighbor.dead);
     const alliedNeighbors = livingNeighbors.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Ally');
     return {
-      shadedNeighbors: livingNeighbors.filter(neighbor => neighbor.playerShading).length,
+      shadedNeighbors: normalizePlayerShadeTarget(state) ? 1 : 0,
       crowdingNeighbors: livingNeighbors.filter(neighbor => neighbor.shadingPlayer).length,
       connectedAllies: alliedNeighbors.length,
       connectedAllyStrength: alliedNeighbors.reduce((sum, neighbor) => sum + allyResourceWeight(neighbor, getNeighborStage), 0),
@@ -67,7 +67,7 @@ export function createEngine(deps) {
     const relations = groveRelations(state);
     const canopyBonus = state.canopySpread * 2;
     const taprootBonus = state.taprootDepth * 2;
-    const canopyAdvantage = relations.shadedNeighbors;
+    const canopyAdvantage = relations.shadedNeighbors ? SHADE_SUNLIGHT_BONUS : 0;
     const heightSunlightBonus = Math.max(0, state.heightGrowth || 0);
     const sunlightBase = state.leafClusters + canopyBonus + heightSunlightBonus;
     const neutralSunlightBase = sunlightBase;
@@ -83,13 +83,11 @@ export function createEngine(deps) {
     const taprootNutrients = state.taprootDepth * 0.35;
     const rootNutrients = (state.rootZones * 0.7) + taprootNutrients;
     const allyNutrients = Math.min(5, relations.connectedAllyStrength);
-    const shadeNutrients = relations.shadedNeighbors;
-    const crowdingNutrients = relations.crowdingNeighbors * 0.5;
     const soilBonus = state.eventModifiers.soilBonus || 0;
     const baseMaintenanceCost = Math.floor((state.trunk + state.leafClusters + state.branches + state.flowers + state.developing + state.seeds) / 6);
     const maintenanceCost = season.name === 'Winter' ? Math.floor(baseMaintenanceCost / 2) : baseMaintenanceCost;
     const dormancySavings = baseMaintenanceCost - maintenanceCost;
-    const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + shadeNutrients - crowdingNutrients + soilBonus) * state.eventModifiers.disease));
+    const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
     const nutrientGain = Math.max(1, grossNutrients - maintenanceCost);
     const neutralNutrientGain = Math.max(1, neutralGrossNutrients - maintenanceCost);
@@ -112,8 +110,6 @@ export function createEngine(deps) {
       taprootNutrients,
       allyNutrients,
       allyWater,
-      shadeNutrients,
-      crowdingNutrients,
       canopyAdvantage,
       soilBonus,
       maintenanceCost,
@@ -293,7 +289,7 @@ export function createEngine(deps) {
       addLog?.(`Action: ${action.name}.`);
       if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
       if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');
-      if (action.key === 'growLeaves') addLog?.('Fresh leaves unfurl to gather more light.');
+      if (action.key === 'growLeaves') addLog?.('A fresh leaf unfurls to gather more light.');
       if (action.key === 'growTaller') addLog?.('Your trunk reaches upward for more light, leaving the new height slender in the wind.');
       if (action.key === 'bark') addLog?.('Your bark and trunk thicken, bracing slender growth against the wind.');
       if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);

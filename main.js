@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=height-competition-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=canopy-competition-v2';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=directional-shade-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=canopy-competition-v2';
+} from './core/diplomacy.js?rev=directional-shade-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -59,17 +59,17 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=grove-balance-v1';
-import { createEngine } from './core/engine.js?rev=canopy-competition-v2';
+import { createEngine } from './core/engine.js?rev=directional-shade-v1';
 import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
-import { canNeighborShadePlayer, reconcileCanopyHeight } from './core/growth.js?rev=canopy-competition-v2';
+import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=directional-shade-v1';
 import { renderActionPanels } from './ui/actions.js?rev=height-balance-v2';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=height-balance-v2';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=directional-shade-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=canopy-competition-v2';
+import { renderForestScene } from './ui/canvas.js?rev=directional-shade-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=canopy-competition-v2';
 
@@ -462,9 +462,11 @@ function updateAlliesCount() {
 }
 
 function growNeighbors() {
+  const activeShadeTarget = normalizePlayerShadeTarget(state);
   state.neighbors.forEach(n => {
     if (n.dead) return;
-    n.stageScore += 20 + Math.floor(Math.random() * 35);
+    const baseGrowth = 20 + Math.floor(Math.random() * 35);
+    n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget);
     const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
     if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
     if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && Math.random() < 0.25) {
@@ -481,14 +483,14 @@ function growNeighbors() {
   growOffspringRecords(state);
 }
 
-function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow) {
+function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow, labelForNeighbor = null) {
   const choices = state.neighbors
     .filter(n => !n.dead)
     .filter(filterFn)
     .map(n => {
       const rel = getRelationshipState(n.relation).name.toLowerCase();
       const healthText = typeof n.health === 'number' && typeof n.maxHealth === 'number' ? ` · ${n.health}/${n.maxHealth} health` : '';
-      return { label: `${n.species} (${rel}${healthText})`, onChoose: () => onPick(n) };
+      return { label: labelForNeighbor?.(n) || `${n.species} (${rel}${healthText})`, onChoose: () => onPick(n) };
     });
   if (includeBack) choices.push({ label: 'Back', onChoose: () => onBack?.() });
   showChoiceModal(title, `<p>${body}</p>`, choices);
@@ -792,7 +794,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 
   if (decision.kind === 'aggression:shade') {
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, visibly crowding its canopy and claiming more of the nearby light and soil.</p><p>While this arrangement lasts, it improves your <strong>sunlight and nutrient gathering every turn</strong>${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
+    const released = outcome.releasedShadeTarget ? `<p>Your crown withdraws from the ${outcome.releasedShadeTarget.species}; only one neighboring tree can remain beneath your shade.</p>` : '';
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight every turn</strong> and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
     return;
   }
 
@@ -856,6 +859,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     decision.body,
     true,
     cancel,
+    neighbor => decision.options.find(option => option.targetIndex === state.neighbors.indexOf(neighbor))?.label,
   );
   return { deferred: true };
 }

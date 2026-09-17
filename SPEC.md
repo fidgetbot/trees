@@ -76,8 +76,8 @@ Trees progress automatically when their stage requirements are met. Growth is no
 |-------|--------------|---------|-----------------|
 | **Seed** | — | Basic growth only | All threats fatal |
 | **Sprout** | After first action (grow roots) | First leaves, basic photosynthesis | Drought, herbivory |
-| **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections, then height growth and trunk bracing | Aphids, browsing animals |
-| **Sapling** | 4 seasons + survive 1 major event | Branch growth immediately; taproot, canopy, ally aid, shading, and rhizosphere emerge across the first five Sapling seasons | Wind, competition |
+| **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections, then height growth, directional shading, and trunk bracing | Aphids, browsing animals |
+| **Sapling** | 4 seasons + survive 1 major event | Branch growth immediately; taproot, canopy, ally aid, and rhizosphere emerge gradually across the first five Sapling seasons | Wind, competition |
 | **Small Tree** | 2 years + 2 branches | Flowers immediately; thorns and toxic foliage emerge over the next two seasons | Lightning, disease, first human surveys |
 | **Mature Tree** | 3 years + first fruit | Mass flowering immediately; offspring nurture, grove shelter, and root dominion emerge across the first three Mature Tree seasons | Fire, beetle swarms, ally betrayal, logging pressure |
 | **Ancient** | 3 years + survive 2 major events + 1 allied or child tree | Long-term resilience and protected-grove endgame | Repeated human attention |
@@ -101,7 +101,7 @@ Generated primarily from leaves and canopy exposure, modified by season and comp
 Generated from trunk storage, roots, taproot depth, and connected allies, modified by season and drought pressure. An ordinary root improves water storage and nutrient gathering; a taproot adds an ordinary root zone plus extra deep-water and nutrient access.
 
 #### Nutrients
-Generated from roots, taproots, fungal/allied support, and persistent canopy advantages, reduced by upkeep, hostile crowding, and adverse conditions.
+Generated from roots, taproots, fungal/allied support, and soil quality, reduced by upkeep and adverse conditions. Canopy competition affects sunlight rather than nutrients.
 
 The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
 
@@ -118,7 +118,7 @@ Season directly modifies gathering: Spring produces 80% normal sunlight and 100%
 - When a chemical-defense threat appears and the player cannot afford the response, the UI now presents a single acknowledgement button that explicitly shows the missing resources instead of offering a misleading unusable defend option
 
 Growth actions are intentionally differentiated:
-- **Grow Leaves** is the cheapest direct sunlight-increase action
+- **Grow Leaf** is the cheapest direct sunlight-increase action and adds one leaf per use
 - **Grow Branch** adds structure and a larger burst of new foliage, making it a stronger but pricier way to improve future sunlight collection
 - **Extend Root** improves both water storage and nutrient gathering, while **Deepen Taproot** adds a root zone plus additional deep water, nutrients, health, and drought resilience
 
@@ -139,6 +139,7 @@ Current browser HUD behavior:
 - capabilities are intentionally staggered instead of arriving in large stage-transition bundles: Seedling introduces Grow Taller and Shade Neighbor together, then trunk bracing one season later; Sapling discoveries continue for five seasons, Small Tree discoveries for two seasons, and Mature Tree discoveries for three seasons; each delayed action uses the normal unlock announcement when it becomes available
 - the map camera begins at a macro scale with the painterly, species-tinted seed and soil horizon centered both horizontally and vertically; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and later stages keep the upper edge just above the player's current height so neighboring trees reveal progressively more structure as the player grows
 - structural growth is persistent and visually inspectable on the Canvas: root zones add lateral roots, taproot growth deepens the central root, leaves add foliage, branches add stable shoots, trunk growth thickens the wood, and canopy growth widens the crown; producing flowers adds conspicuous blossoms only while the player actually has open flowers, and the map redraws immediately after each completed growth action
+- after the first root extends but before the first leaf grows, the young player remains visibly a seed with one small radicle emerging below it; the stem and leaves do not appear early
 - Grow Taller unlocks after two Seedling seasons, lengthens the trunk, provides one additional point of sunlight gathering, and raises the player's competitive canopy height; each unbraced level adds one storm damage, at most three levels may remain unbraced, and Fortify Bark unlocks one season later to brace one level while also improving trunk strength, health, water storage, and resistance to drought, storms, insects, fire, and woodpeckers
 - the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
 - the Actions heading contains the live action count in the compact form **Actions (3 remaining)** and updates through zero without a separate banner
@@ -154,7 +155,7 @@ Current browser HUD behavior:
 - all visible trees on the map use compact, collision-aware tags: the player keeps species and growth stage on the primary line with “(You)” beneath it, while neighbors place species above a shorter stage-and-relationship line; tags move into separate rows when their measured text widths would overlap, and type scales up at narrow display widths for phone readability
 - living allies and offspring include their current and maximum health in their green map tag, updating from the same persistent health state used by crises and aid; non-allied neighbors omit health to keep the grove readable
 - resident grove trees are spaced closely enough that adjacent crowns can physically overlap; player and neighbor tree scale is derived from the same life-stage and structure rules so the map's apparent height agrees with canopy competition
-- Shade Neighbor is limited to the immediate left/right trees and establishes a persistent visible canopy arrangement rather than a one-time payout; it succeeds only when the player's effective height is strictly greater than the target's, and otherwise explains that the player must Grow Taller; on success the player's trunk and crown bend strongly above the target while the shaded tree is pushed aside, and shading improves sunlight and nutrient gathering each turn
+- Shade Neighbor is limited to one immediate left/right target at a time and establishes a persistent visible canopy arrangement rather than a one-time payout; choosing another target releases the first. It succeeds only when the player's effective height is strictly greater than the target's, and the chooser labels each neighbor as **Shadeable** or names how much taller the player must grow. On success the player's trunk and crown bend strongly toward the target, a tapered dappled shadow runs from the player's root flare toward it, and the shaded foliage becomes conspicuously darker. The player gains +2 sunlight each turn while the target receives less light and grows at 60% speed; shading never adds nutrients.
 - canopy pressure is rechecked whenever either tree grows: an equal-height tree can no longer be shaded, a rival that overtops the player reverses the arrangement and begins crowding, and a player who catches up escapes incoming shade; the player receives a clear notice naming Grow Taller and diplomacy as responses
 - beginning at Seedling, each event phase has a small chance for an adjacent neutral or rival tree to turn hostile and attempt to lean into the player's canopy; it establishes persistent crowding only when it is strictly taller, while a shorter hostile tree merely warns of the attempt; successful diplomacy returns it to Neutral and clears canopy pressure
 - connected living neighbor allies contribute both water and nutrients each turn and strengthen a Mycorrhizal Bloom; their contribution scales with their life stage, so a large allied tree shares more than a seed or sapling; offspring do not receive or grant these ally-only bonuses; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
@@ -169,7 +170,7 @@ Some actions are season-locked to reflect tree biology.
 
 Current notable lock:
 - flowering actions are **Spring-only**
-- **Grow Leaves** is unavailable during Winter dormancy and returns in Spring; dormancy compensates by halving nutrient upkeep during Winter
+- **Grow Leaf** is unavailable during Winter dormancy and returns in Spring; dormancy compensates by halving nutrient upkeep during Winter
 
 Most other actions remain broadly available year-round once unlocked by stage.
 
@@ -188,7 +189,7 @@ Current diplomacy/rivalry systems include:
 - root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks
 - aid to allies
 - requesting help from allies
-- shading the immediately adjacent left/right trees starting in the sapling stage, including proactive aggression against neutral, friendly, or allied neighbors; canopy advantage/crowding persists in both rules and Canvas geometry
+- shading one immediately adjacent left/right tree starting alongside Grow Taller in the Seedling stage, including proactive aggression against neutral, friendly, or allied neighbors; canopy advantage/crowding persists in both rules and Canvas geometry
 - confirmation warnings before attacking friendly or allied neighbors, since aggression immediately turns them into rivals
 - proactive aggression is intentionally less rewarding on the first strike than pressing an existing rivalry, so hostile play is viable without making betrayal the dominant opener
 - root domination starting in the mature stage, with direct resource theft from targeted neighbors and proactive escalation into rivalry

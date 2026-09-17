@@ -37,6 +37,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${factor(`${state.leafClusters} leaf cluster${state.leafClusters === 1 ? '' : 's'}`)}
           ${gains.canopyBonus ? factor(`Canopy +${number(gains.canopyBonus)}`, 'positive') : ''}
           ${gains.heightSunlightBonus ? factor(`Height +${number(gains.heightSunlightBonus)}`, 'positive') : ''}
+          ${gains.canopyAdvantage ? factor(`Shading +${number(gains.canopyAdvantage)}`, 'positive') : ''}
           ${seasonalFactor('light', season.factorSun)}
           ${exposure < 100 ? factor(`Crowding leaves ${exposure}% exposed`, 'negative') : factor('Full light exposure')}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
@@ -66,14 +67,12 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${factor(`Roots +${number((state.rootZones || 0) * 0.7)}`, 'positive')}
           ${gains.taprootNutrients ? factor(`Taproot +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
-          ${gains.shadeNutrients ? factor(`Canopy advantage +${number(gains.shadeNutrients)}`, 'positive') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
-          ${gains.crowdingNutrients ? factor(`Crowding −${number(gains.crowdingNutrients)}`, 'negative') : ''}
           ${gains.maintenanceCost ? factor(`Upkeep −${number(gains.maintenanceCost)}`, 'negative') : ''}
           ${gains.dormancySavings ? factor(`Dormancy saved ${number(gains.dormancySavings)}`, 'positive') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
         </span>
-        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.shadedNeighbors ? `canopy advantage over ${relations.shadedNeighbors}` : '', relations.crowdingNeighbors ? `crowded by ${relations.crowdingNeighbors}` : ''])}
+        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : ''])}
       </div>
       <div class="actions-earned">
         <strong>${state.actions} actions</strong> available this turn
