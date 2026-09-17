@@ -1,7 +1,8 @@
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
 const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Small Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
-const WORLD_POSITIONS = [-335,-165,0,170,335];
+export const RESIDENT_WORLD_POSITIONS = Object.freeze([-250,-112,0,114,250]);
+const WORLD_POSITIONS = RESIDENT_WORLD_POSITIONS;
 const CHILD_WORLD_POSITIONS = [-84,88,-252,255];
 const HABITS = {
   Plum:{spread:1.12,height:.96,bend:.58,bark:'#695740'}, Peach:{spread:1.22,height:.88,bend:.68,bark:'#735443'},
@@ -153,7 +154,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
-  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*(isPlayer?Math.min(1.18,1+trunk*.025):.88)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
+  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
   if(stage!=='Seed'||roots>0)drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
   if(stage==='Seed')drawSeed(ctx,x,groundY,species,camera.zoom,seed);
   else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom,leaves,trunk);

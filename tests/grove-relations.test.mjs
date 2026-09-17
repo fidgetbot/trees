@@ -8,6 +8,7 @@ import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 import { currentStageRequirements } from '../core/stages.js';
+import { reconcileCanopyHeight } from '../core/growth.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -54,6 +55,22 @@ test('shade targets only immediate neighbors and establishes a persistent arrang
   assert.equal(left.shadingPlayer, false);
   assert.equal(result.persistentCanopyAdvantage, true);
   assert.deepEqual(result.gains, { sunlight: 0, water: 0, nutrients: 0 });
+});
+
+test('equal-height trees cannot shade, and an overtaking rival reverses the canopy contest', () => {
+  const neighbor = { slot: 1, species: 'Pear', relation: -30, stageScore: 600, heightGrowth: 0, dead: false, playerShading: true, shadingPlayer: false };
+  const state = { lifeStage: LIFE_STAGES[3], heightGrowth: 0, neighbors: [neighbor] };
+  const equalDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  assert.equal(equalDecision.options[0].meta.blockedReason, 'too-short');
+
+  state.heightGrowth = 1;
+  assert.equal(buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage }).options[0].meta.blockedReason, null);
+  neighbor.heightGrowth = 2;
+  const change = reconcileCanopyHeight(state, neighbor, getNeighborStage, getRelationshipState);
+  assert.equal(change.kind, 'reversed');
+  assert.equal(neighbor.playerShading, false);
+  assert.equal(neighbor.shadingPlayer, true);
+  assert.match(change.message, /grown taller|can no longer shade/i);
 });
 
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {

@@ -20,8 +20,6 @@ test('Sapling capabilities arrive across five seasons instead of all at once', (
   assert.equal(unlocked('canopy', 3), true);
   assert.equal(unlocked('aidAlly', 5), false);
   assert.equal(unlocked('aidAlly', 6), true);
-  assert.equal(unlocked('shadeRival', 8), false);
-  assert.equal(unlocked('shadeRival', 9), true);
   assert.equal(unlocked('rhizosphere', 14), false);
   assert.equal(unlocked('rhizosphere', 15), true);
 });
@@ -47,10 +45,12 @@ test('locked Sapling actions explain when they will awaken', () => {
   );
 });
 
-test('Grow Taller and Fortify Bark arrive gradually during Seedling growth', () => {
+test('Grow Taller, Shade Neighbor, and Fortify Bark arrive gradually during Seedling growth', () => {
   const seedling = LIFE_STAGES.find(stage => stage.name === 'Seedling');
   assert.equal(unlocked('growTaller', 5, seedling), false);
   assert.equal(unlocked('growTaller', 6, seedling), true);
+  assert.equal(unlocked('shadeRival', 5, seedling), false);
+  assert.equal(unlocked('shadeRival', 6, seedling), true);
   assert.equal(unlocked('bark', 8, seedling), false);
   assert.equal(unlocked('bark', 9, seedling), true);
 });

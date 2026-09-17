@@ -1,5 +1,5 @@
 import { createOffspringRecords } from './humans.js';
-import { allyResourceWeight } from './growth.js?rev=height-competition-v1';
+import { allyResourceWeight } from './growth.js?rev=canopy-competition-v2';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -314,6 +314,12 @@ export function createEngine(deps) {
 
     const transaction = { commit, cancel, complete };
     const result = action.effect(state, { scaledCost, transaction });
+    if (action.key === 'growTaller' && state.pendingCanopyNotices?.length) {
+      const notices = state.pendingCanopyNotices.splice(0);
+      notices.forEach(notice => addLog?.(notice.message));
+      const latest = notices[notices.length - 1];
+      showFeedback?.(latest.message, 'info');
+    }
     if (result?.deferred) return true;
     complete();
     return true;

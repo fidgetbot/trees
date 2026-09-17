@@ -8,8 +8,8 @@ export const SEASONS = [
 export const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
   { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },
-  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp', 'growTaller', 'bark'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
-  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly', 'shadeRival', 'rhizosphere'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
+  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'requestHelp', 'growTaller', 'shadeRival', 'bark'], damageMult: 1.5, popup: 'Your taproot finds rich soil. You feel sturdy.' },
+  { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'aidAlly', 'rhizosphere'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
   { name: 'Small Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'growThorns', 'toxicLeaves'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
   { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
   { name: 'Ancient', rank: 6, threshold: 10200, unlocks: ['mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you. Now the survival of the wider grove will decide your legacy.' },
@@ -29,11 +29,11 @@ export const SEASONAL_ACTIONS = {
 // next named life stage so discovery continues between major transformations.
 export const PROGRESSIVE_ACTION_UNLOCKS = {
   growTaller: { stage: 'Seedling', turnsInStage: 6, label: 'after 2 seasons as a Seedling' },
+  shadeRival: { stage: 'Seedling', turnsInStage: 6, label: 'after 2 seasons as a Seedling' },
   bark: { stage: 'Seedling', turnsInStage: 9, label: 'after 3 seasons as a Seedling' },
   taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
   canopy: { stage: 'Sapling', turnsInStage: 3, label: 'after 1 season as a Sapling' },
   aidAlly: { stage: 'Sapling', turnsInStage: 6, label: 'after 2 seasons as a Sapling' },
-  shadeRival: { stage: 'Sapling', turnsInStage: 9, label: 'after 3 seasons as a Sapling' },
   rhizosphere: { stage: 'Sapling', turnsInStage: 15, label: 'after 5 seasons as a Sapling' },
   growThorns: { stage: 'Small Tree', turnsInStage: 3, label: 'after 1 season as a Small Tree' },
   toxicLeaves: { stage: 'Small Tree', turnsInStage: 6, label: 'after 2 seasons as a Small Tree' },

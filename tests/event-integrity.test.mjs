@@ -8,6 +8,8 @@ import {
   buildHostileEncroachmentDecision,
   getAmbientFlavorPool,
   getLivingNeighborsByDisposition,
+  maybeEscalateCanopyHostility,
+  resolveHostileEncroachmentChoice,
   WINTER_PRECIPITATION,
   createMajorEvents,
 } from '../core/events.js';
@@ -168,6 +170,48 @@ test('shade decisions mark taller adjacent rivals as unreachable', () => {
   state.heightGrowth = 9;
   const tallerDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
   assert.equal(tallerDecision.options[0].meta.blockedReason, null);
+});
+
+test('rare neighbor hostility only establishes shade when the neighbor is taller', () => {
+  const shorter = { slot: 1, species: 'Plum', relation: 0, stageScore: 300, heightGrowth: 0, dead: false };
+  const taller = { slot: 3, species: 'Pear', relation: 0, stageScore: 600, heightGrowth: 0, dead: false };
+  const state = { lifeStage: LIFE_STAGES[2], heightGrowth: 1, neighbors: [shorter, taller] };
+  const rolls = [0, 0.99];
+  const escalation = maybeEscalateCanopyHostility(state, {
+    getRelationshipState,
+    getNeighborStage,
+    random: () => rolls.shift(),
+    chance: 0.05,
+  });
+  assert.equal(escalation.neighbor, taller);
+  assert.equal(escalation.newState, 'Hostile');
+  assert.equal(escalation.canCrowd, true);
+  assert.equal(taller.shadingPlayer, true);
+  assert.match(escalation.event.text, /Grow Taller|diplomacy/);
+
+  const lowState = { lifeStage: LIFE_STAGES[2], heightGrowth: 2, neighbors: [{ ...shorter }] };
+  const failedShade = maybeEscalateCanopyHostility(lowState, {
+    getRelationshipState,
+    getNeighborStage,
+    random: () => 0,
+    chance: 0.05,
+  });
+  assert.equal(failedShade.canCrowd, false);
+  assert.equal(failedShade.neighbor.shadingPlayer, false);
+});
+
+test('successful diplomacy ends hostile canopy pressure', () => {
+  const neighbor = { slot: 1, species: 'Pear', relation: -60, stageScore: 600, heightGrowth: 1, dead: false, shadingPlayer: true };
+  const state = { lifeStage: LIFE_STAGES[2], heightGrowth: 0, sunlight: 10, water: 10, nutrients: 10, rootZones: 3 };
+  const outcome = resolveHostileEncroachmentChoice(state, neighbor, 'diplomacy', {
+    getRelationshipState,
+    getNeighborStage,
+    applyRelationshipDelta: (target, delta) => { target.relation = Math.max(-100, Math.min(100, target.relation + delta)); },
+    random: () => 0,
+  });
+  assert.equal(outcome.title, 'Diplomacy Succeeded');
+  assert.equal(outcome.newState, 'Neutral');
+  assert.equal(neighbor.shadingPlayer, false);
 });
 
 test('wildfire can be fully resisted and records one correct damage cause', () => {

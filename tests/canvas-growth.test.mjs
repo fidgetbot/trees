@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCanopyArrangement, getPlayerVisualProfile, getTreeLabelText, shouldDrawPlayerBlossoms } from '../ui/canvas.js';
+import { getCanopyArrangement, getPlayerVisualProfile, getTreeLabelText, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 
 function state(overrides = {}) {
@@ -50,6 +50,12 @@ test('shading creates a dramatic lean toward the adjacent rival', () => {
   assert.ok(player.canopyLean <= -1.5);
   assert.ok(rival.worldOffset <= -30);
   assert.ok(Math.abs(rival.canopyLean) >= 0.8);
+});
+
+test('resident grove positions keep immediate neighbors close enough for overlapping crowns', () => {
+  assert.deepEqual(RESIDENT_WORLD_POSITIONS, [-250, -112, 0, 114, 250]);
+  assert.ok(RESIDENT_WORLD_POSITIONS[2] - RESIDENT_WORLD_POSITIONS[1] <= 120);
+  assert.ok(RESIDENT_WORLD_POSITIONS[3] - RESIDENT_WORLD_POSITIONS[2] <= 120);
 });
 
 test('map labels show health for allies without cluttering non-allies', () => {

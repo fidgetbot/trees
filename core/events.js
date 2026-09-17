@@ -1,6 +1,7 @@
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js';
 import { loseYoungestOffspring } from './humans.js';
+import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
 
 export function createMajorEvents(deps) {
   const {
@@ -247,6 +248,23 @@ export function resolvePendingStartOfTurnEffects(state) {
       warning: delayed.warning,
       body: `${delayed.ignore()} The danger has passed, though it left damage behind.`,
     });
+    return resolved;
+  }
+
+  if (state.pendingCanopyNotices?.length) {
+    const notice = state.pendingCanopyNotices.shift();
+    const titles = {
+      'escaped-crowding': 'You Reach the Light',
+      'hostile-crowding': 'A Taller Rival Crowds You',
+      reversed: 'The Canopy Contest Turns',
+      'lost-advantage': 'Canopy Advantage Lost',
+    };
+    resolved.push({
+      key: 'pendingCanopyNotice',
+      title: titles[notice.kind] || 'The Canopy Shifts',
+      warning: notice.message,
+      body: notice.message,
+    });
   }
 
   return resolved;
@@ -449,6 +467,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     getRelationshipState,
     compareConflictPower,
     applyRelationshipDelta = (_neighbor, _delta) => {},
+    getNeighborStage = () => ({ rank: 0 }),
     random = Math.random,
   } = deps;
 
@@ -458,7 +477,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   if (choiceId === 'chemical-battle') {
     const hasResources = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
     if (!hasResources) {
-      neighbor.shadingPlayer = true;
+      neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
       neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, 2);
       state.sunlight -= lostSun;
@@ -488,14 +507,14 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
       neighbor.relation = Math.max(-100, neighbor.relation - 6);
       body = `Your chemistry turns the contested ground against the ${neighbor.species}. You siphon <strong>${stolenSun} sunlight</strong>, <strong>${stolenWater} water</strong>, and <strong>${stolenNutrients} nutrients</strong>.`;
     } else if (swing <= -2) {
-      neighbor.shadingPlayer = true;
-      neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, Math.max(1, Math.floor(random() * 3) + 1));
       const lostWater = Math.min(state.water, Math.max(0, Math.floor(random() * 2)));
       const lostNutrients = Math.min(state.nutrients, Math.max(1, Math.floor(random() * 3) + 1));
       state.sunlight -= lostSun; state.water -= lostWater; state.nutrients -= lostNutrients;
       neighbor.stageScore += 40;
       neighbor.relation = Math.max(-100, neighbor.relation - 8);
+      neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
+      neighbor.playerShading = false;
       body = `The ${neighbor.species} overpowers you in the soil-war, stripping away <strong>${lostSun} sunlight</strong>, <strong>${lostWater} water</strong>, and <strong>${lostNutrients} nutrients</strong>.`;
     } else {
       neighbor.shadingPlayer = false;
@@ -513,7 +532,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   if (choiceId === 'diplomacy') {
     const hasResources = state.sunlight >= DIPLOMACY_COST.sunlight && state.water >= DIPLOMACY_COST.water && state.nutrients >= DIPLOMACY_COST.nutrients;
     if (!hasResources) {
-      neighbor.shadingPlayer = true;
+      neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
       neighbor.playerShading = false;
       const lostSun = Math.min(state.sunlight, 2);
       state.sunlight -= lostSun;
@@ -535,7 +554,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     let body = '';
     let title = 'Diplomacy Attempt';
     if (roll < 0.35 + rootBonus) {
-      applyRelationshipDelta(neighbor, 25);
+      applyRelationshipDelta(neighbor, Math.max(25, -neighbor.relation));
       neighbor.shadingPlayer = false;
       neighbor.playerShading = false;
       neighbor.stageScore = Math.max(0, neighbor.stageScore - 20);
@@ -557,7 +576,7 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     };
   }
 
-  neighbor.shadingPlayer = true;
+  neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
   neighbor.playerShading = false;
   const lostSun = Math.min(state.sunlight, 2);
   state.sunlight -= lostSun;
@@ -607,6 +626,7 @@ export function resolveSharedDecision(state, decision, choiceId, deps = {}) {
       getRelationshipState: deps.getRelationshipState,
       compareConflictPower: deps.compareConflictPower,
       applyRelationshipDelta: deps.applyRelationshipDelta,
+      getNeighborStage: deps.getNeighborStage,
       random: deps.random,
     });
   }
@@ -679,6 +699,43 @@ export function getLivingNeighborsByDisposition(state, getRelationshipState) {
   };
 }
 
+export function maybeEscalateCanopyHostility(state, deps = {}) {
+  const {
+    getRelationshipState,
+    getNeighborStage = () => ({ rank: 0 }),
+    seedlingRank = 2,
+    random = Math.random,
+    chance = 0.05,
+  } = deps;
+  if ((state.lifeStage?.rank || 0) < seedlingRank || random() >= chance) return null;
+  const candidates = (state.neighbors || []).filter(neighbor => {
+    if (neighbor.dead || (neighbor.slot !== 1 && neighbor.slot !== 3)) return false;
+    const relationship = getRelationshipState(neighbor.relation).name;
+    return relationship === 'Neutral' || relationship === 'Rival';
+  });
+  if (!candidates.length) return null;
+
+  const neighbor = candidates[Math.floor(random() * candidates.length)];
+  const oldState = getRelationshipState(neighbor.relation).name;
+  neighbor.relation = Math.min(neighbor.relation, -60);
+  neighbor.ally = false;
+  neighbor.playerShading = false;
+  const canCrowd = canNeighborShadePlayer(state, neighbor, getNeighborStage);
+  neighbor.shadingPlayer = canCrowd;
+  return {
+    neighbor,
+    oldState,
+    newState: getRelationshipState(neighbor.relation).name,
+    canCrowd,
+    event: {
+      text: canCrowd
+        ? `The ${neighbor.species} turns hostile and bends its taller crown over you, stealing light. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`
+        : `The ${neighbor.species} turns hostile and leans toward you, but it is not tall enough to cast shade yet. Keep growing taller, or use diplomacy before it overtops you.`,
+      effect: 'warning',
+    },
+  };
+}
+
 export function rollMinorEvents(state, deps) {
   const {
     currentSeasonName,
@@ -692,6 +749,8 @@ export function rollMinorEvents(state, deps) {
     queueHostileTreeThreat,
     queueChemicalDefenseThreat,
     computeCurrentLifeStage,
+    getNeighborStage,
+    random = Math.random,
   } = deps;
   const events = [];
   if (state.flowers > 0) {
@@ -729,9 +788,20 @@ export function rollMinorEvents(state, deps) {
   } else state.eventModifiers.rainChain = 0;
   if (currentSeasonName === 'Winter') applyHeavySnow(state, events, STAGE_BY_NAME);
   if (Math.random() < 0.15 && state.branches > 1 && state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank) { state.branches -= 1; events.push({ text: 'A sharp wind snapped a tender branch. (-1 branch)', effect: 'damage' }); }
+  const escalation = maybeEscalateCanopyHostility(state, {
+    getRelationshipState,
+    getNeighborStage,
+    seedlingRank: STAGE_BY_NAME['Seedling'].rank,
+    random,
+  });
+  if (escalation) events.push(escalation.event);
   const { allied: alliedNeighbors, contested: contestedNeighbors } = getLivingNeighborsByDisposition(state, getRelationshipState);
   if (alliedNeighbors.length > 0) { advanceAllyCrises(events); checkAllyBetrayal(events); }
-  const adjacentContested = contestedNeighbors.filter(neighbor => neighbor.slot === 1 || neighbor.slot === 3);
+  const adjacentContested = contestedNeighbors.filter(neighbor =>
+    (neighbor.slot === 1 || neighbor.slot === 3)
+    && neighbor !== escalation?.neighbor
+    && canNeighborShadePlayer(state, neighbor, getNeighborStage)
+  );
   if (adjacentContested.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(adjacentContested), events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
   if (Math.random() < 0.12) {

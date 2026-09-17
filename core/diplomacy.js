@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
-import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel } from './growth.js?rev=height-competition-v1';
+import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel } from './growth.js?rev=canopy-competition-v2';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -385,7 +385,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
   return createDecision({
     kind: kind === 'shade' ? 'aggression:shade' : 'aggression:dominion',
     title: kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?',
-    body: kind === 'shade' ? 'Choose the living tree immediately to your left or right. Your crown will remain leaned over it until the arrangement changes.' : 'Choose any neighboring tree to pressure underground.',
+    body: kind === 'shade' ? 'Choose a shorter living tree immediately to your left or right. Your crown will remain leaned over it only while you stay taller.' : 'Choose any neighboring tree to pressure underground.',
     options,
     meta: { actionKind: kind },
   });

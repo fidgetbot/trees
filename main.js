@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=height-balance-v2';
+} from './core/constants.js?rev=canopy-competition-v2';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=height-competition-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=height-balance-v2';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=canopy-competition-v2';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=height-competition-v1';
+} from './core/events.js?rev=canopy-competition-v2';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=height-competition-v1';
+} from './core/diplomacy.js?rev=canopy-competition-v2';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -59,8 +59,9 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=grove-balance-v1';
-import { createEngine } from './core/engine.js?rev=height-competition-v1';
+import { createEngine } from './core/engine.js?rev=canopy-competition-v2';
 import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
+import { canNeighborShadePlayer, reconcileCanopyHeight } from './core/growth.js?rev=canopy-competition-v2';
 import { renderActionPanels } from './ui/actions.js?rev=height-balance-v2';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
@@ -68,9 +69,9 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-inte
 import { renderResourcePhaseBody } from './ui/resources.js?rev=height-balance-v2';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=height-balance-v2';
+import { renderForestScene } from './ui/canvas.js?rev=canopy-competition-v2';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=height-competition-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=canopy-competition-v2';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -277,6 +278,7 @@ const ACTIONS = createActions({
   rootDominionAction,
   nurtureOffspringAction: nurtureOffspring,
   getRelationshipState,
+  getNeighborStage,
 });
 
 const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
@@ -463,9 +465,17 @@ function growNeighbors() {
   state.neighbors.forEach(n => {
     if (n.dead) return;
     n.stageScore += 20 + Math.floor(Math.random() * 35);
-    if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && Math.random() < 0.25) {
+    const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
+    if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
+    if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && Math.random() < 0.25) {
+      const newlyCrowding = !n.shadingPlayer;
       n.shadingPlayer = true;
       n.playerShading = false;
+      if (newlyCrowding) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), {
+        kind: 'hostile-crowding',
+        neighbor: n,
+        message: `The hostile ${n.species} has grown tall enough to lean over you. Its crown begins stealing your light. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`,
+      }];
     }
   });
   growOffspringRecords(state);
@@ -694,6 +704,8 @@ function checkAllyBetrayal(events) {
     computeCurrentLifeStage,
     STAGE_BY_NAME,
     getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
     recordDamage,
     onRelationshipShift: (neighbor, oldState, newState) => {
       state.pendingInteractions.push((done) => {
@@ -802,7 +814,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
   const execute = (option) => {
     if (option.meta?.blockedReason === 'too-short') {
       const neighbor = state.neighbors[option.targetIndex];
-      showModal('Not Tall Enough', `<p>The ${neighbor?.species || 'neighboring tree'} still rises above your crown. You cannot cast lasting shade over a taller tree.</p><p><strong>Grow Taller</strong> or wait until your next life stage, then try again.</p>`, cancel);
+      showModal('Not Tall Enough', `<p>The ${neighbor?.species || 'neighboring tree'} is not shorter than you. Lasting shade requires your crown to rise above its crown.</p><p><strong>Grow Taller</strong>, then try again.</p>`, cancel);
       return;
     }
     const proceed = () => {
@@ -1120,6 +1132,7 @@ function queueSharedDecisionInteraction(decision, done) {
           getRelationshipState,
           compareConflictPower,
           applyRelationshipDelta,
+          getNeighborStage,
           recordDamage,
           random: Math.random,
         });
@@ -1170,6 +1183,8 @@ function rollMinorEvents() {
     recordDamage,
     STAGE_BY_NAME,
     getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
     advanceAllyCrises: (events) => advanceAllyCrises(events),
     checkAllyBetrayal: (events) => checkAllyBetrayal(events),
     queueHostileTreeThreat: (target, events) => queueHostileTreeThreat(target, events),

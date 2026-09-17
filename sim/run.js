@@ -9,6 +9,7 @@ import { createActions, getActionAvailability, getActionUnlockReason, isActionUn
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
 import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
+import { canNeighborShadePlayer, reconcileCanopyHeight } from '../core/growth.js';
 import {
   advanceHumanSystem,
   growOffspringRecords,
@@ -91,6 +92,7 @@ function createInitialState(speciesName, rng) {
     pendingFruitThreat: null,
     pendingOffspringThreat: false,
     pendingChemicalThreat: null,
+    pendingCanopyNotices: [],
     pendingHumanEncounter: null,
     humanPressure: 0,
     humanAttention: 0,
@@ -245,9 +247,17 @@ function createHeadlessGame(seed, speciesName) {
     state.neighbors.forEach(n => {
       if (n.dead) return;
       n.stageScore += 20 + Math.floor(rng() * 35);
-      if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && rng() < 0.25) {
+      const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
+      if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
+      if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && rng() < 0.25) {
+        const newlyCrowding = !n.shadingPlayer;
         n.shadingPlayer = true;
         n.playerShading = false;
+        if (newlyCrowding) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), {
+          kind: 'hostile-crowding',
+          neighbor: n,
+          message: `The hostile ${n.species} has grown tall enough to lean over you. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`,
+        }];
       }
     });
     growOffspringRecords(state, rng);
@@ -344,6 +354,8 @@ function createHeadlessGame(seed, speciesName) {
       recordDamage: (amount, cause) => recordDamageForState(state, amount, cause),
       STAGE_BY_NAME,
       getRelationshipState,
+      getNeighborStage,
+      random: rng,
       advanceAllyCrises: () => {},
       checkAllyBetrayal: () => false,
       queueHostileTreeThreat: (neighbor, events) => {
@@ -368,6 +380,7 @@ function createHeadlessGame(seed, speciesName) {
             getRelationshipState,
             compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
             applyRelationshipDelta: (target, delta) => applyRelationshipDelta(state, target, delta, (_state, amount) => amount),
+            getNeighborStage,
             random: rng,
           });
           done?.();
