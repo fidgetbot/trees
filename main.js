@@ -69,7 +69,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-inte
 import { renderResourcePhaseBody } from './ui/resources.js?rev=directional-shade-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=directional-shade-v1';
+import { renderForestScene } from './ui/canvas.js?rev=directional-shadow-scale-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=canopy-competition-v2';
 

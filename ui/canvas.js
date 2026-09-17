@@ -153,17 +153,17 @@ export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
 }
 
 export function getCanopyShadowGeometry(sourceX,targetX,groundY){
-  const direction=targetX<sourceX?-1:1,distance=Math.max(24,Math.abs(targetX-sourceX));
-  return{sourceX,sourceY:groundY+4,targetX:sourceX+direction*Math.max(22,distance*.9),targetY:groundY+20,startHalfWidth:2,endHalfWidth:Math.min(32,10+distance*.11),direction};
+  const direction=targetX<sourceX?-1:1,distance=Math.abs(targetX-sourceX),verticalReach=Math.max(.25,distance*.1);
+  return{sourceX,sourceY:groundY+Math.max(.15,distance*.02),targetX:sourceX+direction*distance*.9,targetY:groundY+verticalReach,startHalfWidth:Math.max(.12,distance*.01),endHalfWidth:Math.min(32,Math.max(.4,distance*.14)),direction,distance};
 }
 
 function drawCanopyShadow(ctx,source,target,groundY,seed){
-  const geometry=getCanopyShadowGeometry(source.x,target.x,groundY),{sourceX,sourceY,targetX,targetY,startHalfWidth,endHalfWidth}=geometry;
+  const geometry=getCanopyShadowGeometry(source.x,target.x,groundY),{sourceX,sourceY,targetX,targetY,startHalfWidth,endHalfWidth,distance}=geometry,visualScale=Math.min(1,distance/180);
   const gradient=ctx.createLinearGradient(sourceX,sourceY,targetX,targetY);
   gradient.addColorStop(0,'rgba(28,40,31,.08)');gradient.addColorStop(.34,'rgba(25,39,30,.30)');gradient.addColorStop(1,'rgba(18,31,25,.48)');
-  ctx.save();ctx.filter='blur(2.5px)';ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(sourceX,sourceY-startHalfWidth);ctx.lineTo(targetX,targetY-endHalfWidth);ctx.quadraticCurveTo(targetX+geometry.direction*8,targetY,targetX,targetY+endHalfWidth);ctx.lineTo(sourceX,sourceY+startHalfWidth);ctx.closePath();ctx.fill();ctx.restore();
+  ctx.save();ctx.filter=`blur(${Math.max(.1,Math.min(2.5,distance*.0125))}px)`;ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(sourceX,sourceY-startHalfWidth);ctx.lineTo(targetX,targetY-endHalfWidth);ctx.quadraticCurveTo(targetX+geometry.direction*distance*.04,targetY,targetX,targetY+endHalfWidth);ctx.lineTo(sourceX,sourceY+startHalfWidth);ctx.closePath();ctx.fill();ctx.restore();
   const random=rng(seed);ctx.save();ctx.fillStyle='rgba(19,35,27,.25)';
-  for(let i=0;i<14;i++){const progress=.22+random()*.76,x=sourceX+(targetX-sourceX)*progress+(random()-.5)*endHalfWidth*.55,y=sourceY+(targetY-sourceY)*progress+(random()-.5)*endHalfWidth*1.05,size=2+random()*5;ctx.beginPath();ctx.ellipse(x,y,size,size*.48,random()*Math.PI,0,TAU);ctx.fill()}
+  for(let i=0;i<14;i++){const progress=.22+random()*.76,x=sourceX+(targetX-sourceX)*progress+(random()-.5)*endHalfWidth*.55,y=sourceY+(targetY-sourceY)*progress+(random()-.5)*endHalfWidth*1.05,size=Math.max(.08,(2+random()*5)*visualScale);ctx.beginPath();ctx.ellipse(x,y,size,size*.48,random()*Math.PI,0,TAU);ctx.fill()}
   ctx.restore();
 }
 
@@ -189,7 +189,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0,heightGrowth);
     ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.28,1,0,0);
     const shaded=!isPlayer&&isTreeShaded(state,neighbor);
-    drawShadow(ctx);drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded);
+    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded);
     if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
     if(isPlayer&&shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers);
     if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
@@ -287,7 +287,6 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
   return{wood,clusters,leafCount,profile};
 }
 
-function drawShadow(ctx){const g=ctx.createRadialGradient(0,3,0,0,3,55);g.addColorStop(0,'rgba(16,18,12,.25)');g.addColorStop(1,'rgba(16,18,12,0)');ctx.save();ctx.scale(1,.15);ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,15,55,0,TAU);ctx.fill();ctx.restore()}
 function drawWood(ctx,tree,bark){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;ctx.lineWidth=p[0].width;stroke(ctx,p);ctx.strokeStyle='rgba(201,177,127,.28)';ctx.lineWidth=Math.max(.45,p[0].width*.13);ctx.save();ctx.translate(-p[0].width*.13,0);stroke(ctx,p);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
 function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
 

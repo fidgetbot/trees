@@ -75,6 +75,9 @@ test('the cast shadow begins at the shading tree and points toward its target', 
   assert.ok(left.targetX < left.sourceX);
   assert.ok(right.targetX > right.sourceX);
   assert.ok(left.endHalfWidth > left.startHalfWidth);
+  const zoomedOut = getCanopyShadowGeometry(450, 452, 300);
+  assert.ok(zoomedOut.endHalfWidth < 1);
+  assert.ok(zoomedOut.targetY - 300 < 1);
 });
 
 test('shaded foliage uses an unmistakably darker palette', () => {
