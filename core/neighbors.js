@@ -3,7 +3,7 @@ export function createStartingNeighbors(speciesNames, lifeStages, random = Math.
   const positions = [0, 1, 3, 4];
   return positions.map((slot, index) => {
     const species = shuffled[index % shuffled.length];
-    const outerStages = ['Sapling', 'Small Tree', 'Mature Tree'];
+    const outerStages = ['Sapling', 'Young Tree', 'Mature Tree'];
     const stageName = (slot === 1 || slot === 3)
       ? 'Seed'
       : outerStages[Math.floor(random() * outerStages.length)];

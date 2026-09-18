@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { ACTION_UNLOCK_EXPLANATIONS, createActions, getActionUnlockExplanation } from '../core/actions.js';
 import { LIFE_STAGES } from '../core/constants.js';
+
+test('developmental naming separates life stage from competitive height', () => {
+  assert.ok(LIFE_STAGES.some(stage => stage.name === 'Young Tree'));
+  assert.equal(LIFE_STAGES.some(stage => stage.name === 'Small Tree'), false);
+  const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(index, /<span>Life stage<\/span>/);
+  assert.doesNotMatch(index, /<span>Stage<\/span>/);
+});
 
 test('every real stage unlock has a complete player-facing explanation', () => {
   const actionKeys = LIFE_STAGES.flatMap(stage => stage.unlocks)

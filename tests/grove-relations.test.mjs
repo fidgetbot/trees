@@ -395,11 +395,11 @@ test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {
 
 test('stage-time growth requirements name the current stage and show exact progress', () => {
   const requirements = currentStageRequirements({
-    lifeStage: LIFE_STAGES.find(stage => stage.name === 'Small Tree'),
+    lifeStage: LIFE_STAGES.find(stage => stage.name === 'Young Tree'),
     turnsInStage: 24,
     hasProducedFruit: false,
   });
   assert.equal(requirements[0].met, false);
-  assert.match(requirements[0].label, /Small Tree/);
+  assert.match(requirements[0].label, /Young Tree/);
   assert.match(requirements[0].label, /24\/36 turns/);
 });

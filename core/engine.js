@@ -1,4 +1,4 @@
-import { createOffspringRecords } from './humans.js?rev=offspring-shade-v1';
+import { createOffspringRecords } from './humans.js?rev=life-stage-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=offspring-shade-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;

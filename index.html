@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=seasonal-canopy-v1" />
+  <link rel="stylesheet" href="styles.css?rev=life-stage-v1" />
 </head>
 <body>
   <div id="app">
@@ -23,7 +23,7 @@
               <div class="map-stat"><span>Score</span><strong id="score">0</strong></div>
               <div class="map-stat"><span>Year</span><strong id="year">1</strong></div>
               <div class="map-stat"><span>Season</span><strong id="season">Spring</strong></div>
-              <div class="map-stat"><span>Stage</span><strong id="life-stage">Seed</strong></div>
+              <div class="map-stat"><span>Life stage</span><strong id="life-stage">Seed</strong></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
             <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Explore the grove map"></canvas>
@@ -208,6 +208,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=offspring-rivalry-v1"></script>
+  <script type="module" src="main.js?rev=life-stage-v1"></script>
 </body>
 </html>

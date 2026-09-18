@@ -84,6 +84,16 @@ test('fungal-network support uses realistic resource sharing and defensive chemi
   assert.doesNotMatch(outcome.body, /roots shift|branches move|surrounded/i);
 });
 
+test('all successful human defenses use realistic botanical prose', () => {
+  const s = state({ pendingHumanEncounter: { phase: 'survey', count: 2 }, branches: 0, allies: 0, sunlight: 0, water: 0, nutrients: 0, thornDefense: 3, toxicLeaves: 3 });
+  const decision = buildHumanEncounterDecision(s);
+  const fallback = decision.options.find(option => option.id === 'endure-cutting');
+  const outcome = resolveHumanDecision(s, decision, fallback.id, deps);
+  assert.equal(outcome.repelled, true);
+  assert.match(outcome.body, /bark|resin|defensive growth/i);
+  assert.doesNotMatch(outcome.body, /movement|move|threaten/i);
+});
+
 test('an explicit undefended fallback appears only when no active response is available', () => {
   const s = state({ pendingHumanEncounter: { phase: 'survey', count: 2 }, branches: 0, allies: 0, sunlight: 0, water: 0, nutrients: 0, thornDefense: 0, toxicLeaves: 0 });
   const decision = buildHumanEncounterDecision(s);

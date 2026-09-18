@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=seasonal-canopy-v1';
+} from './core/constants.js?rev=life-stage-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -23,9 +23,9 @@ import {
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js?rev=seasonal-canopy-v1';
+} from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=directional-shade-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=life-stage-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=offspring-rivalry-v1';
+} from './core/events.js?rev=life-stage-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -58,9 +58,9 @@ import {
   nurtureOffspring,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=offspring-rivalry-v1';
-import { createEngine } from './core/engine.js?rev=offspring-rivalry-v1';
-import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
+} from './core/humans.js?rev=life-stage-v1';
+import { createEngine } from './core/engine.js?rev=life-stage-v1';
+import { createStartingNeighbors } from './core/neighbors.js?rev=life-stage-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=offspring-rivalry-v1';
 import { renderActionPanels } from './ui/actions.js?rev=seasonal-canopy-v1';
 import { renderEventPhaseBody } from './ui/events.js';
@@ -69,7 +69,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=offspring-rivalry-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=offspring-rivalry-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=offspring-rivalry-v1';
+import { renderForestScene } from './ui/canvas.js?rev=life-stage-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=seasonal-canopy-v1';
 
@@ -147,7 +147,7 @@ function maybeShowAllyWarning() {
   const stage = computeCurrentLifeStage().name;
   
   // Only warn in stages where allies will be needed
-  if (stage !== 'Sapling' && stage !== 'Small Tree' && stage !== 'Mature Tree') return false;
+  if (stage !== 'Sapling' && stage !== 'Young Tree' && stage !== 'Mature Tree') return false;
   
   // Don't warn if already have enough allies
   if (state.allies >= 1) return false;
@@ -158,7 +158,7 @@ function maybeShowAllyWarning() {
   // Calculate urgency based on stage
   let urgency = 0;
   if (stage === 'Sapling') urgency = 1; // Early warning
-  if (stage === 'Small Tree') urgency = 2; // Getting close
+  if (stage === 'Young Tree') urgency = 2; // Getting close
   if (stage === 'Mature Tree') urgency = 3; // Critical
   
   const warnings = {
@@ -263,7 +263,7 @@ function getDroughtResistanceForState() {
   return getDroughtResistance(state);
 }
 
-// Cost scaling: base costs multiply by stage rank (Sapling=×2, Small Tree=×3, etc.)
+// Cost scaling: base costs multiply by stage rank (Sapling=×2, Young Tree=×3, etc.)
 function getScaledCost(baseCost, actionKey = null) {
   return getSpeciesAdjustedCostForState(actionKey, baseCost);
 }
@@ -621,7 +621,7 @@ function createAllyCrisis(neighbor) {
 }
 
 function maybeAddAllyCrisis(neighbor) {
-  const allowMultiple = computeCurrentLifeStage().rank >= STAGE_BY_NAME['Small Tree'].rank;
+  const allowMultiple = computeCurrentLifeStage().rank >= STAGE_BY_NAME['Young Tree'].rank;
   neighbor.activeCrises = neighbor.activeCrises || [];
   if (!allowMultiple && neighbor.activeCrises.length > 0) return null;
   const crisis = createAllyCrisis(neighbor);

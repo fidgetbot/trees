@@ -1,8 +1,8 @@
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
-const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
-const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Small Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
+const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Young Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
+const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Young Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
 export const RESIDENT_WORLD_POSITIONS = Object.freeze([-180,-70,0,72,180]);
 const WORLD_POSITIONS = RESIDENT_WORLD_POSITIONS;
 const CHILD_WORLD_POSITIONS = [-84,88,-252,255];
@@ -24,7 +24,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean};
   });
   const childTrees=(state.offspringRecords||[]).filter(child=>!child.dead).slice(0,CHILD_WORLD_POSITIONS.length).map((child,index)=>{
-    const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Small Tree','Mature Tree','Ancient'].indexOf(stageName);
+    const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stageName);
     return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
   });
   const trees=[...residentTrees,...childTrees];
@@ -42,7 +42,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
 }
 
 function stageForScore(score){
-  if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Small Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
+  if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Young Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
 }
 
 function drawHumanPressure(ctx,x,groundY,camera,state){
@@ -121,7 +121,7 @@ function drawWinterWeather(ctx,w,h,groundY){
 }
 
 function cameraFor(state,stage){
-  const order=['Seed','Sprout','Seedling','Sapling','Small Tree','Mature Tree','Ancient'],rank=Math.max(0,order.indexOf(stage));
+  const order=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'],rank=Math.max(0,order.indexOf(stage));
   const structuralGrowth=Math.min(.14,((state.rootZones||0)+(state.leafClusters||0)+(state.branches||0))*0.006);
   return{rank,zoom:(CAMERA_ZOOM[stage]||1)*(1-structuralGrowth)};
 }

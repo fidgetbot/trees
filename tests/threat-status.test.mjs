@@ -62,7 +62,7 @@ test('hungry browsers recognize permanent thorns and toxic leaves without anothe
   try {
     const s = state({ thornDefense: 1, toxicLeaves: 1, developing: 2 });
     const before = { sunlight: s.sunlight, water: s.water, nutrients: s.nutrients, leafClusters: s.leafClusters, developing: s.developing };
-    const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Small Tree' }) });
+    const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Young Tree' }) });
     assert.equal(decision.title, 'Hungry Browsers');
     assert.match(decision.body, /established thorns and toxic leaves/i);
     assert.deepEqual(decision.options.map(option => option.id), ['use-permanent-defenses']);

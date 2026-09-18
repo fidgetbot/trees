@@ -1,6 +1,6 @@
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js';
-import { loseYoungestOffspring } from './humans.js';
+import { loseYoungestOffspring } from './humans.js?rev=life-stage-v1';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
 
 export function getHerbivoreDefense(state) {
@@ -741,7 +741,7 @@ export function getAmbientFlavorPool(stageName) {
       'A gentle breeze moves through your growing crown.',
     ];
   }
-  if (stageName === 'Small Tree') {
+  if (stageName === 'Young Tree') {
     return [
       'Two crows inspect your branches as a possible nesting place.',
       'A squirrel races along your bark and vanishes into the canopy.',
@@ -891,7 +891,7 @@ export function rollMinorEvents(state, deps) {
   }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage' }); } }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Small Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage' }); } }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage' }); } }
   if (state.offspringTrees > 0 && !state.pendingOffspringThreat && Math.random() < 0.18) { state.pendingOffspringThreat = true; events.push({ text: 'Your young offspring is under aphid pressure. Chemical Defense this turn may save it. The infestation is spreading.', effect: 'warning' }); }
   else if (state.pendingOffspringThreat) { state.pendingOffspringThreat = false; if (state.defense > 0 || state.fruitDefense > 0) events.push({ text: 'You shielded your offspring with defensive chemistry. The aphids fall away, and the young tree survives. (+offspring survives)', effect: 'offspring-safe' }); else if (Math.random() < 0.5) { const lost = loseYoungestOffspring(state); if (lost) state.offspringPool = Math.max(0, state.offspringPool - 1); events.push({ text: lost ? 'The aphids are gone, but the young tree did not survive. (-1 offspring)' : 'The aphids disperse without finding a living offspring.', effect: lost ? 'offspring-loss' : 'warning' }); } else events.push({ text: 'The aphids finally disperse. Your offspring survives, though only barely. (+offspring survives)', effect: 'offspring-safe' }); }
   return events;

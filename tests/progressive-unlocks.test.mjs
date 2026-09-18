@@ -6,7 +6,7 @@ import { getActionUnlockReason, isActionUnlockedForState } from '../core/actions
 import { currentStageRequirements, formatTurnProgress } from '../core/stages.js';
 
 const sapling = LIFE_STAGES.find(stage => stage.name === 'Sapling');
-const smallTree = LIFE_STAGES.find(stage => stage.name === 'Small Tree');
+const youngTree = LIFE_STAGES.find(stage => stage.name === 'Young Tree');
 const matureTree = LIFE_STAGES.find(stage => stage.name === 'Mature Tree');
 
 function unlocked(key, turnsInStage, lifeStage = sapling) {
@@ -25,11 +25,11 @@ test('Sapling capabilities arrive across five seasons instead of all at once', (
   assert.equal(unlocked('rhizosphere', 15), true);
 });
 
-test('Small Tree and Mature Tree action bundles are dispersed across seasons', () => {
-  assert.equal(unlocked('flower', 0, smallTree), true);
-  assert.equal(unlocked('growThorns', 0, smallTree), false);
-  assert.equal(unlocked('growThorns', 3, smallTree), true);
-  assert.equal(unlocked('toxicLeaves', 6, smallTree), true);
+test('Young Tree and Mature Tree action bundles are dispersed across seasons', () => {
+  assert.equal(unlocked('flower', 0, youngTree), true);
+  assert.equal(unlocked('growThorns', 0, youngTree), false);
+  assert.equal(unlocked('growThorns', 3, youngTree), true);
+  assert.equal(unlocked('toxicLeaves', 6, youngTree), true);
 
   assert.equal(unlocked('massFlower', 0, matureTree), true);
   assert.equal(unlocked('nurtureOffspring', 0, matureTree), false);

@@ -1,4 +1,4 @@
-import { LIFE_STAGES } from './constants.js';
+import { LIFE_STAGES } from './constants.js?rev=life-stage-v1';
 
 export function computeCurrentLifeStage(state) {
   return state.lifeStage || LIFE_STAGES[0];
@@ -46,9 +46,9 @@ export function currentStageRequirements(state) {
         stageTimeRequirement(state, 2, 'Sapling'),
         { key: 'branches', label: 'Grow 2 branches', met: state.branches >= 2 },
       ];
-    case 'Small Tree':
+    case 'Young Tree':
       return [
-        stageTimeRequirement(state, 3, 'Small Tree'),
+        stageTimeRequirement(state, 3, 'Young Tree'),
         { key: 'fruit', label: 'Produce your first fruit', met: state.hasProducedFruit },
       ];
     case 'Mature Tree':
