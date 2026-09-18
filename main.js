@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=life-stage-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=offspring-support-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=life-stage-v1';
+} from './core/events.js?rev=offspring-support-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -54,23 +54,26 @@ import {
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
+  advanceOffspringCrises,
+  describeOffspring,
   growOffspringRecords,
   nurtureOffspring,
+  resolveOffspringCrisisAid,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=life-stage-v1';
+} from './core/humans.js?rev=offspring-support-v1';
 import { createEngine } from './core/engine.js?rev=life-stage-v1';
 import { createStartingNeighbors } from './core/neighbors.js?rev=life-stage-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=offspring-rivalry-v1';
 import { renderActionPanels } from './ui/actions.js?rev=seasonal-canopy-v1';
 import { renderEventPhaseBody } from './ui/events.js';
-import { showStandardModal } from './ui/modal.js';
+import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=offspring-rivalry-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=offspring-rivalry-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=life-stage-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=offspring-support-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=seasonal-canopy-v1';
 
 function computeCurrentLifeStage() {
@@ -205,13 +208,17 @@ function tryAdvanceLifeStage(onContinue) {
     state.lifeStage = next;
     resetStageProgressCounters();
     addLog(`You have grown. You are now a ${next.name}.`);
-    const unlockedActions = next.unlocks.map(key => ACTIONS.find(action => action.key === key)).filter(Boolean).filter(action => isActionUnlocked(action.key));
+    const unlockedActions = next.unlocks
+      .map(key => ACTIONS.find(action => action.key === key))
+      .filter(Boolean)
+      .filter(action => isActionUnlocked(action.key))
+      .filter(isActionAnnounceableNow);
     state.announcedActionUnlocks ||= [];
     unlockedActions.forEach(action => {
       if (!state.announcedActionUnlocks.includes(action.key)) state.announcedActionUnlocks.push(action.key);
     });
-    unlockedActions.forEach(action => addLog(`You can now ${action.name}! ${getActionUnlockExplanation(action)}`));
-    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
+    unlockedActions.forEach(action => addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`));
+    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
     showFeedback(`You are now a ${next.name}!`, 'success');
     showModal(next.name, `<p><em>${next.popup}</em></p>${unlockHtml}`, () => {
       updateScore();
@@ -227,15 +234,19 @@ function tryAdvanceLifeStage(onContinue) {
 
 function maybeAnnounceProgressiveActionUnlocks(onContinue) {
   state.announcedActionUnlocks ||= [];
-  const newlyUnlocked = ACTIONS.filter(action => isActionUnlocked(action.key) && !state.announcedActionUnlocks.includes(action.key));
+  const newlyUnlocked = ACTIONS.filter(action => isActionUnlocked(action.key) && isActionAnnounceableNow(action) && !state.announcedActionUnlocks.includes(action.key));
   if (!newlyUnlocked.length) return false;
   newlyUnlocked.forEach(action => {
     state.announcedActionUnlocks.push(action.key);
-    addLog(`You can now ${action.name}! ${getActionUnlockExplanation(action)}`);
+    addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`);
   });
-  const body = newlyUnlocked.map(action => `<p class="action-unlock"><strong>You can now ${action.name}!</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
+  const body = newlyUnlocked.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
   showModal('New Growth Possibilities', body, onContinue);
   return true;
+}
+
+function isActionAnnounceableNow(action) {
+  return isActionAnnounceableInSeason(action.key, currentSeason().name, SEASONAL_ACTIONS);
 }
 
 
@@ -276,7 +287,7 @@ const ACTIONS = createActions({
   requestHelpFromAllies,
   shadeRivalAction,
   rootDominionAction,
-  nurtureOffspringAction: nurtureOffspring,
+  nurtureOffspringAction,
   getRelationshipState,
   getNeighborStage,
 });
@@ -319,7 +330,18 @@ let engine;
 function currentSeason() { return engine.currentSeason(state); }
 
 
-function showModal(title, body, onContinue) {
+function recordPopup(title, body) {
+  if (!state.started) return;
+  const text = modalPlainText(body);
+  const excerpt = text.slice(0, 220);
+  const recent = state.log.slice(0, 4).some(line =>
+    line.includes(`${title}:`) || (excerpt.length >= 24 && line.includes(excerpt.slice(0, 80)))
+  );
+  if (!recent) addLog(buildPopupLogMessage(title, body));
+}
+
+function showModal(title, body, onContinue, { record = true } = {}) {
+  if (record) recordPopup(title, body);
   return showStandardModal(els, title, body, onContinue);
 }
 
@@ -394,6 +416,7 @@ function continueAsSuccessor(choice) {
 }
 
 function showChoiceModal(title, body, choices) {
+  recordPopup(title, body);
   return showChoiceModalUI(els, title, body, choices);
 }
 
@@ -430,7 +453,7 @@ function showResourcePhase({ quiet = false } = {}) {
       }
       showModal('Your Tree Gathers...', renderResourcePhaseBody({ state, gains }), () => {
         renderActions();
-      });
+      }, { record: false });
     },
   });
 }
@@ -648,6 +671,61 @@ function advanceAllyCrises(events) {
       state.pendingInteractions.push((done) => showAllyAidRequest(neighbor, crisis, done));
     }
   }
+}
+
+function advanceChildCrises(events) {
+  const outcomes = advanceOffspringCrises(state, Math.random);
+  for (const outcome of outcomes) {
+    const { child, crisis, flavor, died } = outcome;
+    if (died) {
+      state.offspringPool = Math.max(0, state.offspringPool - 1);
+      events.push({ text: `${flavor} The ${child.species} offspring dies before more help can reach it.`, effect: 'offspring-loss' });
+      continue;
+    }
+    events.push({ text: `${flavor} The crisis is deepening.`, effect: 'warning' });
+    state.pendingInteractions.push(done => showOffspringAidRequest(child, crisis, done));
+  }
+}
+
+function showOffspringAidRequest(child, crisis, done) {
+  if (!child || child.dead) return done?.();
+  const resIcon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
+  showChoiceModal(
+    `${child.species} offspring asks for help`,
+    `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p>
+     <p class="threat-status threat-growing">The crisis is deepening.</p>
+     <p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p>
+     <p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>
+     <p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`,
+    [
+      {
+        label: 'Give what you can',
+        onChoose: () => {
+          const outcome = resolveOffspringCrisisAid(state, child.id, crisis.id);
+          if (!outcome) return done?.();
+          const body = outcome.resolved
+            ? `You meet the full request with ${outcome.given} ${crisis.kind}. Your offspring steadies, and the crisis passes.`
+            : outcome.given > 0
+              ? `You send ${outcome.given} ${crisis.kind}. It helps, but your offspring will need more support before the crisis passes.`
+              : `You have none of the needed ${crisis.kind} to send. The crisis worsens.`;
+          showModal('Aid Given to Offspring', `<p>${body}</p><p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`, () => {
+            refreshMainView();
+            done?.();
+          });
+        },
+      },
+      {
+        label: 'Withhold your resources',
+        onChoose: () => {
+          resolveOffspringCrisisAid(state, child.id, crisis.id, { withhold: true });
+          showModal('Aid Withheld from Offspring', `<p>You keep your reserves. Your ${child.species} offspring remains in danger, and its need grows.</p><p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`, () => {
+            refreshMainView();
+            done?.();
+          });
+        },
+      },
+    ],
+  );
 }
 
 function showAllyAidRequest(neighbor, crisis, done) {
@@ -907,6 +985,41 @@ function requestHelpFromAllies(s, context = {}) {
     emptyMessage: 'No allies are close enough to help',
     transaction: context.transaction,
   });
+}
+
+function nurtureOffspringAction(s, context = {}) {
+  const children = describeOffspring(state, LIFE_STAGES);
+  if (!children.length) {
+    context.transaction?.cancel();
+    return { deferred: true };
+  }
+  const choices = children.map(child => ({
+    label: `${child.species} — ${child.stageName}`,
+    description: `${child.groveSide === 'left' ? 'Left' : 'Right'} side · ${child.health}/${child.maxHealth} health · ${child.stageScore} growth · nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'}`,
+    onChoose: () => {
+      const before = { ...child };
+      context.transaction?.commit();
+      const nurtured = nurtureOffspring(state, child.id);
+      if (!nurtured) {
+        context.transaction?.cancel();
+        return;
+      }
+      const afterStage = getNeighborStage(nurtured.stageScore);
+      showModal('Offspring Nurtured', `
+        <p>You direct water, nutrients, and stored energy to your ${nurtured.species} offspring.</p>
+        <p><strong>Growth:</strong> ${before.stageScore} → ${nurtured.stageScore} (+${nurtured.stageScore - before.stageScore}) · ${afterStage.name}</p>
+        <p><strong>Health:</strong> ${before.health}/${before.maxHealth} → ${nurtured.health}/${nurtured.maxHealth}</p>
+        <p><strong>Nurture investments:</strong> ${before.nurtureCount} → ${nurtured.nurtureCount}</p>
+      `, () => context.transaction?.complete());
+    },
+  }));
+  choices.push({ label: 'Back', onChoose: () => context.transaction?.cancel() });
+  showChoiceModal(
+    'Choose an Offspring Tree',
+    '<p>Compare each child’s current health, growth, life stage, and past nurture before choosing where to invest.</p>',
+    choices,
+  );
+  return { deferred: true };
 }
 
 function attemptConnection(s, context = {}) {
@@ -1203,6 +1316,7 @@ function rollMinorEvents() {
     getNeighborStage,
     random: Math.random,
     advanceAllyCrises: (events) => advanceAllyCrises(events),
+    advanceOffspringCrises: (events) => advanceChildCrises(events),
     checkAllyBetrayal: (events) => checkAllyBetrayal(events),
     queueHostileTreeThreat: (target, events) => queueHostileTreeThreat(target, events),
     queueChemicalDefenseThreat: (events) => queueChemicalDefenseThreat(events),
@@ -1273,7 +1387,7 @@ function showEventPhase() {
         showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
       },
     });
-  });
+  }, { record: false });
 }
 
 function queueHumanDecision(decision, done) {
@@ -1358,6 +1472,7 @@ function updateUI() {
     seasons: SEASONS,
     currentStageRequirements: currentStageRequirements(),
     affordableActions: getAffordableActions(),
+    offspringStats: describeOffspring(state, LIFE_STAGES),
     speciesBadgeHtml: state.selectedSpecies
       ? renderSpeciesSummary(state.selectedSpecies, SPECIES[state.selectedSpecies], {
           title: state.selectedSpecies,

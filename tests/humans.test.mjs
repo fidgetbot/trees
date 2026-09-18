@@ -4,11 +4,15 @@ import { LIFE_STAGES, getNeighborStage, getRelationshipState } from '../core/con
 import {
   HUMAN_RUMORS,
   advanceHumanSystem,
+  advanceOffspringCrises,
   buildHumanEncounterDecision,
   createOffspringRecords,
+  createOffspringCrisis,
+  describeOffspring,
   growOffspringRecords,
   getProtectedCompanions,
   nurtureOffspring,
+  resolveOffspringCrisisAid,
   resolveHumanDecision,
   updateProtectionProgress,
 } from '../core/humans.js';
@@ -104,10 +108,49 @@ test('an explicit undefended fallback appears only when no active response is av
 test('nurturing supports a specific persistent child', () => {
   const s = state();
   createOffspringRecords(s, 2);
-  const child = nurtureOffspring(s);
+  const secondId = s.offspringRecords[1].id;
+  const child = nurtureOffspring(s, secondId);
   assert.equal(child.nurtureCount, 1);
   assert.equal(child.stageScore, 400);
-  assert.equal(s.offspringRecords[1].nurtureCount, 0);
+  assert.equal(s.offspringRecords[0].nurtureCount, 0);
+  assert.equal(s.offspringRecords[1].nurtureCount, 1);
+  const stats = describeOffspring(s, LIFE_STAGES);
+  assert.deepEqual(stats[1], {
+    id: secondId,
+    species: 'Pear',
+    groveSide: 'right',
+    stageName: 'Seedling',
+    stageScore: 400,
+    nextStageName: 'Sapling',
+    nextStageThreshold: 600,
+    health: 9,
+    maxHealth: 9,
+    nurtureCount: 1,
+    supportReceived: 0,
+  });
+});
+
+test('offspring crises ask for aid and partial support produces measurable recovery', () => {
+  const s = state({ nutrients: 3 });
+  const [child] = createOffspringRecords(s, 1);
+  const crisis = createOffspringCrisis(s, child, () => 0);
+  const [request] = advanceOffspringCrises(s, () => 1);
+  assert.equal(request.died, false);
+  assert.match(request.flavor, /distress signal|aphids/i);
+  assert.equal(child.health, 6);
+
+  const partial = resolveOffspringCrisisAid(s, child.id, crisis.id);
+  assert.equal(partial.given, 3);
+  assert.equal(partial.resolved, false);
+  assert.equal(child.health, 7);
+  assert.equal(crisis.amount, 4);
+  assert.equal(child.supportReceived, 1);
+
+  s.nutrients = 4;
+  const full = resolveOffspringCrisisAid(s, child.id, crisis.id);
+  assert.equal(full.resolved, true);
+  assert.equal(child.health, 8);
+  assert.equal(child.activeCrises.length, 0);
 });
 
 test('offspring beneath the parent shade grow more slowly until the lean changes sides', () => {

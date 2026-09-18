@@ -39,6 +39,15 @@ export function getActionUnlockExplanation(action) {
     || `This gives you a new ability: ${action.help.charAt(0).toLowerCase()}${action.help.slice(1)}`;
 }
 
+export function getActionUnlockAnnouncement(action) {
+  return `${action.name} is now available!`;
+}
+
+export function isActionAnnounceableInSeason(actionKey, currentSeasonName, seasonalActions) {
+  const allowedSeasons = seasonalActions[actionKey];
+  return !allowedSeasons || allowedSeasons.includes(currentSeasonName);
+}
+
 export function isActionUnlockedForState(actionKey, state, lifeStages, progressiveUnlocks = {}) {
   const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
   const currentStage = state.lifeStage;
@@ -167,7 +176,7 @@ export function createActions(deps) {
 
     { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
     { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Pour resources into a burst of blossoms for a risky reproductive surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; } },
-    { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Support one real child tree, accelerating its growth and improving its health.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => (s.offspringRecords || []).some(child => !child.dead), effect: s => nurtureOffspringAction(s) },
+    { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Choose and support one child tree, then see exactly how its health and growth improve.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => (s.offspringRecords || []).some(child => !child.dead), effect: (s, context) => nurtureOffspringAction(s, context) },
     { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'An immense reproductive push that floods the canopy with flowers and future seed.', baseCost: { sunlight: 8, water: 4, nutrients: 8 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
   ];
 }

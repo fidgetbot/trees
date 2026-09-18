@@ -70,6 +70,8 @@ export function createOffspringRecords(state, count) {
       maxHealth: 8,
       health: 8,
       nurtureCount: 0,
+      supportReceived: 0,
+      activeCrises: [],
       groveSide: state.offspringRecords.length % 2 === 0 ? 'left' : 'right',
       dead: false,
     };
@@ -98,12 +100,14 @@ export function growOffspringRecords(state, random = Math.random) {
   syncOffspringCounts(state);
 }
 
-export function nurtureOffspring(state) {
+export function nurtureOffspring(state, childId = null) {
   ensureHumanState(state);
   const candidates = state.offspringRecords
     .filter(child => !child.dead)
     .sort((a, b) => a.nurtureCount - b.nurtureCount || a.stageScore - b.stageScore);
-  const child = candidates[0];
+  const child = childId
+    ? candidates.find(candidate => candidate.id === childId)
+    : candidates[0];
   if (!child) return null;
   child.nurtureCount += 1;
   child.stageScore += 300;
@@ -112,16 +116,121 @@ export function nurtureOffspring(state) {
   return child;
 }
 
-export function loseYoungestOffspring(state) {
+export function describeOffspring(state, lifeStages) {
   ensureHumanState(state);
-  const child = state.offspringRecords
-    .filter(candidate => !candidate.dead)
-    .sort((a, b) => a.stageScore - b.stageScore)[0];
-  if (!child) return null;
-  child.dead = true;
-  child.health = 0;
+  return state.offspringRecords
+    .filter(child => !child.dead)
+    .map(child => {
+      const stage = [...lifeStages].reverse().find(candidate => child.stageScore >= candidate.threshold) || lifeStages[0];
+      const nextStage = lifeStages.find(candidate => candidate.rank === stage.rank + 1) || null;
+      return {
+        id: child.id,
+        species: child.species,
+        groveSide: child.groveSide,
+        stageName: stage.name,
+        stageScore: child.stageScore,
+        nextStageName: nextStage?.name || null,
+        nextStageThreshold: nextStage?.threshold || null,
+        health: child.health,
+        maxHealth: child.maxHealth,
+        nurtureCount: child.nurtureCount || 0,
+        supportReceived: child.supportReceived || 0,
+      };
+    });
+}
+
+const OFFSPRING_CRISIS_TEMPLATES = [
+  { kind: 'nutrients', title: 'Aphid pressure', amount: 7, healthLoss: 2, flavors: [
+    child => `${child.species} offspring sends a faint distress signal: aphids are draining its newest leaves.`,
+    child => `${child.species} offspring is still struggling with aphids. Its young growth is weakening.`,
+    child => `${child.species} offspring is close to collapse under the infestation.`,
+  ] },
+  { kind: 'water', title: 'Dry roots', amount: 6, healthLoss: 2, flavors: [
+    child => `${child.species} offspring asks through the fungal network for water; its shallow roots have found dry soil.`,
+    child => `${child.species} offspring is still thirsty. Its leaves are beginning to droop.`,
+    child => `${child.species} offspring is close to collapse from drought.`,
+  ] },
+  { kind: 'nutrients', title: 'Blight recovery', amount: 9, healthLoss: 3, flavors: [
+    child => `${child.species} offspring asks for rich reserves after walling off a patch of blight.`,
+    child => `${child.species} offspring is still spending its reserves against blight.`,
+    child => `${child.species} offspring can barely contain the blight now.`,
+  ] },
+];
+
+export function createOffspringCrisis(state, child, random = Math.random) {
+  ensureHumanState(state);
+  state.nextOffspringCrisisId = (state.nextOffspringCrisisId || 0) + 1;
+  const template = OFFSPRING_CRISIS_TEMPLATES[Math.min(
+    OFFSPRING_CRISIS_TEMPLATES.length - 1,
+    Math.floor(random() * OFFSPRING_CRISIS_TEMPLATES.length),
+  )];
+  const crisis = {
+    kind: template.kind,
+    title: template.title,
+    amount: template.amount,
+    healthLoss: template.healthLoss,
+    flavors: template.flavors.map(flavor => flavor(child)),
+    stage: 0,
+    id: `offspring-crisis-${state.nextOffspringCrisisId}`,
+  };
+  child.activeCrises ||= [];
+  child.activeCrises.push(crisis);
+  return crisis;
+}
+
+export function advanceOffspringCrises(state, random = Math.random) {
+  ensureHumanState(state);
+  const results = [];
+  const livingChildren = state.offspringRecords.filter(child => !child.dead);
+  const hasActiveCrisis = livingChildren.some(child => (child.activeCrises || []).length > 0);
+  if (!hasActiveCrisis && livingChildren.length > 0 && random() < 0.18) {
+    const target = livingChildren[Math.min(livingChildren.length - 1, Math.floor(random() * livingChildren.length))];
+    createOffspringCrisis(state, target, random);
+  }
+  for (const child of livingChildren) {
+    child.activeCrises ||= [];
+    for (const crisis of [...child.activeCrises]) {
+      const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
+      crisis.stage += 1;
+      child.health = Math.max(0, child.health - crisis.healthLoss);
+      if (child.health <= 0) {
+        child.dead = true;
+        results.push({ child, crisis, flavor, died: true });
+      } else {
+        results.push({ child, crisis, flavor, died: false });
+      }
+    }
+  }
   syncOffspringCounts(state);
-  return child;
+  return results;
+}
+
+export function resolveOffspringCrisisAid(state, childId, crisisId, { withhold = false } = {}) {
+  ensureHumanState(state);
+  const child = state.offspringRecords.find(candidate => candidate.id === childId && !candidate.dead);
+  const crisis = child?.activeCrises?.find(candidate => candidate.id === crisisId);
+  if (!child || !crisis) return null;
+
+  if (withhold) {
+    crisis.amount += 2;
+    return { child, crisis, given: 0, resolved: false, withheld: true };
+  }
+
+  const given = Math.min(crisis.amount, Math.max(0, state[crisis.kind] || 0));
+  state[crisis.kind] -= given;
+  child.supportReceived = (child.supportReceived || 0) + (given > 0 ? 1 : 0);
+  if (given >= crisis.amount) {
+    child.health = Math.min(child.maxHealth, child.health + crisis.healthLoss + 2);
+    child.activeCrises = child.activeCrises.filter(candidate => candidate.id !== crisis.id);
+    return { child, crisis, given, resolved: true, withheld: false };
+  }
+  if (given > 0) {
+    child.health = Math.min(child.maxHealth, child.health + 1);
+    crisis.amount = Math.max(1, crisis.amount - given);
+  } else {
+    crisis.amount += 2;
+  }
+  return { child, crisis, given, resolved: false, withheld: false };
 }
 
 export function getProtectedCompanions(state, { getRelationshipState, getNeighborStage }) {
@@ -384,8 +493,8 @@ export function advanceHumanSystem(state, deps = {}) {
   return {
     event: {
       text: phase === 'survey'
-        ? 'Humans have entered the grove and are measuring your trunk. They remain visible on the map, and their interest is growing.'
-        : 'The marked humans have returned with cutting tools. They remain beside your trunk until you respond.',
+        ? 'Humans have entered the grove and are measuring your trunk. Their interest is growing.'
+        : 'The marked humans have returned with cutting tools. They wait beside your trunk for the next cut.',
       effect: 'human-warning',
     },
   };

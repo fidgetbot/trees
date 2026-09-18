@@ -88,9 +88,9 @@ function createInitialState(speciesName, rng) {
     fruitDefense: 0,
     offspringTrees: 0,
     offspringRecords: [],
+    nextOffspringCrisisId: 0,
     alliedNeighbors: 0,
     pendingFruitThreat: null,
-    pendingOffspringThreat: false,
     pendingChemicalThreat: null,
     pendingCanopyNotices: [],
     pendingHumanEncounter: null,
@@ -359,6 +359,7 @@ function createHeadlessGame(seed, speciesName) {
       getNeighborStage,
       random: rng,
       advanceAllyCrises: () => {},
+      advanceOffspringCrises: () => {},
       checkAllyBetrayal: () => false,
       queueHostileTreeThreat: (neighbor, events) => {
         if (!neighbor || neighbor.dead) return;

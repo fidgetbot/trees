@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=life-stage-v1" />
+  <link rel="stylesheet" href="styles.css?rev=offspring-support-v1" />
 </head>
 <body>
   <div id="app">
@@ -85,6 +85,10 @@
                 <span class="stat-name">Allies</span>
                 <span class="stat-value" id="allies">0</span>
               </div>
+              <details class="offspring-stats hidden" id="offspring-stats">
+                <summary id="offspring-stats-summary">Offspring</summary>
+                <div id="offspring-stats-list"></div>
+              </details>
               <details class="season-guide" id="season-guide">
                 <summary id="season-guide-summary">Seasonal gathering</summary>
                 <div class="season-guide-grid" id="season-guide-grid"></div>
@@ -208,6 +212,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=life-stage-v1"></script>
+  <script type="module" src="main.js?rev=offspring-support-v1"></script>
 </body>
 </html>

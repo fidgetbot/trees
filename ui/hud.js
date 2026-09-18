@@ -68,6 +68,7 @@ export function updateHudUI({
   currentStageRequirements,
   affordableActions,
   speciesBadgeHtml,
+  offspringStats = [],
 }) {
   document.getElementById('score').textContent = state.score;
   document.getElementById('year').textContent = state.year;
@@ -122,6 +123,25 @@ export function updateHudUI({
   document.getElementById('allies').textContent = state.allies;
   document.getElementById('health').textContent = state.health;
   document.getElementById('max-health').textContent = `/ ${state.maxHealth}`;
+
+  const offspringDetails = document.getElementById('offspring-stats');
+  const offspringSummary = document.getElementById('offspring-stats-summary');
+  const offspringList = document.getElementById('offspring-stats-list');
+  if (offspringDetails && offspringSummary && offspringList) {
+    offspringDetails.classList.toggle('hidden', offspringStats.length === 0);
+    offspringSummary.textContent = `Offspring · ${offspringStats.length} living`;
+    offspringList.innerHTML = offspringStats.map(child => {
+      const progress = child.nextStageThreshold
+        ? `${child.stageScore}/${child.nextStageThreshold} toward ${child.nextStageName}`
+        : `${child.stageScore} growth · fully grown`;
+      return `<div class="offspring-stat-card">
+        <strong>${child.species} · ${child.stageName}</strong>
+        <span>${child.health}/${child.maxHealth} health</span>
+        <span>${progress}</span>
+        <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'}</span>
+      </div>`;
+    }).join('');
+  }
 
   const seasonGuideSummary = document.getElementById('season-guide-summary');
   const seasonGuideGrid = document.getElementById('season-guide-grid');

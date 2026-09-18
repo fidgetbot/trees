@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { ACTION_UNLOCK_EXPLANATIONS, createActions, getActionUnlockExplanation } from '../core/actions.js';
-import { LIFE_STAGES } from '../core/constants.js';
+import { ACTION_UNLOCK_EXPLANATIONS, createActions, getActionUnlockAnnouncement, getActionUnlockExplanation, isActionAnnounceableInSeason } from '../core/actions.js';
+import { LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 
 test('developmental naming separates life stage from competitive height', () => {
   assert.ok(LIFE_STAGES.some(stage => stage.name === 'Young Tree'));
@@ -30,6 +30,12 @@ test('unlock explanation fallback remains a complete sentence', () => {
     getActionUnlockExplanation({ key: 'futureAction', help: 'Improves something useful.' }),
     'This gives you a new ability: improves something useful.',
   );
+});
+
+test('noun-phrase actions use natural unlock announcements in their first usable season', () => {
+  assert.equal(getActionUnlockAnnouncement({ name: 'Mass Flowering' }), 'Mass Flowering is now available!');
+  assert.equal(isActionAnnounceableInSeason('massFlower', 'Winter', SEASONAL_ACTIONS), false);
+  assert.equal(isActionAnnounceableInSeason('massFlower', 'Spring', SEASONAL_ACTIONS), true);
 });
 
 test('growth descriptions use player-facing language and name the height remedy', () => {
