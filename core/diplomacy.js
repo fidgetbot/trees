@@ -1,4 +1,4 @@
-import { createDecision, findDecisionOption } from './decisions.js';
+import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=directional-shade-v1';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
@@ -365,8 +365,14 @@ export function buildAggressionDecision(state, kind, deps = {}) {
       return {
         id: `neighbor-${targetIndex}`,
         label: kind === 'shade'
-          ? `${neighbor.species} — ${shadeAllowed ? 'Shadeable' : `Grow Taller (${heightNeeded} more)`}`
+          ? neighbor.species
           : `${neighbor.species} — ${relationName}`,
+        description: kind === 'shade'
+          ? (shadeAllowed
+              ? 'Shorter than you — can be shaded.'
+              : `You'd need to grow taller first.${heightNeeded > 1 ? ` (${heightNeeded} height levels)` : ''}`)
+          : null,
+        disabled: kind === 'shade' && !shadeAllowed,
         targetIndex,
         requiresConfirmation: requiresWarning,
         confirmation: requiresWarning ? {

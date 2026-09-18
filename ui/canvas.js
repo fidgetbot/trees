@@ -153,18 +153,20 @@ export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
 }
 
 export function getCanopyShadowGeometry(sourceX,targetX,groundY){
-  const direction=targetX<sourceX?-1:1,distance=Math.abs(targetX-sourceX),verticalReach=Math.max(.25,distance*.1);
-  return{sourceX,sourceY:groundY+Math.max(.15,distance*.02),targetX:sourceX+direction*distance*.9,targetY:groundY+verticalReach,startHalfWidth:Math.max(.12,distance*.01),endHalfWidth:Math.min(32,Math.max(.4,distance*.14)),direction,distance};
+  const direction=targetX<sourceX?-1:1,distance=Math.abs(targetX-sourceX),startHalfWidth=Math.max(.12,distance*.01),endHalfWidth=Math.min(36,Math.max(.4,distance*.18));
+  return{sourceX,sourceY:groundY+startHalfWidth,targetX,targetY:groundY+endHalfWidth,startHalfWidth,endHalfWidth,direction,distance};
 }
 
 function drawCanopyShadow(ctx,source,target,groundY,seed){
   const geometry=getCanopyShadowGeometry(source.x,target.x,groundY),{sourceX,sourceY,targetX,targetY,startHalfWidth,endHalfWidth,distance}=geometry,visualScale=Math.min(1,distance/180);
   const gradient=ctx.createLinearGradient(sourceX,sourceY,targetX,targetY);
   gradient.addColorStop(0,'rgba(28,40,31,.08)');gradient.addColorStop(.34,'rgba(25,39,30,.30)');gradient.addColorStop(1,'rgba(18,31,25,.48)');
+  const margin=endHalfWidth*1.8+2,minX=Math.min(sourceX,targetX)-margin,maxX=Math.max(sourceX,targetX)+margin;
+  ctx.save();ctx.beginPath();ctx.rect(minX,groundY,maxX-minX,Math.max(1,endHalfWidth*2.8+4));ctx.clip();
   ctx.save();ctx.filter=`blur(${Math.max(.1,Math.min(2.5,distance*.0125))}px)`;ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(sourceX,sourceY-startHalfWidth);ctx.lineTo(targetX,targetY-endHalfWidth);ctx.quadraticCurveTo(targetX+geometry.direction*distance*.04,targetY,targetX,targetY+endHalfWidth);ctx.lineTo(sourceX,sourceY+startHalfWidth);ctx.closePath();ctx.fill();ctx.restore();
   const random=rng(seed);ctx.save();ctx.fillStyle='rgba(19,35,27,.25)';
   for(let i=0;i<14;i++){const progress=.22+random()*.76,x=sourceX+(targetX-sourceX)*progress+(random()-.5)*endHalfWidth*.55,y=sourceY+(targetY-sourceY)*progress+(random()-.5)*endHalfWidth*1.05,size=Math.max(.08,(2+random()*5)*visualScale);ctx.beginPath();ctx.ellipse(x,y,size,size*.48,random()*Math.PI,0,TAU);ctx.fill()}
-  ctx.restore();
+  ctx.restore();ctx.restore();
 }
 
 function drawDirectionalCanopyShadows(ctx,trees,groundY){
@@ -177,19 +179,18 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
-  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`);
+  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`),shaded=!isPlayer&&isTreeShaded(state,neighbor),wood=getWoodPalette(habit.bark,shaded);
   const rootedSeed=shouldDrawSeedRadicle(stage,roots,leaves);
-  if(stage!=='Seed'&&!rootedSeed)drawRoots(ctx,x,groundY,roots,taproot,scale,habit.bark,seed,isPlayer);
+  if(stage!=='Seed'&&!rootedSeed)drawRoots(ctx,x,groundY,roots,taproot,scale,wood.bark,seed,isPlayer,wood.highlight);
   if(stage==='Seed'||rootedSeed){
-    if(rootedSeed)drawSeedRadicle(ctx,x,groundY,camera.zoom,habit.bark,seed,roots);
+    if(rootedSeed)drawSeedRadicle(ctx,x,groundY,camera.zoom,wood.bark,seed,roots);
     drawSeed(ctx,x,groundY,species,camera.zoom,seed);
   }
-  else if(stage==='Sprout')drawSprout(ctx,x,groundY,habit.bark,seed,camera.zoom,leaves,trunk);
+  else if(stage==='Sprout')drawSprout(ctx,x,groundY,wood.bark,seed,camera.zoom,leaves,trunk);
   else {
     const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0,heightGrowth);
     ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.28,1,0,0);
-    const shaded=!isPlayer&&isTreeShaded(state,neighbor);
-    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded);drawWood(ctx,tree,habit.bark);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded);
+    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded);drawWood(ctx,tree,wood.bark,wood.highlight);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded);
     if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
     if(isPlayer&&shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers);
     if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
@@ -236,7 +237,7 @@ function drawSeedRadicle(ctx,x,y,zoom,color,seed,rootCount){
   ctx.restore();
 }
 
-function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
+function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player,highlight='rgba(197,169,117,.2)'){
   const r=rng(seed+4409),rootCount=Math.max(1,Math.min(count+(player&&count>0?2:0),8)),paths=[];
   function root(sx,sy,angle,length,width,depth){
     const bend=(r()-.5)*.62,wave=(r()-.5)*.28,points=[];
@@ -246,7 +247,7 @@ function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player){
   for(let i=0;i<rootCount;i++){const side=i%2?1:-1,rank=Math.floor(i/2),angle=side>0?.2+r()*.3:Math.PI-(.2+r()*.3),length=(26+rank*7+r()*10)*scale,width=Math.max(1.4,(7.5-rank*.6)*scale),depth=player?(count>=6?2:count>=1?1:0):0;root(x+side*2*scale,y+2*scale,angle,length,width,depth)}
   if(taproot>0){const length=Math.min(105,30+taproot*13)*scale;root(x,y+2*scale,Math.PI/2+(r()-.5)*.08,length,Math.max(2.5,(8+taproot*.6)*scale),taproot>=3?1:0)}
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=player ? .92 : .62;
-  paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle='rgba(197,169,117,.2)';ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
+  paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle=highlight;ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
   const flare=11*scale;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x-flare*.55,y-4*scale);ctx.quadraticCurveTo(x-flare*.7,y+3*scale,x-flare*1.45,y+9*scale);ctx.quadraticCurveTo(x-flare*.45,y+7*scale,x,y+5*scale);ctx.quadraticCurveTo(x+flare*.55,y+8*scale,x+flare*1.45,y+9*scale);ctx.quadraticCurveTo(x+flare*.65,y+2*scale,x+flare*.55,y-4*scale);ctx.closePath();ctx.fill();ctx.restore();
 }
 function drawSprout(ctx,x,y,bark,seed,zoom,leafCount=0,trunkLevel=1){
@@ -287,11 +288,12 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
   return{wood,clusters,leafCount,profile};
 }
 
-function drawWood(ctx,tree,bark){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;ctx.lineWidth=p[0].width;stroke(ctx,p);ctx.strokeStyle='rgba(201,177,127,.28)';ctx.lineWidth=Math.max(.45,p[0].width*.13);ctx.save();ctx.translate(-p[0].width*.13,0);stroke(ctx,p);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
+function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;ctx.lineWidth=p[0].width;stroke(ctx,p);ctx.strokeStyle=highlight;ctx.lineWidth=Math.max(.45,p[0].width*.13);ctx.save();ctx.translate(-p[0].width*.13,0);stroke(ctx,p);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
 function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
 
 function drawFoliage(ctx,tree,season,seed,player,front,shaded=false){if(season==='Winter')return;const colors=getFoliagePalette(season,shaded),ordered=player?[...tree.clusters].map((cluster,index)=>({cluster,index,priority:hash(`${seed}:leaf:${index}`)})).sort((a,b)=>a.priority-b.priority).slice(0,Math.min(tree.clusters.length,tree.profile?.foliageClusters||0)):tree.clusters.map((cluster,index)=>({cluster,index}));ordered.forEach(({cluster:c,index:k})=>{if((c.z>.48)!==front)return;const r=rng(seed+k*701+91),density=player?(tree.profile?.foliageDensity||0):14;for(let i=0;i<density;i++){const a=r()*TAU,d=Math.sqrt(r()),x=c.x+Math.cos(a)*d*c.size,y=c.y+Math.sin(a)*d*c.size*.72;ctx.fillStyle=colors[Math.floor(r()*colors.length)];ctx.globalAlpha=(shaded ? .84 : .72)+r()*(shaded ? .13 : .25);ctx.beginPath();ctx.ellipse(x,y,2.1+r()*2.5,1.2+r()*1.5,r()*Math.PI,0,TAU);ctx.fill()}});ctx.globalAlpha=1}
 export function getFoliagePalette(season,shaded=false){if(shaded){if(season==='Spring')return['#587653','#476746','#39573d','#668059','#304b37'];if(season==='Autumn')return['#87662c','#744827','#63372c','#917332','#51352d'];return['#506d49','#405f41','#334f3a','#5d7650','#294333']}if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
+export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlight:'rgba(201,177,127,.28)'};const hex=bark.replace('#',''),parts=[0,2,4].map(offset=>Math.round(parseInt(hex.slice(offset,offset+2),16)*.56).toString(16).padStart(2,'0'));return{bark:`#${parts.join('')}`,highlight:'rgba(113,105,82,.18)'}}
 
 function drawBlossoms(ctx,tree,seed,count){if(count<=0||!tree.clusters.length)return;const r=rng(seed+1907),total=Math.min(78,7+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.72,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=1.8+r()*2.1,open=.3+r()*.7;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);ctx.shadowColor='rgba(255,236,224,.92)';ctx.shadowBlur=2.2;if(open<.4){ctx.fillStyle='#cf718b';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fffaf0':'#e99aac';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#9d6227';ctx.beginPath();ctx.arc(0,0,size*.36,0,TAU);ctx.fill()}ctx.restore()}}
 function drawFruit(ctx,tree,seed,count,species){const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}}

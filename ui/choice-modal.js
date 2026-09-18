@@ -10,7 +10,16 @@ export function showChoiceModalUI(els, title, body, choices) {
   choices.forEach(choice => {
     const btn = document.createElement('button');
     btn.className = 'neighbor-choice';
-    btn.textContent = choice.label;
+    const label = document.createElement('span');
+    label.className = 'neighbor-choice-label';
+    label.textContent = choice.label;
+    btn.appendChild(label);
+    if (choice.description) {
+      const description = document.createElement('span');
+      description.className = 'neighbor-choice-description';
+      description.textContent = choice.description;
+      btn.appendChild(description);
+    }
     btn.disabled = choice.disabled === true;
     btn.onclick = () => {
       els.modal.classList.add('hidden');

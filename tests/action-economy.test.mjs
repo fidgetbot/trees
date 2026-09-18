@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -43,6 +44,13 @@ function spendFrom(state) {
     state.actions -= 1;
   };
 }
+
+test('the end-turn control appears before the potentially long action list', () => {
+  const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('id="finish-turn"') < html.indexOf('id="actions-list"'));
+  assert.match(css, /\.action-command-bar\s*\{[\s\S]*position:\s*sticky/);
+});
 
 test('cancelling a deferred action spends no resources or action', () => {
   const state = actionState();

@@ -348,7 +348,7 @@ function createHeadlessGame(seed, speciesName) {
     SEASONS,
     computeCurrentLifeStage: () => computeCurrentLifeStage(state),
     getStageProgressIncrement: () => getStageProgressIncrement(state),
-    rollMajorEvent: () => rollMajorEvent(majorEvents),
+    rollMajorEvent: () => rollMajorEvent(majorEvents, SEASONS[state.seasonIndex].name, rng),
     rollMinorEvents: () => rollMinorEvents(state, {
       currentSeasonName: SEASONS[state.seasonIndex].name,
       getPollinatorChance: baseChance => getPollinatorChance(state, baseChance),
@@ -579,7 +579,8 @@ function createHeadlessGame(seed, speciesName) {
         const choice = humanUpdate.decision.options.find(option => option.id === 'receive-inspection')
           || humanUpdate.decision.options.find(option => option.id === 'drop-branch' && state.cuttingProgress >= 2)
           || humanUpdate.decision.options.find(option => option.id === 'call-network' && option.affordable)
-          || humanUpdate.decision.options.find(option => option.id === 'use-defenses')
+          || humanUpdate.decision.options.find(option => option.id === 'irritating-oils' && option.affordable)
+          || humanUpdate.decision.options.find(option => option.id === 'emergency-thorns' && option.affordable)
           || humanUpdate.decision.options.find(option => option.affordable !== false);
         if (choice) resolveHumanDecision(state, humanUpdate.decision, choice.id, { random: rng });
       }

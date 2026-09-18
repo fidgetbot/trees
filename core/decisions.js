@@ -6,6 +6,8 @@ export function createDecision({ kind, title, body = '', options = [], meta = {}
     options: options.map((option, index) => ({
       id: option.id ?? `option-${index}`,
       label: option.label,
+      description: option.description ?? null,
+      disabled: option.disabled ?? false,
       affordable: option.affordable ?? true,
       targetIndex: option.targetIndex ?? null,
       requiresConfirmation: option.requiresConfirmation ?? false,

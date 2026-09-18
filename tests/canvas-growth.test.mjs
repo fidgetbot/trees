@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -74,7 +74,11 @@ test('the cast shadow begins at the shading tree and points toward its target', 
   assert.equal(left.sourceX, 450);
   assert.ok(left.targetX < left.sourceX);
   assert.ok(right.targetX > right.sourceX);
+  assert.equal(left.targetX, 250);
+  assert.equal(right.targetX, 650);
   assert.ok(left.endHalfWidth > left.startHalfWidth);
+  assert.equal(left.sourceY - left.startHalfWidth, 300);
+  assert.equal(left.targetY - left.endHalfWidth, 300);
   const zoomedOut = getCanopyShadowGeometry(450, 452, 300);
   assert.ok(zoomedOut.endHalfWidth < 1);
   assert.ok(zoomedOut.targetY - 300 < 1);
@@ -85,6 +89,14 @@ test('shaded foliage uses an unmistakably darker palette', () => {
   assert.equal(getFoliagePalette('Spring', true)[0], '#587653');
   const stored = { slot: 1, dead: false, playerShading: true };
   assert.equal(isTreeShaded({ neighbors: [stored] }, { ...stored }), true);
+});
+
+test('shaded trees darken their wood as well as their foliage', () => {
+  const lit = getWoodPalette('#70553f', false);
+  const shaded = getWoodPalette('#70553f', true);
+  assert.equal(lit.bark, '#70553f');
+  assert.notEqual(shaded.bark, lit.bark);
+  assert.equal(shaded.bark, '#3f3023');
 });
 
 test('a rooted seed shows a radicle before its first leaf', () => {

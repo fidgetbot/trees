@@ -13,10 +13,35 @@ export function createMajorEvents(deps) {
     updateAlliesCount,
   } = deps;
 
+  const applyWindStorm = (s, winter = false) => {
+    const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
+    const spindlyPenalty = Math.max(0, s.spindlyGrowth || 0);
+    const damage = Math.max(0, 4 + stagePressure + spindlyPenalty - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
+    s.health -= damage;
+    recordDamage(damage, 'storm');
+    const effects = [];
+    if (s.branches > 0) {
+      const prevBranches = s.branches;
+      s.branches = Math.max(1, s.branches - 1);
+      const lost = prevBranches - s.branches;
+      effects.push(lost > 0 ? '1 branch snapped by wind' : 'Your only branch bent low, but held fast');
+    } else if (s.leafClusters > 0) {
+      s.leafClusters = Math.max(0, s.leafClusters - 1);
+      effects.push(winter ? 'Icy wind strips your tender top growth' : 'Wind shreds your tender top growth before any true branch can form');
+    } else {
+      effects.push(winter ? 'The winter gale bends your young stem and scours the frozen soil' : 'The storm bends your young stem and scours the soil around your base');
+    }
+    if (damage > 0) effects.push(`Health -${damage} (roots and trunk were not strong enough)`);
+    else effects.push('Deep roots and a strong trunk resisted damage');
+    if (spindlyPenalty > 0) effects.push(`Spindly height growth added ${spindlyPenalty} wind damage`);
+    return effects;
+  };
+
   return [
     {
       key: 'Drought',
       name: 'Summer Drought',
+      seasons: ['Summer'],
       icon: '☀️',
       desc: 'The rains fail. Every drop matters now.',
       severity: 'bad',
@@ -36,7 +61,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Herbivores', name: 'Herbivore Surge', icon: '🐛', desc: 'Hungry mouths descend on your foliage.', severity: 'bad',
+      key: 'Herbivores', name: 'Herbivore Surge', seasons: ['Spring', 'Summer'], icon: '🐛', desc: 'Hungry mouths descend on your foliage.', severity: 'bad',
       apply: (s) => {
         const baseDamage = Math.max(1, 1 - s.defense);
         const damage = Math.floor(baseDamage * getThreatMultiplier());
@@ -48,33 +73,15 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Storm', name: 'Autumn Storm', icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad',
-      apply: (s) => {
-        const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
-        const spindlyPenalty = Math.max(0, s.spindlyGrowth || 0);
-        const damage = Math.max(0, 4 + stagePressure + spindlyPenalty - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
-        s.health -= damage;
-        recordDamage(damage, 'storm');
-        const effects = [];
-        if (s.branches > 0) {
-          const prevBranches = s.branches;
-          s.branches = Math.max(1, s.branches - 1);
-          const lost = prevBranches - s.branches;
-          effects.push(lost > 0 ? '1 branch snapped by wind' : 'Your only branch bent low, but held fast');
-        } else if (s.leafClusters > 0) {
-          s.leafClusters = Math.max(0, s.leafClusters - 1);
-          effects.push('Wind shreds your tender top growth before any true branch can form');
-        } else {
-          effects.push('The storm bends your young stem and scours the soil around your base');
-        }
-        if (damage > 0) effects.push(`Health -${damage} (roots and trunk were not strong enough)`);
-        else effects.push('Deep roots and a strong trunk resisted damage');
-        if (spindlyPenalty > 0) effects.push(`Spindly height growth added ${spindlyPenalty} wind damage`);
-        return effects;
-      }
+      key: 'Storm', name: 'Autumn Storm', seasons: ['Autumn'], icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad',
+      apply: (s) => applyWindStorm(s, false),
     },
     {
-      key: 'Fire', name: 'Wildfire', icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical',
+      key: 'WinterStorm', name: 'Winter Gale', seasons: ['Winter'], icon: '🌨️', desc: 'A bitter gale drives ice through the grove and tests every unbraced limb.', severity: 'bad',
+      apply: (s) => applyWindStorm(s, true),
+    },
+    {
+      key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical',
       apply: (s) => {
         const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
         const damage = Math.max(0, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
@@ -88,7 +95,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'LateFrost', name: 'Late Frost', icon: '❄️', desc: 'An unexpected freeze damages new growth and tender flowers.', severity: 'bad',
+      key: 'LateFrost', name: 'Late Frost', seasons: ['Spring'], icon: '❄️', desc: 'An unexpected freeze damages new growth and tender flowers.', severity: 'bad',
       apply: (s) => {
         const effects = [];
         if (s.flowers > 0) {
@@ -108,7 +115,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'FungalBlight', name: 'Fungal Blight', icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad',
+      key: 'FungalBlight', name: 'Fungal Blight', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad',
       apply: (s) => {
         s.eventModifiers.disease = 0.5;
         const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
@@ -131,7 +138,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Beaver', name: 'Beaver Activity', icon: '🦫', desc: 'A beaver colony has moved into the watershed, changing water patterns.', severity: 'neutral',
+      key: 'Beaver', name: 'Beaver Activity', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🦫', desc: 'A beaver colony has moved into the watershed, changing water patterns.', severity: 'neutral',
       apply: (s) => {
         const effects = [];
         if (Math.random() < 0.5) {
@@ -145,7 +152,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'MycorrhizalBloom', name: 'Mycorrhizal Bloom', icon: '✨', desc: 'The fungal network flourishes, sharing nutrients generously.', severity: 'good',
+      key: 'MycorrhizalBloom', name: 'Mycorrhizal Bloom', seasons: ['Spring', 'Summer', 'Autumn', 'Winter'], icon: '✨', desc: 'The fungal network flourishes, sharing nutrients generously.', severity: 'good',
       apply: (s) => {
         const connectedAllies = s.neighbors.filter(neighbor => (
           !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally'
@@ -159,7 +166,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'BirdDispersal', name: 'Bird Dispersal', icon: '🐦', desc: 'Migratory birds arrive, carrying seeds and nutrients from distant forests.', severity: 'good',
+      key: 'BirdDispersal', name: 'Bird Dispersal', seasons: ['Autumn', 'Winter'], icon: '🐦', desc: 'Migratory birds arrive, carrying seeds and nutrients from distant forests.', severity: 'good',
       apply: (s) => {
         s.nutrients += 2;
         if (s.flowers > 0) {
@@ -174,16 +181,20 @@ export function createMajorEvents(deps) {
   ];
 }
 
-export function rollMajorEvent(majorEvents) {
-  const weights = majorEvents.map(e => e.severity === 'critical' ? 0.05 : e.severity === 'bad' ? 0.25 : e.severity === 'neutral' ? 0.2 : 0.15);
+export function rollMajorEvent(majorEvents, currentSeasonName = null, random = Math.random) {
+  const eligibleEvents = currentSeasonName
+    ? majorEvents.filter(event => !event.seasons || event.seasons.includes(currentSeasonName))
+    : majorEvents;
+  if (!eligibleEvents.length) return null;
+  const weights = eligibleEvents.map(e => e.severity === 'critical' ? 0.05 : e.severity === 'bad' ? 0.25 : e.severity === 'neutral' ? 0.2 : 0.15);
   const total = weights.reduce((a, b) => a + b, 0);
-  const r = Math.random() * total;
+  const r = random() * total;
   let sum = 0;
-  for (let i = 0; i < majorEvents.length; i++) {
+  for (let i = 0; i < eligibleEvents.length; i++) {
     sum += weights[i];
-    if (r <= sum) return majorEvents[i];
+    if (r <= sum) return eligibleEvents[i];
   }
-  return majorEvents[0];
+  return eligibleEvents[0];
 }
 
 export function resolveFruitThreats(state, events) { /* unchanged below */

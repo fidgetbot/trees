@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=canopy-competition-v2" />
+  <link rel="stylesheet" href="styles.css?rev=seasonal-canopy-v1" />
 </head>
 <body>
   <div id="app">
@@ -41,12 +41,15 @@
           <h2>Actions <span class="actions-heading-count" id="actions-remaining" aria-live="polite">(3 remaining)</span></h2>
           <span id="phase-indicator" class="phase-pill">Action Phase</span>
         </div>
-        <div class="action-resource-strip" aria-label="Resources available for actions">
-          <span class="action-resource-label">You have</span>
-          <span class="action-resource-total res-sun"><span aria-hidden="true">☀️</span><strong id="action-sunlight">0</strong></span>
-          <span class="action-resource-total res-water"><span aria-hidden="true">💧</span><strong id="action-water">0</strong></span>
-          <span class="action-resource-total res-nutrient"><span aria-hidden="true">🌱</span><strong id="action-nutrients">0</strong></span>
-          <span class="action-resource-total res-health" aria-label="Current health"><span aria-hidden="true">❤️</span><strong id="action-health">0/0</strong></span>
+        <div class="action-command-bar">
+          <div class="action-resource-strip" aria-label="Resources available for actions">
+            <span class="action-resource-label">You have</span>
+            <span class="action-resource-total res-sun"><span aria-hidden="true">☀️</span><strong id="action-sunlight">0</strong></span>
+            <span class="action-resource-total res-water"><span aria-hidden="true">💧</span><strong id="action-water">0</strong></span>
+            <span class="action-resource-total res-nutrient"><span aria-hidden="true">🌱</span><strong id="action-nutrients">0</strong></span>
+            <span class="action-resource-total res-health" aria-label="Current health"><span aria-hidden="true">❤️</span><strong id="action-health">0/0</strong></span>
+          </div>
+          <button id="finish-turn" class="finish-turn-btn hidden" type="button">Finish Turn Early</button>
         </div>
         <div id="actions-list" class="actions-list"></div>
 
@@ -205,6 +208,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=directional-shadow-scale-v1"></script>
+  <script type="module" src="main.js?rev=seasonal-canopy-v1"></script>
 </body>
 </html>

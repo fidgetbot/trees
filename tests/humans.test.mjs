@@ -4,6 +4,7 @@ import { LIFE_STAGES, getNeighborStage, getRelationshipState } from '../core/con
 import {
   HUMAN_RUMORS,
   advanceHumanSystem,
+  buildHumanEncounterDecision,
   createOffspringRecords,
   getProtectedCompanions,
   nurtureOffspring,
@@ -53,6 +54,40 @@ test('a branch drop repels cutters but sacrifices structure', () => {
   assert.equal(s.branches, 4);
   assert.equal(s.leafClusters, 6);
   assert.equal(s.pendingHumanEncounter, null);
+});
+
+test('human encounters offer distinct botanical defenses instead of duplicate passive choices', () => {
+  const s = state({ pendingHumanEncounter: { phase: 'survey', count: 2 }, branches: 0, allies: 0, sunlight: 5, water: 4, nutrients: 6, thornDefense: 0, toxicLeaves: 0 });
+  const decision = buildHumanEncounterDecision(s);
+  assert.ok(decision.options.some(option => option.id === 'emergency-thorns' && option.affordable));
+  assert.ok(decision.options.some(option => option.id === 'irritating-oils' && option.affordable));
+  assert.equal(decision.options.some(option => /stand firm|conserve your strength/i.test(option.label)), false);
+
+  const outcome = resolveHumanDecision(s, decision, 'emergency-thorns', deps);
+  assert.equal(outcome.repelled, true);
+  assert.equal(s.thornDefense, 1);
+  assert.equal(s.water, 2);
+  assert.equal(s.nutrients, 3);
+});
+
+test('fungal-network support uses realistic resource sharing and defensive chemistry', () => {
+  const s = state({ pendingHumanEncounter: { phase: 'survey', count: 2 }, branches: 0, allies: 2, sunlight: 0, water: 0, nutrients: 2, thornDefense: 0, toxicLeaves: 0 });
+  const decision = buildHumanEncounterDecision(s);
+  const network = decision.options.find(option => option.id === 'call-network');
+  assert.match(network.label, /draw support through the fungal network/i);
+  assert.match(network.preview, /water and minerals|resin/i);
+  assert.doesNotMatch(network.preview, /move|threat/i);
+  const outcome = resolveHumanDecision(s, decision, 'call-network', deps);
+  assert.equal(outcome.repelled, true);
+  assert.match(outcome.body, /resin|defensive compounds/i);
+  assert.doesNotMatch(outcome.body, /roots shift|branches move|surrounded/i);
+});
+
+test('an explicit undefended fallback appears only when no active response is available', () => {
+  const s = state({ pendingHumanEncounter: { phase: 'survey', count: 2 }, branches: 0, allies: 0, sunlight: 0, water: 0, nutrients: 0, thornDefense: 0, toxicLeaves: 0 });
+  const decision = buildHumanEncounterDecision(s);
+  assert.deepEqual(decision.options.filter(option => option.affordable !== false).map(option => option.id), ['endure-cutting']);
+  assert.match(decision.options.at(-1).label, /without defending yourself/i);
 });
 
 test('nurturing supports a specific persistent child', () => {

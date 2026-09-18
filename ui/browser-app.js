@@ -84,6 +84,7 @@ export function getBrowserElements(documentRef = document) {
     modalBody: documentRef.getElementById('modal-body'),
     modalButton: documentRef.getElementById('modal-button'),
     actionsList: documentRef.getElementById('actions-list'),
+    finishTurn: documentRef.getElementById('finish-turn'),
     log: documentRef.getElementById('log'),
     feedbackContainer: documentRef.getElementById('feedback-container'),
     tooltip: documentRef.getElementById('tooltip'),

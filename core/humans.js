@@ -185,16 +185,32 @@ export function buildHumanEncounterDecision(state) {
   if (state.allies > 0) {
     options.push({
       id: 'call-network',
-      label: state.nutrients >= 2 ? 'Call through the fungal network (2 nutrients)' : 'Call through the fungal network — need 2 nutrients',
+      label: state.nutrients >= 2 ? 'Draw support through the fungal network (2 nutrients)' : 'Draw support through the fungal network — need 2 nutrients',
       affordable: state.nutrients >= 2,
-      preview: 'Connected trees send warning pulses and make the grove feel active and defended.',
+      preview: 'Allied roots share water and minerals while fungal signals prime sticky resin and irritating defensive chemistry.',
     });
   }
+  const thornCost = { water: 2, nutrients: 3 };
+  const oilCost = { sunlight: 3, nutrients: 2 };
+  const canGrowThorns = state.water >= thornCost.water && state.nutrients >= thornCost.nutrients;
+  const canReleaseOils = state.sunlight >= oilCost.sunlight && state.nutrients >= oilCost.nutrients;
   options.push({
-    id: 'use-defenses',
-    label: state.thornDefense + state.toxicLeaves > 0 ? 'Rely on your thorns and toxic foliage' : 'Stand firm without special defenses',
+    id: 'emergency-thorns',
+    label: canGrowThorns ? 'Grow emergency thorns (2 water, 3 nutrients)' : 'Grow emergency thorns — need 2 water and 3 nutrients',
+    affordable: canGrowThorns,
+    preview: 'A lasting thorn level and a strong immediate deterrent.',
+    meta: { cost: thornCost },
   });
-  options.push({ id: 'endure-cutting', label: 'Conserve your strength and endure' });
+  options.push({
+    id: 'irritating-oils',
+    label: canReleaseOils ? 'Release irritating leaf oils (3 sunlight, 2 nutrients)' : 'Release irritating leaf oils — need 3 sunlight and 2 nutrients',
+    affordable: canReleaseOils,
+    preview: 'The strongest immediate deterrent, but its effect is temporary.',
+    meta: { cost: oilCost },
+  });
+  if (!canGrowThorns && !canReleaseOils && !options.some(option => option.affordable !== false)) {
+    options.push({ id: 'endure-cutting', label: 'Endure without defending yourself', preview: 'No resource cost, but the humans face almost no resistance.' });
+  }
   return createDecision({
     kind: 'human-encounter',
     title: encounter.phase === 'survey' ? 'Humans at Your Trunk' : 'The Cutters Return',
@@ -277,7 +293,20 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     state.nutrients -= 2;
     defensePower += 3 + Math.min(3, state.allies);
   }
-  if (option.id === 'endure-cutting') defensePower = Math.floor(defensePower / 2);
+  if (option.id === 'emergency-thorns') {
+    if (state.water < 2 || state.nutrients < 3) return failEncounter(state, encounter);
+    state.water -= 2;
+    state.nutrients -= 3;
+    state.thornDefense += 1;
+    defensePower += 4;
+  }
+  if (option.id === 'irritating-oils') {
+    if (state.sunlight < 3 || state.nutrients < 2) return failEncounter(state, encounter);
+    state.sunlight -= 3;
+    state.nutrients -= 2;
+    defensePower += 5;
+  }
+  if (option.id === 'endure-cutting') defensePower = 0;
 
   const difficulty = encounter.phase === 'survey'
     ? 2 + state.humanPressure * 0.45
@@ -290,8 +319,12 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     return {
       title: 'The Humans Retreat',
       body: option.id === 'call-network'
-        ? '<p>Alarm pulses race through the connected grove. Roots shift, branches move, and the humans find themselves surrounded by signs of a living forest. They retreat.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
-        : '<p>Your thorns, toxic foliage, and imposing movement make the work too dangerous. The humans withdraw from the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
+        ? '<p>Signals pass through your fungal partners. Allied roots share water and minerals while your wounded bark floods with sticky resin and irritating defensive compounds. The humans’ tools gum up, their skin begins to sting, and they abandon the cutting.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+        : option.id === 'emergency-thorns'
+          ? '<p>New thorns harden along your lowest growth. The humans recoil from the spikes and abandon their work.</p><p>The thorn growth remains as a permanent defense.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+          : option.id === 'irritating-oils'
+            ? '<p>You flood your leaves and bark with irritating oils. Burning skin and itching eyes drive the humans out of the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+            : '<p>Your existing defenses and imposing movement make the work too dangerous. The humans withdraw from the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
       repelled: true,
     };
   }

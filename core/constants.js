@@ -28,9 +28,9 @@ export const SEASONAL_ACTIONS = {
 // large stage-transition bundles. Some defensive growth begins before the
 // next named life stage so discovery continues between major transformations.
 export const PROGRESSIVE_ACTION_UNLOCKS = {
-  growTaller: { stage: 'Seedling', turnsInStage: 6, label: 'after 2 seasons as a Seedling' },
-  shadeRival: { stage: 'Seedling', turnsInStage: 6, label: 'after 2 seasons as a Seedling' },
-  bark: { stage: 'Seedling', turnsInStage: 9, label: 'after 3 seasons as a Seedling' },
+  growTaller: { stage: 'Seedling', turnsInStage: 0, label: 'upon reaching Seedling' },
+  shadeRival: { stage: 'Seedling', turnsInStage: 0, label: 'upon reaching Seedling' },
+  bark: { stage: 'Seedling', turnsInStage: 3, label: 'after 1 season as a Seedling' },
   taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
   canopy: { stage: 'Sapling', turnsInStage: 3, label: 'after 1 season as a Sapling' },
   aidAlly: { stage: 'Sapling', turnsInStage: 6, label: 'after 2 seasons as a Sapling' },

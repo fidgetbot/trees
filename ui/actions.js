@@ -91,11 +91,10 @@ export function renderActionPanels({
     els.actionsList.appendChild(details);
   }
 
-  if (Object.values(categories).some(arr => arr.length > 0) || noUsableActions) {
-    const endBtn = document.createElement('button');
-    endBtn.className = 'finish-turn-btn';
-    endBtn.textContent = noUsableActions ? 'Out of Resources — End Turn' : 'Finish Turn Early';
-    endBtn.onclick = onFinishTurn;
-    els.actionsList.appendChild(endBtn);
+  const canEndTurn = Object.values(categories).some(arr => arr.length > 0) || noUsableActions;
+  if (els.finishTurn) {
+    els.finishTurn.classList.toggle('hidden', !canEndTurn);
+    els.finishTurn.textContent = noUsableActions ? 'Out of Resources — End Turn' : 'Finish Turn Early';
+    els.finishTurn.onclick = canEndTurn ? onFinishTurn : null;
   }
 }

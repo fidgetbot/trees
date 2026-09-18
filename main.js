@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=canopy-competition-v2';
+} from './core/constants.js?rev=seasonal-canopy-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -23,7 +23,7 @@ import {
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js?rev=height-competition-v1';
+} from './core/stages.js?rev=seasonal-canopy-v1';
 import { randomChoice, randomInt } from './core/random.js';
 import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockExplanation, getActionUnlockReason, isActionUnlockedForState } from './core/actions.js?rev=directional-shade-v1';
 import {
@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=canopy-competition-v2';
+} from './core/events.js?rev=seasonal-canopy-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=directional-shade-v1';
+} from './core/diplomacy.js?rev=seasonal-canopy-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -58,20 +58,20 @@ import {
   nurtureOffspring,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=grove-balance-v1';
+} from './core/humans.js?rev=seasonal-canopy-v1';
 import { createEngine } from './core/engine.js?rev=directional-shade-v1';
 import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=directional-shade-v1';
-import { renderActionPanels } from './ui/actions.js?rev=height-balance-v2';
+import { renderActionPanels } from './ui/actions.js?rev=seasonal-canopy-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-neighbor-integrity-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=directional-shade-v1';
 import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=directional-shadow-scale-v1';
+import { renderForestScene } from './ui/canvas.js?rev=seasonal-canopy-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=canopy-competition-v2';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=seasonal-canopy-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -483,14 +483,21 @@ function growNeighbors() {
   growOffspringRecords(state);
 }
 
-function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow, labelForNeighbor = null) {
+function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow, displayForNeighbor = null) {
   const choices = state.neighbors
     .filter(n => !n.dead)
     .filter(filterFn)
     .map(n => {
       const rel = getRelationshipState(n.relation).name.toLowerCase();
       const healthText = typeof n.health === 'number' && typeof n.maxHealth === 'number' ? ` · ${n.health}/${n.maxHealth} health` : '';
-      return { label: labelForNeighbor?.(n) || `${n.species} (${rel}${healthText})`, onChoose: () => onPick(n) };
+      const display = displayForNeighbor?.(n);
+      const presentation = typeof display === 'string' ? { label: display } : (display || {});
+      return {
+        label: presentation.label || `${n.species} (${rel}${healthText})`,
+        description: presentation.description,
+        disabled: presentation.disabled,
+        onChoose: () => onPick(n),
+      };
     });
   if (includeBack) choices.push({ label: 'Back', onChoose: () => onBack?.() });
   showChoiceModal(title, `<p>${body}</p>`, choices);
@@ -843,7 +850,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     proceed();
   };
 
-  if (decision.options.length === 1) {
+  if (decision.options.length === 1 && !decision.options[0].disabled) {
     execute(decision.options[0]);
     return { deferred: true };
   }
@@ -859,7 +866,10 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     decision.body,
     true,
     cancel,
-    neighbor => decision.options.find(option => option.targetIndex === state.neighbors.indexOf(neighbor))?.label,
+    neighbor => {
+      const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
+      return option ? { label: option.label, description: option.description, disabled: option.disabled } : null;
+    },
   );
   return { deferred: true };
 }
@@ -1176,7 +1186,7 @@ function queueChemicalDefenseThreat(events) {
 }
 
 function rollMajorEvent() {
-  return rollMajorEventFromList(MAJOR_EVENTS);
+  return rollMajorEventFromList(MAJOR_EVENTS, currentSeason().name);
 }
 
 function rollMinorEvents() {

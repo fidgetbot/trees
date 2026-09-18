@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS } from '../core/constants.js';
 import { getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
+import { currentStageRequirements, formatTurnProgress } from '../core/stages.js';
 
 const sapling = LIFE_STAGES.find(stage => stage.name === 'Sapling');
 const smallTree = LIFE_STAGES.find(stage => stage.name === 'Small Tree');
@@ -45,12 +46,18 @@ test('locked Sapling actions explain when they will awaken', () => {
   );
 });
 
-test('Grow Taller, Shade Neighbor, and Fortify Bark arrive gradually during Seedling growth', () => {
+test('Grow Taller and Shade Neighbor arrive with Seedling, then Fortify Bark follows one season later', () => {
   const seedling = LIFE_STAGES.find(stage => stage.name === 'Seedling');
-  assert.equal(unlocked('growTaller', 5, seedling), false);
-  assert.equal(unlocked('growTaller', 6, seedling), true);
-  assert.equal(unlocked('shadeRival', 5, seedling), false);
-  assert.equal(unlocked('shadeRival', 6, seedling), true);
-  assert.equal(unlocked('bark', 8, seedling), false);
-  assert.equal(unlocked('bark', 9, seedling), true);
+  assert.equal(unlocked('growTaller', 0, seedling), true);
+  assert.equal(unlocked('shadeRival', 0, seedling), true);
+  assert.equal(unlocked('bark', 2, seedling), false);
+  assert.equal(unlocked('bark', 3, seedling), true);
+});
+
+test('fractional stage progress is rounded for display without changing completion', () => {
+  assert.equal(formatTurnProgress(10.799999999999999), '10.8');
+  assert.equal(formatTurnProgress(12), '12');
+  const requirements = currentStageRequirements({ lifeStage: sapling, turnsInStage: 10.799999999999999, branches: 0 });
+  assert.match(requirements[0].label, /10\.8\/24 turns/);
+  assert.equal(requirements[0].met, false);
 });

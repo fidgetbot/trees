@@ -12,6 +12,7 @@ import {
   resolveHostileEncroachmentChoice,
   WINTER_PRECIPITATION,
   createMajorEvents,
+  rollMajorEvent,
 } from '../core/events.js';
 import {
   buildAggressionDecision,
@@ -158,6 +159,27 @@ test('spindly height growth increases storm damage until trunk growth braces it'
   storm.apply(spindly);
   assert.ok(spindly.health < stable.health);
   assert.ok(recorded[1] > recorded[0]);
+});
+
+test('major events are restricted to ecologically appropriate seasons', () => {
+  const majorEvents = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage() {},
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  });
+  for (const season of SEASONS.map(entry => entry.name)) {
+    for (let i = 0; i <= 20; i += 1) {
+      const event = rollMajorEvent(majorEvents, season, () => i / 20);
+      assert.ok(event, `${season} should have at least one major event`);
+      assert.ok(event.seasons.includes(season), `${event.name} must be eligible in ${season}`);
+    }
+  }
+  assert.deepEqual(majorEvents.find(event => event.name === 'Autumn Storm').seasons, ['Autumn']);
+  assert.deepEqual(majorEvents.find(event => event.name === 'Summer Drought').seasons, ['Summer']);
+  assert.deepEqual(majorEvents.find(event => event.name === 'Late Frost').seasons, ['Spring']);
 });
 
 test('shade decisions mark taller adjacent rivals as unreachable', () => {

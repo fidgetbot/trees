@@ -8,12 +8,17 @@ export function turnsForYears(years) {
   return years * 12;
 }
 
+export function formatTurnProgress(turns) {
+  const rounded = Math.round(Math.max(0, Number(turns) || 0) * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 function stageTimeRequirement(state, years, stageName) {
   const elapsedTurns = Math.max(0, state.turnsInStage || 0);
   const requiredTurns = turnsForYears(years);
   return {
     key: 'time',
-    label: `Spend ${years} years as a ${stageName} (${Math.min(elapsedTurns, requiredTurns)}/${requiredTurns} turns)`,
+    label: `Spend ${years} years as a ${stageName} (${formatTurnProgress(Math.min(elapsedTurns, requiredTurns))}/${requiredTurns} turns)`,
     met: elapsedTurns >= requiredTurns,
   };
 }

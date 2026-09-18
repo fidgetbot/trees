@@ -69,12 +69,15 @@ test('equal-height trees cannot shade, and an overtaking rival reverses the cano
   const state = { lifeStage: LIFE_STAGES[3], heightGrowth: 0, neighbors: [neighbor] };
   const equalDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
   assert.equal(equalDecision.options[0].meta.blockedReason, 'too-short');
-  assert.match(equalDecision.options[0].label, /Grow Taller \(1 more\)/);
+  assert.equal(equalDecision.options[0].label, 'Pear');
+  assert.equal(equalDecision.options[0].disabled, true);
+  assert.match(equalDecision.options[0].description, /need to grow taller first/i);
 
   state.heightGrowth = 1;
   const shadeableDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
   assert.equal(shadeableDecision.options[0].meta.blockedReason, null);
-  assert.match(shadeableDecision.options[0].label, /Shadeable/);
+  assert.equal(shadeableDecision.options[0].disabled, false);
+  assert.match(shadeableDecision.options[0].description, /can be shaded/i);
   neighbor.heightGrowth = 2;
   const change = reconcileCanopyHeight(state, neighbor, getNeighborStage, getRelationshipState);
   assert.equal(change.kind, 'reversed');
