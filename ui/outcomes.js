@@ -1,8 +1,12 @@
 export function renderSpringSeedFateBody({ prevSeeds, fate }) {
+  const shadeWarning = fate.shadedSprouts > 0
+    ? `<p class="threat-status threat-growing"><strong>${fate.shadedSprouts} new offspring ${fate.shadedSprouts === 1 ? 'has' : 'have'} sprouted beneath the side where your crown is casting shade.</strong> ${fate.shadedSprouts === 1 ? 'Its' : 'Their'} growth will be slower until you shade the other neighbor or stop shading.</p>`
+    : '';
   return `
     <p>${prevSeeds} seed${prevSeeds !== 1 ? 's' : ''} faced the hazards of dispersal and germination.</p>
     <ul>${fate.results.map(r => `<li>${r}</li>`).join('')}</ul>
     <p><strong>${fate.sprouted}</strong> offspring successfully sprouted.</p>
+    ${shadeWarning}
   `;
 }
 

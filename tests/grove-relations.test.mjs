@@ -8,7 +8,7 @@ import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 import { currentStageRequirements } from '../core/stages.js';
-import { neighborGrowthFromLight, reconcileCanopyHeight, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
+import { getShadedOffspring, neighborGrowthFromLight, offspringGrowthFromLight, reconcileCanopyHeight, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -87,15 +87,56 @@ test('equal-height trees cannot shade, and an overtaking rival reverses the cano
 });
 
 test('shading is a sizable sunlight-only advantage and slows the target instead of stealing nutrients', () => {
-  const neutral = engine().collectResources(gatheringState());
+  const rivalWithoutShade = engine().collectResources(gatheringState({
+    neighbors: [{ slot: 1, relation: -40, dead: false, playerShading: false }],
+  }));
   const shaded = engine().collectResources(gatheringState({
     neighbors: [{ slot: 1, relation: -40, dead: false, playerShading: true }],
   }));
   assert.equal(shaded.canopyAdvantage, SHADE_SUNLIGHT_BONUS);
-  assert.equal(shaded.sunlightGain - neutral.sunlightGain, SHADE_SUNLIGHT_BONUS);
-  assert.equal(shaded.nutrientGain, neutral.nutrientGain);
+  assert.equal(shaded.sunlightGain - rivalWithoutShade.sunlightGain, SHADE_SUNLIGHT_BONUS);
+  assert.equal(shaded.nutrientGain, rivalWithoutShade.nutrientGain);
   assert.equal(neighborGrowthFromLight(50, { playerShading: true }), 30);
   assert.equal(neighborGrowthFromLight(50, { playerShading: false }), 50);
+});
+
+test('shading one side warns about offspring there and slows their growth', () => {
+  const left = { slot: 1, species: 'Apricot', relation: -60, stageScore: 600, dead: false };
+  const state = {
+    lifeStage: LIFE_STAGES[4], heightGrowth: 1, neighbors: [left],
+    offspringRecords: [
+      { id: 'left-child', groveSide: 'left', dead: false },
+      { id: 'right-child', groveSide: 'right', dead: false },
+    ],
+  };
+  const decision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  assert.equal(decision.options[0].meta.shadedOffspringCount, 1);
+  assert.match(decision.options[0].description, /offspring on this side will also lose light/i);
+  assert.match(decision.options[0].confirmation.body, /slow its growth until you lean away/i);
+  applyAggressionToNeighbor(state, left, 'shade', { getRelationshipState, getNeighborStage });
+  assert.deepEqual(getShadedOffspring(state).map(child => child.id), ['left-child']);
+  assert.equal(offspringGrowthFromLight(50, state.offspringRecords[0], 0, left), 30);
+  assert.equal(offspringGrowthFromLight(50, state.offspringRecords[1], 1, left), 50);
+});
+
+test('adjacent rivals and hostile trees impose visible root competition each turn', () => {
+  const neutral = engine().collectResources(gatheringState());
+  const contestedState = gatheringState({
+    neighbors: [
+      { slot: 1, relation: -35, dead: false },
+      { slot: 3, relation: -70, dead: false },
+    ],
+  });
+  const contested = engine().collectResources(contestedState);
+  assert.equal(contested.relations.rivalNeighbors, 1);
+  assert.equal(contested.relations.hostileNeighbors, 1);
+  assert.equal(contested.rootCompetitionPenalty, 2);
+  assert.equal(contested.hostileWaterPenalty, 1);
+  assert.ok(contested.waterGain < neutral.waterGain);
+  assert.ok(contested.nutrientGain < neutral.nutrientGain);
+  const summary = renderResourcePhaseBody({ state: contestedState, gains: contested });
+  assert.match(summary, /Hostile roots −1/);
+  assert.match(summary, /Rival roots −2/);
 });
 
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {

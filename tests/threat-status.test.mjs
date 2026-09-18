@@ -56,6 +56,28 @@ test('chemical defense describes the danger naturally as gathering and then pass
   }
 });
 
+test('hungry browsers recognize permanent thorns and toxic leaves without another resource cost', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0.4;
+  try {
+    const s = state({ thornDefense: 1, toxicLeaves: 1, developing: 2 });
+    const before = { sunlight: s.sunlight, water: s.water, nutrients: s.nutrients, leafClusters: s.leafClusters, developing: s.developing };
+    const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Small Tree' }) });
+    assert.equal(decision.title, 'Hungry Browsers');
+    assert.match(decision.body, /established thorns and toxic leaves/i);
+    assert.deepEqual(decision.options.map(option => option.id), ['use-permanent-defenses']);
+    const outcome = resolveChemicalDefenseChoice(s, decision, 'use-permanent-defenses');
+    assert.equal(outcome.threatStatus, 'solved');
+    assert.match(outcome.body, /no foliage or fruit is lost/i);
+    assert.deepEqual(
+      { sunlight: s.sunlight, water: s.water, nutrients: s.nutrients, leafClusters: s.leafClusters, developing: s.developing },
+      before,
+    );
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
 test('an unanswered chemical threat reports its final damaging conclusion', () => {
   const originalRandom = Math.random;
   Math.random = () => 0;

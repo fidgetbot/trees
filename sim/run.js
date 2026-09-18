@@ -365,6 +365,7 @@ function createHeadlessGame(seed, speciesName) {
         const decision = buildHostileEncroachmentDecision(state, neighbor, {
           getRelationshipState,
           compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
+          getNeighborStage,
         });
         const prompt = describeDecisionPrompt(decision);
         if (prompt) events.push(prompt);
@@ -373,6 +374,7 @@ function createHeadlessGame(seed, speciesName) {
           const currentDecision = buildHostileEncroachmentDecision(state, neighbor, {
             getRelationshipState,
             compareConflictPower: n => compareConflictPowerForState(state, n, computeCurrentLifeStage, getNeighborStage),
+            getNeighborStage,
           });
           const choice = currentDecision.options.find(option => option.id === 'chemical-battle' && option.affordable)
             || currentDecision.options.find(option => option.id === 'diplomacy' && option.affordable)

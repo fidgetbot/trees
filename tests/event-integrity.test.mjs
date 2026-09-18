@@ -6,7 +6,9 @@ import {
   applyHeavySnow,
   buildChemicalDefenseDecision,
   buildHostileEncroachmentDecision,
+  describeDecisionPrompt,
   getAmbientFlavorPool,
+  getHerbivoreDefense,
   getLivingNeighborsByDisposition,
   maybeEscalateCanopyHostility,
   resolveHostileEncroachmentChoice,
@@ -182,6 +184,27 @@ test('major events are restricted to ecologically appropriate seasons', () => {
   assert.deepEqual(majorEvents.find(event => event.name === 'Late Frost').seasons, ['Spring']);
 });
 
+test('thorns and toxic leaves explicitly blunt herbivore surges', () => {
+  const recorded = [];
+  const herbivores = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: (amount, cause) => recorded.push({ amount, cause }),
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'Herbivores');
+  const defended = threatState({ thornDefense: 1, toxicLeaves: 1, leafClusters: 4, health: 8 });
+  const effects = herbivores.apply(defended);
+  assert.deepEqual(getHerbivoreDefense(defended), { thorns: 1, toxins: 1, total: 2 });
+  assert.equal(defended.leafClusters, 4);
+  assert.equal(defended.health, 8);
+  assert.deepEqual(recorded, []);
+  assert.ok(effects.some(line => /thorns/i.test(line)));
+  assert.ok(effects.some(line => /toxic leaves/i.test(line)));
+  assert.ok(effects.some(line => /before they strip any foliage/i.test(line)));
+});
+
 test('shade decisions mark taller adjacent rivals as unreachable', () => {
   const state = {
     lifeStage: LIFE_STAGES[3], heightGrowth: 0,
@@ -234,6 +257,24 @@ test('successful diplomacy ends hostile canopy pressure', () => {
   assert.equal(outcome.title, 'Diplomacy Succeeded');
   assert.equal(outcome.newState, 'Neutral');
   assert.equal(neighbor.shadingPlayer, false);
+});
+
+test('a shorter rival can still attack through its roots when it cannot shade the canopy', () => {
+  const neighbor = { slot: 1, species: 'Apricot', relation: -35, stageScore: 300, heightGrowth: 0, dead: false };
+  const state = { lifeStage: LIFE_STAGES[4], heightGrowth: 2, sunlight: 6, water: 6, nutrients: 6 };
+  const decision = buildHostileEncroachmentDecision(state, neighbor, {
+    getRelationshipState,
+    getNeighborStage,
+    compareConflictPower: () => ({ yourPower: 6, theirPower: 2 }),
+  });
+  assert.equal(decision.meta.canCrowdCanopy, false);
+  assert.match(decision.body, /root zone/i);
+  assert.match(describeDecisionPrompt(decision).text, /cannot overtop you.*roots/i);
+  const outcome = resolveHostileEncroachmentChoice(state, neighbor, 'endure', { getRelationshipState, getNeighborStage });
+  assert.equal(neighbor.shadingPlayer, false);
+  assert.equal(state.sunlight, 6);
+  assert.equal(state.nutrients, 4);
+  assert.match(outcome.body, /cannot overtop you/i);
 });
 
 test('wildfire can be fully resisted and records one correct damage cause', () => {

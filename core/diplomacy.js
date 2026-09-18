@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
-import { canPlayerShadeNeighbor, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=directional-shade-v1';
+import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=offspring-shade-v1';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -347,6 +347,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
       const playerHeight = playerHeightLevel(state);
       const targetHeight = kind === 'shade' ? neighborHeightLevel(neighbor, getNeighborStage) : null;
       const heightNeeded = kind === 'shade' ? Math.max(0, targetHeight - playerHeight + 1) : 0;
+      const shadedOffspring = kind === 'shade' ? getShadedOffspring(state, neighbor) : [];
       const preview = kind === 'shade'
         ? {
             sunlight: 0,
@@ -369,15 +370,15 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           : `${neighbor.species} — ${relationName}`,
         description: kind === 'shade'
           ? (shadeAllowed
-              ? 'Shorter than you — can be shaded.'
+              ? `Shorter than you — can be shaded.${shadedOffspring.length ? ` Warning: ${shadedOffspring.length} offspring on this side will also lose light.` : ''}`
               : `You'd need to grow taller first.${heightNeeded > 1 ? ` (${heightNeeded} height levels)` : ''}`)
           : null,
         disabled: kind === 'shade' && !shadeAllowed,
         targetIndex,
-        requiresConfirmation: requiresWarning,
-        confirmation: requiresWarning ? {
-          title: 'Escalate against this tree?',
-          body: `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p><p>Do you want to go through with it?</p>`,
+        requiresConfirmation: requiresWarning || shadedOffspring.length > 0,
+        confirmation: requiresWarning || shadedOffspring.length > 0 ? {
+          title: shadedOffspring.length ? 'Shade your offspring too?' : 'Escalate against this tree?',
+          body: `${requiresWarning ? `<p><em>The ${neighbor.species} is currently ${relationName.toLowerCase()} toward you.</em></p><p>If you attack now, it will immediately become a <strong>Rival</strong>.</p>` : ''}${shadedOffspring.length ? `<p><strong>${shadedOffspring.length} of your offspring ${shadedOffspring.length === 1 ? 'grows' : 'grow'} on this side.</strong> Leaning toward the ${neighbor.species} will also shade ${shadedOffspring.length === 1 ? 'it' : 'them'} and slow ${shadedOffspring.length === 1 ? 'its' : 'their'} growth until you lean away.</p>` : ''}<p>Do you want to go through with it?</p>`,
         } : null,
         preview,
         meta: {
@@ -388,6 +389,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           playerHeight,
           targetHeight,
           heightNeeded,
+          shadedOffspringCount: shadedOffspring.length,
         },
       };
     });
@@ -430,6 +432,7 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
     const nutrientGain = 0;
     neighbor.relation = Math.max(-100, neighbor.relation - relationLoss);
     const releasedShadeTarget = setPlayerShadeTarget(state, neighbor);
+    const shadedOffspring = getShadedOffspring(state, neighbor);
     return {
       alreadyContested,
       gains: { sunlight: sunlightGain, water: 0, nutrients: nutrientGain },
@@ -438,6 +441,7 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
       sunlightPerTurn: SHADE_SUNLIGHT_BONUS,
       targetGrowthMultiplier: SHADED_NEIGHBOR_GROWTH_MULTIPLIER,
       releasedShadeTarget,
+      shadedOffspringCount: shadedOffspring.length,
     };
   }
 

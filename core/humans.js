@@ -1,4 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
+import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=offspring-shade-v1';
 
 export const HUMAN_RUMORS = [
   {
@@ -69,6 +70,7 @@ export function createOffspringRecords(state, count) {
       maxHealth: 8,
       health: 8,
       nurtureCount: 0,
+      groveSide: state.offspringRecords.length % 2 === 0 ? 'left' : 'right',
       dead: false,
     };
     state.offspringRecords.push(record);
@@ -86,9 +88,11 @@ export function syncOffspringCounts(state) {
 
 export function growOffspringRecords(state, random = Math.random) {
   ensureHumanState(state);
-  for (const child of state.offspringRecords) {
+  const shadeTarget = getPlayerShadeTarget(state);
+  for (const [index, child] of state.offspringRecords.entries()) {
     if (child.dead) continue;
-    child.stageScore += 35 + Math.floor(random() * 26);
+    const baseGrowth = 35 + Math.floor(random() * 26);
+    child.stageScore += offspringGrowthFromLight(baseGrowth, child, index, shadeTarget);
     if (child.health < child.maxHealth && random() < 0.16) child.health += 1;
   }
   syncOffspringCounts(state);

@@ -3,6 +3,12 @@ import { getFruitLossMultiplier } from './species.js';
 import { loseYoungestOffspring } from './humans.js';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
 
+export function getHerbivoreDefense(state) {
+  const thorns = Math.max(0, state.thornDefense || 0);
+  const toxins = Math.max(0, state.toxicLeaves || 0);
+  return { thorns, toxins, total: thorns + toxins };
+}
+
 export function createMajorEvents(deps) {
   const {
     getThreatMultiplier,
@@ -63,13 +69,27 @@ export function createMajorEvents(deps) {
     {
       key: 'Herbivores', name: 'Herbivore Surge', seasons: ['Spring', 'Summer'], icon: '🐛', desc: 'Hungry mouths descend on your foliage.', severity: 'bad',
       apply: (s) => {
-        const baseDamage = Math.max(1, 1 - s.defense);
-        const damage = Math.floor(baseDamage * getThreatMultiplier());
+        const defenses = getHerbivoreDefense(s);
+        const feedingPressure = Math.max(1, Math.ceil(2 * getThreatMultiplier()));
+        const prevented = Math.min(feedingPressure, defenses.total);
+        const damage = Math.max(0, feedingPressure - prevented);
         const prevLeaves = s.leafClusters;
-        s.leafClusters = Math.max(1, s.leafClusters - damage);
-        s.health -= 1;
+        const leafFloor = Math.min(1, prevLeaves);
+        s.leafClusters = Math.max(leafFloor, s.leafClusters - damage);
         const lost = prevLeaves - s.leafClusters;
-        return [`${lost} leaf cluster${lost !== 1 ? 's' : ''} eaten by insects`, 'Health -1 from stress', s.defense > 0 ? 'Chemical defense reduced damage' : 'No chemical defense!'];
+        const effects = [];
+        if (defenses.thorns > 0) effects.push('Your thorns block browsing mouths from reaching tender growth');
+        if (defenses.toxins > 0) effects.push('Your toxic leaves make each reachable bite unpalatable');
+        if (lost > 0) effects.push(`${lost} leaf cluster${lost !== 1 ? 's' : ''} eaten by herbivores`);
+        else effects.push('Your established defenses turn the browsers away before they strip any foliage');
+        if (damage > 0) {
+          s.health -= 1;
+          recordDamage(1, 'herbivores');
+          effects.push('Health -1 from browsing stress');
+        }
+        if (defenses.total === 0) effects.push('You have no thorns or toxic foliage to deter them');
+        else if (prevented < feedingPressure) effects.push(`Your defenses prevented ${prevented} additional level${prevented === 1 ? '' : 's'} of browsing damage`);
+        return effects;
       }
     },
     {
@@ -319,6 +339,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
       },
       {
+        kind: 'browsers',
         title: 'Hungry Browsers',
         warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and leaves.',
         defend: () => {
@@ -343,6 +364,25 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   }
 
   const threat = preservedThreat || threats[Math.floor(Math.random() * threats.length)];
+  const permanentBrowserDefense = threat.kind === 'browsers' ? getHerbivoreDefense(state) : null;
+  if (permanentBrowserDefense?.total > 0) {
+    const defenseNames = [
+      permanentBrowserDefense.thorns > 0 ? 'thorns' : null,
+      permanentBrowserDefense.toxins > 0 ? 'toxic leaves' : null,
+    ].filter(Boolean);
+    const defenseText = defenseNames.length === 2 ? `${defenseNames[0]} and ${defenseNames[1]}` : defenseNames[0];
+    return createDecision({
+      kind: 'chemical-defense',
+      title: threat.title,
+      body: `<p><em>${threat.warning}</em></p><p><strong>Your established ${defenseText} already protect this growth.</strong></p><p>Let those permanent defenses meet the browsers.</p>`,
+      options: [{
+        id: 'use-permanent-defenses',
+        label: `Rely on your ${defenseText}`,
+        affordable: true,
+      }],
+      meta: { threat, cost: DEFENSE_COST, deficits: {}, permanentBrowserDefense },
+    });
+  }
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
   const deficits = {
     sunlight: Math.max(0, DEFENSE_COST.sunlight - state.sunlight),
@@ -388,6 +428,20 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   const { recordDamage = () => {} } = deps;
   const { threat, cost } = decision.meta;
   const costText = `☀️${cost.sunlight} 💧${cost.water} 🌱${cost.nutrients}`;
+
+  if (choiceId === 'use-permanent-defenses' && threat.kind === 'browsers') {
+    const defenses = getHerbivoreDefense(state);
+    const defenseResult = defenses.thorns > 0 && defenses.toxins > 0
+      ? 'Thorns bar the browsers from your lower growth, while toxic leaves make every reachable bite unpalatable.'
+      : defenses.thorns > 0
+        ? 'Thorns bar the browsers from your tender lower growth until they move on.'
+        : 'The first bitter bites warn the browsers away from your toxic foliage.';
+    return {
+      title: threat.title,
+      body: `<p>${defenseResult}</p><p>No foliage or fruit is lost, and no additional resources are spent.</p><p class="threat-status threat-solved">The danger has passed.</p>`,
+      threatStatus: 'solved',
+    };
+  }
 
   if (choiceId === 'defend') {
     const hasResourcesNow = state.sunlight >= cost.sunlight && state.water >= cost.water && state.nutrients >= cost.nutrients;
@@ -438,6 +492,7 @@ export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
     compareConflictPower,
+    getNeighborStage,
   } = deps;
 
   const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
@@ -446,11 +501,12 @@ export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
   const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
   const canAffordDiplomacy = state.sunlight >= DIPLOMACY_COST.sunlight && state.water >= DIPLOMACY_COST.water && state.nutrients >= DIPLOMACY_COST.nutrients;
   const powerPreview = compareConflictPower ? compareConflictPower(neighbor) : null;
+  const canCrowdCanopy = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : Boolean(neighbor.shadingPlayer);
 
   return createDecision({
     kind: 'hostile-encroachment',
     title: 'Hostile Encroachment',
-    body: `<p><em>The ${relationName} ${neighbor.species} presses into your space, trying to steal your sunlight and entangle your roots.</em></p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`,
+    body: `<p><em>The ${relationName} ${neighbor.species} presses into your space, ${canCrowdCanopy ? 'crowding your light and ' : ''}entangling your root zone.</em></p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p>`,
     options: [
       {
         id: 'chemical-battle',
@@ -469,7 +525,7 @@ export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
         affordable: true,
       },
     ],
-    meta: { neighbor, relationName, defenseCost: DEFENSE_COST, diplomacyCost: DIPLOMACY_COST },
+    meta: { neighbor, relationName, canCrowdCanopy, defenseCost: DEFENSE_COST, diplomacyCost: DIPLOMACY_COST },
   });
 }
 
@@ -484,18 +540,28 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
 
   const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
   const DIPLOMACY_COST = { sunlight: 5, water: 2, nutrients: 3 };
+  const yieldGround = () => {
+    const canCrowdCanopy = canNeighborShadePlayer(state, neighbor, getNeighborStage);
+    neighbor.shadingPlayer = canCrowdCanopy;
+    neighbor.playerShading = false;
+    if (canCrowdCanopy) {
+      const lost = Math.min(state.sunlight, 2);
+      state.sunlight -= lost;
+      return { resource: 'sunlight', lost, description: 'crowds your leaves and takes the light above you' };
+    }
+    const lost = Math.min(state.nutrients, 2);
+    state.nutrients -= lost;
+    return { resource: 'nutrients', lost, description: 'cannot overtop you, but its roots seize part of the contested soil' };
+  };
 
   if (choiceId === 'chemical-battle') {
     const hasResources = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
     if (!hasResources) {
-      neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
-      neighbor.playerShading = false;
-      const lostSun = Math.min(state.sunlight, 2);
-      state.sunlight -= lostSun;
+      const loss = yieldGround();
       neighbor.relation = Math.max(-100, neighbor.relation - 4);
       return {
         title: 'Space Lost',
-        body: `<p>You lack the resources to defend yourself. The ${neighbor.species} steals your light.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`,
+        body: `<p>You lack the resources to defend yourself. The ${neighbor.species} ${loss.description}.</p><p>You lose <strong>${loss.lost} ${loss.resource}</strong>.</p>`,
         oldState: getRelationshipState(neighbor.relation + 4).name,
         newState: getRelationshipState(neighbor.relation).name,
       };
@@ -543,14 +609,11 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
   if (choiceId === 'diplomacy') {
     const hasResources = state.sunlight >= DIPLOMACY_COST.sunlight && state.water >= DIPLOMACY_COST.water && state.nutrients >= DIPLOMACY_COST.nutrients;
     if (!hasResources) {
-      neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
-      neighbor.playerShading = false;
-      const lostSun = Math.min(state.sunlight, 2);
-      state.sunlight -= lostSun;
+      const loss = yieldGround();
       neighbor.relation = Math.max(-100, neighbor.relation - 4);
       return {
         title: 'Space Lost',
-        body: `<p>You lack the resources for diplomacy. The ${neighbor.species} steals your light.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`,
+        body: `<p>You lack the resources for diplomacy. The ${neighbor.species} ${loss.description}.</p><p>You lose <strong>${loss.lost} ${loss.resource}</strong>.</p>`,
         oldState: getRelationshipState(neighbor.relation + 4).name,
         newState: getRelationshipState(neighbor.relation).name,
       };
@@ -587,15 +650,12 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     };
   }
 
-  neighbor.shadingPlayer = getNeighborStage ? canNeighborShadePlayer(state, neighbor, getNeighborStage) : true;
-  neighbor.playerShading = false;
-  const lostSun = Math.min(state.sunlight, 2);
-  state.sunlight -= lostSun;
+  const loss = yieldGround();
   const oldState = getRelationshipState(neighbor.relation).name;
   neighbor.relation = Math.max(-100, neighbor.relation - 4);
   return {
     title: 'Space Lost',
-    body: `<p>You conserve your strength and yield a little ground. The ${neighbor.species} takes advantage, crowding your leaves.</p><p>You lose <strong>${lostSun} sunlight</strong>.</p>`,
+    body: `<p>You conserve your strength and yield a little ground. The ${neighbor.species} ${loss.description}.</p><p>You lose <strong>${loss.lost} ${loss.resource}</strong>.</p>`,
     oldState,
     newState: getRelationshipState(neighbor.relation).name,
   };
@@ -608,11 +668,21 @@ export function describeDecisionPrompt(decision) {
     const relationName = decision.meta?.relationName;
     if (!neighbor || !relationName) return null;
     return {
-      text: `The ${relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`,
+      text: decision.meta?.canCrowdCanopy
+        ? `The ${relationName} ${neighbor.species} crowds your light and tangles the soil around your roots.`
+        : `The ${relationName} ${neighbor.species} cannot overtop you, but its roots press aggressively into your soil.`,
       effect: 'warning',
     };
   }
   if (decision.kind === 'chemical-defense') {
+    const permanentDefense = decision.meta?.permanentBrowserDefense;
+    if (permanentDefense?.total > 0) {
+      const defenses = [permanentDefense.thorns > 0 ? 'thorns' : null, permanentDefense.toxins > 0 ? 'toxic leaves' : null].filter(Boolean).join(' and ');
+      return {
+        text: `${decision.meta?.threat?.warning || 'Browsers approach your foliage.'} Your established ${defenses} stand ready.`,
+        effect: 'good',
+      };
+    }
     return {
       text: `${decision.meta?.threat?.warning || 'A chemical threat rises around you.'} The danger is still gathering.`,
       effect: 'warning',
@@ -811,9 +881,8 @@ export function rollMinorEvents(state, deps) {
   const adjacentContested = contestedNeighbors.filter(neighbor =>
     (neighbor.slot === 1 || neighbor.slot === 3)
     && neighbor !== escalation?.neighbor
-    && canNeighborShadePlayer(state, neighbor, getNeighborStage)
   );
-  if (adjacentContested.length > 0 && Math.random() < 0.35) queueHostileTreeThreat(randomChoice(adjacentContested), events);
+  if (adjacentContested.length > 0 && random() < 0.25) queueHostileTreeThreat(adjacentContested[Math.floor(random() * adjacentContested.length)], events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
   if (Math.random() < 0.12) {
     const currentStage = computeCurrentLifeStage().name;

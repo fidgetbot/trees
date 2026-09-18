@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=seasonal-canopy-v1';
+} from './core/events.js?rev=offspring-rivalry-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=seasonal-canopy-v1';
+} from './core/diplomacy.js?rev=offspring-rivalry-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -58,18 +58,18 @@ import {
   nurtureOffspring,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=seasonal-canopy-v1';
-import { createEngine } from './core/engine.js?rev=directional-shade-v1';
+} from './core/humans.js?rev=offspring-rivalry-v1';
+import { createEngine } from './core/engine.js?rev=offspring-rivalry-v1';
 import { createStartingNeighbors } from './core/neighbors.js?rev=height-competition-v1';
-import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=directional-shade-v1';
+import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=offspring-rivalry-v1';
 import { renderActionPanels } from './ui/actions.js?rev=seasonal-canopy-v1';
 import { renderEventPhaseBody } from './ui/events.js';
 import { showStandardModal } from './ui/modal.js';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=directional-shade-v1';
-import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=protected-grove-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=offspring-rivalry-v1';
+import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=offspring-rivalry-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=seasonal-canopy-v1';
+import { renderForestScene } from './ui/canvas.js?rev=offspring-rivalry-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=height-balance-v2';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=seasonal-canopy-v1';
 
@@ -802,7 +802,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
 
   if (decision.kind === 'aggression:shade') {
     const released = outcome.releasedShadeTarget ? `<p>Your crown withdraws from the ${outcome.releasedShadeTarget.species}; only one neighboring tree can remain beneath your shade.</p>` : '';
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight every turn</strong> and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>`, onDone);
+    const offspringWarning = outcome.shadedOffspringCount ? `<p class="threat-status threat-growing"><strong>${outcome.shadedOffspringCount} of your offspring ${outcome.shadedOffspringCount === 1 ? 'is' : 'are'} also on this side.</strong> ${outcome.shadedOffspringCount === 1 ? 'Its' : 'Their'} growth will slow under your shade until you lean in the other direction.</p>` : '';
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight every turn</strong> and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>${offspringWarning}`, onDone);
     return;
   }
 
@@ -841,7 +842,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
 
     if (option.requiresConfirmation && option.confirmation) {
       showChoiceModal(option.confirmation.title, option.confirmation.body, [
-        { label: 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
+        { label: option.meta?.shadedOffspringCount ? 'Yes, cast the shade' : 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
         { label: 'No, keep the peace', className: 'btn', onChoose: cancel },
       ]);
       return;
@@ -1133,6 +1134,7 @@ function queueSharedDecisionInteraction(decision, done) {
     currentDecision = buildHostileEncroachmentDecision(state, neighbor, {
       getRelationshipState,
       compareConflictPower,
+      getNeighborStage,
     });
   }
   showChoiceModal(
@@ -1169,6 +1171,7 @@ function queueHostileTreeThreat(neighbor, events) {
   const decision = buildHostileEncroachmentDecision(state, neighbor, {
     getRelationshipState,
     compareConflictPower,
+    getNeighborStage,
   });
 
   const prompt = describeDecisionPrompt(decision);

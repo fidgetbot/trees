@@ -99,6 +99,13 @@ test('shaded trees darken their wood as well as their foliage', () => {
   assert.equal(shaded.bark, '#3f3023');
 });
 
+test('offspring on the shaded side use the same darkened tree palette', () => {
+  const shadeTarget = { slot: 1, dead: false, playerShading: true };
+  const s = state({ neighbors: [shadeTarget] });
+  assert.equal(isTreeShaded(s, { offspring: true, offspringIndex: 0, groveSide: 'left' }), true);
+  assert.equal(isTreeShaded(s, { offspring: true, offspringIndex: 1, groveSide: 'right' }), false);
+});
+
 test('a rooted seed shows a radicle before its first leaf', () => {
   assert.equal(shouldDrawSeedRadicle('Seed', 1, 0), true);
   assert.equal(shouldDrawSeedRadicle('Sprout', 1, 0), true);

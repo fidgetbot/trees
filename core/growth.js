@@ -13,6 +13,24 @@ export function getPlayerShadeTarget(state) {
   )) || null;
 }
 
+export function offspringGroveSide(child, index = 0) {
+  return child?.groveSide || (index % 2 === 0 ? 'left' : 'right');
+}
+
+export function offspringSharesShadeDirection(child, index, target) {
+  if (!child || child.dead || !target) return false;
+  return offspringGroveSide(child, index) === (target.slot === 1 ? 'left' : 'right');
+}
+
+export function getShadedOffspring(state, target = getPlayerShadeTarget(state)) {
+  return (state.offspringRecords || []).filter((child, index) => offspringSharesShadeDirection(child, index, target));
+}
+
+export function offspringGrowthFromLight(baseGrowth, child, index, activeTarget) {
+  if (!offspringSharesShadeDirection(child, index, activeTarget)) return baseGrowth;
+  return Math.max(1, Math.round(baseGrowth * SHADED_NEIGHBOR_GROWTH_MULTIPLIER));
+}
+
 export function normalizePlayerShadeTarget(state) {
   const target = getPlayerShadeTarget(state);
   (state.neighbors || []).forEach(neighbor => {

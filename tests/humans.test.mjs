@@ -6,6 +6,7 @@ import {
   advanceHumanSystem,
   buildHumanEncounterDecision,
   createOffspringRecords,
+  growOffspringRecords,
   getProtectedCompanions,
   nurtureOffspring,
   resolveHumanDecision,
@@ -97,6 +98,20 @@ test('nurturing supports a specific persistent child', () => {
   assert.equal(child.nurtureCount, 1);
   assert.equal(child.stageScore, 400);
   assert.equal(s.offspringRecords[1].nurtureCount, 0);
+});
+
+test('offspring beneath the parent shade grow more slowly until the lean changes sides', () => {
+  const leftNeighbor = { slot: 1, playerShading: true, dead: false };
+  const s = state({ neighbors: [leftNeighbor] });
+  createOffspringRecords(s, 2);
+  growOffspringRecords(s, () => 0);
+  assert.equal(s.offspringRecords[0].groveSide, 'left');
+  assert.equal(s.offspringRecords[1].groveSide, 'right');
+  assert.equal(s.offspringRecords[0].stageScore, 121);
+  assert.equal(s.offspringRecords[1].stageScore, 135);
+  leftNeighbor.playerShading = false;
+  growOffspringRecords(s, () => 0);
+  assert.equal(s.offspringRecords[0].stageScore, 156);
 });
 
 test('two genuinely supported mature allies qualify an Ancient grove', () => {

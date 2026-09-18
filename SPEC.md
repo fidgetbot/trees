@@ -129,7 +129,11 @@ Action categories currently include:
 - diplomacy and rivalry
 - advanced late-game sinks
 
-Late-game defensive actions include permanent investments in **Thorns** and **Toxic Leaves**. During an active human encounter the player may also sacrifice a branch, grow emergency thorns as a lasting defense, release temporary irritating leaf oils, or draw realistic physiological support through an allied fungal network. Network support represents shared water/minerals and primed resin chemistry, never fantastical tree movement.
+Late-game defensive actions include permanent investments in **Thorns** and **Toxic Leaves**. Browsing-animal events read these defenses directly: either can turn Hungry Browsers away without another resource payment, and together they can fully prevent an ordinary herbivore surge while the event explains both protections. During an active human encounter the player may also sacrifice a branch, grow emergency thorns as a lasting defense, release temporary irritating leaf oils, or draw realistic physiological support through an allied fungal network. Network support represents shared water/minerals and primed resin chemistry, never fantastical tree movement.
+
+Directional shade also affects the player's own nearby offspring on that side. The target chooser warns before commitment, newly sprouted children caught beneath an existing lean are called out in the Spring result, their map art darkens, and their seasonal growth slows until the player shades the other direction or the arrangement ends.
+
+Adjacent rival and hostile trees exert persistent underground competition even when they are too short to shade the player. Rivals reduce nutrient gathering; hostile trees also reduce water gathering. These losses appear as red gathering factors, and shorter contested neighbors remain eligible to initiate root-zone encounters rather than becoming harmless simply because the player is taller.
 
 Current browser HUD behavior:
 - species summaries focus on the description and functional gameplay bonus, omitting the flavor-only pollinator list and the redundant starting-edge line

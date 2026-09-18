@@ -1,4 +1,4 @@
-import { getPlayerShadeTarget } from '../core/growth.js?rev=directional-shade-v1';
+import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Small Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
@@ -25,7 +25,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   });
   const childTrees=(state.offspringRecords||[]).filter(child=>!child.dead).slice(0,CHILD_WORLD_POSITIONS.length).map((child,index)=>{
     const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Small Tree','Mature Tree','Ancient'].indexOf(stageName);
-    return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,relation:100,relationName:'Ally',childId:child.id}};
+    return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
   });
   const trees=[...residentTrees,...childTrees];
   canvas.dataset.groundY=String(groundY);
@@ -200,7 +200,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
 
 export function shouldDrawPlayerBlossoms(state,season){return season==='Spring'&&(state.flowers||0)>0}
 export function shouldDrawSeedRadicle(stage,roots,leaves){return(stage==='Seed'||stage==='Sprout')&&roots>0&&leaves===0}
-export function isTreeShaded(state,neighbor){return Boolean(neighbor&&neighbor.slot===getPlayerShadeTarget(state)?.slot)}
+export function isTreeShaded(state,neighbor){const target=getPlayerShadeTarget(state);return Boolean(neighbor&&(neighbor.slot===target?.slot||(neighbor.offspring&&offspringSharesShadeDirection(neighbor,neighbor.offspringIndex,target))))}
 
 function drawPlayerDefenses(ctx,tree,state,seed){
   const r=rng(seed+7117),thornCount=Math.min(28,(state.thornDefense||0)*8),toxicCount=Math.min(34,(state.toxicLeaves||0)*9);

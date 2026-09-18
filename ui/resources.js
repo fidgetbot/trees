@@ -53,11 +53,12 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${state.rootZones ? factor(`Root support +${Math.floor(state.rootZones / 2)}`, 'positive') : ''}
           ${gains.taprootBonus ? factor(`Taproot +${number(gains.taprootBonus)}`, 'positive') : ''}
           ${gains.allyWater ? factor(`Allies +${number(gains.allyWater)}`, 'positive') : ''}
+          ${gains.hostileWaterPenalty ? factor(`Hostile roots −${number(gains.hostileWaterPenalty)}`, 'negative') : ''}
           ${seasonalFactor('water', season.factorWater)}
           ${droughtFactor < 1 ? factor(`Drought ×${number(droughtFactor)}`, 'negative') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
         </span>
-        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · larger allies share more` : ''])}
+        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · larger allies share more` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
       </div>
       <div class="res-line">
         <span class="res-icon">🌱</span>
@@ -67,12 +68,13 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${factor(`Roots +${number((state.rootZones || 0) * 0.7)}`, 'positive')}
           ${gains.taprootNutrients ? factor(`Taproot +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
+          ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
           ${gains.maintenanceCost ? factor(`Upkeep −${number(gains.maintenanceCost)}`, 'negative') : ''}
           ${gains.dormancySavings ? factor(`Dormancy saved ${number(gains.dormancySavings)}`, 'positive') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
         </span>
-        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : ''])}
+        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
       </div>
       <div class="actions-earned">
         <strong>${state.actions} actions</strong> available this turn

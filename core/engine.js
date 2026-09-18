@@ -1,5 +1,5 @@
-import { createOffspringRecords } from './humans.js';
-import { allyResourceWeight, normalizePlayerShadeTarget, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=directional-shade-v1';
+import { createOffspringRecords } from './humans.js?rev=offspring-shade-v1';
+import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=offspring-shade-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -50,11 +50,19 @@ export function createEngine(deps) {
   function groveRelations(state) {
     const livingNeighbors = (state.neighbors || []).filter(neighbor => !neighbor.dead);
     const alliedNeighbors = livingNeighbors.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Ally');
+    const adjacentContested = livingNeighbors.filter(neighbor => {
+      const relationship = getRelationshipState(neighbor.relation).name;
+      return (neighbor.slot === 1 || neighbor.slot === 3) && (relationship === 'Rival' || relationship === 'Hostile');
+    });
+    const rivalNeighbors = adjacentContested.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Rival').length;
+    const hostileNeighbors = adjacentContested.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Hostile').length;
     return {
       shadedNeighbors: normalizePlayerShadeTarget(state) ? 1 : 0,
       crowdingNeighbors: livingNeighbors.filter(neighbor => neighbor.shadingPlayer).length,
       connectedAllies: alliedNeighbors.length,
       connectedAllyStrength: alliedNeighbors.reduce((sum, neighbor) => sum + allyResourceWeight(neighbor, getNeighborStage), 0),
+      rivalNeighbors,
+      hostileNeighbors,
     };
   }
 
@@ -75,21 +83,25 @@ export function createEngine(deps) {
     const sunlightGain = Math.max(1, crowdedSunlightGain + canopyAdvantage);
     const neutralSunlightGain = Math.max(1, Math.floor(neutralSunlightBase * exposureFactor(state, 0) * season.factorSun * state.eventModifiers.disease));
     const allyWater = relations.connectedAllyStrength * 0.35;
+    const hostileWaterPenalty = Math.min(2, relations.hostileNeighbors);
     const waterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus + allyWater);
     const neutralWaterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus);
-    const waterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
+    const unpressuredWaterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
+    const waterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty);
     const neutralWaterGain = Math.max(1, Math.floor(neutralWaterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
 
     const taprootNutrients = state.taprootDepth * 0.35;
     const rootNutrients = (state.rootZones * 0.7) + taprootNutrients;
     const allyNutrients = Math.min(5, relations.connectedAllyStrength);
+    const rootCompetitionPenalty = Math.min(3, relations.rivalNeighbors + relations.hostileNeighbors);
     const soilBonus = state.eventModifiers.soilBonus || 0;
     const baseMaintenanceCost = Math.floor((state.trunk + state.leafClusters + state.branches + state.flowers + state.developing + state.seeds) / 6);
     const maintenanceCost = season.name === 'Winter' ? Math.floor(baseMaintenanceCost / 2) : baseMaintenanceCost;
     const dormancySavings = baseMaintenanceCost - maintenanceCost;
     const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
-    const nutrientGain = Math.max(1, grossNutrients - maintenanceCost);
+    const unpressuredNutrientGain = Math.max(1, grossNutrients - maintenanceCost);
+    const nutrientGain = Math.max(0, unpressuredNutrientGain - rootCompetitionPenalty);
     const neutralNutrientGain = Math.max(1, neutralGrossNutrients - maintenanceCost);
 
     state.sunlight += sunlightGain;
@@ -110,6 +122,8 @@ export function createEngine(deps) {
       taprootNutrients,
       allyNutrients,
       allyWater,
+      hostileWaterPenalty,
+      rootCompetitionPenalty,
       canopyAdvantage,
       soilBonus,
       maintenanceCost,
@@ -183,7 +197,9 @@ export function createEngine(deps) {
     const fate = resolveSeedFate(state.seeds);
     state.viableSeeds += fate.sprouted;
     state.offspringPool += fate.sprouted;
-    createOffspringRecords(state, fate.sprouted);
+    const createdOffspring = createOffspringRecords(state, fate.sprouted);
+    const shadedIds = new Set(getShadedOffspring(state).map(child => child.id));
+    fate.shadedSprouts = createdOffspring.filter(child => shadedIds.has(child.id)).length;
     state.seeds = 0;
     showModal('Spring Seed Fate', renderSpringSeedFateBody({ prevSeeds, fate }), () => onContinue?.(fate, prevSeeds));
     return true;
