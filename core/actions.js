@@ -52,6 +52,7 @@ export function isActionUnlockedForState(actionKey, state, lifeStages, progressi
   const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
   const currentStage = state.lifeStage;
   if (!unlockStage || !currentStage || currentStage.rank < unlockStage.rank) return false;
+  if ((actionKey === 'requestHelp' || actionKey === 'aidAlly') && !state.hasMadeFirstAlly) return false;
   const progressive = progressiveUnlocks[actionKey];
   if (!progressive || currentStage.name !== progressive.stage) return true;
   return (state.turnsInStage || 0) >= progressive.turnsInStage;
@@ -61,6 +62,9 @@ export function getActionUnlockReason(actionKey, state, lifeStages, progressiveU
   const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
   if (!unlockStage || !state.lifeStage || state.lifeStage.rank < unlockStage.rank) {
     return `Awakens at the ${unlockStage?.name || 'next stage'}`;
+  }
+  if ((actionKey === 'requestHelp' || actionKey === 'aidAlly') && !state.hasMadeFirstAlly) {
+    return 'Awakens after you form your first alliance';
   }
   const progressive = progressiveUnlocks[actionKey];
   if (progressive && state.lifeStage.name === progressive.stage && (state.turnsInStage || 0) < progressive.turnsInStage) {
@@ -169,8 +173,8 @@ export function createActions(deps) {
     { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Choose a nutrient-heavy growth push for trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: (s, context) => woodSurgeAction(s, context) },
 
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: (s, context) => attemptConnection(s, context) },
-    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Spend water and nutrients to heal an ally, speed its growth, strengthen your bond, and build protection-goal support.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => offerAidToAlly(s, context) },
-    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Call on allied trees to send resources and resilience.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally') && s.health < s.maxHealth, effect: (s, context) => requestHelpFromAllies(s, context) },
+    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Heal and nourish an injured ally, strengthen your bond, and build protection-goal support.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && n.health < n.maxHealth), effect: (s, context) => offerAidToAlly(s, context) },
+    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Spend 1 nutrient to ask an ally for health, water, or nutrients. Repeated requests strain the bond.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => requestHelpFromAllies(s, context) },
     { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over one shorter adjacent tree for +2 sunlight each turn, slowing its growth while you remain taller. Choosing another target releases the first.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Assert territorial pressure on a neighboring tree, stealing water and nutrients. Established rivalries pay off better than fresh betrayals.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },
 

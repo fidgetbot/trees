@@ -13,6 +13,7 @@ export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelati
 
 export function updateAlliesCount(state, getRelationshipState) {
   state.alliedNeighbors = state.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally').length;
+  if (state.alliedNeighbors > 0) state.hasMadeFirstAlly = true;
   if (Array.isArray(state.offspringRecords)) state.offspringTrees = state.offspringRecords.filter(child => !child.dead).length;
   state.allies = state.alliedNeighbors + state.offspringTrees;
   return state.allies;
@@ -59,6 +60,16 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
       reason: 'not-an-ally',
     };
   }
+  if (neighbor.health >= neighbor.maxHealth) {
+    return {
+      ok: false,
+      oldState,
+      newState: oldState,
+      crisis,
+      paidCost,
+      reason: 'full-health',
+    };
+  }
 
   neighbor.helpGivenToThem += 1;
   neighbor.growthAidReceived = (neighbor.growthAidReceived || 0) + 1;
@@ -86,48 +97,64 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
     getAdjustedRelationshipDelta = (_state, delta) => delta,
     getNeighborStage = () => ({ rank: 1 }),
     random = Math.random,
+    requestKind = 'health',
   } = deps;
 
   neighbor.timesAskedThemForHelp += 1;
   const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
   const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
-  const rawHeal = 2 + Math.floor(random() * 4) + Math.max(0, stageBonus > 2 ? 1 : 0);
-  const heal = Math.max(2, Math.min(5, rawHeal));
-  const actualHeal = Math.min(heal, state.maxHealth - state.health);
-  let relationShift = 6;
-  let tone = `The ${neighbor.species} sends strength through the fungal dark.`;
-  if (favorBalance < -2) {
-    relationShift = -4;
-    tone = `The ${neighbor.species} answers, but coolly. You have asked much of it lately, and given little in return.`;
+  const healthRatio = neighbor.maxHealth > 0 ? neighbor.health / neighbor.maxHealth : 0;
+  const crisisPenalty = Math.min(2, (neighbor.activeCrises || []).length);
+  const capacity = Math.max(1, Math.min(6, 1 + stageBonus + Math.floor(healthRatio * 3) - crisisPenalty));
+  let amount = Math.max(1, Math.min(capacity, 1 + Math.floor(random() * Math.max(1, capacity))));
+  let relationShift = -3;
+  let tone = `The ${neighbor.species} answers through the fungal dark.`;
+  if (neighbor.lastAidMemory === 'you-refused' || neighbor.helpRefusedToThem > neighbor.helpGivenToThem) {
+    amount = Math.max(1, amount - 2);
+    relationShift = -7;
+    tone = `The ${neighbor.species} remembers when you conserved your own strength instead of answering its need. It still responds, but sends less.`;
+  } else if (favorBalance < -2) {
+    amount = Math.max(1, amount - 1);
+    relationShift = -6;
+    tone = `The ${neighbor.species} answers coolly. You have asked much of it lately, and the imbalance has begun to strain the bond.`;
   } else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) {
-    relationShift = 10;
-    tone = `The ${neighbor.species} remembers that you answered its need before. It sends help with warmth.`;
+    relationShift = -1;
+    tone = `The ${neighbor.species} remembers that you answered its need before and responds generously.`;
   }
 
-  const clearedThreat = state.pendingChemicalThreat
+  let actualAmount = amount;
+  if (requestKind === 'health') {
+    actualAmount = Math.min(amount, state.maxHealth - state.health);
+    state.health += actualAmount;
+  } else {
+    state[requestKind] += amount;
+  }
+
+  const clearedThreat = requestKind === 'health' && state.pendingChemicalThreat
     ? { title: state.pendingChemicalThreat.title, warning: state.pendingChemicalThreat.warning }
     : null;
   if (clearedThreat) state.pendingChemicalThreat = null;
-  state.health += actualHeal;
   neighbor.helpReceivedFromThem += 1;
   const oldState = getRelationshipState(neighbor.relation).name;
   const adjusted = getAdjustedRelationshipDelta(state, relationShift);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjusted));
   const newState = getRelationshipState(neighbor.relation).name;
-  neighbor.lastAidMemory = actualHeal > 0 || clearedThreat ? 'helped-you' : 'could-not-help';
+  neighbor.lastAidMemory = actualAmount > 0 || clearedThreat ? 'helped-you' : 'could-not-help';
 
   return {
     oldState,
     newState,
     tone,
-    actualHeal,
+    requestKind,
+    actualAmount,
+    actualHeal: requestKind === 'health' ? actualAmount : 0,
     clearedThreat,
     threatStatus: clearedThreat ? 'solved' : null,
   };
 }
 
 export function buildConnectionDecision(state, deps = {}) {
-  const { getRelationshipState } = deps;
+  const { getRelationshipState, getNeighborStage = () => ({ name: 'Unknown', rank: 0 }) } = deps;
 
   return createDecision({
     kind: 'connection',
@@ -138,9 +165,19 @@ export function buildConnectionDecision(state, deps = {}) {
       .filter(({ neighbor }) => !neighbor.dead)
       .map(({ neighbor, targetIndex }) => {
         const relationName = getRelationshipState(neighbor.relation).name;
+        const stage = getNeighborStage(neighbor.stageScore);
+        const advantages = stage.rank >= 4
+          ? 'A larger tree can share more water and nutrients if the bond becomes an alliance.'
+          : 'A younger tree offers less immediate support, but the relationship can grow alongside it.';
+        const risk = relationName === 'Rival' || relationName === 'Hostile'
+          ? 'Its present hostility makes contact risky.'
+          : relationName === 'Ally'
+            ? 'Renewing contact strengthens an existing bond.'
+            : 'Reaching out may build trust, but rejection can cost health or resources.';
         return {
           id: `neighbor-${targetIndex}`,
-          label: `${neighbor.species} — ${relationName}`,
+          label: `${neighbor.species} — ${stage.name} · ${relationName}`,
+          description: `${advantages} ${risk}`,
           targetIndex,
           meta: {
             species: neighbor.species,
@@ -165,7 +202,7 @@ export function buildAidDecision(state, deps = {}) {
     body: 'Choose an allied tree to heal and help grow. Repeated support strengthens the bond and can qualify the tree for the protected-grove goal.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
-      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
+      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally' && neighbor.health < neighbor.maxHealth)
       .map(({ neighbor, targetIndex }) => {
         const crisis = (neighbor.activeCrises || [])[0] || null;
         return {
@@ -188,12 +225,13 @@ export function buildHelpRequestDecision(state, deps = {}) {
   const {
     getRelationshipState,
     getNeighborStage = () => ({ rank: 1 }),
+    requestKind = 'health',
   } = deps;
 
   return createDecision({
     kind: 'ally-help-request',
     title: 'Ask an ally for help',
-    body: 'Choose which allied tree you are asking to support you.',
+    body: `Choose which allied tree you will ask for ${requestKind}. Its own health, life stage, current needs, and memory of your support affect how much it gives.`,
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
@@ -213,6 +251,7 @@ export function buildHelpRequestDecision(state, deps = {}) {
             favorBalance,
             stageBonus,
             toneHint,
+            requestKind,
           },
         };
       }),
@@ -483,6 +522,7 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
         getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
         recordDamage: deps.recordDamage,
         random: deps.random,
+        requestKind: option.meta?.requestKind || 'health',
       }),
     };
   }

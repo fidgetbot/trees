@@ -22,7 +22,7 @@ export function renderResourcePhaseBody({ state, gains }) {
   const seasonDescriptions = {
     Spring: 'Spring rains awaken the soil. Buds swell with potential.',
     Summer: 'The sun climbs high. Your leaves drink in the long light.',
-    Autumn: 'The air cools. Your tree prepares for the coming dormancy.',
+    Autumn: 'The air cools. You prepare for the coming dormancy.',
     Winter: `The world sleeps. New leaves wait for spring, while dormancy saves ${gains.dormancySavings || 0} nutrient${gains.dormancySavings === 1 ? '' : 's'} of upkeep.`,
   };
 
@@ -39,7 +39,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${gains.heightSunlightBonus ? factor(`Height +${number(gains.heightSunlightBonus)}`, 'positive') : ''}
           ${gains.canopyAdvantage ? factor(`Shading +${number(gains.canopyAdvantage)}`, 'positive') : ''}
           ${seasonalFactor('light', season.factorSun)}
-          ${exposure < 100 ? factor(`Crowding leaves ${exposure}% exposed`, 'negative') : factor('Full light exposure')}
+          ${exposure < 100 ? factor(`Crowding: leaves ${exposure}% exposed · ${Math.max(0,4-(state.trunk||0))*8}% from thin trunk${relations.crowdingNeighbors ? ` · ${relations.crowdingNeighbors*12}% from neighboring shade` : ''}`, 'negative') : factor('Full light exposure')}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
         </span>
         ${comparison('sunlight', deltas.sunlight, baseline.sunlight, [relations.shadedNeighbors ? `you shade ${relations.shadedNeighbors} neighbor${relations.shadedNeighbors === 1 ? '' : 's'}` : '', relations.crowdingNeighbors ? `${relations.crowdingNeighbors} neighbor${relations.crowdingNeighbors === 1 ? '' : 's'} crowd you` : ''])}

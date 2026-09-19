@@ -64,7 +64,7 @@ A typical run is about:
 - building enough structure to keep growing
 - reaching reproduction
 - enduring major threats
-- either dying, continuing through succession, or stabilizing into an Ancient lineage
+- either dying or stabilizing into an Ancient lineage
 
 ## Core Systems
 
@@ -76,8 +76,8 @@ Trees progress automatically when their stage requirements are met. Growth is no
 |-------|--------------|---------|-----------------|
 | **Seed** | — | Basic growth only | All threats fatal |
 | **Sprout** | After first action (grow roots) | First leaves, basic photosynthesis | Drought, herbivory |
-| **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections, then height growth, directional shading, and trunk bracing | Aphids, browsing animals |
-| **Sapling** | 4 seasons + survive 1 major event | Branch growth immediately; taproot, canopy, ally aid, and rhizosphere emerge gradually across the first five Sapling seasons | Wind, competition |
+| **Seedling** | 1 season + 2 root zones + 2 leaf growths | Root extension, fungal connections, height growth, directional shading, then trunk bracing; ally actions appear only after the first alliance | Aphids, browsing animals |
+| **Sapling** | 4 seasons + survive 1 major event | Branch growth immediately; taproot, canopy, and rhizosphere emerge gradually across the first five Sapling seasons | Wind, competition |
 | **Young Tree** | 2 years + 2 branches | Flowers immediately; thorns and toxic foliage emerge over the next two seasons | Lightning, disease, first human surveys |
 | **Mature Tree** | 3 years + first fruit | Mass flowering immediately; offspring nurture, grove shelter, and root dominion emerge across the first three Mature Tree seasons | Fire, beetle swarms, ally betrayal, logging pressure |
 | **Ancient** | 3 years + survive 2 major events + 1 allied or child tree | Long-term resilience and protected-grove endgame | Repeated human attention |
@@ -105,7 +105,7 @@ Generated from roots, taproots, fungal/allied support, and soil quality, reduced
 
 The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
 
-Season directly modifies gathering: Spring produces 80% normal sunlight and 100% water, Summer 120% sunlight and 60% water, Autumn 60% sunlight and 80% water, and Winter 20% sunlight and 40% water. Nutrients have no direct seasonal multiplier. A compact expandable guide beneath Resources exposes these values and highlights the current season.
+Season directly modifies gathering: Spring produces 100% normal sunlight and 100% water, Summer 120% sunlight and 60% water, Autumn 60% sunlight and 80% water, and Winter 20% sunlight and 40% water. Nutrients have no direct seasonal multiplier. A compact expandable guide beneath Resources exposes these values and highlights the current season. A seed that ends its first turn before extending a root gathers nothing that night and receives a botanical prompt to begin growing. Repeated gathering of one or fewer units of a resource produces a gentle structural-growth suggestion after three turns and a stronger warning after six.
 
 ### Action Economy
 
@@ -141,20 +141,20 @@ Current browser HUD behavior:
 - immediately below the fixed map, Next Growth appears directly above Actions; usable actions come first, followed by subdued compact summaries of other actions unlocked at the current stage with their full scaled costs and a specific explanation of the current shortage or prerequisite; future-stage actions remain separately collapsed
 - fractional species growth rates are rounded to one decimal place in the Next Growth progress display, without changing the exact underlying stage timer
 - each life-stage transition announces every newly unlocked real action with a complete, natural sentence explaining what the action lets the player do, and records the same unlock in the log; season-locked actions wait until the first season in which they can actually be used, so Mass Flowering is first introduced in Spring
-- capabilities are intentionally staggered instead of arriving in large stage-transition bundles: Seedling introduces Grow Taller and Shade Neighbor together, then trunk bracing one season later; Sapling discoveries continue for five seasons, Young Tree discoveries for two seasons, and Mature Tree discoveries for three seasons; each delayed action uses the normal unlock announcement when it becomes available
+- capabilities are intentionally staggered instead of arriving in large stage-transition bundles: Seedling introduces Grow Taller and Shade Neighbor together, then trunk bracing one season later; Request Help and Offer Aid appear only when the player forms a first alliance. Sapling discoveries continue for five seasons, Young Tree discoveries for two seasons, and Mature Tree discoveries for three seasons; each delayed action uses the normal unlock announcement when it becomes available
 - the map camera begins at a macro scale with the painterly, species-tinted seed and soil horizon centered both horizontally and vertically; sparse clusters of tiny, irregular pebbles provide readable soil texture while every individual mark remains much smaller and less prominent than the seed; it pulls back as the player grows, and later stages keep the upper edge just above the player's current height so neighboring trees reveal progressively more structure as the player grows
 - structural growth is persistent and visually inspectable on the Canvas: root zones add lateral roots, taproot growth deepens the central root, leaves add foliage, branches add stable shoots, trunk growth thickens the wood, and canopy growth widens the crown; producing flowers adds conspicuous blossoms only while the player actually has open flowers, and the map redraws immediately after each completed growth action
 - after the first root extends but before the first leaf grows, the young player remains visibly a seed with one small radicle emerging below it; the stem and leaves do not appear early
 - Grow Taller and Shade Neighbor unlock immediately upon reaching Seedling. Grow Taller lengthens the trunk, provides one additional point of sunlight gathering, and raises the player's competitive canopy height; each unbraced level adds one storm damage, at most three levels may remain unbraced, and Fortify Bark unlocks one season later to brace one level while also improving trunk strength, health, water storage, and resistance to drought, storms, insects, fire, and woodpeckers
 - the fixed map no longer has a minimize control; clicking it opens a larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and a reset control; continuous pinch and Ctrl/⌘-scroll gestures use a GPU-transformed live preview and redraw the detailed grove only when the gesture settles, avoiding full 4096×1200 Canvas repaints on every Android pointer event; closing the explorer always returns to the centered stage-appropriate default map
-- the Actions heading contains the live action count in the compact form **Actions (3 remaining)** and updates through zero without a separate banner
-- the Finish Turn Early / Out of Resources control sits above the action-card list in the live command bar and remains sticky below the map on phone layouts, so late-game action lists cannot bury it
+- the Actions heading stays compact; action count and phase text are folded into the sticky **End Turn Early (N actions remaining)** / **Out of Resources — End Turn** control
+- the end-turn control sits above the action-card list in the live command bar and remains sticky below the map on phone layouts, so late-game action lists cannot bury it
 - a compact live resource-and-health strip sits directly beneath the Actions heading; action cards show only their required amounts with a small `cost` label, while shortages receive a stronger warning treatment, avoiding repeated `cost / yours` figures now that current totals remain visible beside the list
 - the stats groups follow the action list without a redundant top-level **Status** heading
 - the status panel can be minimized with its top-right corner control and restored with a compact chip; it starts expanded at the beginning of a run
 - health is repeated prominently in the live Actions strip as well as under Resources; allies remain under Resources instead of a separate Ecology section
-- ally-aid is only offered when there is at least one real allied neighbor available to target, and targeting is also validated again at resolution time so non-allies cannot slip through even if UI state gets out of sync
-- requesting help likewise requires a living allied neighbor; offspring count toward lineage and grove-protection goals but do not masquerade as connected allies in diplomacy or resource sharing
+- Offer Aid unlocks with the first alliance and is usable only while a living ally has less than full health; targeting is also validated again at resolution time so healthy trees and non-allies cannot slip through if UI state gets out of sync
+- Request Help also unlocks with the first alliance, always costs exactly one nutrient, and asks the player to choose health, water, or nutrients; the selected ally decides a variable amount according to its life stage, health, crises, request history, and remembered reciprocity. Repeated requests reduce relationship warmth, while previously withheld aid is explicitly remembered and reduces later help. Offspring count toward lineage and grove-protection goals but do not masquerade as connected allies in diplomacy or resource sharing
 - diplomacy choices retain each neighbor's persistent state index after filtering; action results, relationship text, map labels, and fungal root links must all resolve to that same neighbor and map slot
 - pollination event text now capitalizes the named visitor and uses singular/plural grammar correctly for “flower was/were pollinated”
 - the log now captures more of the turn-to-turn simulation state, including resource income, action outcomes, pollination/event text, offspring establishment, and narrative popups such as A Quiet Urge; aggregate resource/event screens are excluded to avoid duplicating their already-recorded details
@@ -165,7 +165,7 @@ Current browser HUD behavior:
 - canopy pressure is rechecked whenever either tree grows: an equal-height tree can no longer be shaded, a rival that overtops the player reverses the arrangement and begins crowding, and a player who catches up escapes incoming shade; the player receives a clear notice naming Grow Taller and diplomacy as responses
 - beginning at Seedling, each event phase has a small chance for an adjacent neutral or rival tree to turn hostile and attempt to lean into the player's canopy; it establishes persistent crowding only when it is strictly taller, while a shorter hostile tree merely warns of the attempt; successful diplomacy returns it to Neutral and clears canopy pressure
 - connected living neighbor allies contribute both water and nutrients each turn and strengthen a Mycorrhizal Bloom; their contribution scales with their life stage, so a large allied tree shares more than a seed or sapling; offspring do not receive or grant these ally-only bonuses; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
-- the gathering summary presents its arithmetic as compact color-coded factors: structural baselines in gray, bonuses such as canopy, height, taproot, allies, soil, and dormancy in green, and penalties such as poor seasons, crowding, drought, disease, and upkeep in red
+- the gathering summary presents its arithmetic as compact color-coded factors: structural baselines in gray, bonuses such as canopy, height, taproot, allies, soil, and dormancy in green, and penalties such as poor seasons, crowding, drought, disease, and upkeep in red. Leaf exposure explicitly reports the 8-point penalty for each trunk level below four and the 12-point penalty for each tree actively crowding the player
 - the initial grove places the player and the immediately adjacent left/right neighbors at Seed stage; only the two outer trees begin established, allowing the three central trees to grow together
 - pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
 - Winter adds visible snow to the Canvas and mixes snow, icicle melt, and rain into precipitation messages; heavy accumulation has a rare chance to break a branch on Sapling-or-larger trees
@@ -193,8 +193,8 @@ Current relationship states:
 
 Current diplomacy/rivalry systems include:
 - root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks
-- aid to allies
-- requesting help from allies
+- aid to injured allies after the first alliance
+- requesting health, water, or nutrients from allies after the first alliance
 - shading one immediately adjacent left/right tree starting alongside Grow Taller in the Seedling stage, including proactive aggression against neutral, friendly, or allied neighbors; canopy advantage/crowding persists in both rules and Canvas geometry
 - confirmation warnings before attacking friendly or allied neighbors, since aggression immediately turns them into rivals
 - proactive aggression is intentionally less rewarding on the first strike than pressing an existing rivalry, so hostile play is viable without making betrayal the dominant opener
@@ -202,8 +202,8 @@ Current diplomacy/rivalry systems include:
 - ally crises and ally neglect consequences
 - betrayal pressure in hostile or strained long-term relationships
 - aid contributes directly to the recipient's growth and records whether the player began supporting it before maturity; this support history determines whether a large ally can help satisfy the protected-grove victory
-- Offer Aid descriptions state this full strategic role: spending water/nutrients heals and grows the ally, strengthens the bond/favor history, and builds protection-goal support
-- neighbor life state is tracked separately from relationship state: zero health means death, but the relationship at death is retained for history; dead trees cannot act, threaten, compete, contribute resources, qualify for protection, or appear in action targets, and their death receives a dedicated message explaining the loss and its impact
+- Offer Aid descriptions state this full strategic role: spending water/nutrients heals and grows an injured ally, strengthens the bond/favor history, and builds protection-goal support
+- neighbor life state is tracked separately from relationship state: zero health means death, but the relationship at death is retained for history; dead trees cannot act, threaten, compete, contribute resources, qualify for protection, or appear in action targets. Their map shape becomes leafless dark gray, becomes a stump after four turns, and is replaced three turns later by a random-species Seedling in the same grove slot
 
 Neighbors are persistent actors, but they are still simplified relative to the player tree.
 
@@ -221,7 +221,7 @@ Established offspring are persistent lightweight tree records rather than only a
 
 Pear's **Dependable fruit** species bonus reduces each developing fruit's chance of being lost to pests or human harvest by 20%. This modifies fruit retention rather than pollination, keeping Pear distinct from Citrus's pollinator-attraction bonus.
 
-If the current tree dies but viable lineage remains, the game can continue through succession rather than ending immediately.
+Player death always ends the current run. The normal interface is replaced by a full-screen ending with lifetime, cause of death, final score, a short nature quotation, and a Try Again control.
 
 ### Threats, Events, and Survival
 
@@ -249,7 +249,7 @@ Current systems include:
 - Victory requires two additional Mature-or-Ancient trees that the player materially helped: allied neighbors need a real history of aid, while children need repeated nurture investment
 - Once the player and two supported companions qualify, conservation-minded humans inspect the grove and designate it as a protected ecosystem
 - Runs may continue after victory
-- Death may end the run or transition into succession if offspring remain
+- Death ends the run and opens the full-screen game-over summary
 
 ## Species Scope
 
@@ -289,7 +289,7 @@ The current codebase includes:
 - escalating fungal rumors, visible human encounters, permanent human deterrence, cutting scars, and distinct branch/thorn/oil/fungal-support encounter responses
 - ally crises and neglect consequences
 - persistent individual offspring with growth, health, and nurture history
-- succession on death when lineage remains
+- full-screen game-over summary with lifetime, cause, score, quotation, and retry
 - scoring, protected-ecosystem victory, and post-victory continuation
 - headless seeded simulation for automated playtests and balance analysis
 
@@ -297,7 +297,7 @@ The current codebase includes:
 
 The current build still simplifies several systems:
 - flowering is season-locked, but most other actions are still available year-round
-- succession still uses curated heir archetypes, although living offspring now persist individually for growth, nurture, map display, and victory qualification
+- living offspring persist individually for growth, nurture, map display, and victory qualification, but player death ends the run rather than transferring control
 - neighbors are persistent and meaningful, but not fully mirrored player-equivalents
 - some diplomacy/interaction-heavy flows still use simplified handling in headless simulation
 

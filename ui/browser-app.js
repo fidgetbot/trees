@@ -68,6 +68,10 @@ export function createInitialBrowserState({ initialLifeStage }) {
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
+    turnsElapsed: 0,
+    hasMadeFirstAlly: false,
+    resourceShortageStreaks: { sunlight: 0, water: 0, nutrients: 0 },
+    resourceNudgeLevels: { sunlight: 0, water: 0, nutrients: 0 },
   };
 }
 
@@ -213,6 +217,10 @@ export function startBrowserGame({
     healthWarningLevel: 0,
     lastDamageCause: 'decline',
     pendingInteractions: [],
+    turnsElapsed: 0,
+    hasMadeFirstAlly: false,
+    resourceShortageStreaks: { sunlight: 0, water: 0, nutrients: 0 },
+    resourceNudgeLevels: { sunlight: 0, water: 0, nutrients: 0 },
   });
 
   state.selectedSpecies = selectedSpecies;

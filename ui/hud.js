@@ -157,16 +157,19 @@ export function updateHudUI({
   }
 
   if (els.actionsRemaining) {
-    els.actionsRemaining.textContent = `(${state.actions} remaining)`;
-    els.actionsRemaining.classList.toggle('no-actions', state.actions <= 0);
+    els.actionsRemaining.textContent = '';
+    els.actionsRemaining.classList.add('hidden');
+  }
+  if (els.finishTurn) {
+    els.finishTurn.dataset.actionsRemaining = String(state.actions);
   }
 
   els.log.innerHTML = state.log.map(line => `<div class="log-entry">${line}</div>`).join('');
 
   const phasePill = document.getElementById('phase-indicator');
   if (phasePill) {
-    phasePill.textContent = state.actions > 0 ? 'Action Phase' : 'Event Phase';
-    phasePill.className = 'phase-pill ' + (state.actions > 0 ? 'phase-action' : 'phase-event');
+    phasePill.textContent = '';
+    phasePill.className = 'phase-pill hidden';
   }
 
   const speciesBadge = document.getElementById('species-badge');

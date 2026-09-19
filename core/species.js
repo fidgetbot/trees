@@ -60,6 +60,7 @@ export function getStageProgressIncrement(state) {
 }
 
 export function getSpeciesAdjustedCost(state, actionKey, baseCost, currentStage) {
+  if (actionKey === 'requestHelp') return { sunlight: 0, water: 0, nutrients: 1 };
   const multiplier = Math.max(1, currentStage.rank);
   const cost = {
     sunlight: Math.floor((baseCost.sunlight || 0) * multiplier),

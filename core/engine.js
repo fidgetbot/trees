@@ -12,6 +12,40 @@ export function actionsForGathering(totalGathered) {
   return BASE_ACTIONS_PER_TURN + bonusActions;
 }
 
+export function shouldSkipGathering(state) {
+  return (state.rootZones || 0) === 0;
+}
+
+export function updateResourceShortageNudges(state, gains) {
+  state.resourceShortageStreaks ||= { sunlight: 0, water: 0, nutrients: 0 };
+  state.resourceNudgeLevels ||= { sunlight: 0, water: 0, nutrients: 0 };
+  const values = { sunlight: gains.sunlightGain, water: gains.waterGain, nutrients: gains.nutrientGain };
+  const guidance = {
+    sunlight: ['Your crown is bringing in too little light. Young leaves turn toward every opening in the canopy.', '<strong>Grow Leaf</strong>, <strong>Grow Branch</strong>, or <strong>Expand Canopy</strong> to expose more green tissue.'],
+    water: ['A persistent thirst tightens through your living wood. Your roots keep searching for cooler, wetter soil.', '<strong>Extend Root</strong> or <strong>Deepen Taproot</strong> to reach and store more water.'],
+    nutrients: ['Your new tissues are running lean. Fine roots probe the soil for the minerals growth requires.', '<strong>Extend Root</strong>, <strong>Deepen Taproot</strong>, or <strong>Enrich Rhizosphere</strong> to improve nutrient uptake.'],
+  };
+  for (const kind of ['sunlight', 'water', 'nutrients']) {
+    if (values[kind] <= 1) state.resourceShortageStreaks[kind] = (state.resourceShortageStreaks[kind] || 0) + 1;
+    else { state.resourceShortageStreaks[kind] = 0; state.resourceNudgeLevels[kind] = 0; }
+  }
+  const kind = ['sunlight', 'water', 'nutrients'].find(resource => {
+    const streak = state.resourceShortageStreaks[resource] || 0;
+    const level = state.resourceNudgeLevels[resource] || 0;
+    return (streak >= 6 && level < 2) || (streak >= 3 && level < 1);
+  });
+  if (!kind) return null;
+  const urgent = state.resourceShortageStreaks[kind] >= 6;
+  state.resourceNudgeLevels[kind] = urgent ? 2 : 1;
+  const [body, remedy] = guidance[kind];
+  return {
+    title: urgent ? `Persistent ${kind[0].toUpperCase()}${kind.slice(1)} Shortage` : `A Need for More ${kind[0].toUpperCase()}${kind.slice(1)}`,
+    body: urgent ? `${body} The strain has continued for many turns, and your growth cannot ignore it much longer.` : body,
+    remedy,
+    log: `${urgent ? 'Persistent' : 'Developing'} ${kind} shortage: your tissues urge you toward corrective growth.`,
+  };
+}
+
 export function createEngine(deps) {
   const {
     SEASONS,
@@ -39,6 +73,7 @@ export function createEngine(deps) {
     renderSpringSeedFateBody,
     renderGameOverBody,
     renderSuccessionBody,
+    showGameOverScreen,
     getRelationshipState = () => ({ name: 'Neutral' }),
     getNeighborStage = () => ({ rank: 3 }),
   } = deps;
@@ -228,6 +263,7 @@ export function createEngine(deps) {
   function advanceTurn(state, hooks = {}) {
     const { onDeath, onAfterSpringViability, onAfterAdvance } = hooks;
     if (state.health <= 0) return onDeath?.() ?? false;
+    state.turnsElapsed = (state.turnsElapsed || 0) + 1;
 
     state.turnsInStage += getStageProgressIncrement();
     if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
@@ -362,18 +398,17 @@ export function createEngine(deps) {
   }
 
   function handleDeath(state) {
-    if (state.offspringPool > 0) {
-      const generated = generateSuccessionChoices(Math.min(3, state.offspringPool));
-      const choices = generated.map(choice => ({
-        label: choice.label,
-        onChoose: () => continueAsSuccessor(choice),
-      }));
-      showChoiceModal('Succession', renderSuccessionBody({ generated }), choices);
-    } else {
-      state.gameOver = true;
-      const flavor = deathFlavor(state.lastDamageCause);
-      showModal('Game Over', renderGameOverBody({ flavor, score: state.score }), () => {});
-    }
+    state.gameOver = true;
+    const flavor = deathFlavor(state.lastDamageCause);
+    const lifetimeTurns = Math.max(1, (state.turnsElapsed || 0) + 1);
+    showGameOverScreen?.({
+      flavor,
+      score: state.score,
+      lifetimeTurns,
+      years: Math.max(0, state.year - 1),
+      cause: state.lastDamageCause || 'decline',
+      species: state.selectedSpecies || 'tree',
+    });
   }
 
   return {

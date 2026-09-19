@@ -7,7 +7,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=life-stage-v1';
+} from './core/constants.js?rev=forest-cycle-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -16,7 +16,7 @@ import {
   getAdjustedRelationshipDelta,
   getPollinatorChance,
   getDroughtResistance,
-} from './core/species.js';
+} from './core/species.js?rev=ally-reciprocity-v1';
 import {
   computeCurrentLifeStage as computeCurrentLifeStageFromState,
   turnsForYears,
@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=offspring-support-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=ally-reciprocity-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=offspring-rivalry-v1';
+} from './core/diplomacy.js?rev=ally-reciprocity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -62,19 +62,19 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=offspring-support-v1';
-import { createEngine } from './core/engine.js?rev=life-stage-v1';
-import { createStartingNeighbors } from './core/neighbors.js?rev=life-stage-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=resource-guidance-v1';
+import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=offspring-rivalry-v1';
-import { renderActionPanels } from './ui/actions.js?rev=seasonal-canopy-v1';
-import { renderEventPhaseBody } from './ui/events.js';
+import { renderActionPanels } from './ui/actions.js?rev=condensed-turn-v1';
+import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=offspring-rivalry-v1';
-import { renderSpringSeedFateBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=offspring-rivalry-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-guidance-v1';
+import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { renderForestScene } from './ui/canvas.js?rev=life-stage-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=offspring-support-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=seasonal-canopy-v1';
+import { renderForestScene } from './ui/canvas.js?rev=forest-cycle-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=condensed-turn-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=forest-cycle-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -420,6 +420,15 @@ function showChoiceModal(title, body, choices) {
   return showChoiceModalUI(els, title, body, choices);
 }
 
+function showGameOverScreen(summary) {
+  els.modal?.classList.add('hidden');
+  els.mapExplorer?.classList.add('hidden');
+  document.querySelectorAll('.game-panel, #species-panel').forEach(panel => panel.classList.add('hidden'));
+  const app = document.getElementById('app');
+  app.innerHTML = renderFullGameOverBody(summary);
+  document.getElementById('try-again')?.addEventListener('click', () => window.location.reload());
+}
+
 function processPendingInteractions(onDone) {
   if (!state.pendingInteractions.length) return onDone?.();
   const interaction = state.pendingInteractions.shift();
@@ -444,6 +453,23 @@ function showResourcePhase({ quiet = false } = {}) {
     return;
   }
   if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
+  if (quiet && (state.turnsElapsed || 0) === 0) {
+    renderActions();
+    return;
+  }
+  if (shouldSkipGathering(state)) {
+    state.actions = Math.max(1, state.actions || 0);
+    updateUI();
+    render();
+    if (state.skipNextUngrownWarning) {
+      state.skipNextUngrownWarning = false;
+      renderActions();
+      return;
+    }
+    addLog('You gathered no resources because you have not begun to grow.');
+    showModal('Growth Must Begin', '<p><em>You remain folded within the seed, with no roots in the soil and no leaves in the light.</em></p><p><strong>Extend your first root</strong> so you can begin drawing water and nutrients. Leaves will follow, opening your tissues to sunlight.</p>', () => renderActions());
+    return;
+  }
   return engine.startTurn(state, {
     addLog,
     presentResources: (gains) => {
@@ -451,12 +477,17 @@ function showResourcePhase({ quiet = false } = {}) {
         renderActions();
         return;
       }
-      showModal('Your Tree Gathers...', renderResourcePhaseBody({ state, gains }), () => {
-        renderActions();
+      const nudge = updateResourceShortageNudges(state, gains);
+      showModal('You Gather...', renderResourcePhaseBody({ state, gains }), () => {
+        if (nudge) {
+          addLog(nudge.log);
+          showModal(nudge.title, `<p><em>${nudge.body}</em></p><p>${nudge.remedy}</p>`, () => renderActions());
+        } else renderActions();
       }, { record: false });
     },
   });
 }
+
 
 function canAfford(cost) {
   return state.sunlight >= (cost.sunlight || 0) && 
@@ -487,7 +518,13 @@ function updateAlliesCount() {
 function growNeighbors() {
   const activeShadeTarget = normalizePlayerShadeTarget(state);
   state.neighbors.forEach(n => {
-    if (n.dead) return;
+    if (n.dead) {
+      const transition = advanceNeighborDeathCycle(n, { speciesNames: Object.keys(SPECIES), seedlingThreshold: STAGE_BY_NAME.Seedling.threshold, random: Math.random });
+      if (transition.phase === 'seedling') {
+        addLog(`A new ${n.species} seedling rises where the fallen tree decayed.`);
+      }
+      return;
+    }
     const baseGrowth = 20 + Math.floor(Math.random() * 35);
     n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget);
     const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
@@ -568,6 +605,7 @@ function refreshRenderedView({ actions = false } = {}) {
 function continueWithRelationshipChange(species, oldState, newState, onDone, { actions = false } = {}) {
   showRelationshipChangeModal(species, oldState, newState, () => {
     refreshRenderedView({ actions });
+    if (newState === 'Ally' && maybeAnnounceProgressiveActionUnlocks(onDone)) return;
     onDone?.();
   });
 }
@@ -605,12 +643,11 @@ function updateNeighborAliveState(neighbor, cause = 'hardship') {
   if (!death.changed) return false;
   addLog(`The ${neighbor.species} dies from ${cause}.`);
   updateAlliesCount();
-  const impact = death.relationship === 'Ally'
-    ? 'You lose an ally, its resource contribution, and its place in the protected-grove goal.'
-    : 'It can no longer act, compete, form relationships, or be targeted.';
+  neighbor.deathAge = 0;
+  neighbor.deathStageScore = neighbor.stageScore;
   state.pendingInteractions.push(done => showModal(
     death.relationship === 'Ally' ? 'Ally Tree Dies' : 'Neighbor Tree Dies',
-    `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health reached zero. It is dead, and its roots no longer answer yours.</p><p><strong>Relationship at death:</strong> ${death.relationship}</p><p><strong>Impact:</strong> ${impact}</p><p><strong>Cause:</strong> ${cause}</p>`,
+    `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health reached zero, and its roots no longer answer yours.</p><p><strong>Relationship at death:</strong> ${death.relationship}</p><p><strong>Cause:</strong> ${cause}</p>`,
     done,
   ));
   return true;
@@ -762,6 +799,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
         }
         neighbor.helpGivenToThem += given > 0 ? 1 : 0;
         neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
+        neighbor.lastAidMemory = given > 0 ? 'you-helped' : 'you-refused';
         applyRelationshipDelta(neighbor, relationDelta);
         const newState = getRelationshipState(neighbor.relation).name;
         showModal('Aid Given', `<p>${body}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
@@ -774,6 +812,7 @@ function showAllyAidRequest(neighbor, crisis, done) {
       label: 'Withhold your resources',
       onChoose: () => {
         neighbor.helpRefusedToThem += 1;
+        neighbor.lastAidMemory = 'you-refused';
         crisis.amount += 2;
         neighbor.relation = Math.max(-100, neighbor.relation - 12);
         const newState = getRelationshipState(neighbor.relation).name;
@@ -855,6 +894,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
         showModal('Aid Cancelled', `<p>The ${neighborName} is not currently an ally, so you cannot send ally aid to it.</p><p><strong>Current relationship:</strong> ${outcome.oldState}</p>`, onDone);
         return;
       }
+      if (outcome.reason === 'full-health') {
+        showModal('Aid Not Needed', `<p>The ${neighborName} has returned to full health and no longer needs aid.</p>`, onDone);
+        return;
+      }
       showModal('Aid Cancelled', `<p>The ${neighborName} can no longer receive ally aid.</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
@@ -869,9 +912,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
 
   if (decision.kind === 'ally-help-request') {
     const threatConclusion = outcome.clearedThreat ? ` The ${outcome.clearedThreat.title.toLowerCase()} is cleared, and the danger has passed.` : '';
-    addLog(`${outcome.tone} You recover ${outcome.actualHeal} health from ${neighborName}.${threatConclusion}`);
+    const unit = outcome.requestKind === 'health' ? 'health' : outcome.requestKind;
+    addLog(`${outcome.tone} You receive ${outcome.actualAmount} ${unit} from ${neighborName}.${threatConclusion}`);
     const threatBody = outcome.clearedThreat ? `<p>The ${outcome.clearedThreat.title.toLowerCase()} is cleared by the allied response.</p><p class="threat-status threat-solved">The danger has passed.</p>` : '';
-    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualHeal} health</strong>.</p>${threatBody}`, () => {
+    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualAmount} ${unit}</strong>.</p>${threatBody}`, () => {
       refreshMainView({ actions: true });
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });
@@ -978,13 +1022,13 @@ function rootDominionAction(s, context) {
 }
 
 function requestHelpFromAllies(s, context = {}) {
-  return runDiplomacyDecision(buildHelpRequestDecision(state, {
-    getRelationshipState,
-    getNeighborStage,
-  }), {
-    emptyMessage: 'No allies are close enough to help',
-    transaction: context.transaction,
-  });
+  showChoiceModal('What do you need?', '<p>Choose what your tissues need most. The ally will decide how much it can spare.</p>', [
+    { label: 'Health', description: 'Ask for restorative support through the fungal network.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
+    { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
+    { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
+    { label: 'Back', onChoose: () => context.transaction?.cancel() },
+  ]);
+  return { deferred: true };
 }
 
 function nurtureOffspringAction(s, context = {}) {
@@ -1023,16 +1067,16 @@ function nurtureOffspringAction(s, context = {}) {
 }
 
 function attemptConnection(s, context = {}) {
-  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState }), {
+  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState, getNeighborStage }), {
     transaction: context.transaction,
   });
 }
 
 function getNeighborTree(idx) {
   if (idx === 2) return null;
-  const base = getNeighborAtSlot(idx);
+  const base = state.neighbors.find(n => n.slot === idx) || null;
   if (!base) return null;
-  const stage = getNeighborStage(base.stageScore);
+  const stage = getNeighborStage(base.dead ? (base.deathStageScore ?? base.stageScore) : base.stageScore);
   const isSeed = stage.name === 'Seed';
   return {
     species: base.species,
@@ -1051,6 +1095,9 @@ function getNeighborTree(idx) {
     slot: base.slot,
     playerShading: Boolean(base.playerShading),
     shadingPlayer: Boolean(base.shadingPlayer),
+    dead: Boolean(base.dead),
+    deathAge: base.deathAge || 0,
+    deathCause: base.deathCause || null,
   };
 }
 
@@ -1161,6 +1208,15 @@ function renderActions() {
       });
     },
     onFinishTurn: () => {
+      if ((state.turnsElapsed || 0) === 0 && shouldSkipGathering(state)) {
+        state.actions = 0;
+        addLog('You ended the first turn without growing, so no resources were gathered.');
+        showModal('The Seed Waits', '<p><em>Night passes over the soil, but you have not yet opened yourself to it. Without roots or leaves, there is nothing to gather.</em></p><p><strong>Begin growing next turn.</strong> Extend a root to reach water and nutrients; then unfurl leaves to receive sunlight.</p>', () => {
+          state.skipNextUngrownWarning = true;
+          advanceTurn();
+        });
+        return;
+      }
       showFeedback('Turn ended early', 'info');
       showEventPhase();
     },
@@ -1208,6 +1264,7 @@ engine = createEngine({
   renderSpringSeedFateBody,
   renderGameOverBody,
   renderSuccessionBody,
+  showGameOverScreen,
   renderVictoryBody,
   getRelationshipState,
   getNeighborStage,

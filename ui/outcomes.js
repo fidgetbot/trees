@@ -25,6 +25,31 @@ export function renderGameOverBody({ flavor, score }) {
   return `<p><em>${flavor}</em></p><p>Your lineage has ended.</p><p>Final score: <strong>${score}</strong></p>`;
 }
 
+export function renderFullGameOverBody({ flavor, score, lifetimeTurns, years, cause, species }) {
+  const quotes = {
+    drought: 'Even the deepest root belongs, at last, to the turning earth.',
+    fire: 'Ash is not an ending; it is the forest remembering how to begin.',
+    logging: 'A fallen crown still feeds the dark, patient life below.',
+  };
+  const quote = quotes[cause] || 'Nothing in the forest vanishes; life changes form and passes onward.';
+  const causeLabel = String(cause || 'decline').replace(/\b\w/g, letter => letter.toUpperCase());
+  return `
+    <section class="game-over-screen" role="main" aria-labelledby="game-over-title">
+      <div class="game-over-card">
+        <p class="game-over-kicker">The grove falls quiet</p>
+        <h1 id="game-over-title">Your ${species} has died</h1>
+        <p class="game-over-flavor"><em>${flavor}</em></p>
+        <dl class="game-over-stats">
+          <div><dt>Lifetime</dt><dd>${lifetimeTurns} turn${lifetimeTurns === 1 ? '' : 's'}${years ? ` · ${years} full year${years === 1 ? '' : 's'}` : ''}</dd></div>
+          <div><dt>Cause of death</dt><dd>${causeLabel}</dd></div>
+          <div><dt>Final score</dt><dd>${score}</dd></div>
+        </dl>
+        <blockquote>“${quote}”</blockquote>
+        <button id="try-again" type="button">Try Again</button>
+      </div>
+    </section>`;
+}
+
 export function renderSuccessionBody({ generated }) {
   return `
     <p>Your current tree has died, but living offspring remain.</p>

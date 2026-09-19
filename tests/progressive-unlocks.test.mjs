@@ -10,7 +10,7 @@ const youngTree = LIFE_STAGES.find(stage => stage.name === 'Young Tree');
 const matureTree = LIFE_STAGES.find(stage => stage.name === 'Mature Tree');
 
 function unlocked(key, turnsInStage, lifeStage = sapling) {
-  return isActionUnlockedForState(key, { lifeStage, turnsInStage }, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+  return isActionUnlockedForState(key, { lifeStage, turnsInStage, hasMadeFirstAlly: true }, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
 }
 
 test('Sapling capabilities arrive across five seasons instead of all at once', () => {
@@ -19,10 +19,19 @@ test('Sapling capabilities arrive across five seasons instead of all at once', (
   assert.equal(unlocked('taproot', 1), true);
   assert.equal(unlocked('canopy', 2), false);
   assert.equal(unlocked('canopy', 3), true);
-  assert.equal(unlocked('aidAlly', 5), false);
-  assert.equal(unlocked('aidAlly', 6), true);
+  assert.equal(unlocked('aidAlly', 0), true);
   assert.equal(unlocked('rhizosphere', 14), false);
   assert.equal(unlocked('rhizosphere', 15), true);
+});
+
+test('ally actions awaken only after the first alliance', () => {
+  const seedling = LIFE_STAGES.find(stage => stage.name === 'Seedling');
+  const withoutAlly = { lifeStage: seedling, turnsInStage: 0, hasMadeFirstAlly: false };
+  const withAlly = { ...withoutAlly, hasMadeFirstAlly: true };
+  assert.equal(isActionUnlockedForState('requestHelp', withoutAlly, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS), false);
+  assert.equal(isActionUnlockedForState('aidAlly', withoutAlly, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS), false);
+  assert.equal(isActionUnlockedForState('requestHelp', withAlly, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS), true);
+  assert.equal(isActionUnlockedForState('aidAlly', withAlly, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS), true);
 });
 
 test('Young Tree and Mature Tree action bundles are dispersed across seasons', () => {

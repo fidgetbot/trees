@@ -27,9 +27,33 @@ export function createStartingNeighbors(speciesNames, lifeStages, random = Math.
       activeCrises: [],
       crisisCounter: 0,
       dead: false,
+      deathAge: 0,
+      deathStageScore: null,
       playerShading: false,
       shadingPlayer: false,
       heightGrowth: 0,
     };
   });
+}
+
+export function advanceNeighborDeathCycle(neighbor, { speciesNames, seedlingThreshold, random = Math.random } = {}) {
+  if (!neighbor?.dead) return { changed: false, phase: 'living' };
+  neighbor.deathAge = (neighbor.deathAge || 0) + 1;
+  if (neighbor.deathAge < 4) return { changed: true, phase: 'dead-tree', age: neighbor.deathAge };
+  if (neighbor.deathAge < 7) return { changed: true, phase: 'stump', age: neighbor.deathAge };
+  const choices = speciesNames?.length ? speciesNames : [neighbor.species || 'Tree'];
+  neighbor.species = choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))];
+  neighbor.stageScore = seedlingThreshold;
+  neighbor.relation = 0;
+  neighbor.health = neighbor.maxHealth = 10;
+  neighbor.dead = false;
+  neighbor.deathAge = 0;
+  neighbor.deathCause = null;
+  neighbor.deathStageScore = null;
+  neighbor.helpGivenToThem = 0;
+  neighbor.helpRefusedToThem = 0;
+  neighbor.helpReceivedFromThem = 0;
+  neighbor.timesAskedThemForHelp = 0;
+  neighbor.lastAidMemory = '';
+  return { changed: true, phase: 'seedling', species: neighbor.species };
 }

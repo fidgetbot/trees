@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=offspring-support-v1" />
+  <link rel="stylesheet" href="styles.css?rev=forest-cycle-v1" />
 </head>
 <body>
   <div id="app">
@@ -74,7 +74,7 @@
                 <span class="stat-value" id="nutrients">0</span>
               </div>
               <div class="stat-divider" aria-hidden="true"></div>
-              <div class="stat-row" data-stat="health" data-help="Health decreases from damage. At 0, your tree dies (but offspring may continue).">
+              <div class="stat-row" data-stat="health" data-help="Health decreases from damage. At 0, you die and the run ends.">
                 <span class="stat-icon">❤️</span>
                 <span class="stat-name">Health</span>
                 <span class="stat-value" id="health">0</span>
@@ -212,6 +212,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=offspring-support-v1"></script>
+  <script type="module" src="main.js?rev=forest-cycle-v1"></script>
 </body>
 </html>

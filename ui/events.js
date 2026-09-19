@@ -30,7 +30,7 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
         <div class="event-icon">🌙</div>
         <div class="event-content">
           <h3>Quiet Night</h3>
-          <p>The forest is still. Your tree rests.</p>
+          <p>The forest is still. You rest.</p>
         </div>
       </div>
     `;

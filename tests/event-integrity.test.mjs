@@ -111,7 +111,7 @@ test('seasonal gathering factors expose the real light and water difficulty', ()
   assert.deepEqual(
     SEASONS.map(season => [season.name, season.factorSun, season.factorWater]),
     [
-      ['Spring', 0.8, 1],
+    ['Spring', 1, 1],
       ['Summer', 1.2, 0.6],
       ['Autumn', 0.6, 0.8],
       ['Winter', 0.2, 0.4],

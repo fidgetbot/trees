@@ -94,7 +94,12 @@ export function renderActionPanels({
   const canEndTurn = Object.values(categories).some(arr => arr.length > 0) || noUsableActions;
   if (els.finishTurn) {
     els.finishTurn.classList.toggle('hidden', !canEndTurn);
-    els.finishTurn.textContent = noUsableActions ? 'Out of Resources — End Turn' : 'Finish Turn Early';
+    const remaining = Number.isFinite(Number(els.finishTurn.dataset.actionsRemaining))
+      ? Number(els.finishTurn.dataset.actionsRemaining)
+      : null;
+    els.finishTurn.textContent = noUsableActions
+      ? `Out of Resources — End Turn${remaining == null ? '' : ` (${remaining} action${remaining === 1 ? '' : 's'} remaining)`}`
+      : `End Turn Early${remaining == null ? '' : ` (${remaining} action${remaining === 1 ? '' : 's'} remaining)`}`;
     els.finishTurn.onclick = canEndTurn ? onFinishTurn : null;
   }
 }
