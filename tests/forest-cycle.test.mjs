@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { LIFE_STAGES, getRelationshipState } from '../core/constants.js';
 import { createActions } from '../core/actions.js';
-import { buildAidDecision, buildConnectionDecision, resolveAidToAlly, resolveHelpRequestFromAlly, updateAlliesCount } from '../core/diplomacy.js';
+import { buildAidDecision, buildConnectionDecision, buildHelpRequestDecision, resolveAidToAlly, resolveDiplomacyDecision, resolveHelpRequestFromAlly, updateAlliesCount } from '../core/diplomacy.js';
 import { shouldSkipGathering, updateResourceShortageNudges } from '../core/engine.js';
 import { advanceNeighborDeathCycle } from '../core/neighbors.js';
 import { getSpeciesAdjustedCost } from '../core/species.js';
@@ -56,6 +56,40 @@ test('help requests can supply water and remember withheld aid', () => {
   assert.ok(state.water >= 1);
   assert.match(result.tone, /remembers when you conserved/);
   assert.ok(neighbor.relation < 70);
+});
+
+test('ally help decisions give exactly the resource the player requested', () => {
+  for (const requestKind of ['health', 'water', 'nutrients']) {
+    const state = {
+      health: 5,
+      maxHealth: 10,
+      water: 0,
+      nutrients: 0,
+      pendingChemicalThreat: null,
+      neighbors: [{
+        species: 'Pear', relation: 70, stageScore: 3300, health: 10, maxHealth: 10,
+        activeCrises: [], helpGivenToThem: 0, helpRefusedToThem: 0,
+        helpReceivedFromThem: 0, timesAskedThemForHelp: 0,
+      }],
+    };
+    const before = { health: state.health, water: state.water, nutrients: state.nutrients };
+    const decision = buildHelpRequestDecision(state, {
+      getRelationshipState,
+      getNeighborStage: () => ({ rank: 5 }),
+      requestKind,
+    });
+    const resolved = resolveDiplomacyDecision(state, decision, decision.options[0].id, {
+      getRelationshipState,
+      getNeighborStage: () => ({ rank: 5 }),
+      random: () => 0.5,
+    });
+
+    assert.equal(resolved.outcome.requestKind, requestKind);
+    assert.ok(state[requestKind] > before[requestKind]);
+    for (const otherKind of ['health', 'water', 'nutrients'].filter(kind => kind !== requestKind)) {
+      assert.equal(state[otherKind], before[otherKind]);
+    }
+  }
 });
 
 test('requesting help always costs exactly one nutrient', () => {

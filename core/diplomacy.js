@@ -522,7 +522,6 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
         getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
         recordDamage: deps.recordDamage,
         random: deps.random,
-        requestKind: option.meta?.requestKind || 'health',
       }),
     };
   }
@@ -552,6 +551,7 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
         getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
         getNeighborStage: deps.getNeighborStage,
         random: deps.random,
+        requestKind: option.meta?.requestKind || 'health',
       }),
     };
   }
