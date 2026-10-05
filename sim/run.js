@@ -9,7 +9,7 @@ import { createActions, getActionAvailability, getActionUnlockReason, isActionUn
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
 import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
-import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from '../core/growth.js';
+import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from '../core/growth.js';
 import {
   advanceHumanSystem,
   growOffspringRecords,
@@ -248,7 +248,7 @@ function createHeadlessGame(seed, speciesName) {
     state.neighbors.forEach(n => {
       if (n.dead) return;
       const baseGrowth = 20 + Math.floor(rng() * 35);
-      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget);
+      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
       const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
       if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
       if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && rng() < 0.25) {
@@ -300,9 +300,13 @@ function createHeadlessGame(seed, speciesName) {
       updateAlliesCount(s, getRelationshipState);
     },
     requestHelpFromAllies: s => {
+      const requestKind = s.maxHealth - s.health >= 2
+        ? 'health'
+        : s.water <= s.nutrients ? 'water' : 'nutrients';
       const decision = buildHelpRequestDecision(s, {
         getRelationshipState,
         getNeighborStage,
+        requestKind,
       });
       const targetOption = decision.options.find(option => option.meta?.toneHint === 'warm') || decision.options[0];
       if (!targetOption) return;

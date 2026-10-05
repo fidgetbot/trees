@@ -17,16 +17,16 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   taproot: 'This lets you drive a deeper anchor into the soil, adding more water storage and nutrient access than an ordinary root while improving drought resistance.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
   bark: 'This lets you brace one level of spindly height while thickening your trunk, storing more water, gaining health, and resisting drought, storms, insects, fire, and woodpeckers.',
-  rhizosphere: 'This lets you enrich the soil community around your roots for greater future nutrient gains.',
-  growThorns: 'This lets you grow permanent thorns that deter humans and browsing animals.',
-  toxicLeaves: 'This lets you grow chemically defended leaves that discourage humans and herbivores.',
+  rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while helping connected allies grow and warming your relationships.',
+  growThorns: 'This lets you add permanent thorns repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and browsing animals.',
+  toxicLeaves: 'This lets you add permanent toxic foliage repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and herbivores.',
   shelterGrove: 'This lets you brace yourself and your allies against the next hardship.',
   resinReserve: 'This lets you store a concentrated defensive reserve for the next serious threat.',
   woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
   connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
   aidAlly: 'This lets you spend water and nutrients to heal an ally, accelerate its growth, strengthen your bond, and build the support needed for grove protection.',
   requestHelp: 'This lets you call on allied trees for resources and resilience when you are wounded.',
-  shadeRival: 'This lets you lean over one shorter adjacent tree for +2 sunlight each turn while slowing its growth; choosing another target releases the first.',
+  shadeRival: 'This lets you lean over one shorter adjacent tree for +2 sunlight and +1 nutrient each turn while slowing its growth; choosing another target releases the first.',
   rootDominion: 'This lets you pressure a neighboring root system and take water and nutrients from it.',
   flower: 'This lets you produce blossoms that pollinators can turn into fruit and seeds.',
   massFlower: 'This lets you create a burst of blossoms for a larger but riskier reproductive effort.',
@@ -152,7 +152,7 @@ export function createActions(deps) {
     shadeRivalAction,
     rootDominionAction,
     nurtureOffspringAction = () => null,
-    getRelationshipState,
+    getRelationshipState = () => ({ name: 'Neutral' }),
     getNeighborStage,
   } = deps;
 
@@ -165,9 +165,18 @@ export function createActions(deps) {
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
 
     { key: 'bark', name: 'Fortify Bark', icon: '🛡️', category: 'defense', help: 'Braces one level of spindly height, thickens your trunk, adds health and water storage, and resists drought, storms, insects, fire, and woodpeckers.', status: s => { const risk = Math.max(0, s.spindlyGrowth || 0); return risk ? `Will brace 1 of ${risk} unbraced height levels` : 'No unbraced height; still strengthens bark, health, and water storage'; }, baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
-    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Invest in the soil food web for future nutrient gain.', baseCost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => { s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.25; } },
-    { key: 'growThorns', name: 'Grow Thorns', icon: '🌵', category: 'defense', help: 'Builds a permanent physical deterrent against humans and browsing animals.', baseCost: { sunlight: 4, water: 2, nutrients: 4 }, effect: s => { s.thornDefense = (s.thornDefense || 0) + 1; s.defense += 1; } },
-    { key: 'toxicLeaves', name: 'Grow Toxic Leaves', icon: '☠️', category: 'defense', help: 'Builds permanent chemical deterrence against humans and herbivores.', baseCost: { sunlight: 3, water: 2, nutrients: 5 }, effect: s => { s.toxicLeaves = (s.toxicLeaves || 0) + 1; s.defense += 1; } },
+    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Permanently improves your nutrient uptake. Connected allies also gain lasting growth support and become warmer toward you.', baseCost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => {
+      s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.25;
+      for (const neighbor of s.neighbors || []) {
+        if (neighbor.dead || getRelationshipState(neighbor.relation).name !== 'Ally') continue;
+        neighbor.rhizosphereBonus = (neighbor.rhizosphereBonus || 0) + 0.25;
+        neighbor.relation = Math.min(100, neighbor.relation + 3);
+        neighbor.growthAidReceived = (neighbor.growthAidReceived || 0) + 1;
+        if (neighbor.firstAidStageScore == null) neighbor.firstAidStageScore = neighbor.stageScore;
+      }
+    } },
+    { key: 'growThorns', name: 'Grow Thorns', icon: '🌵', category: 'defense', help: 'Repeatable: every new layer permanently adds defense against humans, fruit threats, conflict, and browsing animals.', status: s => `${s.thornDefense || 0} thorn layer${(s.thornDefense || 0) === 1 ? '' : 's'} grown · each additional layer adds more defense`, baseCost: { sunlight: 4, water: 2, nutrients: 4 }, effect: s => { s.thornDefense = (s.thornDefense || 0) + 1; s.defense += 1; } },
+    { key: 'toxicLeaves', name: 'Grow Toxic Leaves', icon: '☠️', category: 'defense', help: 'Repeatable: every new layer permanently adds defense against humans, fruit threats, conflict, and herbivores.', status: s => `${s.toxicLeaves || 0} toxic layer${(s.toxicLeaves || 0) === 1 ? '' : 's'} grown · each additional layer adds more defense`, baseCost: { sunlight: 3, water: 2, nutrients: 5 }, effect: s => { s.toxicLeaves = (s.toxicLeaves || 0) + 1; s.defense += 1; } },
     { key: 'shelterGrove', name: 'Shelter the Grove', icon: '⛺', category: 'defense', help: 'Spend resources to brace yourself and your allies against the next hardship.', baseCost: { sunlight: 4, water: 3, nutrients: 6 }, effect: s => { s.eventModifiers.shelter = 1; } },
     { key: 'resinReserve', name: 'Resin Reserve', icon: '🧪', category: 'defense', help: 'Choose a nutrient-heavy defensive investment for the next hardship.', baseCost: { sunlight: 2, water: 1, nutrients: 8 }, effect: (s, context) => resinReserveAction(s, context) },
     { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Choose a nutrient-heavy growth push for trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: (s, context) => woodSurgeAction(s, context) },
@@ -175,7 +184,7 @@ export function createActions(deps) {
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Attempt underground friendship with a chosen neighboring tree.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: (s, context) => attemptConnection(s, context) },
     { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Heal and nourish an injured ally, strengthen your bond, and build protection-goal support.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && n.health < n.maxHealth), effect: (s, context) => offerAidToAlly(s, context) },
     { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Spend 1 nutrient to ask an ally for health, water, or nutrients. Repeated requests strain the bond.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => requestHelpFromAllies(s, context) },
-    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over one shorter adjacent tree for +2 sunlight each turn, slowing its growth while you remain taller. Choosing another target releases the first.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
+    { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Lean over one shorter adjacent tree for +2 sunlight and +1 nutrient each turn, slowing its growth while you remain taller. Choosing another target releases the first.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Assert territorial pressure on a neighboring tree, stealing water and nutrients. Established rivalries pay off better than fresh betrayals.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },
 
     { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates blossoms that can be pollinated into fruit in spring.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },

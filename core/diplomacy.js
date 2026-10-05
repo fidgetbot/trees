@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
-import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=offspring-shade-v1';
+import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
 
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
@@ -105,16 +105,16 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
   const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
   const healthRatio = neighbor.maxHealth > 0 ? neighbor.health / neighbor.maxHealth : 0;
   const crisisPenalty = Math.min(2, (neighbor.activeCrises || []).length);
-  const capacity = Math.max(1, Math.min(6, 1 + stageBonus + Math.floor(healthRatio * 3) - crisisPenalty));
-  let amount = Math.max(1, Math.min(capacity, 1 + Math.floor(random() * Math.max(1, capacity))));
+  const capacity = Math.max(2, Math.min(6, 1 + stageBonus + Math.floor(healthRatio * 3) - crisisPenalty));
+  let amount = Math.max(2, Math.min(capacity, 1 + Math.floor(random() * Math.max(1, capacity))));
   let relationShift = -3;
   let tone = `The ${neighbor.species} answers through the fungal dark.`;
   if (neighbor.lastAidMemory === 'you-refused' || neighbor.helpRefusedToThem > neighbor.helpGivenToThem) {
-    amount = Math.max(1, amount - 2);
+    amount = Math.max(2, amount - 2);
     relationShift = -7;
     tone = `The ${neighbor.species} remembers when you conserved your own strength instead of answering its need. It still responds, but sends less.`;
   } else if (favorBalance < -2) {
-    amount = Math.max(1, amount - 1);
+    amount = Math.max(2, amount - 1);
     relationShift = -6;
     tone = `The ${neighbor.species} answers coolly. You have asked much of it lately, and the imbalance has begun to strain the bond.`;
   } else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) {
@@ -393,7 +393,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
             water: 0,
             nutrients: 0,
             relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
-            persistent: `+${SHADE_SUNLIGHT_BONUS} sunlight each turn; slows the neighbor's growth`,
+            persistent: `+${SHADE_SUNLIGHT_BONUS} sunlight and +${SHADE_NUTRIENT_BONUS} nutrient each turn; slows the neighbor's growth`,
           }
         : {
             sunlight: alreadyContested ? 1 : 0,
@@ -478,6 +478,7 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
       relationStateBefore: relationName,
       persistentCanopyAdvantage: true,
       sunlightPerTurn: SHADE_SUNLIGHT_BONUS,
+      nutrientsPerTurn: SHADE_NUTRIENT_BONUS,
       targetGrowthMultiplier: SHADED_NEIGHBOR_GROWTH_MULTIPLIER,
       releasedShadeTarget,
       shadedOffspringCount: shadedOffspring.length,

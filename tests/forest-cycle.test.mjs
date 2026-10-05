@@ -15,7 +15,7 @@ test('a seed with no root gathers nothing and is directed toward growth', () => 
 });
 
 test('resource shortage guidance escalates after three and six weak turns', () => {
-  const state = {};
+  const state = { lifeStage: LIFE_STAGES.find(stage => stage.name === 'Sprout'), seasonIndex: 0 };
   const gains = { sunlightGain: 1, waterGain: 4, nutrientGain: 4 };
   assert.equal(updateResourceShortageNudges(state, gains), null);
   assert.equal(updateResourceShortageNudges(state, gains), null);
@@ -23,6 +23,16 @@ test('resource shortage guidance escalates after three and six weak turns', () =
   updateResourceShortageNudges(state, gains);
   updateResourceShortageNudges(state, gains);
   assert.match(updateResourceShortageNudges(state, gains).title, /Persistent Sunlight/);
+});
+
+test('early shortage guidance only names actions the player has unlocked', () => {
+  const state = { lifeStage: LIFE_STAGES.find(stage => stage.name === 'Sprout'), seasonIndex: 0 };
+  const gains = { sunlightGain: 4, waterGain: 1, nutrientGain: 4 };
+  updateResourceShortageNudges(state, gains);
+  updateResourceShortageNudges(state, gains);
+  const nudge = updateResourceShortageNudges(state, gains);
+  assert.match(nudge.remedy, /Extend Root/);
+  assert.doesNotMatch(nudge.remedy, /Taproot|Rhizosphere/);
 });
 
 test('connection choices show stage and biological tradeoffs', () => {
@@ -53,7 +63,8 @@ test('help requests can supply water and remember withheld aid', () => {
   const state = { health: 5, maxHealth: 10, water: 0, nutrients: 0, pendingChemicalThreat: null };
   const neighbor = { species: 'Pear', relation: 70, stageScore: 3300, health: 10, maxHealth: 10, activeCrises: [], helpGivenToThem: 0, helpRefusedToThem: 1, helpReceivedFromThem: 0, timesAskedThemForHelp: 0, lastAidMemory: 'you-refused' };
   const result = resolveHelpRequestFromAlly(state, neighbor, { getRelationshipState, getNeighborStage: () => ({ rank: 5 }), requestKind: 'water', random: () => 0.99 });
-  assert.ok(state.water >= 1);
+  assert.ok(state.water >= 2);
+  assert.ok(result.actualAmount >= 2);
   assert.match(result.tone, /remembers when you conserved/);
   assert.ok(neighbor.relation < 70);
 });
@@ -85,6 +96,7 @@ test('ally help decisions give exactly the resource the player requested', () =>
     });
 
     assert.equal(resolved.outcome.requestKind, requestKind);
+    assert.ok(resolved.outcome.actualAmount >= 2);
     assert.ok(state[requestKind] > before[requestKind]);
     for (const otherKind of ['health', 'water', 'nutrients'].filter(kind => kind !== requestKind)) {
       assert.equal(state[otherKind], before[otherKind]);

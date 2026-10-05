@@ -8,7 +8,7 @@ import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 import { currentStageRequirements } from '../core/stages.js';
-import { getShadedOffspring, neighborGrowthFromLight, offspringGrowthFromLight, reconcileCanopyHeight, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
+import { getShadedOffspring, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, offspringGrowthFromLight, reconcileCanopyHeight, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -61,6 +61,7 @@ test('shade targets only immediate neighbors and establishes a persistent arrang
   assert.equal(right.playerShading, true);
   assert.equal(switched.releasedShadeTarget, left);
   assert.equal(switched.sunlightPerTurn, SHADE_SUNLIGHT_BONUS);
+  assert.equal(switched.nutrientsPerTurn, SHADE_NUTRIENT_BONUS);
   assert.equal(switched.targetGrowthMultiplier, SHADED_NEIGHBOR_GROWTH_MULTIPLIER);
 });
 
@@ -86,7 +87,7 @@ test('equal-height trees cannot shade, and an overtaking rival reverses the cano
   assert.match(change.message, /grown taller|can no longer shade/i);
 });
 
-test('shading is a sizable sunlight-only advantage and slows the target instead of stealing nutrients', () => {
+test('shading steals persistent sunlight and nutrients while slowing the target', () => {
   const rivalWithoutShade = engine().collectResources(gatheringState({
     neighbors: [{ slot: 1, relation: -40, dead: false, playerShading: false }],
   }));
@@ -95,9 +96,30 @@ test('shading is a sizable sunlight-only advantage and slows the target instead 
   }));
   assert.equal(shaded.canopyAdvantage, SHADE_SUNLIGHT_BONUS);
   assert.equal(shaded.sunlightGain - rivalWithoutShade.sunlightGain, SHADE_SUNLIGHT_BONUS);
-  assert.equal(shaded.nutrientGain, rivalWithoutShade.nutrientGain);
+  assert.equal(shaded.shadeNutrientBonus, SHADE_NUTRIENT_BONUS);
+  assert.equal(shaded.nutrientGain - rivalWithoutShade.nutrientGain, SHADE_NUTRIENT_BONUS);
+  assert.match(renderResourcePhaseBody({ state: gatheringState({ actions: 3 }), gains: shaded }), /Shading \+1/);
   assert.equal(neighborGrowthFromLight(50, { playerShading: true }), 30);
   assert.equal(neighborGrowthFromLight(50, { playerShading: false }), 50);
+});
+
+test('enriching the rhizosphere permanently supports connected allies and warms the bond', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  });
+  const ally = { relation: 70, dead: false, stageScore: 600, growthAidReceived: 0, firstAidStageScore: null };
+  const neutral = { relation: 0, dead: false, stageScore: 600 };
+  const state = { eventModifiers: { soilBonus: 0 }, neighbors: [ally, neutral] };
+  actions.find(action => action.key === 'rhizosphere').effect(state);
+  assert.equal(state.eventModifiers.soilBonus, 0.25);
+  assert.equal(ally.rhizosphereBonus, 0.25);
+  assert.equal(neighborRhizosphereGrowthBonus(ally), 1);
+  assert.equal(ally.relation, 73);
+  assert.equal(ally.growthAidReceived, 1);
+  assert.equal(ally.firstAidStageScore, 600);
+  assert.equal(neutral.rhizosphereBonus, undefined);
+  assert.equal(neutral.relation, 0);
 });
 
 test('shading one side warns about offspring there and slows their growth', () => {

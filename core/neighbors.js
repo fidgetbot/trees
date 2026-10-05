@@ -32,6 +32,7 @@ export function createStartingNeighbors(speciesNames, lifeStages, random = Math.
       playerShading: false,
       shadingPlayer: false,
       heightGrowth: 0,
+      rhizosphereBonus: 0,
     };
   });
 }
@@ -55,5 +56,6 @@ export function advanceNeighborDeathCycle(neighbor, { speciesNames, seedlingThre
   neighbor.helpReceivedFromThem = 0;
   neighbor.timesAskedThemForHelp = 0;
   neighbor.lastAidMemory = '';
+  neighbor.rhizosphereBonus = 0;
   return { changed: true, phase: 'seedling', species: neighbor.species };
 }

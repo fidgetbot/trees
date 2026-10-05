@@ -55,4 +55,7 @@ test('growth descriptions use player-facing language and name the height remedy'
   assert.match(bark.help, /Braces one level/);
   assert.ok(bark.baseCost.sunlight > height.baseCost.sunlight);
   assert.ok(bark.baseCost.nutrients > height.baseCost.nutrients);
+  assert.match(actions.find(action => action.key === 'growThorns').help, /Repeatable.*every new layer/i);
+  assert.match(actions.find(action => action.key === 'toxicLeaves').help, /Repeatable.*every new layer/i);
+  assert.match(actions.find(action => action.key === 'rhizosphere').help, /Connected allies.*warmer/i);
 });

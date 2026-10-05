@@ -68,6 +68,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${factor(`Roots +${number((state.rootZones || 0) * 0.7)}`, 'positive')}
           ${gains.taprootNutrients ? factor(`Taproot +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
+          ${gains.shadeNutrientBonus ? factor(`Shading +${number(gains.shadeNutrientBonus)}`, 'positive') : ''}
           ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
           ${gains.maintenanceCost ? factor(`Upkeep −${number(gains.maintenanceCost)}`, 'negative') : ''}

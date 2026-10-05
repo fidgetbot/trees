@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=ally-reciprocity-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=shared-rhizosphere-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -50,7 +50,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=ally-request-match-v1';
+} from './core/diplomacy.js?rev=help-minimum-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -62,14 +62,14 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=offspring-support-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=resource-guidance-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=stage-aware-guidance-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
-import { canNeighborShadePlayer, neighborGrowthFromLight, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=offspring-rivalry-v1';
+import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=condensed-turn-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-guidance-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=shade-nutrients-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=forest-cycle-v1';
@@ -526,7 +526,7 @@ function growNeighbors() {
       return;
     }
     const baseGrowth = 20 + Math.floor(Math.random() * 35);
-    n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget);
+      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
     const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
     if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
     if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && Math.random() < 0.25) {
@@ -925,7 +925,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   if (decision.kind === 'aggression:shade') {
     const released = outcome.releasedShadeTarget ? `<p>Your crown withdraws from the ${outcome.releasedShadeTarget.species}; only one neighboring tree can remain beneath your shade.</p>` : '';
     const offspringWarning = outcome.shadedOffspringCount ? `<p class="threat-status threat-growing"><strong>${outcome.shadedOffspringCount} of your offspring ${outcome.shadedOffspringCount === 1 ? 'is' : 'are'} also on this side.</strong> ${outcome.shadedOffspringCount === 1 ? 'Its' : 'Their'} growth will slow under your shade until you lean in the other direction.</p>` : '';
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight every turn</strong> and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>${offspringWarning}`, onDone);
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves while your roots exploit the contested soil.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight</strong> and <strong>+${outcome.nutrientsPerTurn} nutrient every turn</strong>, and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>${offspringWarning}`, onDone);
     return;
   }
 
@@ -1022,8 +1022,9 @@ function rootDominionAction(s, context) {
 }
 
 function requestHelpFromAllies(s, context = {}) {
+  const missingHealth = Math.max(0, state.maxHealth - state.health);
   showChoiceModal('What do you need?', '<p>Choose what your tissues need most. The ally will decide how much it can spare.</p>', [
-    { label: 'Health', description: 'Ask for restorative support through the fungal network.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
+    { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
     { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
     { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
     { label: 'Back', onChoose: () => context.transaction?.cancel() },

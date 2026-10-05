@@ -1,5 +1,5 @@
 import { createOffspringRecords } from './humans.js?rev=life-stage-v1';
-import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=offspring-shade-v1';
+import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -20,10 +20,37 @@ export function updateResourceShortageNudges(state, gains) {
   state.resourceShortageStreaks ||= { sunlight: 0, water: 0, nutrients: 0 };
   state.resourceNudgeLevels ||= { sunlight: 0, water: 0, nutrients: 0 };
   const values = { sunlight: gains.sunlightGain, water: gains.waterGain, nutrients: gains.nutrientGain };
+  const rank = state.lifeStage?.rank || 0;
+  const turnsInStage = state.turnsInStage || 0;
+  const season = ['Spring', 'Summer', 'Autumn', 'Winter'][state.seasonIndex || 0];
+  const possibleRemedies = {
+    sunlight: [
+      rank >= 1 && rank < 4 && season !== 'Winter' ? 'Grow Leaf' : null,
+      rank >= 2 && (state.spindlyGrowth || 0) < 3 ? 'Grow Taller' : null,
+      rank >= 3 ? 'Grow Branch' : null,
+      rank >= 3 && turnsInStage >= 9 ? 'Expand Canopy' : null,
+    ],
+    water: [
+      'Extend Root',
+      rank >= 3 && turnsInStage >= 6 ? 'Deepen Taproot' : null,
+    ],
+    nutrients: [
+      'Extend Root',
+      rank >= 3 && turnsInStage >= 6 ? 'Deepen Taproot' : null,
+      rank >= 3 && turnsInStage >= 15 ? 'Enrich Rhizosphere' : null,
+    ],
+  };
+  const formatRemedies = (actions, fallback) => {
+    const available = actions.filter(Boolean);
+    if (!available.length) return fallback;
+    const names = available.map(name => `<strong>${name}</strong>`);
+    if (names.length === 1) return `${names[0]} can help.`;
+    return `${names.slice(0, -1).join(', ')} or ${names.at(-1)} can help.`;
+  };
   const guidance = {
-    sunlight: ['Your crown is bringing in too little light. Young leaves turn toward every opening in the canopy.', '<strong>Grow Leaf</strong>, <strong>Grow Branch</strong>, or <strong>Expand Canopy</strong> to expose more green tissue.'],
-    water: ['A persistent thirst tightens through your living wood. Your roots keep searching for cooler, wetter soil.', '<strong>Extend Root</strong> or <strong>Deepen Taproot</strong> to reach and store more water.'],
-    nutrients: ['Your new tissues are running lean. Fine roots probe the soil for the minerals growth requires.', '<strong>Extend Root</strong>, <strong>Deepen Taproot</strong>, or <strong>Enrich Rhizosphere</strong> to improve nutrient uptake.'],
+    sunlight: ['Your crown is bringing in too little light. Young leaves turn toward every opening in the canopy.', formatRemedies(possibleRemedies.sunlight, 'No current action can add green tissue during winter dormancy; hold your reserves until spring returns.')],
+    water: ['A persistent thirst tightens through your living wood. Your roots keep searching for cooler, wetter soil.', formatRemedies(possibleRemedies.water, 'Keep enough reserves to extend your roots when growth resumes.')],
+    nutrients: ['Your new tissues are running lean. Fine roots probe the soil for the minerals growth requires.', formatRemedies(possibleRemedies.nutrients, 'Keep enough reserves to extend your roots when growth resumes.')],
   };
   for (const kind of ['sunlight', 'water', 'nutrients']) {
     if (values[kind] <= 1) state.resourceShortageStreaks[kind] = (state.resourceShortageStreaks[kind] || 0) + 1;
@@ -111,6 +138,7 @@ export function createEngine(deps) {
     const canopyBonus = state.canopySpread * 2;
     const taprootBonus = state.taprootDepth * 2;
     const canopyAdvantage = relations.shadedNeighbors ? SHADE_SUNLIGHT_BONUS : 0;
+    const shadeNutrientBonus = relations.shadedNeighbors ? SHADE_NUTRIENT_BONUS : 0;
     const heightSunlightBonus = Math.max(0, state.heightGrowth || 0);
     const sunlightBase = state.leafClusters + canopyBonus + heightSunlightBonus;
     const neutralSunlightBase = sunlightBase;
@@ -136,7 +164,7 @@ export function createEngine(deps) {
     const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
     const unpressuredNutrientGain = Math.max(1, grossNutrients - maintenanceCost);
-    const nutrientGain = Math.max(0, unpressuredNutrientGain - rootCompetitionPenalty);
+    const nutrientGain = Math.max(0, unpressuredNutrientGain - rootCompetitionPenalty) + shadeNutrientBonus;
     const neutralNutrientGain = Math.max(1, neutralGrossNutrients - maintenanceCost);
 
     state.sunlight += sunlightGain;
@@ -160,6 +188,7 @@ export function createEngine(deps) {
       hostileWaterPenalty,
       rootCompetitionPenalty,
       canopyAdvantage,
+      shadeNutrientBonus,
       soilBonus,
       maintenanceCost,
       baseMaintenanceCost,
@@ -344,6 +373,12 @@ export function createEngine(deps) {
       if (action.key === 'growLeaves') addLog?.('A fresh leaf unfurls to gather more light.');
       if (action.key === 'growTaller') addLog?.('Your trunk reaches upward for more light, leaving the new height slender in the wind.');
       if (action.key === 'bark') addLog?.('Your bark and trunk thicken, bracing slender growth against the wind.');
+      if (action.key === 'rhizosphere') {
+        const supportedAllies = (state.neighbors || []).filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally').length;
+        addLog?.(supportedAllies
+          ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedAllies} connected ${supportedAllies === 1 ? 'ally receives' : 'allies receive'} lasting growth support.`
+          : 'You enrich the soil community around your roots, improving future nutrient uptake.');
+      }
       if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
       if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);
       if (action.key === 'nurtureOffspring') addLog?.(`You send water, nutrients, and stored energy to one of your child trees.`);

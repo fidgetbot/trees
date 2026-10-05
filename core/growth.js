@@ -1,5 +1,10 @@
 export const SHADE_SUNLIGHT_BONUS = 2;
+export const SHADE_NUTRIENT_BONUS = 1;
 export const SHADED_NEIGHBOR_GROWTH_MULTIPLIER = 0.6;
+
+export function neighborRhizosphereGrowthBonus(neighbor) {
+  return Math.max(0, Math.floor((neighbor?.rhizosphereBonus || 0) * 4));
+}
 
 export function playerHeightLevel(state) {
   return ((state.lifeStage?.rank || 0) * 4) + Math.max(0, state.heightGrowth || 0);
