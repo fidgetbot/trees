@@ -165,11 +165,11 @@ export function createActions(deps) {
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Spread a broader crown for more sunlight than ordinary leaf growth.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 2; s.branches += 1; s.canopySpread += 1; } },
 
     { key: 'bark', name: 'Fortify Bark', icon: '🛡️', category: 'defense', help: 'Braces one level of spindly height, thickens your trunk, adds health and water storage, and resists drought, storms, insects, fire, and woodpeckers.', status: s => { const risk = Math.max(0, s.spindlyGrowth || 0); return risk ? `Will brace 1 of ${risk} unbraced height levels` : 'No unbraced height; still strengthens bark, health, and water storage'; }, baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
-    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Permanently improves your nutrient uptake. Connected allies also gain lasting growth support and become warmer toward you.', baseCost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => {
-      s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.25;
+    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Permanently adds +0.5 nutrient uptake and expands nutrient storage. Connected allies also gain lasting growth support and become warmer toward you.', baseCost: { sunlight: 2, water: 1, nutrients: 4 }, effect: s => {
+      s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 0.5;
       for (const neighbor of s.neighbors || []) {
         if (neighbor.dead || getRelationshipState(neighbor.relation).name !== 'Ally') continue;
-        neighbor.rhizosphereBonus = (neighbor.rhizosphereBonus || 0) + 0.25;
+        neighbor.rhizosphereBonus = (neighbor.rhizosphereBonus || 0) + 0.5;
         neighbor.relation = Math.min(100, neighbor.relation + 3);
         neighbor.growthAidReceived = (neighbor.growthAidReceived || 0) + 1;
         if (neighbor.firstAidStageScore == null) neighbor.firstAidStageScore = neighbor.stageScore;

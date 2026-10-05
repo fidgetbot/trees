@@ -16,7 +16,7 @@ import {
   getAdjustedRelationshipDelta,
   getPollinatorChance,
   getDroughtResistance,
-} from './core/species.js?rev=ally-reciprocity-v1';
+} from './core/species.js?rev=resource-balance-v1';
 import {
   computeCurrentLifeStage as computeCurrentLifeStageFromState,
   turnsForYears,
@@ -25,7 +25,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=shared-rhizosphere-v1';
+import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=resource-balance-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -62,14 +62,14 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=offspring-support-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=stage-aware-guidance-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=resource-balance-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=condensed-turn-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=shade-nutrients-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
 import { renderForestScene } from './ui/canvas.js?rev=forest-cycle-v1';

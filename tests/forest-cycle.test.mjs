@@ -109,6 +109,16 @@ test('requesting help always costs exactly one nutrient', () => {
   assert.deepEqual(getSpeciesAdjustedCost({ selectedSpecies: 'Plum' }, 'requestHelp', { nutrients: 1 }, stage), { sunlight: 0, water: 0, nutrients: 1 });
 });
 
+test('late-stage actions shift costs from scarce nutrients toward sunlight and water', () => {
+  const baseCost = { sunlight: 4, water: 2, nutrients: 3 };
+  const sapling = getSpeciesAdjustedCost({ selectedSpecies: 'Plum' }, 'canopy', baseCost, LIFE_STAGES[3]);
+  const mature = getSpeciesAdjustedCost({ selectedSpecies: 'Plum' }, 'canopy', baseCost, LIFE_STAGES[5]);
+  assert.deepEqual(sapling, { sunlight: 12, water: 6, nutrients: 9 });
+  assert.ok(mature.sunlight > 20);
+  assert.ok(mature.water > 10);
+  assert.ok(mature.nutrients < 15);
+});
+
 test('dead trees become stumps after four turns and new seedlings three turns later', () => {
   const neighbor = { species: 'Pear', dead: true, deathAge: 0, maxHealth: 10 };
   for (let turn = 1; turn <= 3; turn += 1) assert.equal(advanceNeighborDeathCycle(neighbor, { speciesNames: ['Plum'], seedlingThreshold: 300, random: () => 0 }).phase, 'dead-tree');

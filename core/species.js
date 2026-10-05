@@ -62,10 +62,13 @@ export function getStageProgressIncrement(state) {
 export function getSpeciesAdjustedCost(state, actionKey, baseCost, currentStage) {
   if (actionKey === 'requestHelp') return { sunlight: 0, water: 0, nutrients: 1 };
   const multiplier = Math.max(1, currentStage.rank);
+  const sunlightFactor = currentStage.rank >= 5 ? 1.15 : currentStage.rank >= 4 ? 1.05 : 1;
+  const waterFactor = currentStage.rank >= 5 ? 1.15 : currentStage.rank >= 4 ? 1.05 : 1;
+  const nutrientFactor = currentStage.rank >= 5 ? 0.85 : currentStage.rank >= 4 ? 0.9 : 1;
   const cost = {
-    sunlight: Math.floor((baseCost.sunlight || 0) * multiplier),
-    water: Math.floor((baseCost.water || 0) * multiplier),
-    nutrients: Math.floor((baseCost.nutrients || 0) * multiplier),
+    sunlight: Math.floor((baseCost.sunlight || 0) * multiplier * sunlightFactor),
+    water: Math.floor((baseCost.water || 0) * multiplier * waterFactor),
+    nutrients: Math.floor((baseCost.nutrients || 0) * multiplier * nutrientFactor),
   };
 
   if (state.selectedSpecies === 'Apricot' && ['flower', 'massFlower', 'mastYear'].includes(actionKey)) {

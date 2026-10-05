@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createEngine } from '../core/engine.js';
+import { createEngine, diminishingStructureYield, getResourceCapacities, getResourceMaintenance } from '../core/engine.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { applyAggressionToNeighbor, applyRelationshipDelta, buildAggressionDecision, buildAidDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { getCanopyArrangement } from '../ui/canvas.js';
@@ -112,9 +112,9 @@ test('enriching the rhizosphere permanently supports connected allies and warms 
   const neutral = { relation: 0, dead: false, stageScore: 600 };
   const state = { eventModifiers: { soilBonus: 0 }, neighbors: [ally, neutral] };
   actions.find(action => action.key === 'rhizosphere').effect(state);
-  assert.equal(state.eventModifiers.soilBonus, 0.25);
-  assert.equal(ally.rhizosphereBonus, 0.25);
-  assert.equal(neighborRhizosphereGrowthBonus(ally), 1);
+  assert.equal(state.eventModifiers.soilBonus, 0.5);
+  assert.equal(ally.rhizosphereBonus, 0.5);
+  assert.equal(neighborRhizosphereGrowthBonus(ally), 2);
   assert.equal(ally.relation, 73);
   assert.equal(ally.growthAidReceived, 1);
   assert.equal(ally.firstAidStageScore, 600);
@@ -382,7 +382,7 @@ test('gathering summary separates bonuses and penalties into readable factors', 
   assert.doesNotMatch(summary, /roots .*including taproot.*allies .*canopy advantage/i);
 });
 
-test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {
+test('winter dormancy blocks leaf growth and reduces upkeep across resources', () => {
   const winterEngine = createEngine({
     SEASONS: [{ name: 'Winter', factorSun: 0.2, factorWater: 0.4 }],
     updateUI() {},
@@ -393,7 +393,10 @@ test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {
   const state = gatheringState({ branches: 6, leafClusters: 12, trunk: 6, rootZones: 8 });
   const gains = winterEngine.collectResources(state);
   assert.equal(gains.maintenanceCost, Math.floor(gains.baseMaintenanceCost / 2));
-  assert.equal(gains.dormancySavings, gains.baseMaintenanceCost - gains.maintenanceCost);
+  assert.ok(gains.maintenance.sunlight < gains.maintenance.base.sunlight);
+  assert.ok(gains.maintenance.water < gains.maintenance.base.water);
+  assert.equal(gains.dormancySavings, Object.values(gains.maintenance.base).reduce((sum, value) => sum + value, 0)
+    - Object.values(gains.maintenance).filter(value => typeof value === 'number').reduce((sum, value) => sum + value, 0));
 
   const growLeaves = createActions({
     resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
@@ -413,6 +416,47 @@ test('winter dormancy blocks leaf growth and halves nutrient upkeep', () => {
   assert.equal(availability.usable, false);
   assert.match(availability.reason, /winter dormancy/i);
   assert.match(availability.reason, /spring/i);
+});
+
+test('late trees pay upkeep in all resources without early-stage maintenance', () => {
+  const early = getResourceMaintenance({ lifeStage: LIFE_STAGES[2], trunk: 2, branches: 2, leafClusters: 5 }, 'Spring');
+  const late = getResourceMaintenance({ lifeStage: LIFE_STAGES[5], trunk: 8, branches: 12, leafClusters: 24, canopySpread: 5, flowers: 4, developing: 3 }, 'Summer');
+  assert.equal(early.sunlight, 0);
+  assert.equal(early.water, 0);
+  assert.ok(late.sunlight > 0);
+  assert.ok(late.water > 0);
+  assert.ok(late.nutrients > 0);
+});
+
+test('resource storage is finite and grows with biological investment', () => {
+  const young = getResourceCapacities({ lifeStage: LIFE_STAGES[2], trunk: 2, branches: 2, rootZones: 3, taprootDepth: 0, eventModifiers: { soilBonus: 0 } });
+  const established = getResourceCapacities({ lifeStage: LIFE_STAGES[5], trunk: 8, branches: 10, rootZones: 12, taprootDepth: 4, eventModifiers: { soilBonus: 2 } });
+  assert.ok(established.sunlight > young.sunlight);
+  assert.ok(established.water > young.water);
+  assert.ok(established.nutrients > young.nutrients);
+  const state = gatheringState({ lifeStage: LIFE_STAGES[5], sunlight: 999, water: 999, nutrients: 999 });
+  const gains = engine().collectResources(state);
+  assert.equal(state.sunlight, gains.capacities.sunlight);
+  assert.equal(state.water, gains.capacities.water);
+  assert.equal(state.nutrients, gains.capacities.nutrients);
+  assert.ok(gains.overflow.sunlight > 0);
+  assert.match(renderResourcePhaseBody({ state, gains }), /Stored \d+\/\d+/);
+  assert.match(renderResourcePhaseBody({ state, gains }), /returned to the grove/);
+});
+
+test('an empty reserve limits spending without directly harming the tree', () => {
+  const state = gatheringState({ lifeStage: LIFE_STAGES[5], sunlight: 0, water: 0, nutrients: 0, health: 7, leafClusters: 30, branches: 20 });
+  engine().collectResources(state);
+  assert.equal(state.health, 7);
+  assert.ok(state.sunlight >= 0);
+  assert.ok(state.water >= 0);
+  assert.ok(state.nutrients >= 0);
+});
+
+test('large crowns and root systems have diminishing gathering returns', () => {
+  assert.equal(diminishingStructureYield(8), 8);
+  assert.equal(diminishingStructureYield(20), 14);
+  assert.equal(diminishingStructureYield(30), 16);
 });
 
 test('stage-time growth requirements name the current stage and show exact progress', () => {

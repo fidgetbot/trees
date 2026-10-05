@@ -10,6 +10,10 @@ export function renderResourcePhaseBody({ state, gains }) {
   const seasonalFactor = (kind, value) => factor(`${gains.season.name} ${kind} ×${number(value)}`, value > 1 ? 'positive' : value < 1 ? 'negative' : 'neutral');
   const diseaseFactor = state.eventModifiers?.disease ?? 1;
   const droughtFactor = state.eventModifiers?.drought ?? 1;
+  const maintenance = gains.maintenance || { sunlight: 0, water: 0, nutrients: gains.maintenanceCost || 0 };
+  const capacities = gains.capacities || { sunlight: state.sunlight, water: state.water, nutrients: state.nutrients };
+  const overflow = gains.overflow || { sunlight: 0, water: 0, nutrients: 0 };
+  const storage = (kind, label) => `${factor(`Stored ${number(state[kind])}/${number(capacities[kind])}`)}${overflow[kind] ? factor(`${number(overflow[kind])} excess ${label} returned to the grove`, 'negative') : ''}`;
 
   const comparison = (kind, delta, neutral, causes) => {
     const activeCauses = causes.filter(Boolean).join(' · ');
@@ -23,7 +27,7 @@ export function renderResourcePhaseBody({ state, gains }) {
     Spring: 'Spring rains awaken the soil. Buds swell with potential.',
     Summer: 'The sun climbs high. Your leaves drink in the long light.',
     Autumn: 'The air cools. You prepare for the coming dormancy.',
-    Winter: `The world sleeps. New leaves wait for spring, while dormancy saves ${gains.dormancySavings || 0} nutrient${gains.dormancySavings === 1 ? '' : 's'} of upkeep.`,
+    Winter: `The world sleeps. New leaves wait for spring, while dormancy saves ${gains.dormancySavings || 0} resource unit${gains.dormancySavings === 1 ? '' : 's'} of upkeep.`,
   };
 
   return `
@@ -41,6 +45,8 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${seasonalFactor('light', season.factorSun)}
           ${exposure < 100 ? factor(`Crowding: leaves ${exposure}% exposed · ${Math.max(0,4-(state.trunk||0))*8}% from thin trunk${relations.crowdingNeighbors ? ` · ${relations.crowdingNeighbors*12}% from neighboring shade` : ''}`, 'negative') : factor('Full light exposure')}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
+          ${maintenance.sunlight ? factor(`Respiration −${number(maintenance.sunlight)}`, 'negative') : ''}
+          ${storage('sunlight', 'stored energy')}
         </span>
         ${comparison('sunlight', deltas.sunlight, baseline.sunlight, [relations.shadedNeighbors ? `you shade ${relations.shadedNeighbors} neighbor${relations.shadedNeighbors === 1 ? '' : 's'}` : '', relations.crowdingNeighbors ? `${relations.crowdingNeighbors} neighbor${relations.crowdingNeighbors === 1 ? '' : 's'} crowd you` : ''])}
       </div>
@@ -50,13 +56,15 @@ export function renderResourcePhaseBody({ state, gains }) {
         <span class="res-value">+${gains.waterGain}</span>
         <span class="resource-factors">
           ${factor(`Trunk storage ${state.trunk}`)}
-          ${state.rootZones ? factor(`Root support +${Math.floor(state.rootZones / 2)}`, 'positive') : ''}
+          ${state.rootZones ? factor(`Root support +${Math.floor((gains.effectiveRoots ?? state.rootZones) / 2)}`, 'positive') : ''}
           ${gains.taprootBonus ? factor(`Taproot +${number(gains.taprootBonus)}`, 'positive') : ''}
           ${gains.allyWater ? factor(`Allies +${number(gains.allyWater)}`, 'positive') : ''}
           ${gains.hostileWaterPenalty ? factor(`Hostile roots −${number(gains.hostileWaterPenalty)}`, 'negative') : ''}
           ${seasonalFactor('water', season.factorWater)}
           ${droughtFactor < 1 ? factor(`Drought ×${number(droughtFactor)}`, 'negative') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
+          ${maintenance.water ? factor(`Transpiration −${number(maintenance.water)}`, 'negative') : ''}
+          ${storage('water', 'water')}
         </span>
         ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · larger allies share more` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
       </div>
@@ -65,15 +73,16 @@ export function renderResourcePhaseBody({ state, gains }) {
         <span class="res-name">Nutrients</span>
         <span class="res-value">+${gains.nutrientGain}</span>
         <span class="resource-factors">
-          ${factor(`Roots +${number((state.rootZones || 0) * 0.7)}`, 'positive')}
+          ${factor(`Roots +${number(((gains.effectiveRoots ?? state.rootZones) || 0) * 0.7)}`, 'positive')}
           ${gains.taprootNutrients ? factor(`Taproot +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
           ${gains.shadeNutrientBonus ? factor(`Shading +${number(gains.shadeNutrientBonus)}`, 'positive') : ''}
           ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
-          ${gains.maintenanceCost ? factor(`Upkeep −${number(gains.maintenanceCost)}`, 'negative') : ''}
+          ${maintenance.nutrients ? factor(`Tissue upkeep −${number(maintenance.nutrients)}`, 'negative') : ''}
           ${gains.dormancySavings ? factor(`Dormancy saved ${number(gains.dormancySavings)}`, 'positive') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
+          ${storage('nutrients', 'nutrients')}
         </span>
         ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
       </div>

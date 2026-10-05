@@ -92,20 +92,22 @@ When the player is close to growth, the game can surface flavor nudges indicatin
 
 ### Resources
 
-Resources persist between turns and represent stored biological capital.
+Resources persist between turns and represent stored biological capital. Storage is finite and grows through biological investment rather than allowing unlimited late-game stockpiles: trunk and branches expand stored-energy capacity, trunk/roots/taproots expand water capacity, and roots/rhizosphere enrichment expand nutrient capacity. Collection beyond capacity returns to the grove and is reported in the gathering summary.
 
 #### Sunlight
-Generated primarily from leaves and canopy exposure, modified by season and competition.
+Generated primarily from leaves and canopy exposure, modified by season and competition. Saplings and larger trees spend a portion of stored energy on respiration each turn; winter dormancy reduces that demand.
 
 #### Water
-Generated from trunk storage, roots, taproot depth, and connected allies, modified by season and drought pressure. An ordinary root improves water storage and nutrient gathering; a taproot adds an ordinary root zone plus extra deep-water and nutrient access.
+Generated from trunk storage, roots, taproot depth, and connected allies, modified by season and drought pressure. An ordinary root improves water storage and nutrient gathering; a taproot adds an ordinary root zone plus extra deep-water and nutrient access. Established crowns also spend water through transpiration, especially in Summer, while dormancy sharply reduces that demand.
 
 #### Nutrients
-Generated from roots, taproots, fungal/allied support, and soil quality, reduced by upkeep and adverse conditions. Canopy competition affects sunlight rather than nutrients.
+Generated from roots, taproots, fungal/allied support, and soil quality, reduced by tissue upkeep and adverse conditions. Directional shading also claims one nutrient per turn from the contested soil beneath the shaded neighbor.
 
-The current implementation intentionally treats nutrients as a meaningful limiting resource, especially for later-stage trees.
+The economy is designed to keep every resource strategically relevant without making a well-managed tree die solely because one reserve briefly reaches zero. A shortage restricts affordable actions and triggers escalating, stage-aware guidance; it does not directly damage health. Later-stage upkeep is distributed across sunlight, water, and nutrients rather than falling almost entirely on nutrients.
 
-Enrich Rhizosphere is a repeatable shared-soil investment. Each use permanently increases the player's soil nutrient bonus; allies connected at the time also gain a small permanent growth bonus, receive support credit, and grow warmer toward the player.
+Enrich Rhizosphere is a repeatable shared-soil investment. Each use permanently adds 0.5 to the player's nutrient uptake, expands nutrient storage, and gives allies connected at the time a permanent growth bonus, support credit, and greater warmth toward the player.
+
+Leaves, canopy spread, roots, and taproots provide full gathering value for their early investments, then diminishing marginal returns as those structures become extensive. This preserves meaningful growth while preventing very large crowns and root systems from producing effectively unlimited resources.
 
 Season directly modifies gathering: Spring produces 100% normal sunlight and 100% water, Summer 120% sunlight and 60% water, Autumn 60% sunlight and 80% water, and Winter 20% sunlight and 40% water. Nutrients have no direct seasonal multiplier. A compact expandable guide beneath Resources exposes these values and highlights the current season. A seed that ends its first turn before extending a root gathers nothing that night and receives a botanical prompt to begin growing. Repeated gathering of one or fewer units of a resource produces a gentle structural-growth suggestion after three turns and a stronger warning after six.
 
@@ -115,7 +117,7 @@ Season directly modifies gathering: Spring produces 100% normal sunlight and 100
 - High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; the gathering summary reports the exact number earned
 - Actions spend combinations of sunlight, water, and nutrients
 - Multi-step actions remain pending until the player confirms a final target or investment; backing out, declining confirmation, or losing every valid target spends no resources and no action
-- Costs scale upward by life stage so later growth and defense decisions remain meaningful
+- Costs scale upward by life stage so later growth and defense decisions remain meaningful. Mature and Ancient costs shift modestly toward sunlight and water and away from nutrients, turning late-game surplus into useful growth rather than deepening a single nutrient bottleneck
 - If the player cannot afford any currently available action, the browser UI keeps the end-turn path available instead of auto-advancing immediately
 - When a chemical-defense threat appears and the player cannot afford the response, the UI now presents a single acknowledgement button that explicitly shows the missing resources instead of offering a misleading unusable defend option
 
@@ -167,7 +169,7 @@ Current browser HUD behavior:
 - canopy pressure is rechecked whenever either tree grows: an equal-height tree can no longer be shaded, a rival that overtops the player reverses the arrangement and begins crowding, and a player who catches up escapes incoming shade; the player receives a clear notice naming Grow Taller and diplomacy as responses
 - beginning at Seedling, each event phase has a small chance for an adjacent neutral or rival tree to turn hostile and attempt to lean into the player's canopy; it establishes persistent crowding only when it is strictly taller, while a shorter hostile tree merely warns of the attempt; successful diplomacy returns it to Neutral and clears canopy pressure
 - connected living neighbor allies contribute both water and nutrients each turn and strengthen a Mycorrhizal Bloom; their contribution scales with their life stage, so a large allied tree shares more than a seed or sapling; offspring do not receive or grant these ally-only bonuses; the gathering summary compares each gain against a neutral-grove baseline and names positive allied/canopy effects or negative crowding effects
-- the gathering summary presents its arithmetic as compact color-coded factors: structural baselines in gray, bonuses such as canopy, height, taproot, allies, soil, and dormancy in green, and penalties such as poor seasons, crowding, drought, disease, and upkeep in red. Leaf exposure explicitly reports the 8-point penalty for each trunk level below four and the 12-point penalty for each tree actively crowding the player
+- the gathering summary presents its arithmetic as compact color-coded factors: structural baselines and current storage/capacity in gray, bonuses such as canopy, height, taproot, allies, soil, and dormancy in green, and penalties such as poor seasons, crowding, drought, disease, respiration, transpiration, tissue upkeep, and overflow in red. Leaf exposure explicitly reports the 8-point penalty for each trunk level below four and the 12-point penalty for each tree actively crowding the player
 - the initial grove places the player and the immediately adjacent left/right neighbors at Seed stage; only the two outer trees begin established, allowing the three central trees to grow together
 - pending human survey or cutting encounters remain visible on the Canvas as people at the player's trunk; painted marks and accumulated cutting scars persist visually, while thorns and toxic foliage are reflected in the player tree's art
 - Winter adds visible snow to the Canvas and mixes snow, icicle melt, and rain into precipitation messages; heavy accumulation has a rare chance to break a branch on Sapling-or-larger trees
@@ -178,7 +180,7 @@ Some actions are season-locked to reflect tree biology.
 
 Current notable lock:
 - flowering actions are **Spring-only**
-- **Grow Leaf** is unavailable during Winter dormancy and returns in Spring; dormancy compensates by halving nutrient upkeep during Winter
+- **Grow Leaf** is unavailable during Winter dormancy and returns in Spring; dormancy compensates by reducing sunlight, water, and nutrient upkeep during Winter
 
 Most other actions remain broadly available year-round once unlocked by stage.
 

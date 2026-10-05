@@ -4,6 +4,42 @@ import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHA
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
 
+export function diminishingStructureYield(value, fullYield = 8, reducedYield = 12) {
+  const amount = Math.max(0, Number(value) || 0);
+  const full = Math.min(amount, fullYield);
+  const reduced = Math.min(Math.max(0, amount - fullYield), reducedYield) * 0.5;
+  const mature = Math.max(0, amount - fullYield - reducedYield) * 0.2;
+  return full + reduced + mature;
+}
+
+export function getResourceCapacities(state) {
+  const rank = state.lifeStage?.rank ?? 3;
+  return {
+    sunlight: Math.floor(20 + (rank * 10) + (Math.min(state.trunk || 0, 10) * 3) + (Math.min(state.branches || 0, 12) * 3)),
+    water: Math.floor(16 + (rank * 7) + (Math.min(state.trunk || 0, 10) * 3) + (Math.min(state.rootZones || 0, 16) * 2) + (Math.min(state.taprootDepth || 0, 8) * 4)),
+    nutrients: Math.floor(12 + (rank * 5) + (Math.min(state.rootZones || 0, 16) * 1.5) + (Math.min(state.eventModifiers?.soilBonus || 0, 5) * 5)),
+  };
+}
+
+export function getResourceMaintenance(state, seasonName) {
+  const rank = state.lifeStage?.rank ?? 3;
+  const crown = (state.trunk || 0) + (state.branches || 0) + (state.leafClusters || 0) + ((state.canopySpread || 0) * 2);
+  const transpiringTissue = (state.leafClusters || 0) + (state.flowers || 0) + (state.developing || 0) + (state.seeds || 0) + ((state.canopySpread || 0) * 2);
+  const livingTissue = crown + (state.flowers || 0) + (state.developing || 0) + (state.seeds || 0);
+  const sunlightBase = rank < 3 ? 0 : Math.floor(crown / (rank >= 4 ? 18 : 20));
+  const waterBase = rank < 3 ? 0 : Math.floor(transpiringTissue / 11);
+  const nutrientBase = Math.floor(livingTissue / 9);
+  const sunlightFactor = seasonName === 'Winter' ? 0.5 : 1;
+  const waterFactor = seasonName === 'Summer' ? 1.25 : seasonName === 'Winter' ? 0.25 : seasonName === 'Autumn' ? 0.75 : 1;
+  const nutrientFactor = seasonName === 'Winter' ? 0.5 : 1;
+  return {
+    sunlight: Math.floor(sunlightBase * sunlightFactor),
+    water: Math.floor(waterBase * waterFactor),
+    nutrients: Math.floor(nutrientBase * nutrientFactor),
+    base: { sunlight: sunlightBase, water: waterBase, nutrients: nutrientBase },
+  };
+}
+
 export function actionsForGathering(totalGathered) {
   const bonusActions = Math.min(
     MAX_BONUS_ACTIONS_PER_TURN,
@@ -135,41 +171,57 @@ export function createEngine(deps) {
   function collectResources(state) {
     const season = currentSeason(state);
     const relations = groveRelations(state);
-    const canopyBonus = state.canopySpread * 2;
-    const taprootBonus = state.taprootDepth * 2;
+    const effectiveLeaves = diminishingStructureYield(state.leafClusters);
+    const effectiveCanopy = diminishingStructureYield(state.canopySpread, 4, 4);
+    const effectiveRoots = diminishingStructureYield(state.rootZones);
+    const effectiveTaproot = diminishingStructureYield(state.taprootDepth, 6, 4);
+    const canopyBonus = effectiveCanopy * 2;
+    const taprootBonus = effectiveTaproot * 2;
     const canopyAdvantage = relations.shadedNeighbors ? SHADE_SUNLIGHT_BONUS : 0;
     const shadeNutrientBonus = relations.shadedNeighbors ? SHADE_NUTRIENT_BONUS : 0;
     const heightSunlightBonus = Math.max(0, state.heightGrowth || 0);
-    const sunlightBase = state.leafClusters + canopyBonus + heightSunlightBonus;
+    const sunlightBase = effectiveLeaves + canopyBonus + heightSunlightBonus;
     const neutralSunlightBase = sunlightBase;
     const crowdedSunlightGain = Math.max(1, Math.floor(sunlightBase * exposureFactor(state, relations.crowdingNeighbors) * season.factorSun * state.eventModifiers.disease));
     const sunlightGain = Math.max(1, crowdedSunlightGain + canopyAdvantage);
     const neutralSunlightGain = Math.max(1, Math.floor(neutralSunlightBase * exposureFactor(state, 0) * season.factorSun * state.eventModifiers.disease));
     const allyWater = relations.connectedAllyStrength * 0.35;
     const hostileWaterPenalty = Math.min(2, relations.hostileNeighbors);
-    const waterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus + allyWater);
-    const neutralWaterStorage = Math.max(1, state.trunk + Math.floor(state.rootZones / 2) + taprootBonus);
+    const waterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus + allyWater);
+    const neutralWaterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus);
     const unpressuredWaterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
     const waterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty);
     const neutralWaterGain = Math.max(1, Math.floor(neutralWaterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
 
-    const taprootNutrients = state.taprootDepth * 0.35;
-    const rootNutrients = (state.rootZones * 0.7) + taprootNutrients;
+    const taprootNutrients = effectiveTaproot * 0.5;
+    const rootNutrients = (effectiveRoots * 0.7) + taprootNutrients;
     const allyNutrients = Math.min(5, relations.connectedAllyStrength);
     const rootCompetitionPenalty = Math.min(3, relations.rivalNeighbors + relations.hostileNeighbors);
     const soilBonus = state.eventModifiers.soilBonus || 0;
-    const baseMaintenanceCost = Math.floor((state.trunk + state.leafClusters + state.branches + state.flowers + state.developing + state.seeds) / 6);
-    const maintenanceCost = season.name === 'Winter' ? Math.floor(baseMaintenanceCost / 2) : baseMaintenanceCost;
-    const dormancySavings = baseMaintenanceCost - maintenanceCost;
+    const maintenance = getResourceMaintenance(state, season.name);
+    const baseMaintenanceCost = maintenance.base.nutrients;
+    const maintenanceCost = maintenance.nutrients;
+    const dormancySavings = Object.values(maintenance.base).reduce((sum, value) => sum + value, 0)
+      - (maintenance.sunlight + maintenance.water + maintenance.nutrients);
     const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
-    const unpressuredNutrientGain = Math.max(1, grossNutrients - maintenanceCost);
-    const nutrientGain = Math.max(0, unpressuredNutrientGain - rootCompetitionPenalty) + shadeNutrientBonus;
-    const neutralNutrientGain = Math.max(1, neutralGrossNutrients - maintenanceCost);
-
-    state.sunlight += sunlightGain;
-    state.water += waterGain;
-    state.nutrients += nutrientGain;
+    const nutrientGain = Math.max(0, grossNutrients - rootCompetitionPenalty) + shadeNutrientBonus;
+    const neutralNutrientGain = neutralGrossNutrients;
+    const capacities = getResourceCapacities(state);
+    const previous = { sunlight: state.sunlight || 0, water: state.water || 0, nutrients: state.nutrients || 0 };
+    const beforeCapacity = {
+      sunlight: Math.max(0, previous.sunlight + sunlightGain - maintenance.sunlight),
+      water: Math.max(0, previous.water + waterGain - maintenance.water),
+      nutrients: Math.max(0, previous.nutrients + nutrientGain - maintenance.nutrients),
+    };
+    const overflow = {
+      sunlight: Math.max(0, beforeCapacity.sunlight - capacities.sunlight),
+      water: Math.max(0, beforeCapacity.water - capacities.water),
+      nutrients: Math.max(0, beforeCapacity.nutrients - capacities.nutrients),
+    };
+    state.sunlight = Math.min(capacities.sunlight, beforeCapacity.sunlight);
+    state.water = Math.min(capacities.water, beforeCapacity.water);
+    state.nutrients = Math.min(capacities.nutrients, beforeCapacity.nutrients);
     state.actions = actionsForGathering(sunlightGain + waterGain + nutrientGain);
 
     return {
@@ -181,6 +233,10 @@ export function createEngine(deps) {
       heightSunlightBonus,
       taprootBonus,
       sunlightBase,
+      effectiveLeaves,
+      effectiveCanopy,
+      effectiveRoots,
+      effectiveTaproot,
       rootNutrients,
       taprootNutrients,
       allyNutrients,
@@ -192,6 +248,14 @@ export function createEngine(deps) {
       soilBonus,
       maintenanceCost,
       baseMaintenanceCost,
+      maintenance,
+      capacities,
+      overflow,
+      storedDelta: {
+        sunlight: state.sunlight - previous.sunlight,
+        water: state.water - previous.water,
+        nutrients: state.nutrients - previous.nutrients,
+      },
       dormancySavings,
       grossNutrients,
       exposure: exposureFactor(state, relations.crowdingNeighbors),
@@ -217,7 +281,9 @@ export function createEngine(deps) {
     } = hooks;
 
     const gains = collectResources(state);
-    addLog?.(`Gathered +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.`);
+    const upkeep = gains.maintenance.sunlight + gains.maintenance.water + gains.maintenance.nutrients;
+    const returned = gains.overflow.sunlight + gains.overflow.water + gains.overflow.nutrients;
+    addLog?.(`Gathered +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.${upkeep ? ` Living tissue used ${upkeep} in upkeep.` : ''}${returned ? ` ${returned} beyond your storage capacity returned to the grove.` : ''}`);
     updateUI();
     render();
     presentResources?.(gains);
