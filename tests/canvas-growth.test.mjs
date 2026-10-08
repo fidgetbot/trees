@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -41,6 +41,16 @@ test('flowers appear only after the player produces them in Spring', () => {
   assert.equal(shouldDrawPlayerBlossoms({ flowers: 0 }, 'Spring'), false);
   assert.equal(shouldDrawPlayerBlossoms({ flowers: 1 }, 'Spring'), true);
   assert.equal(shouldDrawPlayerBlossoms({ flowers: 2 }, 'Summer'), false);
+});
+
+test('painted botanical module counts remain sparse and follow game state', () => {
+  assert.equal(getBotanicalModuleCount('foliage', 0, 20), 0);
+  assert.equal(getBotanicalModuleCount('foliage', 4, 20), 4);
+  assert.equal(getBotanicalModuleCount('blossoms', 1, 20), 1);
+  assert.equal(getBotanicalModuleCount('blossoms', 5, 20), 3);
+  assert.equal(getBotanicalModuleCount('fruit', 1, 20), 1);
+  assert.equal(getBotanicalModuleCount('fruit', 9, 20), 3);
+  assert.equal(getBotanicalModuleCount('fruit', 100, 4), 4);
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {
