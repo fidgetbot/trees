@@ -275,7 +275,7 @@ Non-fruiting trees such as oak or redwood are intentionally deferred for later, 
 
 The current codebase includes:
 - the full seasonal resource → action → event loop, with the opening turn ready for inspection and play without a forced resource-summary modal
-- persistent, species-shaped Canvas trees with connected curved branches and tapered branching root systems; Plum now layers deterministic transparent botanical-watercolor modules for airy foliage, spring blossoms, and summer fruit while preserving gameplay-driven growth, autumn color, shading, and bare winter silhouettes
+- persistent, species-shaped Canvas trees with connected curved branches and tapered branching root systems; Plum now layers stable-seeded transparent botanical-watercolor variants for airy foliage, spring blossoms, and summer fruit while preserving gameplay-driven growth, autumn color, shading, and bare winter silhouettes
 - automatic life-stage progression
 - six playable fruit-tree species
 - a rebalanced pear profile that no longer starts with an extra trunk and no longer sits above the roster as the default strongest survival pick
@@ -301,7 +301,7 @@ The current codebase includes:
 
 The current build still simplifies several systems:
 - flowering is season-locked, but most other actions are still available year-round
-- the approved painted botanical module kit currently covers Plum; the other five species retain their procedural foliage, blossom, and fruit rendering until species-specific assets are approved
+- the approved painted botanical module kit currently gives Plum four foliage clusters, three blossom sprays, and three fruit clusters; stable tree-and-placement seeds retain each selection across redraws and seasons, while the other five species keep their procedural foliage, blossom, and fruit rendering until species-specific assets are approved
 - living offspring persist individually for growth, nurture, map display, and victory qualification, but player death ends the run rather than transferring control
 - neighbors are persistent and meaningful, but not fully mirrored player-equivalents
 - some diplomacy/interaction-heavy flows still use simplified handling in headless simulation

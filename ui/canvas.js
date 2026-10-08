@@ -15,25 +15,45 @@ const SEED_PALETTES = {
   Plum:['#d2a064','#7b4930','#4a2e25'], Peach:['#d9aa72','#925d3d','#55362a'], Apricot:['#d7a163','#8b5235','#513126'],
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
-const BOTANICAL_ASSET_REVISION='plum-botanical-v1';
+const BOTANICAL_ASSET_REVISION='plum-botanical-variants-v1';
 const BOTANICAL_ASSET_URLS=Object.freeze({
-  'Plum:foliage':new URL(`../assets/botanical/plum-foliage-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
-  'Plum:blossoms':new URL(`../assets/botanical/plum-blossoms-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
-  'Plum:fruit':new URL(`../assets/botanical/plum-fruit-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  'Plum:foliage':Object.freeze([
+    new URL(`../assets/botanical/plum-foliage-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-4.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
+  'Plum:blossoms':Object.freeze([
+    new URL(`../assets/botanical/plum-blossoms-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-blossoms-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-blossoms-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
+  'Plum:fruit':Object.freeze([
+    new URL(`../assets/botanical/plum-fruit-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-fruit-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-fruit-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
 });
 const botanicalAssets=new Map();
 let botanicalAssetLoadPromise=null;
 
-export function loadBotanicalAssets(){
+export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
   if(typeof Image==='undefined')return Promise.resolve(false);
-  botanicalAssetLoadPromise=Promise.all(Object.entries(BOTANICAL_ASSET_URLS).map(([key,url])=>new Promise(resolve=>{
+  const assets=Object.entries(BOTANICAL_ASSET_URLS).flatMap(([family,urls])=>urls.map((url,index)=>({family,index,url})));
+  botanicalAssetLoadPromise=Promise.all(assets.map(({family,index,url})=>new Promise(resolve=>{
     const image=new Image();image.decoding='async';
-    image.onload=()=>{botanicalAssets.set(key,image);resolve(true)};
+    image.onload=()=>{botanicalAssets.set(`${family}:${index}`,image);onAssetLoad?.({family,index,url});resolve(true)};
     image.onerror=()=>resolve(false);
     image.src=url;
   }))).then(results=>results.some(Boolean));
   return botanicalAssetLoadPromise;
+}
+
+export function getBotanicalVariantCount(species,kind){return BOTANICAL_ASSET_URLS[`${species}:${kind}`]?.length||0}
+export function getBotanicalVariantIndex(species,kind,treeSeed,placementIndex,variantCount=getBotanicalVariantCount(species,kind)){
+  if(variantCount<=0)return-1;
+  return hash(`${species}:${kind}:${treeSeed}:${placementIndex}`)%variantCount;
 }
 
 export function getBotanicalModuleCount(kind,count,clusterCount){
@@ -340,7 +360,14 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
 function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;ctx.lineWidth=p[0].width;stroke(ctx,p);ctx.strokeStyle=highlight;ctx.lineWidth=Math.max(.45,p[0].width*.13);ctx.save();ctx.translate(-p[0].width*.13,0);stroke(ctx,p);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
 function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
 
-function botanicalAsset(species,kind){return botanicalAssets.get(`${species}:${kind}`)||null}
+function botanicalAsset(species,kind,treeSeed,placementIndex){
+  const family=`${species}:${kind}`,variantCount=getBotanicalVariantCount(species,kind);
+  if(!variantCount)return null;
+  const selected=getBotanicalVariantIndex(species,kind,treeSeed,placementIndex,variantCount);
+  if(botanicalAssets.has(`${family}:${selected}`))return botanicalAssets.get(`${family}:${selected}`);
+  for(let index=0;index<variantCount;index+=1){if(botanicalAssets.has(`${family}:${index}`))return botanicalAssets.get(`${family}:${index}`)}
+  return null;
+}
 function botanicalEntries(tree,seed,kind,count){
   const limit=getBotanicalModuleCount(kind,count,tree.clusters.length);
   if(!limit)return[];
@@ -357,13 +384,13 @@ function paintedFoliageFilter(season,shaded){
   const seasonal=season==='Spring'?'brightness(1.08) saturate(.88)':season==='Autumn'?'sepia(.5) saturate(1.35) hue-rotate(342deg) brightness(.96)':'none';
   return shaded?`${seasonal==='none'?'':seasonal+' '}brightness(.58) saturate(.76)`:seasonal;
 }
-function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,image){
+function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species){
   const baseCount=tree.profile?.foliageClusters||0,count=baseCount>0?Math.ceil(baseCount*(player?1.65:1.5)):0;
-  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{if((cluster.z>.48)!==front)return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,6.1,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
+  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||(cluster.z>.48)!==front)return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,6.1,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
 }
 function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plum'){
   if(season==='Winter')return;
-  const painted=botanicalAsset(species,'foliage');if(painted){drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,painted);return}
+  const painted=botanicalAsset(species,'foliage',seed,0);if(painted){drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species);return}
   const colors=getFoliagePalette(season,shaded),ordered=player?[...tree.clusters].map((cluster,index)=>({cluster,index,priority:hash(`${seed}:leaf:${index}`)})).sort((a,b)=>a.priority-b.priority).slice(0,Math.min(tree.clusters.length,tree.profile?.foliageClusters||0)):tree.clusters.map((cluster,index)=>({cluster,index}));ordered.forEach(({cluster:c,index:k})=>{if((c.z>.48)!==front)return;const r=rng(seed+k*701+91),density=player?(tree.profile?.foliageDensity||0):14;for(let i=0;i<density;i++){const a=r()*TAU,d=Math.sqrt(r()),x=c.x+Math.cos(a)*d*c.size,y=c.y+Math.sin(a)*d*c.size*.72;ctx.fillStyle=colors[Math.floor(r()*colors.length)];ctx.globalAlpha=(shaded ? .84 : .72)+r()*(shaded ? .13 : .25);ctx.beginPath();ctx.ellipse(x,y,2.1+r()*2.5,1.2+r()*1.5,r()*Math.PI,0,TAU);ctx.fill()}});ctx.globalAlpha=1
 }
 export function getFoliagePalette(season,shaded=false){if(shaded){if(season==='Spring')return['#587653','#476746','#39573d','#668059','#304b37'];if(season==='Autumn')return['#87662c','#744827','#63372c','#917332','#51352d'];return['#506d49','#405f41','#334f3a','#5d7650','#294333']}if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
@@ -371,11 +398,11 @@ export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlig
 
 function drawBlossoms(ctx,tree,seed,count,species){
   if(count<=0||!tree.clusters.length)return;
-  const painted=botanicalAsset(species,'blossoms');if(painted){botanicalEntries(tree,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,painted,cluster,seed+index*887+1907,4.15,'none',.96));return}
+  const painted=botanicalAsset(species,'blossoms',seed,0);if(painted){botanicalEntries(tree,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));return}
   const r=rng(seed+1907),total=Math.min(78,7+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.72,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=1.8+r()*2.1,open=.3+r()*.7;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);ctx.shadowColor='rgba(255,236,224,.92)';ctx.shadowBlur=2.2;if(open<.4){ctx.fillStyle='#cf718b';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fffaf0':'#e99aac';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#9d6227';ctx.beginPath();ctx.arc(0,0,size*.36,0,TAU);ctx.fill()}ctx.restore()}
 }
 function drawFruit(ctx,tree,seed,count,species){
-  const painted=botanicalAsset(species,'fruit');if(painted){botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,painted,cluster,seed+index*991+2701,2.75,'none',.97));return}
+  const painted=botanicalAsset(species,'fruit',seed,0);if(painted){botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97));return}
   const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}
 }
 

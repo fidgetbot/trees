@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getBotanicalModuleCount, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -51,6 +51,42 @@ test('painted botanical module counts remain sparse and follow game state', () =
   assert.equal(getBotanicalModuleCount('fruit', 1, 20), 1);
   assert.equal(getBotanicalModuleCount('fruit', 9, 20), 3);
   assert.equal(getBotanicalModuleCount('fruit', 100, 4), 4);
+});
+
+test('Plum botanical families expose every approved source variant', () => {
+  assert.equal(getBotanicalVariantCount('Plum', 'foliage'), 4);
+  assert.equal(getBotanicalVariantCount('Plum', 'blossoms'), 3);
+  assert.equal(getBotanicalVariantCount('Plum', 'fruit'), 3);
+  assert.equal(getBotanicalVariantCount('Peach', 'foliage'), 0);
+});
+
+test('botanical variant selection is stable per tree and placement', () => {
+  const selections = Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex('Plum', 'foliage', 7319, placement));
+  assert.deepEqual(selections, Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex('Plum', 'foliage', 7319, placement)));
+  assert.ok(selections.every(index => index >= 0 && index < 4));
+  assert.ok(new Set(selections).size > 1);
+  assert.equal(getBotanicalVariantIndex('Peach', 'foliage', 7319, 0), -1);
+});
+
+test('botanical assets report each successful load without one failure suppressing the family', async () => {
+  const originalImage = globalThis.Image;
+  class MockImage {
+    set src(value) {
+      queueMicrotask(() => value.includes('plum-fruit-variant-3.png') ? this.onerror() : this.onload());
+    }
+  }
+  globalThis.Image = MockImage;
+  try {
+    const isolated = await import(`../ui/canvas.js?asset-load-test=${Date.now()}`);
+    const loaded = [];
+    assert.equal(await isolated.loadBotanicalAssets(asset => loaded.push(asset)), true);
+    assert.equal(loaded.length, 9);
+    assert.ok(loaded.some(asset => asset.family === 'Plum:foliage' && asset.index === 3));
+    assert.ok(loaded.some(asset => asset.family === 'Plum:fruit' && asset.index === 1));
+  } finally {
+    if(originalImage===undefined)delete globalThis.Image;
+    else globalThis.Image=originalImage;
+  }
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {
