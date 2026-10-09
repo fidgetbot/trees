@@ -72,7 +72,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadBotanicalAssets, renderForestScene } from './ui/canvas.js?rev=plum-botanical-variants-v1';
+import { loadBotanicalAssets, renderForestScene } from './ui/canvas.js?rev=fruiting-botanical-library-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=condensed-turn-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=forest-cycle-v1';
 

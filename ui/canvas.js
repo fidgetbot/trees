@@ -15,8 +15,88 @@ const SEED_PALETTES = {
   Plum:['#d2a064','#7b4930','#4a2e25'], Peach:['#d9aa72','#925d3d','#55362a'], Apricot:['#d7a163','#8b5235','#513126'],
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
-const BOTANICAL_ASSET_REVISION='plum-botanical-variants-v1';
+const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const BOTANICAL_ASSET_URLS=Object.freeze({
+  'Citrus:foliage':Object.freeze([
+    new URL('../assets/botanical/citrus-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Citrus:blossoms':Object.freeze([
+    new URL('../assets/botanical/citrus-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Citrus:fruit':Object.freeze([
+    new URL('../assets/botanical/citrus-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:foliage':Object.freeze([
+    new URL('../assets/botanical/cherry-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:blossoms':Object.freeze([
+    new URL('../assets/botanical/cherry-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:fruit':Object.freeze([
+    new URL('../assets/botanical/cherry-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:foliage':Object.freeze([
+    new URL('../assets/botanical/pear-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:blossoms':Object.freeze([
+    new URL('../assets/botanical/pear-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:fruit':Object.freeze([
+    new URL('../assets/botanical/pear-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:foliage':Object.freeze([
+    new URL('../assets/botanical/apricot-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:blossoms':Object.freeze([
+    new URL('../assets/botanical/apricot-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:fruit':Object.freeze([
+    new URL('../assets/botanical/apricot-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Peach:foliage':Object.freeze([
+    new URL(`../assets/botanical/peach-foliage-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v4.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
+  'Peach:blossoms':Object.freeze([
+    new URL(`../assets/botanical/peach-blossoms-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-blossoms-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-blossoms-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
+  'Peach:fruit':Object.freeze([
+    new URL(`../assets/botanical/peach-fruit-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-fruit-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-fruit-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
   'Plum:foliage':Object.freeze([
     new URL(`../assets/botanical/plum-foliage-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
     new URL(`../assets/botanical/plum-foliage-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
@@ -343,21 +423,60 @@ export function getPlayerVisualProfile(state,stage=state.lifeStage?.name||'Seed'
 }
 
 function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpread=0,heightGrowth=0){
-  const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Sapling'?3:4,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
+  const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Ancient'?4:3,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
+  const botanicalAngle=angle=>Math.max(-Math.PI+.32,Math.min(-.32,angle));
   function limb(x,y,angle,length,width,remaining,turn=0,z=r()){
-    const bend=(r()-.5)*habit.bend,endAngle=angle+turn+bend,p0={x,y},p1={x:x+Math.cos(angle)*length*.38,y:y+Math.sin(angle)*length*.38},p3={x:x+Math.cos(angle+turn*.65+bend*.45)*length*habit.spread*profile.canopySpreadFactor,y:y+Math.sin(angle+turn*.65+bend*.45)*length},p2={x:p3.x-Math.cos(endAngle)*length*.32,y:p3.y-Math.sin(endAngle)*length*.32},points=[];
+    angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.68,endAngle=botanicalAngle(angle+turn+bend),travelAngle=botanicalAngle(angle+turn*.72+bend*.36),p0={x,y},p1={x:x+Math.cos(angle)*length*.38,y:y+Math.sin(angle)*length*.38},p3={x:x+Math.cos(travelAngle)*length*habit.spread*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.32,y:p3.y-Math.sin(endAngle)*length*.32},points=[];
     for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-.52*t)})}wood.push({points,z});
     if(!remaining){clusters.push({x:p3.x,y:p3.y,size:8+r()*5+Math.min(5,leafCount*.12),z});return}
-    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.65+r()*.08),end.width*.58,remaining-1,(r()-.5)*.2,z+.01);
-    [-1,1].forEach(side=>{const k=9+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.15),p.width*.54,remaining-1,side*(.62+r()*.42),z+side*.08)})
+    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.62+r()*.07),end.width*.62,remaining-1,(r()-.5)*.12,z+.01);
+    [-1,1].forEach(side=>{const k=8+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.13),p.width*.5,remaining-1,side*(.58+r()*.3),z+side*.08)})
+  }
+  function vaseLimb(x,y,angle,length,width,remaining,side,z=r()){
+    angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.34,endAngle=botanicalAngle(angle+bend),travelAngle=botanicalAngle(angle+bend*.48),p0={x,y},p1={x:x+Math.cos(angle)*length*.36,y:y+Math.sin(angle)*length*.36},p3={x:x+Math.cos(travelAngle)*length*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.3,y:p3.y-Math.sin(endAngle)*length*.3},points=[];
+    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-.58*t)})}wood.push({points,z});
+    if(!remaining){clusters.push({x:p3.x,y:p3.y,size:9+r()*4+Math.min(4,leafCount*.12),z});return}
+    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);
+    const continuationScale=remaining===1?.54+r()*.04:.64+r()*.06,forkScale=remaining===1?.38+r()*.05:.46+r()*.08;
+    vaseLimb(end.x,end.y,tangent+(r()-.5)*.12,length*continuationScale,end.width*.63,remaining-1,side,z+.01);
+    const k=9+Math.floor(r()*3),p=points[k],q=points[k-1],heading=Math.atan2(p.y-q.y,p.x-q.x);
+    vaseLimb(p.x,p.y,heading+side*(.42+r()*.18),length*forkScale,p.width*.5,remaining-1,side,z+side*.08);
+  }
+  if((habit===HABITS.Peach||habit===HABITS.Apricot||habit===HABITS.Pear||habit===HABITS.Cherry||habit===HABITS.Citrus)&&stage!=='Seedling'){
+    const isApricot=habit===HABITS.Apricot,isPear=habit===HABITS.Pear,isCherry=habit===HABITS.Cherry,isCitrus=habit===HABITS.Citrus,trunkHeight=(stage==='Sapling'?(isPear?46:isCherry?40:isCitrus?34:38):isPear?68:isCherry?50:isCitrus?45:isApricot?54:50)*profile.heightFactor,trunkLean=(r()-.5)*(isPear?3:isCherry?3.1:isCitrus?2.8:3.4),trunkPoints=[];
+    for(let i=0;i<=18;i++){const t=i/18;trunkPoints.push({x:trunkLean*t*t,y:-trunkHeight*t,width:profile.trunkWidth*(1-((isCherry||isCitrus) ? .72 : .4)*t)})}wood.push({points:trunkPoints,z:.5});
+    const scaffoldDepth=isPear?(stage==='Ancient'?2:1):isCherry?(stage==='Ancient'?2:1):isCitrus?(stage==='Ancient'?2:1):isApricot?(stage==='Ancient'?2:1):(stage==='Ancient'?3:stage==='Sapling'?1:2),scaffolds=stage==='Sapling'?
+      (isPear?
+        [{t:.55,angle:-2.26,length:25,side:-1},{t:.78,angle:-1.54,length:28,side:-1},{t:.64,angle:-.88,length:25,side:1}]:
+      isCherry?
+        [{t:.54,angle:-2.42,length:26,side:-1},{t:.77,angle:-1.7,length:29,side:-1},{t:.65,angle:-.78,length:27,side:1}]:
+      isCitrus?
+        [{t:.48,angle:-2.52,length:27,side:-1},{t:.76,angle:-1.92,length:29,side:-1},{t:.78,angle:-1.18,length:29,side:1},{t:.5,angle:-.62,length:27,side:1}]:
+        [{t:.58,angle:-2.35,length:26,side:-1},{t:.72,angle:-1.02,length:29,side:1},{t:.8,angle:-1.78,length:25,side:-1}]):
+      isPear?
+        [{t:.46,angle:-2.55,length:35,side:-1},{t:.62,angle:-2.15,length:39,side:-1},{t:.82,angle:-1.82,length:36,side:-1},{t:1,angle:-1.46,length:34,side:1},{t:.75,angle:-1.12,length:38,side:1},{t:.56,angle:-.66,length:34,side:1}]:
+      isCherry?
+        [{t:.46,angle:-2.58,length:38,side:-1,depth:1},{t:.68,angle:-2.12,length:42,side:-1,depth:0},{t:1,angle:-2.14,length:36,side:-1,depth:0},{t:1,angle:-1,length:36,side:1,depth:0},{t:.7,angle:-.98,length:42,side:1,depth:0},{t:.48,angle:-.56,length:38,side:1,depth:1}]:
+      isCitrus?
+        [{t:.4,angle:-2.68,length:34,side:-1,depth:1},{t:.58,angle:-2.28,length:37,side:-1,depth:0},{t:.8,angle:-1.92,length:36,side:-1,depth:0},{t:1,angle:-2.08,length:31,side:-1,depth:0},{t:1,angle:-1.06,length:31,side:1,depth:0},{t:.8,angle:-1.2,length:36,side:1,depth:0},{t:.58,angle:-.84,length:37,side:1,depth:0},{t:.4,angle:-.46,length:34,side:1,depth:1}]:
+      isApricot?
+        [{t:.54,angle:-2.53,length:32,side:-1},{t:.66,angle:-2.08,length:34,side:-1},{t:.78,angle:-1.58,length:35,side:1},{t:.69,angle:-1.06,length:34,side:1},{t:.56,angle:-.6,length:32,side:1}]:
+        [{t:.56,angle:-2.48,length:31,side:-1},{t:.68,angle:-2.02,length:36,side:-1},{t:.74,angle:-1.12,length:37,side:1},{t:.6,angle:-.64,length:32,side:1}];
+    scaffolds.forEach((scaffold,index)=>{const attach=trunkPoints[Math.round(scaffold.t*18)],angle=scaffold.angle+(r()-.5)*.1,length=scaffold.length*(.94+r()*.12);vaseLimb(attach.x,attach.y,angle,length,Math.max(2.3,attach.width*.58),scaffold.depth??scaffoldDepth,scaffold.side,.36+index*.09)});
+    if(stage==='Mature Tree'||stage==='Ancient'){
+      clusters.push({x:trunkLean*.7,y:-trunkHeight-(isPear?20:isCherry?22:isCitrus?20:isApricot?19:27),size:isPear?12.8:isCherry?13.1:isCitrus?13.8:isApricot?12.2:13.2,z:.52,foliageOnly:true});
+      if(stage==='Ancient')clusters.push({x:trunkLean*.7+9,y:-trunkHeight-9,size:10.5,z:.5,foliageOnly:true});
+    }
+    return{wood,clusters,leafCount,profile};
   }
   limb(0,0,-Math.PI/2,62*habit.height*structure*profile.heightFactor,profile.trunkWidth,depth);
   const establishedWood=[...wood];
-  for(let i=0;i<profile.branchShoots;i+=1){const host=establishedWood[(i*7+3)%establishedWood.length],attachIndex=5+((i*3)%8),attach=host.points[Math.min(attachIndex,host.points.length-2)],previous=host.points[Math.max(0,attachIndex-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=i%2?1:-1;limb(attach.x,attach.y,heading,15+(i%4)*2.5,Math.max(1.4,attach.width*.52),0,side*(.58+(i%3)*.12),host.z+side*.11)}
+  for(let i=0;i<profile.branchShoots;i+=1){const host=establishedWood[(i*7+3)%establishedWood.length],attachIndex=5+((i*3)%8),attach=host.points[Math.min(attachIndex,host.points.length-2)],previous=host.points[Math.max(0,attachIndex-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=i%2?1:-1;limb(attach.x,attach.y,heading,9+(i%4)*1.4,Math.max(1.2,attach.width*.46),0,side*(.38+(i%3)*.09),host.z+side*.11)}
   return{wood,clusters,leafCount,profile};
 }
 
-function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;ctx.lineWidth=p[0].width;stroke(ctx,p);ctx.strokeStyle=highlight;ctx.lineWidth=Math.max(.45,p[0].width*.13);ctx.save();ctx.translate(-p[0].width*.13,0);stroke(ctx,p);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
+function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;strokeTapered(ctx,p,1);ctx.strokeStyle=highlight;ctx.save();ctx.translate(-p[0].width*.13,0);strokeTapered(ctx,p,.13,.38);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
+function strokeTapered(ctx,points,scale=1,minWidth=.55){for(let i=1;i<points.length;i+=1){ctx.lineWidth=Math.max(minWidth,(points[i-1].width+points[i].width)*.5*scale);ctx.beginPath();ctx.moveTo(points[i-1].x,points[i-1].y);ctx.lineTo(points[i].x,points[i].y);ctx.stroke()}}
 function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
 
 function botanicalAsset(species,kind,treeSeed,placementIndex){
@@ -369,16 +488,16 @@ function botanicalAsset(species,kind,treeSeed,placementIndex){
   return null;
 }
 function botanicalEntries(tree,seed,kind,count){
-  const limit=getBotanicalModuleCount(kind,count,tree.clusters.length);
+  const candidates=tree.clusters.map((cluster,index)=>({cluster,index})).filter(({cluster})=>kind==='foliage'||!cluster.foliageOnly),limit=getBotanicalModuleCount(kind,count,candidates.length);
   if(!limit)return[];
-  const entries=[...tree.clusters].map((cluster,index)=>({cluster,index,priority:hash(`${seed}:${kind}:${index}`)}));
+  const entries=candidates.map(({cluster,index})=>({cluster,index,priority:hash(`${seed}:${kind}:${index}`)}));
   if(kind==='foliage')return entries.sort((a,b)=>a.priority-b.priority).slice(0,limit);
   const spread=entries.sort((a,b)=>a.cluster.x-b.cluster.x),step=spread.length/limit;
   return Array.from({length:limit},(_,index)=>spread[Math.min(spread.length-1,Math.floor((index+.5)*step))]);
 }
-function drawBotanicalModule(ctx,image,cluster,seed,widthFactor,filter='none',alpha=1){
+function drawBotanicalModule(ctx,image,cluster,seed,widthFactor,filter='none',alpha=1,verticalAnchor=0){
   const random=rng(seed),width=cluster.size*widthFactor,height=width*2/3,mirror=random()<.5?-1:1;
-  ctx.save();ctx.translate(cluster.x,cluster.y);ctx.rotate((random()-.5)*.48);ctx.scale(mirror,1);ctx.globalAlpha=alpha;ctx.filter=filter;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,-width/2,-height/2,width,height);ctx.restore();
+  ctx.save();ctx.translate(cluster.x,cluster.y);ctx.rotate((random()-.5)*.48);ctx.scale(mirror,1);ctx.globalAlpha=alpha;ctx.filter=filter;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,-width/2,-height/2+height*verticalAnchor,width,height);ctx.restore();
 }
 function paintedFoliageFilter(season,shaded){
   const seasonal=season==='Spring'?'brightness(1.08) saturate(.88)':season==='Autumn'?'sepia(.5) saturate(1.35) hue-rotate(342deg) brightness(.96)':'none';
@@ -386,7 +505,7 @@ function paintedFoliageFilter(season,shaded){
 }
 function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species){
   const baseCount=tree.profile?.foliageClusters||0,count=baseCount>0?Math.ceil(baseCount*(player?1.65:1.5)):0;
-  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||(cluster.z>.48)!==front)return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,6.1,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
+  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||((species==='Peach'||species==='Apricot'||species==='Pear'||species==='Cherry'||species==='Citrus')?!front:(cluster.z>.48)!==front))return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,6.1,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
 }
 function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plum'){
   if(season==='Winter')return;
@@ -402,7 +521,7 @@ function drawBlossoms(ctx,tree,seed,count,species){
   const r=rng(seed+1907),total=Math.min(78,7+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.72,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=1.8+r()*2.1,open=.3+r()*.7;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);ctx.shadowColor='rgba(255,236,224,.92)';ctx.shadowBlur=2.2;if(open<.4){ctx.fillStyle='#cf718b';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fffaf0':'#e99aac';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#9d6227';ctx.beginPath();ctx.arc(0,0,size*.36,0,TAU);ctx.fill()}ctx.restore()}
 }
 function drawFruit(ctx,tree,seed,count,species){
-  const painted=botanicalAsset(species,'fruit',seed,0);if(painted){botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97));return}
+  const painted=botanicalAsset(species,'fruit',seed,0);if(painted){botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));return}
   const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}
 }
 

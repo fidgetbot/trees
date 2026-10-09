@@ -53,19 +53,21 @@ test('painted botanical module counts remain sparse and follow game state', () =
   assert.equal(getBotanicalModuleCount('fruit', 100, 4), 4);
 });
 
-test('Plum botanical families expose every approved source variant', () => {
-  assert.equal(getBotanicalVariantCount('Plum', 'foliage'), 4);
-  assert.equal(getBotanicalVariantCount('Plum', 'blossoms'), 3);
-  assert.equal(getBotanicalVariantCount('Plum', 'fruit'), 3);
-  assert.equal(getBotanicalVariantCount('Peach', 'foliage'), 0);
+test('every fruiting species exposes its approved botanical family', () => {
+  for (const species of ['Plum', 'Peach', 'Apricot', 'Pear', 'Cherry', 'Citrus']) {
+    assert.equal(getBotanicalVariantCount(species, 'foliage'), 4, `${species} foliage`);
+    assert.equal(getBotanicalVariantCount(species, 'blossoms'), 3, `${species} blossoms`);
+    assert.equal(getBotanicalVariantCount(species, 'fruit'), 3, `${species} fruit`);
+  }
 });
 
 test('botanical variant selection is stable per tree and placement', () => {
-  const selections = Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex('Plum', 'foliage', 7319, placement));
-  assert.deepEqual(selections, Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex('Plum', 'foliage', 7319, placement)));
-  assert.ok(selections.every(index => index >= 0 && index < 4));
-  assert.ok(new Set(selections).size > 1);
-  assert.equal(getBotanicalVariantIndex('Peach', 'foliage', 7319, 0), -1);
+  for (const species of ['Plum', 'Peach', 'Apricot', 'Pear', 'Cherry', 'Citrus']) {
+    const selections = Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex(species, 'foliage', 7319, placement));
+    assert.deepEqual(selections, Array.from({ length: 12 }, (_, placement) => getBotanicalVariantIndex(species, 'foliage', 7319, placement)));
+    assert.ok(selections.every(index => index >= 0 && index < 4));
+    assert.ok(new Set(selections).size > 1);
+  }
 });
 
 test('botanical assets report each successful load without one failure suppressing the family', async () => {
@@ -80,9 +82,10 @@ test('botanical assets report each successful load without one failure suppressi
     const isolated = await import(`../ui/canvas.js?asset-load-test=${Date.now()}`);
     const loaded = [];
     assert.equal(await isolated.loadBotanicalAssets(asset => loaded.push(asset)), true);
-    assert.equal(loaded.length, 9);
+    assert.equal(loaded.length, 59);
     assert.ok(loaded.some(asset => asset.family === 'Plum:foliage' && asset.index === 3));
     assert.ok(loaded.some(asset => asset.family === 'Plum:fruit' && asset.index === 1));
+    assert.ok(loaded.some(asset => asset.family === 'Citrus:fruit' && asset.index === 2));
   } finally {
     if(originalImage===undefined)delete globalThis.Image;
     else globalThis.Image=originalImage;
