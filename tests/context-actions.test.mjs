@@ -34,6 +34,19 @@ test('wildlife selection produces a stable relevant shortlist without padding', 
   );
 });
 
+test('new visitors surface only actions relevant to their ecological role', () => {
+  const state = { neighbors: [] };
+  const usableActions = ['growBranch', 'flower', 'massFlower', 'resinReserve', 'bark', 'toxicLeaves'].map(key => entry(key));
+  assert.deepEqual(
+    getContextualActions({ target: { type: 'wildlife', kind: 'pollinator-hoverfly' }, usableActions, state }).map(item => item.action.key),
+    ['flower', 'massFlower'],
+  );
+  assert.deepEqual(
+    getContextualActions({ target: { type: 'wildlife', kind: 'aphids' }, usableActions, state }).map(item => item.action.key),
+    ['resinReserve', 'bark', 'toxicLeaves'],
+  );
+});
+
 test('player tree priorities begin with unmet foundational growth', () => {
   const state = { firstRootActionTaken: false, rootZones: 0, leafClusters: 0, health: 10, maxHealth: 10 };
   const target = { type: 'player-tree' };

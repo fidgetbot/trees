@@ -163,3 +163,22 @@ test('resolving a fruit threat does not immediately replace it in the same summe
     Math.random = originalRandom;
   }
 });
+
+test('animal fruit threats retain event-driven scene art through warning and resolution', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0.4;
+  try {
+    const s = state({ developing: 2, selectedSpecies: 'Plum' });
+    const warnings = [];
+    processSeasonalReproduction(s, warnings, () => 'Summer');
+    assert.equal(s.pendingFruitThreat.type, 'bird');
+    assert.equal(warnings[0].sceneArt, 'fruit-robin');
+
+    Math.random = () => 0.99;
+    const resolution = [];
+    processSeasonalReproduction(s, resolution, () => 'Autumn');
+    assert.equal(resolution[0].sceneArt, 'fruit-robin');
+  } finally {
+    Math.random = originalRandom;
+  }
+});

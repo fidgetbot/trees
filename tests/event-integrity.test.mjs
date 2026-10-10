@@ -10,6 +10,7 @@ import {
   getAmbientFlavorPool,
   getHerbivoreDefense,
   getLivingNeighborsByDisposition,
+  getPollinatorSceneArt,
   maybeEscalateCanopyHostility,
   resolveHostileEncroachmentChoice,
   WINTER_PRECIPITATION,
@@ -107,6 +108,7 @@ test('named wildlife and browser threats carry renderer scene metadata', () => {
   });
   assert.equal(majorEvents.find(event => event.key === 'Beaver').sceneArt, 'beaver');
   assert.equal(majorEvents.find(event => event.key === 'Herbivores').sceneArt, 'browsers');
+  assert.equal(majorEvents.find(event => event.key === 'BirdDispersal').sceneArt, 'fruit-robin');
 
   const browserThreat = {
     kind: 'browsers', title: 'Hungry Browsers', sceneArt: 'browsers', warning: 'Browsers approach.',
@@ -117,6 +119,17 @@ test('named wildlife and browser threats carry renderer scene metadata', () => {
     threat: browserThreat,
   });
   assert.equal(describeDecisionPrompt(decision).sceneArt, 'browsers');
+});
+
+test('every named pollinator resolves to a production sprite family', () => {
+  assert.equal(getPollinatorSceneArt('bumblebees'), 'pollinator-bumblebee');
+  assert.equal(getPollinatorSceneArt('honeybees'), 'pollinator-honeybee');
+  assert.equal(getPollinatorSceneArt('mason bees'), 'pollinator-mason-bee');
+  assert.equal(getPollinatorSceneArt('solitary bees'), 'pollinator-mason-bee');
+  assert.equal(getPollinatorSceneArt('small native bees'), 'pollinator-mason-bee');
+  assert.equal(getPollinatorSceneArt('hoverflies'), 'pollinator-hoverfly');
+  assert.equal(getPollinatorSceneArt('butterflies'), 'pollinator-butterfly');
+  assert.equal(getPollinatorSceneArt('beetles'), 'pollinator-beetle');
 });
 
 test('winter includes snow, icicles, rain, and rare branch-breaking accumulation', () => {

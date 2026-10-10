@@ -149,7 +149,29 @@ test('animal assets load independently so one failure does not suppress the wild
     const isolated = await import(`../ui/canvas.js?animal-load-test=${Date.now()}`);
     const loaded = [];
     assert.equal(await isolated.loadAnimalAssets(asset => loaded.push(asset)), true);
-    assert.deepEqual(loaded.map(asset => asset.kind).sort(), ['beaver', 'browser-deer', 'woodpecker']);
+    assert.deepEqual(loaded.map(asset => asset.kind).sort(), ['beaver', 'browser-deer', 'fruit-robin', 'fruit-squirrel', 'woodpecker']);
+  } finally {
+    if(originalImage===undefined)delete globalThis.Image;
+    else globalThis.Image=originalImage;
+  }
+});
+
+test('insect assets load independently so one failure does not suppress other visitors', async () => {
+  const originalImage = globalThis.Image;
+  class MockImage {
+    set src(value) {
+      queueMicrotask(() => value.includes('pollinator-hoverfly-v1.png') ? this.onerror() : this.onload());
+    }
+  }
+  globalThis.Image = MockImage;
+  try {
+    const isolated = await import(`../ui/canvas.js?insect-load-test=${Date.now()}`);
+    const loaded = [];
+    assert.equal(await isolated.loadInsectAssets(asset => loaded.push(asset)), true);
+    assert.equal(loaded.length, 8);
+    assert.ok(loaded.some(asset => asset.kind === 'pollinator-bumblebee'));
+    assert.ok(loaded.some(asset => asset.kind === 'aphids'));
+    assert.ok(loaded.some(asset => asset.kind === 'mites'));
   } finally {
     if(originalImage===undefined)delete globalThis.Image;
     else globalThis.Image=originalImage;
@@ -157,7 +179,10 @@ test('animal assets load independently so one failure does not suppress the wild
 });
 
 test('scene art keeps named wildlife and expands browser groups without duplicate markers', () => {
-  assert.deepEqual(getSceneArtKinds({ activeSceneArt: ['woodpecker', 'browsers', 'woodpecker', 'unknown'] }), ['woodpecker', 'browsers']);
+  assert.deepEqual(
+    getSceneArtKinds({ activeSceneArt: ['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids', 'woodpecker', 'unknown'] }),
+    ['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids'],
+  );
   assert.deepEqual(getSceneArtKinds({}), []);
 });
 

@@ -38,7 +38,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=offspring-support-v1';
+} from './core/events.js?rev=final-fauna-rollout-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -66,14 +66,14 @@ import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from 
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=context-drawer-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=final-fauna-rollout-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=single-screen-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=final-fauna-rollout-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 

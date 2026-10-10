@@ -8,6 +8,17 @@ export function getHerbivoreDefense(state) {
   return { thorns, toxins, total: thorns + toxins };
 }
 
+export function getPollinatorSceneArt(visitor = '') {
+  const normalized = visitor.toLowerCase();
+  if (normalized.includes('bumblebee')) return 'pollinator-bumblebee';
+  if (normalized.includes('honeybee')) return 'pollinator-honeybee';
+  if (normalized.includes('hoverfl')) return 'pollinator-hoverfly';
+  if (normalized.includes('butterfl')) return 'pollinator-butterfly';
+  if (normalized.includes('beetle')) return 'pollinator-beetle';
+  if (normalized.includes('mason') || normalized.includes('solitary') || normalized.includes('native bee')) return 'pollinator-mason-bee';
+  return null;
+}
+
 export function createMajorEvents(deps) {
   const {
     getThreatMultiplier,
@@ -185,7 +196,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'BirdDispersal', name: 'Bird Dispersal', seasons: ['Autumn', 'Winter'], icon: '🐦', desc: 'Migratory birds arrive, carrying seeds and nutrients from distant forests.', severity: 'good',
+      key: 'BirdDispersal', name: 'Bird Dispersal', seasons: ['Autumn', 'Winter'], icon: '🐦', desc: 'Migratory birds arrive, carrying seeds and nutrients from distant forests.', severity: 'good', sceneArt: 'fruit-robin',
       apply: (s) => {
         s.nutrients += 2;
         if (s.flowers > 0) {
@@ -233,7 +244,7 @@ export function resolveFruitThreats(state, events) { /* unchanged below */
   }
   state.developing = Math.max(0, state.developing - losses);
   const conclusion = losses > 0 ? threat.outcome(losses, saved, defensePower > 0) : threat.safeText;
-  events.push({ text: `${conclusion} The danger to this season's fruit has passed.`, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe' });
+  events.push({ text: `${conclusion} The danger to this season's fruit has passed.`, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe', sceneArt: threat.sceneArt });
   state.pendingFruitThreat = null;
   state.fruitDefense = Math.max(0, state.fruitDefense - 1);
 }
@@ -250,9 +261,9 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
     events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
   if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && !state.pendingFruitThreat && Math.random() < 0.45) {
-    const threats = [{ type:'human', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' }, { type:'bird', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' }, { type:'chewer', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' }];
+    const threats = [{ type:'human', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' }, { type:'bird', sceneArt:'fruit-robin', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' }, { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' }];
     state.pendingFruitThreat = randomChoice(threats);
-    events.push({ text: `${state.pendingFruitThreat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`, effect: 'warning' });
+    events.push({ text: `${state.pendingFruitThreat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`, effect: 'warning', sceneArt: state.pendingFruitThreat.sceneArt });
   }
   if (season === 'Autumn' && state.developing > 0) {
     const matured = state.developing;
@@ -851,7 +862,7 @@ export function rollMinorEvents(state, deps) {
       const visitorText = visitor.charAt(0).toUpperCase() + visitor.slice(1);
       const citrusBonusText = state.selectedSpecies === 'Citrus' ? ' Its fragrant blossoms drew them in.' : '';
       const blossomVerb = pollinated === 1 ? 'was' : 'were';
-      events.push({ text: `${visitorText} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} ${blossomVerb} successfully pollinated. (+${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated)${citrusBonusText}`, effect: 'pollinated' });
+      events.push({ text: `${visitorText} visited! ${pollinated} flower${pollinated !== 1 ? 's' : ''} ${blossomVerb} successfully pollinated. (+${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated)${citrusBonusText}`, effect: 'pollinated', sceneArt: getPollinatorSceneArt(visitor) });
     }
   }
   processSeasonalReproduction(state, events, () => currentSeasonName);
@@ -896,7 +907,7 @@ export function rollMinorEvents(state, deps) {
     const flavor = randomChoice(getAmbientFlavorPool(currentStage));
     events.push({ text: flavor, effect: 'flavor' });
   }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper', sceneArt: 'fruit-squirrel' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning', sceneArt: 'woodpecker' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good', sceneArt: 'woodpecker' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage', sceneArt: 'woodpecker' }); } }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning', sceneArt: 'beaver' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good', sceneArt: 'beaver' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage', sceneArt: 'beaver' }); } }
   return events;

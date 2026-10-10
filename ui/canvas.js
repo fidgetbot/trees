@@ -18,6 +18,7 @@ const SEED_PALETTES = {
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
+const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -31,6 +32,19 @@ const ANIMAL_ASSET_URLS=Object.freeze({
   beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   'browser-deer':new URL(`../assets/animals/browser-deer-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   'browser-rabbit':new URL(`../assets/animals/browser-rabbit-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
+  'fruit-robin':new URL(`../assets/animals/fruit-robin-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'fruit-squirrel':new URL(`../assets/animals/fruit-squirrel-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+});
+const INSECT_ASSET_URLS=Object.freeze({
+  'pollinator-bumblebee':new URL(`../assets/insects/pollinator-bumblebee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'pollinator-honeybee':new URL(`../assets/insects/pollinator-honeybee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'pollinator-mason-bee':new URL(`../assets/insects/pollinator-mason-bee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'pollinator-hoverfly':new URL(`../assets/insects/pollinator-hoverfly-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'pollinator-butterfly':new URL(`../assets/insects/pollinator-butterfly-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'pollinator-beetle':new URL(`../assets/insects/pollinator-beetle-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  aphids:new URL(`../assets/insects/pest-aphids-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  'surface-crawlers':new URL(`../assets/insects/pest-surface-crawlers-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+  mites:new URL(`../assets/insects/pest-mites-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
 });
 const BOTANICAL_ASSET_URLS=Object.freeze({
   'Citrus:foliage':Object.freeze([
@@ -138,6 +152,8 @@ const loggerAssets=new Map();
 let loggerAssetLoadPromise=null;
 const animalAssets=new Map();
 let animalAssetLoadPromise=null;
+const insectAssets=new Map();
+let insectAssetLoadPromise=null;
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -188,13 +204,25 @@ export function loadAnimalAssets(onAssetLoad){
   return animalAssetLoadPromise;
 }
 
+export function loadInsectAssets(onAssetLoad){
+  if(insectAssetLoadPromise)return insectAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  insectAssetLoadPromise=Promise.all(Object.entries(INSECT_ASSET_URLS).map(([kind,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{insectAssets.set(kind,image);onAssetLoad?.({family:'insects',kind,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return insectAssetLoadPromise;
+}
+
 export function loadCanvasAssets(onAssetLoad){
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad)]).then(results=>results.some(Boolean));
 }
 
 export function getSceneArtKinds(state){
   const kinds=Array.isArray(state?.activeSceneArt)?state.activeSceneArt:[];
-  return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)))];
+  return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)||Object.hasOwn(INSECT_ASSET_URLS,kind)))];
 }
 
 export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
@@ -288,10 +316,18 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
   if(!kinds.length)return;
   const scale=Math.max(.62,Math.min(2.5,camera.zoom/.86));
   const drawGrounded=(kind,centerX,displayWidth,title)=>{
-    const image=animalAssets.get(kind);if(!image)return;
+    const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
     const top=groundY-displayHeight*482/512;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
     hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
+  };
+  const drawFloating=(kind,centerX,centerY,displayWidth,title)=>{
+    const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
+    const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
+    const left=centerX-displayWidth/2,top=centerY-displayHeight/2;
+    ctx.drawImage(image,left,top,displayWidth,displayHeight);
+    const padding=Math.max(8,(36-Math.min(displayWidth,displayHeight))/2);
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:left-padding,y:top-padding,width:displayWidth+padding*2,height:displayHeight+padding*2}});
   };
   ctx.save();
   kinds.forEach(kind=>{
@@ -311,6 +347,21 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
     if(kind==='browsers'){
       drawGrounded('browser-deer',x-88*scale,88*scale,'Browsing deer');
       drawGrounded('browser-rabbit',x+70*scale,46*scale,'Browsing rabbit');
+      return;
+    }
+    const treeHeight=playerHeight(state,playerStageName,camera);
+    const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
+    if(kind==='fruit-robin'){drawFloating(kind,x+48*scale,canopyY-16*scale,72*scale,'Fruit-visiting robin');return}
+    if(kind==='fruit-squirrel'){drawFloating(kind,x-46*scale,canopyY+18*scale,58*scale,'Fruit-visiting squirrel');return}
+    if(kind==='surface-crawlers'){drawGrounded(kind,x+42*scale,58*scale,'Surface crawlers');return}
+    if(kind==='aphids'){drawFloating(kind,x+42*scale,canopyY+12*scale,52*scale,'Aphid cluster');return}
+    if(kind==='mites'){drawFloating(kind,x-42*scale,canopyY+10*scale,52*scale,'Mite surge');return}
+    if(kind.startsWith('pollinator-')){
+      const titles={
+        'pollinator-bumblebee':'Bumblebee','pollinator-honeybee':'Honeybee','pollinator-mason-bee':'Mason bee',
+        'pollinator-hoverfly':'Hoverfly','pollinator-butterfly':'Butterfly','pollinator-beetle':'Pollinating beetle',
+      };
+      drawFloating(kind,x+48*scale,canopyY,kind==='pollinator-butterfly'?44*scale:38*scale,titles[kind]||'Pollinator');
     }
   });
   ctx.restore();
