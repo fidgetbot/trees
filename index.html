@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=forest-cycle-v1" />
+  <link rel="stylesheet" href="styles.css?rev=grove-mode-v1" />
 </head>
 <body>
   <div id="app">
@@ -20,10 +20,14 @@
         <div id="map-content" class="panel-content">
           <div class="map-frame">
             <div class="map-status" aria-label="Current game status">
-              <div class="map-stat"><span>Score</span><strong id="score">0</strong></div>
-              <div class="map-stat"><span>Year</span><strong id="year">1</strong></div>
-              <div class="map-stat"><span>Season</span><strong id="season">Spring</strong></div>
-              <div class="map-stat"><span>Life stage</span><strong id="life-stage">Seed</strong></div>
+              <div class="grove-time-pill">Year <strong id="year">1</strong><span aria-hidden="true"> · </span><strong id="season">Spring</strong></div>
+              <div class="grove-resource-pill" aria-label="Current score and resources">
+                <span class="grove-resource grove-score" title="Score"><span aria-hidden="true">✦</span><strong id="score">0</strong></span>
+                <span class="grove-resource grove-sun" title="Sunlight"><span aria-hidden="true">☀</span><strong id="grove-sunlight">0</strong></span>
+                <span class="grove-resource grove-water" title="Water"><span aria-hidden="true">●</span><strong id="grove-water">0</strong></span>
+                <span class="grove-resource grove-nutrient" title="Nutrients"><span aria-hidden="true">◆</span><strong id="grove-nutrients">0</strong></span>
+              </div>
+              <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
             <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Explore the grove map"></canvas>
@@ -35,6 +39,11 @@
         <button id="hud-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize status">−</button>
         <button id="hud-restore" class="panel-chip hidden" type="button">📊 Status</button>
         <div id="hud-content" class="panel-content">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="grove-sheet-heading">
+          <span class="grove-sheet-kicker">Your tree</span>
+          <strong>Tend the grove</strong>
+        </div>
         <div id="turn-end-banner" class="turn-end-banner hidden" aria-live="polite"></div>
         <div id="growth-hint" class="growth-hint">Next growth: Take your first action: grow roots</div>
         <div class="hud-header actions-header">
@@ -212,6 +221,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=surveyor-sprites-v1"></script>
+  <script type="module" src="main.js?rev=grove-mode-v1"></script>
 </body>
 </html>

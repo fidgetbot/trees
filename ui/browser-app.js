@@ -237,4 +237,5 @@ export function showGamePanelsUI(els) {
   els.speciesPanel.classList.add('hidden');
   els.gamePanel.classList.remove('hidden');
   els.hudPanel.classList.remove('hidden');
+  document.body.classList.add('game-started');
 }

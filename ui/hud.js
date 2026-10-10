@@ -100,6 +100,14 @@ export function updateHudUI({
   document.getElementById('sunlight').textContent = state.sunlight;
   document.getElementById('water').textContent = state.water;
   document.getElementById('nutrients').textContent = state.nutrients;
+  const groveSunlight = document.getElementById('grove-sunlight');
+  const groveWater = document.getElementById('grove-water');
+  const groveNutrients = document.getElementById('grove-nutrients');
+  const grovePlayerSpecies = document.getElementById('grove-player-species');
+  if (groveSunlight) groveSunlight.textContent = state.sunlight;
+  if (groveWater) groveWater.textContent = state.water;
+  if (groveNutrients) groveNutrients.textContent = state.nutrients;
+  if (grovePlayerSpecies) grovePlayerSpecies.textContent = state.selectedSpecies || 'Tree';
   const actionSunlight = document.getElementById('action-sunlight');
   const actionWater = document.getElementById('action-water');
   const actionNutrients = document.getElementById('action-nutrients');
