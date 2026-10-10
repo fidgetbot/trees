@@ -16,10 +16,14 @@ const SEED_PALETTES = {
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
-const HUMAN_ASSET_REVISION='surveyor-sprites-v1';
+const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+]);
+const LOGGER_ASSET_URLS=Object.freeze([
+  new URL(`../assets/humans/logger-v1-axe.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+  new URL(`../assets/humans/logger-v2-bow-saw.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
 ]);
 const BOTANICAL_ASSET_URLS=Object.freeze({
   'Citrus:foliage':Object.freeze([
@@ -123,6 +127,8 @@ const botanicalAssets=new Map();
 let botanicalAssetLoadPromise=null;
 const surveyorAssets=new Map();
 let surveyorAssetLoadPromise=null;
+const loggerAssets=new Map();
+let loggerAssetLoadPromise=null;
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -149,11 +155,28 @@ export function loadSurveyorAssets(onAssetLoad){
   return surveyorAssetLoadPromise;
 }
 
+export function loadLoggerAssets(onAssetLoad){
+  if(loggerAssetLoadPromise)return loggerAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  loggerAssetLoadPromise=Promise.all(LOGGER_ASSET_URLS.map((url,index)=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{loggerAssets.set(index,image);onAssetLoad?.({family:'humans:loggers',index,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return loggerAssetLoadPromise;
+}
+
 export function loadCanvasAssets(onAssetLoad){
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad)]).then(results=>results.some(Boolean));
 }
 
 export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
+  if(variantCount<=0)return-1;
+  return Math.abs(placementIndex)%variantCount;
+}
+
+export function getLoggerVariantIndex(placementIndex,variantCount=LOGGER_ASSET_URLS.length){
   if(variantCount<=0)return-1;
   return Math.abs(placementIndex)%variantCount;
 }
@@ -218,6 +241,15 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
     const side=i%2?1:-1,rank=Math.floor(i/2),px=x+side*(22+rank*13)*scale,py=groundY;
     if(encounter.phase==='survey'){
       const image=surveyorAssets.get(getSurveyorVariantIndex(i));
+      if(image){
+        const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
+        const spriteX=x+side*(42+rank*28)*scale;
+        ctx.drawImage(image,spriteX-displayWidth/2,groundY-displayHeight*738/768,displayWidth,displayHeight);
+        continue;
+      }
+    }
+    if(encounter.phase==='cutting'){
+      const image=loggerAssets.get(getLoggerVariantIndex(i));
       if(image){
         const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
