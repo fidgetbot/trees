@@ -17,6 +17,7 @@ const SEED_PALETTES = {
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
+const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -25,6 +26,12 @@ const LOGGER_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/logger-v1-axe.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/logger-v2-bow-saw.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
 ]);
+const ANIMAL_ASSET_URLS=Object.freeze({
+  woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
+  beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
+  'browser-deer':new URL(`../assets/animals/browser-deer-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
+  'browser-rabbit':new URL(`../assets/animals/browser-rabbit-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
+});
 const BOTANICAL_ASSET_URLS=Object.freeze({
   'Citrus:foliage':Object.freeze([
     new URL('../assets/botanical/citrus-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
@@ -129,6 +136,8 @@ const surveyorAssets=new Map();
 let surveyorAssetLoadPromise=null;
 const loggerAssets=new Map();
 let loggerAssetLoadPromise=null;
+const animalAssets=new Map();
+let animalAssetLoadPromise=null;
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -167,8 +176,25 @@ export function loadLoggerAssets(onAssetLoad){
   return loggerAssetLoadPromise;
 }
 
+export function loadAnimalAssets(onAssetLoad){
+  if(animalAssetLoadPromise)return animalAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  animalAssetLoadPromise=Promise.all(Object.entries(ANIMAL_ASSET_URLS).map(([kind,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{animalAssets.set(kind,image);onAssetLoad?.({family:'animals',kind,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return animalAssetLoadPromise;
+}
+
 export function loadCanvasAssets(onAssetLoad){
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+}
+
+export function getSceneArtKinds(state){
+  const kinds=Array.isArray(state?.activeSceneArt)?state.activeSceneArt:[];
+  return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)))];
 }
 
 export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
@@ -214,10 +240,42 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   drawDirectionalCanopyShadows(ctx,trees,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
   trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera}));
+  drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName);
   drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state);
   if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
   trees.filter(tree=>(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+}
+
+function drawSceneArt(ctx,x,groundY,camera,state,playerStageName){
+  const kinds=getSceneArtKinds(state);
+  if(!kinds.length)return;
+  const scale=Math.max(.62,Math.min(2.5,camera.zoom/.86));
+  const drawGrounded=(kind,centerX,displayWidth)=>{
+    const image=animalAssets.get(kind);if(!image)return;
+    const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
+    ctx.drawImage(image,centerX-displayWidth/2,groundY-displayHeight*482/512,displayWidth,displayHeight);
+  };
+  ctx.save();
+  kinds.forEach(kind=>{
+    if(kind==='woodpecker'){
+      const image=animalAssets.get(kind);if(!image)return;
+      const displayHeight=64*scale,displayWidth=displayHeight*2/3;
+      const treeHeight=playerHeight(state,playerStageName,camera);
+      const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
+      ctx.drawImage(image,x+7*scale,centerY-displayHeight*.48,displayWidth,displayHeight);
+      return;
+    }
+    if(kind==='beaver'){
+      drawGrounded(kind,x-112*scale,82*scale);
+      return;
+    }
+    if(kind==='browsers'){
+      drawGrounded('browser-deer',x-88*scale,88*scale);
+      drawGrounded('browser-rabbit',x+70*scale,46*scale);
+    }
+  });
+  ctx.restore();
 }
 
 function stageForScore(score){

@@ -96,6 +96,29 @@ test('ambient prose is separated by life stage', () => {
   assert.ok(getAmbientFlavorPool('Mature Tree').every(line => !/your seed\b|tender first stem/i.test(line)));
 });
 
+test('named wildlife and browser threats carry renderer scene metadata', () => {
+  const majorEvents = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: () => {},
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState: () => {},
+    updateAlliesCount: () => {},
+  });
+  assert.equal(majorEvents.find(event => event.key === 'Beaver').sceneArt, 'beaver');
+  assert.equal(majorEvents.find(event => event.key === 'Herbivores').sceneArt, 'browsers');
+
+  const browserThreat = {
+    kind: 'browsers', title: 'Hungry Browsers', sceneArt: 'browsers', warning: 'Browsers approach.',
+    defend: () => '', ignore: () => ({ body: '', damage: null }),
+  };
+  const decision = buildChemicalDefenseDecision(threatState({ sunlight: 3, water: 1, nutrients: 2 }), {
+    computeCurrentLifeStage: () => LIFE_STAGES[4],
+    threat: browserThreat,
+  });
+  assert.equal(describeDecisionPrompt(decision).sceneArt, 'browsers');
+});
+
 test('winter includes snow, icicles, rain, and rare branch-breaking accumulation', () => {
   assert.ok(WINTER_PRECIPITATION.some(weather => /snow/i.test(weather.text)));
   assert.ok(WINTER_PRECIPITATION.some(weather => /icicle/i.test(weather.text)));

@@ -66,7 +66,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Herbivores', name: 'Herbivore Surge', seasons: ['Spring', 'Summer'], icon: '🐛', desc: 'Hungry mouths descend on your foliage.', severity: 'bad',
+      key: 'Herbivores', name: 'Herbivore Surge', seasons: ['Spring', 'Summer'], icon: '🐛', desc: 'Hungry mouths descend on your foliage.', severity: 'bad', sceneArt: 'browsers',
       apply: (s) => {
         const defenses = getHerbivoreDefense(s);
         const feedingPressure = Math.max(1, Math.ceil(2 * getThreatMultiplier()));
@@ -157,7 +157,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Beaver', name: 'Beaver Activity', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🦫', desc: 'A beaver colony has moved into the watershed, changing water patterns.', severity: 'neutral',
+      key: 'Beaver', name: 'Beaver Activity', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🦫', desc: 'A beaver colony has moved into the watershed, changing water patterns.', severity: 'neutral', sceneArt: 'beaver',
       apply: (s) => {
         const effects = [];
         if (Math.random() < 0.5) {
@@ -312,12 +312,14 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
     threats = [
       {
         title: 'Aphid Cluster',
+        sceneArt: 'aphids',
         warning: 'Tiny aphids gather on your tender stem, piercing and sucking at your sap.',
         defend: () => { state.defense += 1; return 'You release sticky compounds that trap the aphids. They fall away, unable to feed.'; },
         ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'The aphids feast unchecked, draining your strength. You lose 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
       },
       {
         title: 'Surface Crawlers',
+        sceneArt: 'surface-crawlers',
         warning: 'Small insects swarm the soil surface around your base, nibbling at your tender roots.',
         defend: () => { state.defense += 1; return 'You release defensive compounds into the soil. The crawlers retreat from your roots.'; },
         ignore: () => { state.rootZones = Math.max(0, state.rootZones - 1); state.health = Math.max(0, state.health - 1); return { body: 'The insects damage your shallow roots. You lose 1 root zone and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
@@ -333,6 +335,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
     threats = [
       {
         title: 'Mite Surge',
+        sceneArt: 'mites',
         warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
         defend: () => { state.defense += 1; return 'You flood your tissues with bitter compounds. The mites retreat before they can do serious harm.'; },
         ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
@@ -340,6 +343,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
       {
         kind: 'browsers',
         title: 'Hungry Browsers',
+        sceneArt: 'browsers',
         warning: 'Warm-blooded mouths nose through your lower growth, searching for tender shoots and leaves.',
         defend: () => {
           state.fruitDefense += 1;
@@ -680,11 +684,13 @@ export function describeDecisionPrompt(decision) {
       return {
         text: `${decision.meta?.threat?.warning || 'Browsers approach your foliage.'} Your established ${defenses} stand ready.`,
         effect: 'good',
+        sceneArt: decision.meta?.threat?.sceneArt,
       };
     }
     return {
       text: `${decision.meta?.threat?.warning || 'A chemical threat rises around you.'} The danger is still gathering.`,
       effect: 'warning',
+      sceneArt: decision.meta?.threat?.sceneArt,
     };
   }
   return null;
@@ -891,7 +897,7 @@ export function rollMinorEvents(state, deps) {
     events.push({ text: flavor, effect: 'flavor' });
   }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage' }); } }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage' }); } }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning', sceneArt: 'woodpecker' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good', sceneArt: 'woodpecker' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage', sceneArt: 'woodpecker' }); } }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning', sceneArt: 'beaver' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good', sceneArt: 'beaver' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage', sceneArt: 'beaver' }); } }
   return events;
 }

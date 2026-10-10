@@ -72,7 +72,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=logger-sprites-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=wildlife-browser-sprites-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=grove-mode-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
@@ -1429,6 +1429,10 @@ function showEventPhase() {
     state.pendingInteractions.push(done => showModal(humanUpdate.rumor.title, `<p><em>${humanUpdate.rumor.body}</em></p>`, done));
   }
   if (humanUpdate.decision) state.pendingInteractions.push(done => queueHumanDecision(humanUpdate.decision, done));
+  state.activeSceneArt = [...new Set([
+    major?.sceneArt,
+    ...minors.flatMap(event => Array.isArray(event?.sceneArt) ? event.sceneArt : [event?.sceneArt]),
+  ].filter(Boolean))];
   if (major?.title) addLog(`Major event: ${major.title}.`);
   minors.forEach(event => event?.text && addLog(event.text));
   consequences.forEach(text => text && addLog(text));
