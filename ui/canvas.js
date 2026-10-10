@@ -16,6 +16,11 @@ const SEED_PALETTES = {
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
+const HUMAN_ASSET_REVISION='surveyor-sprites-v1';
+const SURVEYOR_ASSET_URLS=Object.freeze([
+  new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+  new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+]);
 const BOTANICAL_ASSET_URLS=Object.freeze({
   'Citrus:foliage':Object.freeze([
     new URL('../assets/botanical/citrus-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
@@ -116,6 +121,8 @@ const BOTANICAL_ASSET_URLS=Object.freeze({
 });
 const botanicalAssets=new Map();
 let botanicalAssetLoadPromise=null;
+const surveyorAssets=new Map();
+let surveyorAssetLoadPromise=null;
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -128,6 +135,27 @@ export function loadBotanicalAssets(onAssetLoad){
     image.src=url;
   }))).then(results=>results.some(Boolean));
   return botanicalAssetLoadPromise;
+}
+
+export function loadSurveyorAssets(onAssetLoad){
+  if(surveyorAssetLoadPromise)return surveyorAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  surveyorAssetLoadPromise=Promise.all(SURVEYOR_ASSET_URLS.map((url,index)=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{surveyorAssets.set(index,image);onAssetLoad?.({family:'humans:surveyors',index,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return surveyorAssetLoadPromise;
+}
+
+export function loadCanvasAssets(onAssetLoad){
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+}
+
+export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
+  if(variantCount<=0)return-1;
+  return Math.abs(placementIndex)%variantCount;
 }
 
 export function getBotanicalVariantCount(species,kind){return BOTANICAL_ASSET_URLS[`${species}:${kind}`]?.length||0}
@@ -188,6 +216,15 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(let i=0;i<count;i++){
     const side=i%2?1:-1,rank=Math.floor(i/2),px=x+side*(22+rank*13)*scale,py=groundY;
+    if(encounter.phase==='survey'){
+      const image=surveyorAssets.get(getSurveyorVariantIndex(i));
+      if(image){
+        const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
+        const spriteX=x+side*(42+rank*28)*scale;
+        ctx.drawImage(image,spriteX-displayWidth/2,groundY-displayHeight*738/768,displayWidth,displayHeight);
+        continue;
+      }
+    }
     ctx.strokeStyle='#493a31';ctx.lineWidth=2.1*scale;
     ctx.beginPath();ctx.moveTo(px,py-17*scale);ctx.lineTo(px,py-7*scale);ctx.moveTo(px,py-8*scale);ctx.lineTo(px-4*scale,py);ctx.moveTo(px,py-8*scale);ctx.lineTo(px+4*scale,py);ctx.stroke();
     ctx.fillStyle=i%3===0?'#b46d45':i%3===1?'#657a58':'#6b6680';ctx.beginPath();ctx.roundRect(px-4.2*scale,py-17*scale,8.4*scale,10*scale,2*scale);ctx.fill();

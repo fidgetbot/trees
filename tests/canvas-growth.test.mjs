@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getPlayerVisualProfile, getSurveyorVariantIndex, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -86,6 +86,30 @@ test('botanical assets report each successful load without one failure suppressi
     assert.ok(loaded.some(asset => asset.family === 'Plum:foliage' && asset.index === 3));
     assert.ok(loaded.some(asset => asset.family === 'Plum:fruit' && asset.index === 1));
     assert.ok(loaded.some(asset => asset.family === 'Citrus:fruit' && asset.index === 2));
+  } finally {
+    if(originalImage===undefined)delete globalThis.Image;
+    else globalThis.Image=originalImage;
+  }
+});
+
+test('surveyor variants remain stable by encounter placement', () => {
+  assert.deepEqual(Array.from({ length: 6 }, (_, index) => getSurveyorVariantIndex(index)), [0, 1, 0, 1, 0, 1]);
+  assert.equal(getSurveyorVariantIndex(0, 0), -1);
+});
+
+test('surveyor assets load independently so one failure does not suppress the other', async () => {
+  const originalImage = globalThis.Image;
+  class MockImage {
+    set src(value) {
+      queueMicrotask(() => value.includes('surveyor-v2.png') ? this.onerror() : this.onload());
+    }
+  }
+  globalThis.Image = MockImage;
+  try {
+    const isolated = await import(`../ui/canvas.js?surveyor-load-test=${Date.now()}`);
+    const loaded = [];
+    assert.equal(await isolated.loadSurveyorAssets(asset => loaded.push(asset)), true);
+    assert.deepEqual(loaded.map(asset => [asset.family, asset.index]), [['humans:surveyors', 0]]);
   } finally {
     if(originalImage===undefined)delete globalThis.Image;
     else globalThis.Image=originalImage;
