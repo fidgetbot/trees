@@ -69,7 +69,7 @@ The game aims for grounded tree behavior. Its drama comes from physiology, scarc
 
 ## Playing
 
-*Trees* works in a modern browser on desktop and mobile. Choose actions from the panel beneath the map and end the turn when you are ready. Tap or click the grove to open the larger explorer; drag to pan and use pinch, the zoom controls, or Ctrl/⌘-scroll to inspect the forest.
+*Trees* works in a modern browser on desktop and mobile. Select a tree or visitor to see its actions in the floating dock, then end the turn when ready—no page scrolling. All actions and Info open detail sheets. Use Explore to open the larger grove; drag to pan and use pinch, the zoom controls, or Ctrl/⌘-scroll to inspect the forest.
 
 **Play the current build:** https://fidgetbot.github.io/trees/
 

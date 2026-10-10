@@ -1580,3 +1580,71 @@ body.game-started {
   }
   .context-command-heading { padding: 9px 10px; }
 }
+
+/* Single-screen Grove: the scene is the surface, not a card above a document. */
+body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background: #ede6d5; }
+.game-started #app, .game-started .layout { width: 100%; max-width: none; height: 100dvh; padding: 0; margin: 0; display: block; }
+.game-started #game-panel.center-panel { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; padding: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+.game-started #map-content, .game-started #game-panel .map-frame { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
+.game-started #game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; max-width: none; transform: none; }
+.game-started .grove-player-pill, .game-started #hud-minimize, .game-started #hud-restore { display: none; }
+.grove-time-pill, .grove-resource-pill { top: max(12px, env(safe-area-inset-top)); box-shadow: 0 3px 18px #443c2810; border: 1px solid #fff8; backdrop-filter: blur(14px); }
+.grove-resource-pill { cursor: pointer; min-height: 44px; }
+.grove-health { color: #92584b; }
+.scene-tools { position: absolute; z-index: 2; top: max(68px, calc(env(safe-area-inset-top) + 60px)); right: 14px; display: flex; gap: 8px; }
+.scene-tools button, .focus-picker { min-height: 44px; border: 1px solid #fff8; border-radius: 22px; background: #f9f5e5c9; color: #465341; padding: 8px 12px; font-size: 12px; backdrop-filter: blur(12px); }
+.focus-picker { display: flex; align-items: center; gap: 6px; }
+.focus-picker select { max-width: 145px; border: 0; color: inherit; background: transparent; font: inherit; }
+.game-started #hud-panel { position: fixed; inset: auto 16px max(14px, env(safe-area-inset-bottom)); z-index: 5; width: min(600px, calc(100% - 32px)); max-height: none; margin: 0 auto; padding: 14px; overflow: visible; border: 1px solid #fff9; border-radius: 22px; background: rgba(248,244,230,.94); backdrop-filter: blur(18px); box-shadow: 0 8px 32px #211b2526; }
+.game-started #hud-content, .game-started #actions-list { display: block; }
+.game-started .context-command { gap: 12px; }
+.game-started .context-command-heading { padding: 0 2px; border: 0; background: none; }
+.context-command-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.context-stage { color: #777565; font-size: 12px; }
+.game-started .context-shortlist { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 7px; }
+.game-started .context-action { min-height: 66px; padding: 9px; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-content: center; gap: 3px 6px; box-shadow: none; border: 1px solid #66826130; background: #dce7cd9c; }
+.context-action-icon { font-size: 16px; }
+.game-started .context-action > strong { font-size: 12px; }
+.game-started .context-action .action-costs { grid-column: 1 / -1; margin: 3px 0 0; }
+.game-started .context-action .cost { padding: 0 3px; background: none; }
+.game-started .context-empty { padding: 6px 0; background: none; }
+.dock-toolbar { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.dock-toolbar > span { margin-right: auto; font-size: 11px; color: #6c705e; white-space: nowrap; }
+.dock-toolbar button { width: auto; min-height: 44px; margin: 0; padding: 8px 10px; border: 0; border-radius: 10px; color: #486244; background: transparent; font-size: 12px; white-space: nowrap; }
+.game-started #hud-panel .finish-turn-btn { border: 0; background: #e8e9d8; }
+.game-started .map-build { bottom: auto; top: 119px; right: 15px; background: transparent; color: #777565; }
+.detail-sheet { color: #373e31; width: min(620px, calc(100% - 24px)); max-height: min(82dvh, 850px); margin: auto auto max(12px, env(safe-area-inset-bottom)); padding: 0; border: 1px solid #fff9; border-radius: 22px; background: #f5efdf; box-shadow: 0 18px 80px #28231b44; }
+.detail-sheet[open] { display: flex; flex-direction: column; }
+.detail-sheet::backdrop { background: #1b241f45; backdrop-filter: blur(3px); }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px; border-bottom: 1px solid #52604522; flex-shrink: 0; }
+.sheet-header h2 { margin: 0; font-size: 23px; }
+.sheet-header button { min-height: 44px; color: #43583e; background: #e2e5d3; border: 0; }
+.sheet-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 14px 18px 20px; }
+.game-started .all-actions { border: 0; background: none; }
+.all-actions > summary { display: none; }
+.all-actions-catalog { padding: 0; }
+.game-started .tree-inspector { margin: 0; border: 0; background: none; }
+.tree-inspector-content { padding: 0; }
+.action-explanation { font-size: 12px; color: #65705c; margin: 8px 0; }
+.action-explanation summary { cursor: pointer; }
+#selected-info { font-size: 14px; color: #526348; }
+@media (max-width: 560px) {
+  .grove-time-pill { left: 10px; padding: 10px; min-height: 44px; display: flex; align-items: center; gap: 3px; }
+  .grove-resource-pill { right: 10px; padding: 9px; gap: 7px; }
+  .grove-resource { font-size: 11px; }
+  .grove-score { display: none; }
+  .game-started #hud-panel { inset-inline: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: calc(100% - 16px); padding: 12px; border-radius: 18px; }
+  .dock-toolbar button { padding-inline: 8px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .game-started #hud-panel { left: auto; right: 10px; width: 360px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+.grove-resource-pill { pointer-events: auto; }
+
+.game-started .feedback-container { top: 124px; right: auto; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); }
+.game-started .feedback { font-size: 12px; padding: 9px 14px; border-radius: 20px; box-shadow: 0 3px 12px #342d1920; }
+.game-started .feedback.success, .game-started .feedback.info { color: #36523e; background: #edf1e4eb; }
+
+.game-started #hud-panel #sheet-info .growth-hint { display: block; }

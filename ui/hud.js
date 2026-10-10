@@ -2,7 +2,7 @@ export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;
   feedback.textContent = message;
-  els.feedbackContainer.appendChild(feedback);
+  els.feedbackContainer.replaceChildren(feedback);
 
   setTimeout(() => {
     feedback.remove();
@@ -71,6 +71,8 @@ export function updateHudUI({
   offspringStats = [],
 }) {
   document.getElementById('score').textContent = state.score;
+  const notebookScore = document.getElementById('notebook-score');
+  if (notebookScore) notebookScore.textContent = state.score;
   document.getElementById('year').textContent = state.year;
   document.getElementById('season').textContent = currentSeasonName;
 
@@ -103,6 +105,8 @@ export function updateHudUI({
   const groveSunlight = document.getElementById('grove-sunlight');
   const groveWater = document.getElementById('grove-water');
   const groveNutrients = document.getElementById('grove-nutrients');
+  const groveHealth = document.getElementById('grove-health');
+  if (groveHealth) groveHealth.textContent = `${state.health}/${state.maxHealth}`;
   const grovePlayerSpecies = document.getElementById('grove-player-species');
   if (groveSunlight) groveSunlight.textContent = state.sunlight;
   if (groveWater) groveWater.textContent = state.water;
@@ -165,8 +169,8 @@ export function updateHudUI({
   }
 
   if (els.actionsRemaining) {
-    els.actionsRemaining.textContent = '';
-    els.actionsRemaining.classList.add('hidden');
+    els.actionsRemaining.textContent = `${state.actions} ${state.actions === 1 ? 'action' : 'actions'} left`;
+    els.actionsRemaining.classList.remove('hidden');
   }
   if (els.finishTurn) {
     els.finishTurn.dataset.actionsRemaining = String(state.actions);

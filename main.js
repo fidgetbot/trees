@@ -65,7 +65,7 @@ import {
 import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=context-selection-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=context-drawer-v1';
+import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=context-drawer-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
@@ -73,8 +73,8 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=context-selection-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=grove-mode-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=single-screen-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
 function computeCurrentLifeStage() {
@@ -298,6 +298,8 @@ const els = getBrowserElements(document);
 const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
+let viewOffset = { x: 0, y: 0 }, focusAnimation = null;
+let lastRenderStage = null;
 
 function playerSceneTarget() {
   return sceneHitTargets.find(target => target.id === 'player') || {
@@ -312,9 +314,24 @@ function activeSceneTarget() {
 }
 
 function selectSceneTarget(target) {
+  focusAnimation?.cancel();
   selectedSceneTarget = target || playerSceneTarget();
+  viewOffset = { x: 0, y: 0 };
   render();
+  const from = { ...viewOffset }, bounds = activeSceneTarget().bounds;
+  const rect = els.canvas.getBoundingClientRect();
+  const availableHeight = Math.max(160, rect.height - els.hudPanel.offsetHeight - 34);
+  const to = selectedSceneTarget.id === 'player' ? { x: 0, y: 0 } : {
+    x: from.x + rect.width / 2 - (bounds.x + bounds.width / 2),
+    y: from.y + Math.max(150, availableHeight * .54) - (bounds.y + bounds.height / 2),
+  };
   renderActions();
+  viewOffset = to;
+  render();
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    focusAnimation = els.canvas.animate([{ opacity: .72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+  }
+
 }
 
 // Floating feedback system
@@ -442,6 +459,8 @@ function showChoiceModal(title, body, choices) {
 }
 
 function showGameOverScreen(summary) {
+  document.body.classList.remove('game-started');
+  document.getElementById('detail-sheet')?.close();
   els.modal?.classList.add('hidden');
   els.mapExplorer?.classList.add('hidden');
   document.querySelectorAll('.game-panel, #species-panel').forEach(panel => panel.classList.add('hidden'));
@@ -1605,9 +1624,22 @@ function addLog(message) {
 }
 
 function render() {
+  if (!els.canvas.isConnected) return;
+  const rect = els.canvas.getBoundingClientRect();
+  const width = Math.max(320, Math.round(rect.width || 900)), height = Math.max(240, Math.round(rect.height || 600));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (els.canvas.width !== Math.round(width*dpr) || els.canvas.height !== Math.round(height*dpr)) {
+    els.canvas.width = Math.round(width*dpr); els.canvas.height = Math.round(height*dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#332f25"; ctx.fillRect(0, 0, width, height);
+  const stage = computeCurrentLifeStage().name;
+  if (lastRenderStage !== stage) { viewOffset = { x: 0, y: 0 }; selectedSceneTarget = null; lastRenderStage = stage; }
   const rendered = renderForestScene({
     ctx,
-    canvas: els.canvas,
+    canvas: { width, height: Math.max(220, height - (state.started ? els.hudPanel.offsetHeight + 26 : 0)), dataset: els.canvas.dataset },
+    immersive: true,
+    viewOffset,
     state,
     currentSeason: currentSeason(),
     playerStageName: computeCurrentLifeStage().name,
@@ -1617,7 +1649,20 @@ function render() {
     selectedTargetId: selectedSceneTarget?.id || 'player',
   });
   sceneHitTargets = rendered?.hitTargets || [];
+  if (selectedSceneTarget && !sceneHitTargets.some(target => target.id === selectedSceneTarget.id)) {
+    selectedSceneTarget = null; viewOffset = { x: 0, y: 0 }; render(); renderActions(); return;
+  }
   selectedSceneTarget = activeSceneTarget();
+  const focus = document.getElementById('scene-focus');
+  if (focus) {
+    const targets = sceneHitTargets.filter(target => target.id === 'player' || (target.stageName !== 'Dead'));
+    const signature = targets.map(target => `${target.id}:${target.title}`).join('|');
+    if (focus.dataset.signature !== signature) {
+      focus.replaceChildren(...targets.map(target => new Option(target.id === 'player' ? 'Your tree' : target.title, target.id)));
+      focus.dataset.signature = signature;
+    }
+    focus.value = selectedSceneTarget.id;
+  }
   if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
 }
 
@@ -1711,10 +1756,10 @@ function initMapExplorer() {
   if (!viewport) return;
   const panSpeed=2.75,wheelSpeed=4;
   els.canvas.addEventListener('click',event=>{
-    const rect=els.canvas.getBoundingClientRect(),x=(event.clientX-rect.left)*els.canvas.width/rect.width,y=(event.clientY-rect.top)*els.canvas.height/rect.height;
+    const rect=els.canvas.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
     const target=pickSceneTarget(sceneHitTargets,x,y);
     if(target){selectSceneTarget(target);return}
-    openMapExplorer();
+    selectSceneTarget(playerSceneTarget());
   });
   els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
   els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
@@ -1734,6 +1779,24 @@ function initMapExplorer() {
   viewport.addEventListener('wheel',event=>{event.preventDefault();if(event.ctrlKey||event.metaKey){const current=mapExplorerPreviewZoom??mapExplorerZoom;previewMapExplorerZoom(current*Math.exp(-event.deltaY*.002),{clientX:event.clientX,clientY:event.clientY});if(mapExplorerWheelTimer)clearTimeout(mapExplorerWheelTimer);mapExplorerWheelTimer=setTimeout(commitMapExplorerPreview,90);return}viewport.scrollLeft+=event.deltaX*wheelSpeed;viewport.scrollTop+=event.deltaY*wheelSpeed},{passive:false});
   viewport.addEventListener('keydown',event=>{if(event.key==='+'||event.key==='='){event.preventDefault();const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom*1.4)}else if(event.key==='-'){event.preventDefault();const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom/1.4)}else if(event.key==='0'){event.preventDefault();resetMapExplorer()}});
 }
+
+const detailSheet = document.getElementById('detail-sheet');
+function openDetailSheet(kind) {
+  document.getElementById('sheet-actions').hidden = kind !== 'actions';
+  document.getElementById('sheet-info').hidden = kind !== 'info';
+  document.getElementById('sheet-title').textContent = kind === 'actions' ? 'All actions' : 'Grove notebook';
+  if (!detailSheet.open) detailSheet.showModal();
+  detailSheet.querySelector('.sheet-scroll').scrollTop = 0;
+}
+document.getElementById('open-actions').onclick = () => openDetailSheet('actions');
+document.getElementById('open-info').onclick = () => openDetailSheet('info');
+document.getElementById('resource-info').onclick = () => openDetailSheet('info');
+document.getElementById('close-sheet').onclick = () => detailSheet.close();
+detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
+document.getElementById('explore-grove').onclick = openMapExplorer;
+document.getElementById('scene-focus').onchange = event => selectSceneTarget(sceneHitTargets.find(target => target.id === event.target.value));
+new ResizeObserver(() => { if (state.started) render(); }).observe(els.hudPanel);
+window.addEventListener('resize', () => { if (!els.canvas.isConnected) return; if (state.started) selectSceneTarget(activeSceneTarget()); else render(); });
 
 els.startGame.addEventListener('click', startGame);
 initMapExplorer();

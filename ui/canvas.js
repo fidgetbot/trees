@@ -224,8 +224,8 @@ export function getBotanicalModuleCount(kind,count,clusterCount){
 function treeHitTarget(tree,state,playerStageName,camera,groundY){
   const stage=tree.isPlayer?playerStageName:(tree.neighbor?.stageName||'Sapling');
   const rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stage);
-  const height=tree.isPlayer?playerHeight(state,stage,camera):Math.max(14,[12,24,64,104,142,188,228][Math.max(0,rank)]*camera.zoom);
-  const width=Math.max(34,Math.min(190,(rank<2?34:height*.72)));
+  const height=playerHeight(tree.isPlayer?state:{...tree.neighbor,selectedSpecies:tree.neighbor?.species,rootZones:tree.neighbor?.roots,leafClusters:tree.neighbor?.leafClusters??tree.neighbor?.branches??2},stage,camera);
+  const width=Math.max(44,Math.min(240,(rank<2?4.4*camera.zoom:height*.72)));
   const neighbor=tree.neighbor;
   if(tree.isPlayer)return{id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,subtitle:`${stage} · You`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
   if(neighbor?.offspring)return{id:`offspring-${neighbor.childId}`,type:'offspring-tree',childId:neighbor.childId,title:`${neighbor.species} offspring`,stageName:stage,subtitle:`${stage} · Ally`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
@@ -235,25 +235,40 @@ function treeHitTarget(tree,state,playerStageName,camera,groundY){
 function drawSelectedTarget(ctx,target){
   if(!target)return;
   const {x,y,width,height}=target.bounds;
-  ctx.save();ctx.strokeStyle='rgba(255,247,205,.95)';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.shadowColor='rgba(255,236,157,.7)';ctx.shadowBlur=10;
-  ctx.beginPath();ctx.roundRect(x-4,y-4,width+8,height+8,14);ctx.stroke();ctx.restore();
+  ctx.save();ctx.strokeStyle='rgba(244,228,166,.65)';ctx.lineWidth=2;ctx.shadowColor='rgba(255,236,157,.65)';ctx.shadowBlur=18;
+  ctx.beginPath();ctx.ellipse(x+width/2,y+height-22,Math.max(24,width*.6),9,0,0,TAU);ctx.stroke();ctx.restore();
 }
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,viewOffset={x:0,y:0}}) {
   const w=canvas.width,h=canvas.height;
-  const camera=cameraFor(state,playerStageName);camera.zoom*=zoomMultiplier;
-  const centered=centerHorizon||playerStageName==='Seed',groundY=centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom),residentTrees=positions.map((baseX,index)=>{
+  let subjectState=state,subjectStage=playerStageName;
+  if(immersive&&selectedTargetId?.startsWith('neighbor-')) {
+    const index=Number(selectedTargetId.slice(9));
+    const neighbor=[0,1,3,4].map(slot=>getNeighborTree(slot)).find(n=>n?.targetIndex===index);
+    if(neighbor){subjectStage=neighbor.stageName;subjectState={...neighbor,selectedSpecies:neighbor.species,rootZones:neighbor.roots,leafClusters:neighbor.leafClusters??neighbor.branches??2};}
+  } else if(immersive&&selectedTargetId?.startsWith('offspring-')) {
+    const child=(state.offspringRecords||[]).find(c=>`offspring-${c.id}`===selectedTargetId&&!c.dead);
+    if(child){subjectStage=stageForScore(child.stageScore);subjectState={selectedSpecies:child.species,trunk:2,branches:3,leafClusters:3};}
+  }
+  const camera=cameraFor(subjectState,subjectStage);camera.zoom*=zoomMultiplier;
+  if(immersive){
+    const rooted=subjectStage==='Sprout'&&!(subjectState.leafClusters>0);
+    const desired=subjectStage==='Seed'||rooted?Math.min(82,w*.20):Math.min(h*.42,w*.65);
+    camera.zoom*=Math.min(5,desired/(rooted?2.6*camera.zoom:playerHeight(subjectState,subjectStage,camera)));
+  }
+  const centered=centerHorizon||playerStageName==='Seed',groundY=(immersive?Math.max(topInset+playerHeight(subjectState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))))+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
     const neighbor=index===2?null:getNeighborTree(index),arrangement=getCanopyArrangement(state,index,index===2,neighbor);
     return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean};
   });
   const childTrees=(state.offspringRecords||[]).filter(child=>!child.dead).slice(0,CHILD_WORLD_POSITIONS.length).map((child,index)=>{
     const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stageName);
-    return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
+    return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom+viewOffset.x,index:5+index,isPlayer:false,neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
   });
   const trees=[...residentTrees,...childTrees];
   canvas.dataset.groundY=String(groundY);
   ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,groundY);
-  ctx.fillStyle='#4a3b2f'; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='#000'; line(ctx,0,groundY,w,groundY);
+  const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
+  ctx.fillStyle=soil; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='rgba(84,70,45,.3)'; line(ctx,0,groundY,w,groundY);
   if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
   drawDirectionalCanopyShadows(ctx,trees,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
@@ -264,7 +279,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   drawSelectedTarget(ctx,hitTargets.find(target=>target.id===selectedTargetId));
   if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
-  trees.filter(tree=>(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+  trees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
   return{hitTargets,groundY};
 }
 
@@ -362,7 +377,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
 }
 
 function playerHeight(state,stage,camera){
-  if(stage==='Seed')return 2.6*camera.zoom;
+  if(stage==='Seed'||shouldDrawSeedRadicle(stage,state.rootZones||0,state.leafClusters||0))return 2.6*camera.zoom;
   if(stage==='Sprout')return 15*camera.zoom;
   const species=state.selectedSpecies||'Plum',habit=HABITS[species]||HABITS.Plum,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+(state.trunk||0)*.025)*camera.zoom;
   const tree=buildTree(hash(`${species}:2:resident`),state.branches||0,state.leafClusters||0,habit,stage,state.trunk||0,state.canopySpread||0,state.heightGrowth||0);

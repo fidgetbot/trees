@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=context-drawer-v1" />
+  <link rel="stylesheet" href="styles.css?rev=single-screen-v1" />
 </head>
 <body>
   <div id="app">
@@ -21,15 +21,16 @@
           <div class="map-frame">
             <div class="map-status" aria-label="Current game status">
               <div class="grove-time-pill">Year <strong id="year">1</strong><span aria-hidden="true"> · </span><strong id="season">Spring</strong></div>
-              <div class="grove-resource-pill" aria-label="Current score and resources">
+              <button type="button" id="resource-info" class="grove-resource-pill" aria-label="Resources and health — tap for details">
                 <span class="grove-resource grove-score" title="Score"><span aria-hidden="true">✦</span><strong id="score">0</strong></span>
                 <span class="grove-resource grove-sun" title="Sunlight"><span aria-hidden="true">☀</span><strong id="grove-sunlight">0</strong></span>
                 <span class="grove-resource grove-water" title="Water"><span aria-hidden="true">●</span><strong id="grove-water">0</strong></span>
                 <span class="grove-resource grove-nutrient" title="Nutrients"><span aria-hidden="true">◆</span><strong id="grove-nutrients">0</strong></span>
-              </div>
+              <span class="grove-resource grove-health" aria-label="Health">♡ <strong id="grove-health">0</strong></span></button>
               <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
+            <div class="scene-tools"><label class="focus-picker">Focus <select id="scene-focus" aria-label="Focus a grove object"><option value="player">Your tree</option></select></label><button id="explore-grove" type="button">Explore</button></div>
             <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Select a tree or visitor. Press Enter to explore the whole grove."></canvas>
           </div>
         </div>
@@ -39,31 +40,24 @@
         <button id="hud-minimize" class="panel-corner-toggle" type="button" aria-expanded="true" aria-label="Minimize status">−</button>
         <button id="hud-restore" class="panel-chip hidden" type="button">📊 Status</button>
         <div id="hud-content" class="panel-content">
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <div class="grove-sheet-heading">
-          <span class="grove-sheet-kicker">Your tree</span>
-          <strong>Tend the grove</strong>
-        </div>
         <div id="turn-end-banner" class="turn-end-banner hidden" aria-live="polite"></div>
-        <div id="growth-hint" class="growth-hint">Next growth: Take your first action: grow roots</div>
-        <div class="hud-header actions-header">
-          <h2>Actions <span class="actions-heading-count" id="actions-remaining" aria-live="polite">(3 remaining)</span></h2>
-          <span id="phase-indicator" class="phase-pill">Action Phase</span>
-        </div>
-        <div class="action-command-bar">
-          <div class="action-resource-strip" aria-label="Resources available for actions">
-            <span class="action-resource-label">You have</span>
-            <span class="action-resource-total res-sun"><span aria-hidden="true">☀️</span><strong id="action-sunlight">0</strong></span>
-            <span class="action-resource-total res-water"><span aria-hidden="true">💧</span><strong id="action-water">0</strong></span>
-            <span class="action-resource-total res-nutrient"><span aria-hidden="true">🌱</span><strong id="action-nutrients">0</strong></span>
-            <span class="action-resource-total res-health" aria-label="Current health"><span aria-hidden="true">❤️</span><strong id="action-health">0/0</strong></span>
-          </div>
-          <button id="finish-turn" class="finish-turn-btn hidden" type="button">Finish Turn Early</button>
-        </div>
         <div id="actions-list" class="actions-list"></div>
-
-        <details class="tree-inspector">
-          <summary>Tree details and history</summary>
+        <div class="dock-toolbar">
+          <span id="actions-remaining" aria-live="polite"></span>
+          <button id="open-actions" type="button">All actions</button>
+          <button id="open-info" type="button">Info</button>
+          <button id="finish-turn" class="finish-turn-btn" type="button">End turn →</button>
+        </div>
+        <dialog id="detail-sheet" class="detail-sheet" aria-labelledby="sheet-title">
+          <header class="sheet-header"><h2 id="sheet-title">Tree details</h2><button id="close-sheet" type="button" aria-label="Close details">Close</button></header>
+          <div class="sheet-scroll">
+            <section id="sheet-actions" hidden></section>
+            <section id="sheet-info" hidden>
+              <p id="selected-info"></p>
+              <h3>Your tree</h3><p>Score <strong id="notebook-score">0</strong></p>
+              <div id="growth-hint" class="growth-hint"></div>
+        <details class="tree-inspector" open>
+          <summary>Resources, structure and history</summary>
           <div class="tree-inspector-content">
         <div id="species-badge" class="species-badge post-actions-status"></div>
         <div class="stats-container">
@@ -177,6 +171,9 @@
         <div id="log" class="log"></div>
           </div>
         </details>
+            </section>
+          </div>
+        </dialog>
         </div>
       </section>
     </main>
@@ -226,6 +223,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=context-drawer-v1"></script>
+  <script type="module" src="main.js?rev=single-screen-v1"></script>
 </body>
 </html>

@@ -45,11 +45,12 @@ function spendFrom(state) {
   };
 }
 
-test('the end-turn control appears before the potentially long action list', () => {
+test('end turn stays outside the scrollable full-action sheet', () => {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.ok(html.indexOf('id="finish-turn"') < html.indexOf('id="actions-list"'));
-  assert.match(css, /\.action-command-bar\s*\{[\s\S]*position:\s*sticky/);
+  assert.ok(html.indexOf('id="finish-turn"') < html.indexOf('id="detail-sheet"'));
+  assert.ok(html.indexOf('id="sheet-actions"') > html.indexOf('id="detail-sheet"'));
+  assert.match(css, /\.game-started #hud-panel\s*\{[^}]*position:\s*fixed/);
 });
 
 test('cancelling a deferred action spends no resources or action', () => {

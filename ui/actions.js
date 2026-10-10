@@ -13,6 +13,10 @@ export function renderActionPanels({
   noUsableActions = false,
 }) {
   els.actionsList.innerHTML = '';
+  const sheetActions = document.getElementById('sheet-actions');
+  if (sheetActions) sheetActions.innerHTML = '';
+  const selectedInfo = document.getElementById('selected-info');
+  if (selectedInfo) selectedInfo.textContent = `${contextPresentation?.title || 'Your tree'} — ${contextPresentation?.detail || ''}`;
 
   const context = document.createElement('section');
   context.className = 'context-command';
@@ -22,9 +26,8 @@ export function renderActionPanels({
   heading.className = 'context-command-heading';
   heading.innerHTML = `
     <div>
-      <span class="context-kicker">${contextPresentation?.kicker || 'Selected'}</span>
-      <strong>${contextPresentation?.title || 'Your tree'}</strong>
-      <small>${contextPresentation?.detail || ''}</small>
+      <strong>${(contextPresentation?.title || 'Your tree').replace(' · You', '')}</strong><span class="context-stage">${contextTarget?.subtitle || contextTarget?.stageName || contextPresentation?.kicker || ''}</span>
+
     </div>`;
   if (contextTarget?.type && contextTarget.type !== 'player-tree') {
     const reset = document.createElement('button');
@@ -45,6 +48,7 @@ export function renderActionPanels({
       button.className = 'context-action';
       button.dataset.actionKey = action.key;
       button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong>${costsHtml}`;
+      button.title = action.help || action.name;
       button.onclick = () => onUseAction(action, scaledCost);
       shortlist.appendChild(button);
     });
@@ -59,6 +63,7 @@ export function renderActionPanels({
 
   const allActions = document.createElement('details');
   allActions.className = 'all-actions';
+  allActions.open = true;
   const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
   allActions.innerHTML = `<summary>More actions <span>${allUsableCount} available</span></summary>`;
   const catalog = document.createElement('div');
@@ -83,13 +88,13 @@ export function renderActionPanels({
           <h4 class="action-title">${action.name}</h4>
           <span class="action-icon">${action.icon}</span>
         </div>
-        <p class="action-help">${action.help}</p>
+        <details class="action-explanation"><summary>What does this do?</summary><p>${action.help}</p></details>
         ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}`;
 
       const btn = document.createElement('button');
       btn.textContent = 'Use Action';
-      btn.onclick = () => onUseAction(action, scaledCost);
+      btn.onclick = () => { document.getElementById('detail-sheet')?.close(); onUseAction(action, scaledCost); };
       card.appendChild(btn);
       wrap.appendChild(card);
     });
@@ -135,7 +140,7 @@ export function renderActionPanels({
           <span class="action-icon">${action.icon}</span>
         </div>
         <span class="prereq-missing">Locked</span>
-        <p class="action-help">${action.help}</p>
+        <details class="action-explanation"><summary>What does this do?</summary><p>${action.help}</p></details>
         ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}
         <p class="future-reason">${reason}</p>`;
@@ -146,17 +151,13 @@ export function renderActionPanels({
   }
 
   allActions.appendChild(catalog);
-  els.actionsList.appendChild(allActions);
+  (sheetActions || els.actionsList).appendChild(allActions);
 
   const canEndTurn = Object.values(categories).some(arr => arr.length > 0) || noUsableActions;
   if (els.finishTurn) {
     els.finishTurn.classList.toggle('hidden', !canEndTurn);
-    const remaining = Number.isFinite(Number(els.finishTurn.dataset.actionsRemaining))
-      ? Number(els.finishTurn.dataset.actionsRemaining)
-      : null;
-    els.finishTurn.textContent = noUsableActions
-      ? `Out of Resources — End Turn${remaining == null ? '' : ` (${remaining} action${remaining === 1 ? '' : 's'} remaining)`}`
-      : `End Turn Early${remaining == null ? '' : ` (${remaining} action${remaining === 1 ? '' : 's'} remaining)`}`;
+    els.finishTurn.textContent = 'End turn →';
+    els.finishTurn.title = noUsableActions ? 'No affordable actions remain' : 'End the turn with remaining actions unused';
     els.finishTurn.onclick = canEndTurn ? onFinishTurn : null;
   }
 }
