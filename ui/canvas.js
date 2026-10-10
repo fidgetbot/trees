@@ -221,7 +221,25 @@ export function getBotanicalModuleCount(kind,count,clusterCount){
   return 0;
 }
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false}) {
+function treeHitTarget(tree,state,playerStageName,camera,groundY){
+  const stage=tree.isPlayer?playerStageName:(tree.neighbor?.stageName||'Sapling');
+  const rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stage);
+  const height=tree.isPlayer?playerHeight(state,stage,camera):Math.max(14,[12,24,64,104,142,188,228][Math.max(0,rank)]*camera.zoom);
+  const width=Math.max(34,Math.min(190,(rank<2?34:height*.72)));
+  const neighbor=tree.neighbor;
+  if(tree.isPlayer)return{id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,subtitle:`${stage} · You`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
+  if(neighbor?.offspring)return{id:`offspring-${neighbor.childId}`,type:'offspring-tree',childId:neighbor.childId,title:`${neighbor.species} offspring`,stageName:stage,subtitle:`${stage} · Ally`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
+  return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
+}
+
+function drawSelectedTarget(ctx,target){
+  if(!target)return;
+  const {x,y,width,height}=target.bounds;
+  ctx.save();ctx.strokeStyle='rgba(255,247,205,.95)';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.shadowColor='rgba(255,236,157,.7)';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.roundRect(x-4,y-4,width+8,height+8,14);ctx.stroke();ctx.restore();
+}
+
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null}) {
   const w=canvas.width,h=canvas.height;
   const camera=cameraFor(state,playerStageName);camera.zoom*=zoomMultiplier;
   const centered=centerHorizon||playerStageName==='Seed',groundY=centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16)),positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom),residentTrees=positions.map((baseX,index)=>{
@@ -240,21 +258,25 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   drawDirectionalCanopyShadows(ctx,trees,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
   trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera}));
-  drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName);
-  drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state);
+  const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
+  drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets);
+  drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
+  drawSelectedTarget(ctx,hitTargets.find(target=>target.id===selectedTargetId));
   if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
   trees.filter(tree=>(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+  return{hitTargets,groundY};
 }
 
-function drawSceneArt(ctx,x,groundY,camera,state,playerStageName){
+function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
   const kinds=getSceneArtKinds(state);
   if(!kinds.length)return;
   const scale=Math.max(.62,Math.min(2.5,camera.zoom/.86));
-  const drawGrounded=(kind,centerX,displayWidth)=>{
+  const drawGrounded=(kind,centerX,displayWidth,title)=>{
     const image=animalAssets.get(kind);if(!image)return;
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
-    ctx.drawImage(image,centerX-displayWidth/2,groundY-displayHeight*482/512,displayWidth,displayHeight);
+    const top=groundY-displayHeight*482/512;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
   };
   ctx.save();
   kinds.forEach(kind=>{
@@ -263,16 +285,17 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName){
       const displayHeight=64*scale,displayWidth=displayHeight*2/3;
       const treeHeight=playerHeight(state,playerStageName,camera);
       const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
-      ctx.drawImage(image,x+7*scale,centerY-displayHeight*.48,displayWidth,displayHeight);
+      const left=x+7*scale,top=centerY-displayHeight*.48;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',bounds:{x:left-10,y:top-10,width:displayWidth+20,height:displayHeight+20}});
       return;
     }
     if(kind==='beaver'){
-      drawGrounded(kind,x-112*scale,82*scale);
+      drawGrounded(kind,x-112*scale,82*scale,'Beaver');
       return;
     }
     if(kind==='browsers'){
-      drawGrounded('browser-deer',x-88*scale,88*scale);
-      drawGrounded('browser-rabbit',x+70*scale,46*scale);
+      drawGrounded('browser-deer',x-88*scale,88*scale,'Browsing deer');
+      drawGrounded('browser-rabbit',x+70*scale,46*scale,'Browsing rabbit');
     }
   });
   ctx.restore();
@@ -282,7 +305,7 @@ function stageForScore(score){
   if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Young Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
 }
 
-function drawHumanPressure(ctx,x,groundY,camera,state){
+function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
   const cuts=state.cuttingProgress||0,encounter=state.pendingHumanEncounter;
   if((state.humanAttention||0)>0){
     const markScale=Math.max(.7,camera.zoom);ctx.save();ctx.fillStyle='rgba(223,109,63,.92)';ctx.beginPath();ctx.roundRect(x-5*markScale,groundY-15*markScale,10*markScale,3.2*markScale,1.4*markScale);ctx.fill();ctx.restore();
@@ -295,6 +318,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
   if(!encounter)return;
   const count=Math.max(1,encounter.count||2),scale=Math.max(.62,Math.min(2.5,camera.zoom*.88));
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  let groupLeft=Infinity,groupTop=Infinity,groupRight=-Infinity;
   for(let i=0;i<count;i++){
     const side=i%2?1:-1,rank=Math.floor(i/2),px=x+side*(22+rank*13)*scale,py=groundY;
     if(encounter.phase==='survey'){
@@ -302,7 +326,8 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
       if(image){
         const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
-        ctx.drawImage(image,spriteX-displayWidth/2,groundY-displayHeight*738/768,displayWidth,displayHeight);
+        const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+        groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
         continue;
       }
     }
@@ -311,7 +336,8 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
       if(image){
         const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
-        ctx.drawImage(image,spriteX-displayWidth/2,groundY-displayHeight*738/768,displayWidth,displayHeight);
+        const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+        groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
         continue;
       }
     }
@@ -328,6 +354,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state){
       ctx.strokeStyle='#adb4b0';ctx.lineWidth=2*scale;ctx.beginPath();ctx.moveTo(px+8*side*scale,py-9*scale);ctx.lineTo(px+13*side*scale,py-4*scale);ctx.stroke();
     }
   }
+  if(Number.isFinite(groupLeft))hitTargets.push({id:`human-${encounter.phase}`,type:'human-encounter',kind:encounter.phase==='cutting'?'loggers':'surveyors',title:encounter.phase==='cutting'?'Logging crew':'Surveyors',bounds:{x:groupLeft-10,y:groupTop-10,width:groupRight-groupLeft+20,height:groundY-groupTop+20}});
   if(encounter.phase==='survey'&&(state.humanAttention||0)===0){
     ctx.fillStyle='#df6d3f';ctx.beginPath();ctx.roundRect(x-5*scale,groundY-15*scale,10*scale,3.2*scale,1.4*scale);ctx.fill();
   }

@@ -114,6 +114,24 @@ test('confirming a deferred action commits its cost exactly once', () => {
   assert.equal(eventPhases, 0);
 });
 
+test('selected-object context reaches the action effect unchanged', () => {
+  const state = actionState();
+  let received;
+  actionEngine().executeAction(state, {
+    key: 'targeted-choice',
+    name: 'Targeted Choice',
+    effect(_state, context) {
+      received = { preferredTargetIndex: context.preferredTargetIndex, preferredChildId: context.preferredChildId };
+      context.transaction.cancel();
+      return { deferred: true };
+    },
+  }, { sunlight: 0, water: 0, nutrients: 0 }, {
+    spend: spendFrom(state),
+    actionContext: { preferredTargetIndex: 3, preferredChildId: 'child-7' },
+  });
+  assert.deepEqual(received, { preferredTargetIndex: 3, preferredChildId: 'child-7' });
+});
+
 test('high gathering preserves early bonuses but caps each turn at six actions', () => {
   assert.equal(actionsForGathering(0), BASE_ACTIONS_PER_TURN);
   assert.equal(actionsForGathering(4), BASE_ACTIONS_PER_TURN);

@@ -62,17 +62,18 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=offspring-support-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=resource-balance-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=context-selection-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=condensed-turn-v1';
+import { renderActionPanels } from './ui/actions.js?rev=context-drawer-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=context-drawer-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
 import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=wildlife-browser-sprites-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=context-selection-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=grove-mode-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
@@ -295,6 +296,26 @@ const ACTIONS = createActions({
 const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
 const els = getBrowserElements(document);
 const ctx = els.canvas.getContext('2d');
+let sceneHitTargets = [];
+let selectedSceneTarget = null;
+
+function playerSceneTarget() {
+  return sceneHitTargets.find(target => target.id === 'player') || {
+    id: 'player', type: 'player-tree', title: state.selectedSpecies || 'Your tree',
+    stageName: computeCurrentLifeStage().name,
+  };
+}
+
+function activeSceneTarget() {
+  if (!selectedSceneTarget) return playerSceneTarget();
+  return sceneHitTargets.find(target => target.id === selectedSceneTarget.id) || playerSceneTarget();
+}
+
+function selectSceneTarget(target) {
+  selectedSceneTarget = target || playerSceneTarget();
+  render();
+  renderActions();
+}
 
 // Floating feedback system
 function initSpeciesSelect() {
@@ -935,7 +956,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 }
 
-function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null } = {}) {
+function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null, preferredTargetIndex = null } = {}) {
   const cancel = () => transaction?.cancel();
   const complete = () => transaction?.complete();
   if (!decision.options.length) {
@@ -973,6 +994,14 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     proceed();
   };
 
+  if (preferredTargetIndex != null) {
+    const preferred = decision.options.find(option => option.targetIndex === preferredTargetIndex);
+    if (preferred) {
+      execute(preferred);
+      return { deferred: true };
+    }
+  }
+
   if (decision.options.length === 1 && !decision.options[0].disabled) {
     execute(decision.options[0]);
     return { deferred: true };
@@ -1004,12 +1033,14 @@ function offerAidToAlly(s, context = {}) {
   }), {
     emptyMessage: 'No allied trees are available to receive aid',
     transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
   });
 }
 
 function runAggressionFlow(kind, context = {}) {
   return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState, getNeighborStage }), {
     transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
   });
 }
 
@@ -1024,9 +1055,9 @@ function rootDominionAction(s, context) {
 function requestHelpFromAllies(s, context = {}) {
   const missingHealth = Math.max(0, state.maxHealth - state.health);
   showChoiceModal('What do you need?', '<p>Choose what your tissues need most. The ally will decide how much it can spare.</p>', [
-    { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
-    { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
-    { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction }) },
+    { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+    { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+    { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Back', onChoose: () => context.transaction?.cancel() },
   ]);
   return { deferred: true };
@@ -1038,25 +1069,31 @@ function nurtureOffspringAction(s, context = {}) {
     context.transaction?.cancel();
     return { deferred: true };
   }
+  const nurtureChild = child => {
+    const before = { ...child };
+    context.transaction?.commit();
+    const nurtured = nurtureOffspring(state, child.id);
+    if (!nurtured) {
+      context.transaction?.cancel();
+      return;
+    }
+    const afterStage = getNeighborStage(nurtured.stageScore);
+    showModal('Offspring Nurtured', `
+      <p>You direct water, nutrients, and stored energy to your ${nurtured.species} offspring.</p>
+      <p><strong>Growth:</strong> ${before.stageScore} → ${nurtured.stageScore} (+${nurtured.stageScore - before.stageScore}) · ${afterStage.name}</p>
+      <p><strong>Health:</strong> ${before.health}/${before.maxHealth} → ${nurtured.health}/${nurtured.maxHealth}</p>
+      <p><strong>Nurture investments:</strong> ${before.nurtureCount} → ${nurtured.nurtureCount}</p>
+    `, () => context.transaction?.complete());
+  };
+  const preferredChild = context.preferredChildId ? children.find(child => child.id === context.preferredChildId) : null;
+  if (preferredChild) {
+    nurtureChild(preferredChild);
+    return { deferred: true };
+  }
   const choices = children.map(child => ({
     label: `${child.species} — ${child.stageName}`,
     description: `${child.groveSide === 'left' ? 'Left' : 'Right'} side · ${child.health}/${child.maxHealth} health · ${child.stageScore} growth · nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'}`,
-    onChoose: () => {
-      const before = { ...child };
-      context.transaction?.commit();
-      const nurtured = nurtureOffspring(state, child.id);
-      if (!nurtured) {
-        context.transaction?.cancel();
-        return;
-      }
-      const afterStage = getNeighborStage(nurtured.stageScore);
-      showModal('Offspring Nurtured', `
-        <p>You direct water, nutrients, and stored energy to your ${nurtured.species} offspring.</p>
-        <p><strong>Growth:</strong> ${before.stageScore} → ${nurtured.stageScore} (+${nurtured.stageScore - before.stageScore}) · ${afterStage.name}</p>
-        <p><strong>Health:</strong> ${before.health}/${before.maxHealth} → ${nurtured.health}/${nurtured.maxHealth}</p>
-        <p><strong>Nurture investments:</strong> ${before.nurtureCount} → ${nurtured.nurtureCount}</p>
-      `, () => context.transaction?.complete());
-    },
+    onChoose: () => nurtureChild(child),
   }));
   choices.push({ label: 'Back', onChoose: () => context.transaction?.cancel() });
   showChoiceModal(
@@ -1070,6 +1107,7 @@ function nurtureOffspringAction(s, context = {}) {
 function attemptConnection(s, context = {}) {
   return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState, getNeighborStage }), {
     transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
   });
 }
 
@@ -1093,6 +1131,7 @@ function getNeighborTree(idx) {
     relation: base.relation,
     relationName: getRelationshipState(base.relation).name,
     stageName: stage.name,
+    targetIndex: state.neighbors.indexOf(base),
     slot: base.slot,
     playerShading: Boolean(base.playerShading),
     shadingPlayer: Boolean(base.shadingPlayer),
@@ -1189,10 +1228,20 @@ function renderActions() {
   });
 
   const noUsableActions = state.actions > 0 && Object.values(categories).every(arr => arr.length === 0);
+  const contextTarget = activeSceneTarget();
+  const contextualActions = getContextualActions({
+    target: contextTarget,
+    usableActions: Object.values(categories).flat(),
+    state: { ...state, currentSeasonName: currentSeason().name },
+    getRelationshipState,
+  });
 
   renderActionPanels({
     els,
     categories,
+    contextualActions,
+    contextTarget,
+    contextPresentation: getTargetActionContext(contextTarget, state, getRelationshipState),
     unavailableActions,
     futureActions,
     categoryNames: CATEGORY_NAMES,
@@ -1206,8 +1255,13 @@ function renderActions() {
         resumeTurnFlow,
         renderActions,
         showEventPhase,
+        actionContext: {
+          preferredTargetIndex: contextTarget.type === 'neighbor-tree' ? contextTarget.targetIndex : null,
+          preferredChildId: contextTarget.type === 'offspring-tree' ? contextTarget.childId : null,
+        },
       });
     },
+    onSelectPlayer: () => selectSceneTarget(playerSceneTarget()),
     onFinishTurn: () => {
       if ((state.turnsElapsed || 0) === 0 && shouldSkipGathering(state)) {
         state.actions = 0;
@@ -1551,7 +1605,7 @@ function addLog(message) {
 }
 
 function render() {
-  renderForestScene({
+  const rendered = renderForestScene({
     ctx,
     canvas: els.canvas,
     state,
@@ -1560,7 +1614,10 @@ function render() {
     getNeighborTree,
     getRelationshipState,
     topInset: 92,
+    selectedTargetId: selectedSceneTarget?.id || 'player',
   });
+  sceneHitTargets = rendered?.hitTargets || [];
+  selectedSceneTarget = activeSceneTarget();
   if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
 }
 
@@ -1653,7 +1710,12 @@ function initMapExplorer() {
   const viewport=els.mapExplorerViewport;
   if (!viewport) return;
   const panSpeed=2.75,wheelSpeed=4;
-  els.canvas.addEventListener('click',openMapExplorer);
+  els.canvas.addEventListener('click',event=>{
+    const rect=els.canvas.getBoundingClientRect(),x=(event.clientX-rect.left)*els.canvas.width/rect.width,y=(event.clientY-rect.top)*els.canvas.height/rect.height;
+    const target=pickSceneTarget(sceneHitTargets,x,y);
+    if(target){selectSceneTarget(target);return}
+    openMapExplorer();
+  });
   els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
   els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
   els.mapExplorerZoomIn?.addEventListener('click',()=>{const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom*1.4)});

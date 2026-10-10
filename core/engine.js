@@ -405,6 +405,7 @@ export function createEngine(deps) {
       resumeTurnFlow,
       renderActions,
       showEventPhase,
+      actionContext = {},
     } = hooks;
 
     let status = 'pending';
@@ -462,7 +463,7 @@ export function createEngine(deps) {
     };
 
     const transaction = { commit, cancel, complete };
-    const result = action.effect(state, { scaledCost, transaction });
+    const result = action.effect(state, { scaledCost, transaction, ...actionContext });
     if (action.key === 'growTaller' && state.pendingCanopyNotices?.length) {
       const notices = state.pendingCanopyNotices.splice(0);
       notices.forEach(notice => addLog?.(notice.message));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=grove-mode-v1" />
+  <link rel="stylesheet" href="styles.css?rev=context-drawer-v1" />
 </head>
 <body>
   <div id="app">
@@ -30,7 +30,7 @@
               <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
-            <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Explore the grove map"></canvas>
+            <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Select a tree or visitor. Press Enter to explore the whole grove."></canvas>
           </div>
         </div>
       </section>
@@ -62,6 +62,9 @@
         </div>
         <div id="actions-list" class="actions-list"></div>
 
+        <details class="tree-inspector">
+          <summary>Tree details and history</summary>
+          <div class="tree-inspector-content">
         <div id="species-badge" class="species-badge post-actions-status"></div>
         <div class="stats-container">
           <div class="stat-group" data-group="resources">
@@ -172,6 +175,8 @@
 
         <h3>Log</h3>
         <div id="log" class="log"></div>
+          </div>
+        </details>
         </div>
       </section>
     </main>
@@ -221,6 +226,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=wildlife-browser-sprites-v1"></script>
+  <script type="module" src="main.js?rev=context-drawer-v1"></script>
 </body>
 </html>

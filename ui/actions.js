@@ -1,14 +1,68 @@
 export function renderActionPanels({
   els,
   categories,
+  contextualActions = [],
+  contextTarget = null,
+  contextPresentation = null,
   unavailableActions = [],
   futureActions,
   categoryNames,
   onUseAction,
   onFinishTurn,
+  onSelectPlayer,
   noUsableActions = false,
 }) {
   els.actionsList.innerHTML = '';
+
+  const context = document.createElement('section');
+  context.className = 'context-command';
+  context.setAttribute('aria-live', 'polite');
+  context.setAttribute('aria-label', 'Actions for the selected grove object');
+  const heading = document.createElement('div');
+  heading.className = 'context-command-heading';
+  heading.innerHTML = `
+    <div>
+      <span class="context-kicker">${contextPresentation?.kicker || 'Selected'}</span>
+      <strong>${contextPresentation?.title || 'Your tree'}</strong>
+      <small>${contextPresentation?.detail || ''}</small>
+    </div>`;
+  if (contextTarget?.type && contextTarget.type !== 'player-tree') {
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'context-reset';
+    reset.textContent = 'Your tree';
+    reset.onclick = onSelectPlayer;
+    heading.appendChild(reset);
+  }
+  context.appendChild(heading);
+
+  const shortlist = document.createElement('div');
+  shortlist.className = 'context-shortlist';
+  if (contextualActions.length) {
+    contextualActions.forEach(({ action, scaledCost, costsHtml }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'context-action';
+      button.dataset.actionKey = action.key;
+      button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong>${costsHtml}`;
+      button.onclick = () => onUseAction(action, scaledCost);
+      shortlist.appendChild(button);
+    });
+  } else {
+    const empty = document.createElement('p');
+    empty.className = 'context-empty';
+    empty.textContent = 'No direct action is available for this selection right now.';
+    shortlist.appendChild(empty);
+  }
+  context.appendChild(shortlist);
+  els.actionsList.appendChild(context);
+
+  const allActions = document.createElement('details');
+  allActions.className = 'all-actions';
+  const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
+  allActions.innerHTML = `<summary>More actions <span>${allUsableCount} available</span></summary>`;
+  const catalog = document.createElement('div');
+  catalog.className = 'all-actions-catalog';
 
   Object.entries(categories).forEach(([catKey, catActions]) => {
     if (catActions.length === 0) return;
@@ -41,7 +95,7 @@ export function renderActionPanels({
     });
 
     details.appendChild(wrap);
-    els.actionsList.appendChild(details);
+    catalog.appendChild(details);
   });
 
   if (unavailableActions.length > 0) {
@@ -63,7 +117,7 @@ export function renderActionPanels({
       wrap.appendChild(row);
     });
     section.appendChild(wrap);
-    els.actionsList.appendChild(section);
+    catalog.appendChild(section);
   }
 
   if (futureActions.length > 0) {
@@ -88,8 +142,11 @@ export function renderActionPanels({
       wrap.appendChild(card);
     });
     details.appendChild(wrap);
-    els.actionsList.appendChild(details);
+    catalog.appendChild(details);
   }
+
+  allActions.appendChild(catalog);
+  els.actionsList.appendChild(allActions);
 
   const canEndTurn = Object.values(categories).some(arr => arr.length > 0) || noUsableActions;
   if (els.finishTurn) {
