@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=final-fauna-rollout-v1';
+} from './core/events.js?rev=encounter-art-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -68,13 +68,13 @@ import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neigh
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=final-fauna-rollout-v1';
-import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=juvenile-growth-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=juvenile-growth-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-gathering-v1';
+import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=encounter-art-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=encounter-art-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=encounter-art-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=botanical-chapters-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=juvenile-growth-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=encounter-art-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
@@ -507,9 +507,9 @@ function continueAsSuccessor(choice) {
   showResourcePhase();
 }
 
-function showChoiceModal(title, body, choices) {
+function showChoiceModal(title, body, choices, presentation = {}) {
   recordPopup(title, body);
-  return afterGrowthAnimation(() => showChoiceModalUI(els, title, body, choices));
+  return afterGrowthAnimation(() => showChoiceModalUI(els, title, body, choices, presentation));
 }
 
 function showGameOverScreen(summary) {
@@ -543,7 +543,7 @@ function showResourcePhase({ quiet = false } = {}) {
       updateUI();
       render();
       showResourcePhase();
-    });
+    }, { sceneArt: first.sceneArt });
     return;
   }
   if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
@@ -1458,9 +1458,10 @@ function queueSharedDecisionInteraction(decision, done) {
             return;
           }
           done?.();
-        });
+        }, { sceneArt: currentDecision.meta?.threat?.sceneArt });
       },
-    }))
+    })),
+    { sceneArt: currentDecision.meta?.threat?.sceneArt }
   );
 }
 

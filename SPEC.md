@@ -446,3 +446,8 @@ The current high-level goals are:
 - continue manual browser playtesting alongside simulation
 - add new gameplay features on top of shared core rules rather than re-entangling UI and rules
 - keep the browser build and simulation harness aligned as the game evolves
+
+### Illustrated encounter messages and gathering continuation
+
+- Creature encounter choices and their immediate/delayed outcomes show compact portraits from the same approved fauna library used in the grove, keyed by explicit event identity. Nightly major/minor event entries illustrate their own visitors, including pests, browsers, birds, beavers, woodpeckers and pollinators. Unmapped events stay text-only; reused dialogs clear old art and preserve focus, animation timing, and choices.
+- The gathering sheet’s actions-available panel is its single continuation button, retaining the action count and bonus explanation. The separate Continue button is hidden only on gathering; mouse, touch and keyboard activate the existing continuation exactly once without re-awarding resources.

@@ -1,3 +1,4 @@
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS } from './fauna-art.js?rev=encounter-art-v1';
 import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=juvenile-growth-v1';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=juvenile-growth-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
@@ -27,8 +28,6 @@ const SEED_PALETTES = {
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
-const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
-const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -37,25 +36,6 @@ const LOGGER_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/logger-v1-axe.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
   new URL(`../assets/humans/logger-v2-bow-saw.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
 ]);
-const ANIMAL_ASSET_URLS=Object.freeze({
-  woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
-  beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
-  'browser-deer':new URL(`../assets/animals/browser-deer-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
-  'browser-rabbit':new URL(`../assets/animals/browser-rabbit-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
-  'fruit-robin':new URL(`../assets/animals/fruit-robin-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'fruit-squirrel':new URL(`../assets/animals/fruit-squirrel-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-});
-const INSECT_ASSET_URLS=Object.freeze({
-  'pollinator-bumblebee':new URL(`../assets/insects/pollinator-bumblebee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'pollinator-honeybee':new URL(`../assets/insects/pollinator-honeybee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'pollinator-mason-bee':new URL(`../assets/insects/pollinator-mason-bee-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'pollinator-hoverfly':new URL(`../assets/insects/pollinator-hoverfly-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'pollinator-butterfly':new URL(`../assets/insects/pollinator-butterfly-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'pollinator-beetle':new URL(`../assets/insects/pollinator-beetle-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  aphids:new URL(`../assets/insects/pest-aphids-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  'surface-crawlers':new URL(`../assets/insects/pest-surface-crawlers-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-  mites:new URL(`../assets/insects/pest-mites-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
-});
 const TREE_STRUCTURE_SPECIES=Object.freeze(['Plum','Peach','Apricot','Pear','Cherry','Citrus']);
 const TREE_STRUCTURE_STAGE_KEYS=Object.freeze(['seed','rooted-seed','sprout','seedling','sapling','young-tree','mature-tree','ancient']);
 const TREE_STRUCTURE_GEOMETRY=Object.freeze({

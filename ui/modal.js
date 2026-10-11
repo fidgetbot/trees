@@ -1,4 +1,5 @@
-import { getTreeStructureSourceRect } from './canvas.js?rev=juvenile-growth-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=encounter-art-v1';
+import { getTreeStructureSourceRect } from './canvas.js?rev=encounter-art-v1';
 import { getJuvenileStageKey } from './juvenile-growth.js?rev=juvenile-growth-v1';
 
 export function modalPlainText(body) {
@@ -16,8 +17,23 @@ export function buildPopupLogMessage(title, body, maxLength = 220) {
   return `${title}: ${excerpt}${text.length > excerpt.length ? '…' : ''}`;
 }
 
-export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove' } = {}) {
+export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove', sceneArt } = {}) {
   els.modal.dataset.kind = kind;
+  // The same surface is reused by encounters, chapters and gathering.
+  let heading = els.modal.querySelector('.modal-heading');
+  if (!heading) {
+    heading = document.createElement('div');
+    heading.className = 'modal-heading';
+    const copy = document.createElement('div');
+    copy.className = 'modal-heading-copy';
+    els.modalTitle.before(heading);
+    copy.append(els.modal.querySelector('#modal-kicker'), els.modalTitle);
+    heading.append(copy);
+  }
+  heading.querySelector('.encounter-art')?.remove();
+  const art = renderEncounterArt(sceneArt);
+  heading.classList.toggle('has-encounter-art', !!art);
+  if (art) heading.insertAdjacentHTML('beforeend', art);
   els.modal.querySelector('#modal-kicker').textContent = eyebrow;
   els.modal.classList.remove('hidden');
   els.modal.querySelector('.modal-card').scrollTop = 0;
@@ -57,10 +73,17 @@ export function showStandardModal(els, title, body, onContinue, presentation = {
   els.modalTitle.textContent = title;
   els.modalBody.innerHTML = body;
   const close = openModalSurface(els, presentation);
-  els.modalButton.style.display = '';
-  els.modalButton.onclick = () => {
+  const actionButton = presentation.kind === 'gathering'
+    ? els.modalBody.querySelector('button.actions-earned') : null;
+  const continueButton = actionButton || els.modalButton;
+  els.modalButton.style.display = actionButton ? 'none' : '';
+  els.modalButton.onclick = null;
+  let continued = false;
+  continueButton.onclick = () => {
+    if (continued) return;
+    continued = true;
     close();
     onContinue?.();
   };
-  els.modalButton.focus({ preventScroll: true });
+  continueButton.focus({ preventScroll: true });
 }

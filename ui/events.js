@@ -1,3 +1,5 @@
+import { renderEncounterArt } from './fauna-art.js?rev=encounter-art-v1';
+
 export function renderEventPhaseBody({ major, minors, consequences }) {
   let majorHtml = '';
   if (major) {
@@ -11,7 +13,7 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
 
     majorHtml = `
       <div class="event-major ${majorClass}">
-        <div class="event-icon">${major.icon}</div>
+        ${renderEncounterArt(major.sceneArt) || `<div class="event-icon">${major.icon}</div>`}
         <div class="event-content">
           <h3>${major.name}</h3>
           <p>${major.desc}</p>
@@ -37,7 +39,7 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
   }
 
   const minorHtml = minors.length
-    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => `<li>${e.text}</li>`).join('')}</ul></div>`
+    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => `<li class="${renderEncounterArt(e.sceneArt) ? 'illustrated-event' : ''}">${renderEncounterArt(e.sceneArt)}<span>${e.text}</span></li>`).join('')}</ul></div>`
     : '<p class="no-events">The forest sleeps quietly this turn.</p>';
 
   return `

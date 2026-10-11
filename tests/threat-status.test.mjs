@@ -182,3 +182,22 @@ test('animal fruit threats retain event-driven scene art through warning and res
     Math.random = originalRandom;
   }
 });
+
+test('delayed chemical consequences preserve the original creature identity', () => {
+  for (const choice of ['conserve', 'defend']) {
+    const s = state({ sunlight: 0, water: 0, nutrients: 0 });
+    const threat = {
+      title: 'Surface Crawlers', sceneArt: 'surface-crawlers', warning: 'Crawlers approach.',
+      ignore: () => ({ body: 'Roots were damaged.', damage: { amount: 1, cause: 'insects' } }),
+    };
+    const decision = buildChemicalDefenseDecision(s, {
+      computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat,
+    });
+    resolveChemicalDefenseChoice(s, decision, choice);
+    assert.equal(s.pendingChemicalThreat.sceneArt, 'surface-crawlers');
+    const [consequence] = resolvePendingStartOfTurnEffects(s);
+    assert.equal(consequence.sceneArt, 'surface-crawlers');
+    assert.equal(consequence.title, 'Surface Crawlers');
+    assert.equal(s.pendingChemicalThreat, null);
+  }
+});

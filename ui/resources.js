@@ -106,10 +106,10 @@ export function renderResourcePhaseBody({ state, gains }) {
         ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
         </details>
       </section>
-      <div class="actions-earned">
+      <button type="button" class="actions-earned" aria-label="Start this turn with ${state.actions} actions">
         <strong>${state.actions} actions</strong><span> available this turn</span>
         ${bonusActions > 0 ? `<small>+${bonusActions} bonus action${bonusActions === 1 ? '' : 's'} from high resource yield</small>` : ''}
-      </div>
+      </button>
     </div>
   `;
 }

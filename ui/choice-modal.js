@@ -1,9 +1,9 @@
-import { openModalSurface } from './modal.js?rev=juvenile-growth-v1';
+import { openModalSurface } from './modal.js?rev=encounter-art-v1';
 
-export function showChoiceModalUI(els, title, body, choices) {
+export function showChoiceModalUI(els, title, body, choices, presentation = {}) {
   els.modalTitle.textContent = title;
   els.modalBody.innerHTML = body;
-  const close = openModalSurface(els);
+  const close = openModalSurface(els, presentation);
   els.modalButton.style.display = 'none';
   els.modalButton.onclick = null;
 

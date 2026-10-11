@@ -287,6 +287,7 @@ export function resolvePendingStartOfTurnEffects(state) {
       key: 'pendingChemicalThreat',
       title: delayed.title,
       warning: delayed.warning,
+      sceneArt: delayed.sceneArt,
       body: `${delayed.ignore()} The danger has passed, though it left damage behind.`,
     });
     return resolved;
@@ -463,6 +464,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
       state.pendingChemicalThreat = {
         title: threat.title,
         warning: threat.warning,
+        sceneArt: threat.sceneArt,
         ignore: () => {
           const result = threat.ignore();
           if (result.damage) recordDamage(result.damage.amount, result.damage.cause);
@@ -489,6 +491,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   state.pendingChemicalThreat = {
     title: threat.title,
     warning: threat.warning,
+    sceneArt: threat.sceneArt,
     ignore: () => {
       const result = threat.ignore();
       if (result.damage) recordDamage(result.damage.amount, result.damage.cause);

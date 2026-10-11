@@ -1777,3 +1777,23 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
   .modal[data-kind="gathering"] .actions-earned { margin-top: 12px; padding: 10px 6px; }
   .modal[data-kind="gathering"] #modal-button { margin-top: 12px; }
 }
+
+/* Small encounter specimens share identity and artwork with the grove. */
+.modal-heading-copy { min-width: 0; }
+.modal-heading.has-encounter-art { display: grid; grid-template-columns: minmax(0, 1fr) 104px; align-items: center; gap: 14px; margin-bottom: 22px; }
+.modal-heading.has-encounter-art #modal-title { margin-bottom: 0; }
+.encounter-art { display: flex; align-items: center; justify-content: center; flex: 0 0 96px; width: 96px; height: 88px; gap: 3px; }
+.encounter-art img { display: block; min-width: 0; width: 100%; height: 100%; object-fit: contain; }
+.encounter-art img:not(:only-child) { width: calc(50% - 2px); }
+.minor-events li.illustrated-event { display: flex; align-items: center; gap: 12px; }
+.minor-events .encounter-art { flex-basis: 64px; width: 64px; height: 60px; }
+.illustrated-event > span:last-child { min-width: 0; }
+.modal[data-kind="gathering"] button.actions-earned { width: 100%; min-height: 48px; cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s; }
+body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned { background: #945e48; border-color: #945e48; color: #fff8ed; }
+body.theme-light-rounded #modal[data-kind="gathering"] button.actions-earned :is(strong, small) { color: inherit; }
+body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hover { background: #81503e; border-color: #81503e; }
+@media (max-width: 380px) {
+  .modal-heading.has-encounter-art { grid-template-columns: minmax(0, 1fr) 80px; gap: 10px; }
+  .modal-heading > .encounter-art { width: 80px; height: 76px; }
+  .modal-heading.has-encounter-art #modal-title { font-size: 30px; }
+}
