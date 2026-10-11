@@ -66,6 +66,22 @@ const TREE_STRUCTURE_GEOMETRY=Object.freeze({
   'mature-tree':Object.freeze({width:142,height:122,groundRatio:.63}),
   ancient:Object.freeze({width:174,height:136,groundRatio:.65}),
 });
+// Seed cells from the source atlas extend into the next row. Sample only the
+// complete seed and its 12px margin; preserve the original painted masters.
+const SEED_SOURCE_BOUNDS=Object.freeze({
+  Apricot:{width:214,height:278}, Cherry:{width:186,height:196},
+  Citrus:{width:237,height:185}, Peach:{width:228,height:300},
+  Pear:{width:122,height:175}, Plum:{width:328,height:225},
+});
+const ROOTED_SEED_SOURCE_BOUNDS=Object.freeze({
+  Apricot:{width:203,height:375,imageHeight:455}, Cherry:{width:189,height:313,imageHeight:440},
+  Citrus:{width:256,height:322,imageHeight:434}, Peach:{width:226,height:387,imageHeight:454},
+  Pear:{width:118,height:359,imageHeight:499}, Plum:{width:336,height:293,imageHeight:428},
+});
+export function getTreeStructureSourceRect(species,stageKey){
+  const bounds=stageKey==='seed'?SEED_SOURCE_BOUNDS[species]:stageKey==='rooted-seed'?ROOTED_SEED_SOURCE_BOUNDS[species]:null;
+  return bounds?{x:0,y:0,...bounds}:null;
+}
 const TREE_STRUCTURE_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_SPECIES.flatMap(species=>{
   const slug=species.toLowerCase();
   return TREE_STRUCTURE_STAGE_KEYS.map(stageKey=>[
@@ -263,6 +279,8 @@ export function getTreeStructureAssetUrl(species,stageKey){
 
 export function getTreeStructureGeometry(stageKey,state={}){
   const base=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
+  const seedBounds=getTreeStructureSourceRect(state.selectedSpecies,stageKey);
+  if(seedBounds)return{...base,height:base.width*seedBounds.height/seedBounds.width,groundRatio:stageKey==='seed'?.92:base.groundRatio*seedBounds.imageHeight/seedBounds.height};
   if(stageKey==='seed'||stageKey==='rooted-seed')return{...base};
   const branchGrowth=Math.min(.18,Math.max(0,state.branches||0)*.012),canopyGrowth=Math.min(.22,Math.max(0,state.canopySpread||0)*.035),trunkGrowth=Math.min(.1,Math.max(0,state.trunk||0)*.008),heightGrowth=Math.min(.42,Math.max(0,state.heightGrowth||0)*.075);
   return{...base,width:base.width*(1+branchGrowth+canopyGrowth+trunkGrowth),height:base.height*(1+heightGrowth)};
@@ -600,7 +618,10 @@ function drawDirectionalCanopyShadows(ctx,trees,groundY){
 function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false){
   const geometry=getTreeStructureGeometry(stageKey,visualState),{width,height,groundRatio}=geometry;
   ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  ctx.drawImage(image,-width/2,-height*groundRatio,width,height);ctx.restore();
+  const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
+  if(source)ctx.drawImage(image,source.x,source.y,source.width,source.height,-width/2,-height*groundRatio,width,height);
+  else ctx.drawImage(image,-width/2,-height*groundRatio,width,height);
+  ctx.restore();
 }
 
 function drawPaintedSproutFoliage(ctx,species,seed,leafCount,season,shaded=false){
@@ -623,7 +644,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     drawDeadTree(ctx,x,groundY,stage,branches,trunk,roots,heightGrowth,habit,camera,seed,neighbor.deathAge||0);
     return;
   }
-  const structureStageKey=getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey),visualState={branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth};
+  const structureStageKey=getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey),visualState={selectedSpecies:species,branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth};
   if(structureImage){
     ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
     if(stage==='Seed'||rootedSeed){drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);ctx.restore();return}

@@ -5,7 +5,17 @@ export function renderSpeciesSummary(speciesName, species, options = {}) {
     title = speciesName,
     intro = '',
     compact = false,
+    reveal = false,
   } = options;
+
+  if (reveal) return `
+    <div class="species-reveal">
+      <div class="reveal-art" aria-hidden="true"><img src="assets/botanical/${speciesName === 'Plum' ? 'plum-fruit-airy' : `${speciesName.toLowerCase()}-fruit-v1`}.png?rev=fruiting-botanical-library-v1" alt="" width="768" height="768" /></div>
+      <p class="botanical-kicker">Your life begins as a</p>
+      <h1>${title}</h1>
+      <p class="reveal-description">${species.description}</p>
+      <div class="reveal-trait"><span class="botanical-kicker">Your nature</span><strong>${species.bonusTitle}</strong><span>${species.bonusText}</span></div>
+    </div>`;
 
   return `
     <div class="species-summary ${compact ? 'compact' : ''}">
@@ -25,7 +35,7 @@ export function renderSpeciesSummary(speciesName, species, options = {}) {
 
 export function initSpeciesSelectUI(els, speciesName, renderSpeciesCard) {
   els.speciesList.innerHTML = `
-    <div class="species-card selected species-card-detail">
+    <div class="species-introduction">
       ${renderSpeciesCard(speciesName)}
     </div>`;
   els.startGame.disabled = false;

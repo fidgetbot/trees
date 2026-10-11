@@ -283,6 +283,7 @@ The current codebase includes:
 - the full seasonal resource → action → event loop, with the opening turn ready for inspection and play without a forced resource-summary modal
 - persistent, species-shaped Canvas trees with connected curved branches and tapered branching root systems; Seedlings use a slender single leader with sparse lateral leaves, Saplings open into a visible scaffold, Young Trees develop a crown, and Mature/Ancient trees gain progressively broader silhouettes; trunk continuations retain their parent width at joins before tapering smoothly into thinner limbs; all six playable fruit trees layer stable-seeded transparent botanical-watercolor variants for airy foliage, spring blossoms, and summer fruit while preserving gameplay-driven growth, autumn color, shading, and bare winter silhouettes; Peach, Apricot, Pear, Cherry, and Citrus use species-specific open-canopy scaffolds with tapered wood and attachment-aware fruit placement
 - automatic life-stage progression
+- botanical introduction and chapter dialogs share the grove's warm paper palette, forest-green controls, serif headings, and existing painted species artwork; the introduction presents the assigned species and its exact gameplay bonus, while growth chapters show the new stage, unlocked actions, and seven-stage progression. The scene and status refresh before a growth chapter opens. Dialogs contain keyboard focus, keep background controls inert, and scroll internally on short viewports.
 - six playable fruit-tree species
 - a rebalanced pear profile that no longer starts with an extra trunk and no longer sits above the roster as the default strongest survival pick
 - citrus pollination snowball has been trimmed repeatedly so its reproductive edge remains flavorful without overwhelming the rest of the cast
@@ -338,6 +339,7 @@ Current responsibilities include:
 - resource/event/outcome modal bodies
 - species selection UI
 - a visible build number on both the opening species screen and the in-game map
+- explicit source bounds for all six Seed and rooted-Seed sprites exclude neighboring sprite-sheet fragments without altering the painted masters; seed aspect ratios and connected radicles are preserved in both the Canvas scene and chapter portraits
 - forest canvas rendering
 - HUD updates and browser interaction wiring
 - browser app bootstrap helpers

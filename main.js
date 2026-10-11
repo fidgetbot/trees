@@ -68,12 +68,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=final-fauna-rollout-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
-import { buildPopupLogMessage, modalPlainText, showStandardModal } from './ui/modal.js?rev=popup-log-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=seasonal-canopy-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=botanical-chapters-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=botanical-chapters-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=resource-balance-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
-import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=painted-life-stages-v1';
+import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=botanical-chapters-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=seed-source-bounds-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
@@ -220,14 +220,18 @@ function tryAdvanceLifeStage(onContinue) {
     });
     unlockedActions.forEach(action => addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`));
     const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
-    showFeedback(`You are now a ${next.name}!`, 'success');
-    showModal(next.name, `<p><em>${next.popup}</em></p>${unlockHtml}`, () => {
+    const chapterBody = renderGrowthChapter(next, state.selectedSpecies, LIFE_STAGES, unlockHtml, { rootedSeed: next.name === 'Sprout' && state.leafClusters === 0 });
+    // Refresh the scene before the chapter opens so the visible tree and dock
+    // already reflect this stage while the player reads about it.
+    updateUI();
+    render();
+    showModal(next.name, chapterBody, () => {
       updateScore();
       updateUI();
       render();
       if (onContinue) onContinue();
       else resumeTurnFlow();
-    });
+    }, { kind: 'growth', eyebrow: `A new chapter · ${next.rank + 1} of ${LIFE_STAGES.length}` });
     return true;
   }
   return false;
@@ -340,7 +344,7 @@ function initSpeciesSelect() {
     state,
     speciesNames: Object.keys(SPECIES),
     chooseRandomIndex: length => randomInt(length),
-    renderSpeciesSelect: speciesName => initSpeciesSelectUI(els, speciesName, name => renderSpeciesSummary(name, SPECIES[name], { title: `${name} tree`, intro: 'You are a' })),
+    renderSpeciesSelect: speciesName => initSpeciesSelectUI(els, speciesName, name => renderSpeciesSummary(name, SPECIES[name], { title: `${name} tree`, reveal: true })),
   });
 }
 
@@ -378,9 +382,9 @@ function recordPopup(title, body) {
   if (!recent) addLog(buildPopupLogMessage(title, body));
 }
 
-function showModal(title, body, onContinue, { record = true } = {}) {
+function showModal(title, body, onContinue, { record = true, ...presentation } = {}) {
   if (record) recordPopup(title, body);
-  return showStandardModal(els, title, body, onContinue);
+  return showStandardModal(els, title, body, onContinue, presentation);
 }
 
 function generateSuccessionChoices(count = 3) {

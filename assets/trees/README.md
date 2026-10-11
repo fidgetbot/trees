@@ -33,3 +33,5 @@ The source sheets were generated as transparent 2x2 botanical watercolor/gouache
 The early sheet maps top-left to Seed, top-right to rooted Seed, bottom-left to Sprout, and bottom-right to Seedling. The established sheet maps top-left to Sapling, top-right to Young Tree, bottom-left to Mature Tree, and bottom-right to Ancient.
 
 Runtime assets are extracted from those cells, low-alpha generation wash is removed, the remaining subject is alpha-trimmed with a transparent margin, and the source pixels are otherwise preserved.
+
+The early sheets are not perfectly aligned to equal cells: some Seed and rooted-Seed files retain a fragment of the next row. `getTreeStructureSourceRect` in `ui/canvas.js` defines the reviewed source rectangle for each of those twelve sprites, retaining the complete seed/radicle and transparent margin while excluding the next plant. Canvas rendering and growth-chapter portraits use the same bounds. The original PNGs remain unchanged, and destination aspect ratios follow the isolated source bounds rather than stretching the contaminated cell.

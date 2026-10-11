@@ -1,7 +1,9 @@
+import { openModalSurface } from './modal.js?rev=botanical-chapters-v1';
+
 export function showChoiceModalUI(els, title, body, choices) {
   els.modalTitle.textContent = title;
   els.modalBody.innerHTML = body;
-  els.modal.classList.remove('hidden');
+  const close = openModalSurface(els);
   els.modalButton.style.display = 'none';
   els.modalButton.onclick = null;
 
@@ -22,7 +24,7 @@ export function showChoiceModalUI(els, title, body, choices) {
     }
     btn.disabled = choice.disabled === true;
     btn.onclick = () => {
-      els.modal.classList.add('hidden');
+      close();
       els.modalButton.style.display = '';
       choice.onChoose?.();
     };
@@ -30,4 +32,5 @@ export function showChoiceModalUI(els, title, body, choices) {
   });
 
   els.modalBody.appendChild(wrap);
+  wrap.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
 }

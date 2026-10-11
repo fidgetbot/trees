@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=single-screen-v1" />
+  <link rel="stylesheet" href="styles.css?rev=botanical-chapters-v1" />
 </head>
 <body>
   <div id="app">
     <main class="layout">
       <section class="left-panel panel" id="species-panel">
+        <header class="intro-masthead"><span class="intro-wordmark">Trees</span><span class="botanical-kicker">A life in the grove</span></header>
         <div id="species-list" class="species-list"></div>
         <button id="start-game" disabled>Start Game</button>
+        <p class="intro-footnote">Put down roots. Find your place.</p>
         <div class="start-build">Trees v<span data-build-version>…</span></div>
       </section>
 
@@ -182,8 +184,9 @@
   <div id="feedback-container" class="feedback-container"></div>
   <div id="tooltip" class="tooltip hidden"></div>
 
-  <div id="modal" class="modal hidden">
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
+      <p id="modal-kicker" class="botanical-kicker">Life in the grove</p>
       <h2 id="modal-title">Message</h2>
       <div id="modal-body"></div>
       <button id="modal-button">Continue</button>
@@ -223,6 +226,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=painted-life-stages-v1"></script>
+  <script type="module" src="main.js?rev=botanical-chapters-v1"></script>
 </body>
 </html>
