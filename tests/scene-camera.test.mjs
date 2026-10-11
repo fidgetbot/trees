@@ -4,6 +4,22 @@ import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, i
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
 
+test('off-center tree anchors approach their final screen position without crossing or reversing',()=>{
+  for(const worldX of [-240,-120,0,120,240])for(const [startZoom,endZoom] of [[18,1.8],[1.8,18],[5,5]]){
+    const from={x:35,groundY:500,worldZoom:startZoom};
+    const to={x:-worldX*endZoom-20,groundY:450,worldZoom:endZoom};
+    const start=worldX*startZoom+from.x,end=worldX*endZoom+to.x;
+    let previous=start;
+    for(let elapsed=0;elapsed<=1000;elapsed+=5){
+      const frame=comparisonCameraFrame({from,panX:-worldX*startZoom,to,elapsed});
+      const screenX=worldX*frame.worldZoom+frame.x;
+      assert.ok(screenX>=Math.min(start,end)-1e-8&&screenX<=Math.max(start,end)+1e-8,`overshoot: world ${worldX}, zoom ${startZoom}→${endZoom}, t=${elapsed}`);
+      assert.ok((screenX-previous)*Math.sign(end-start)>=-1e-8,`reversal: world ${worldX}, t=${elapsed}`);
+      previous=screenX;
+    }
+  }
+});
+
 test('stage framing occupies a monotonic share of the safe region', () => {
   assert.equal(targetSceneZoom({ width: 80, height: 160 }, viewport,{stageName:'Sapling'}),1.515);
   assert.deepEqual(Object.values(STAGE_SCENE_OCCUPANCY),[.24,.34,.46,.6,.72,.84,.92]);

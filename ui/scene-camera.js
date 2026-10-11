@@ -111,12 +111,18 @@ export function comparisonCameraFrame({from,panX,to,elapsed,timing=COMPARISON_CA
   const zoomProgress=zoomingOut
     ?smootherSceneCamera((progress-zoomStartProgress)/(1-zoomStartProgress))
     :smootherSceneCamera((panProgress-zoomStart)/(1-zoomStart));
-  const sharedScaleX=from.x+(panX-from.x)*panProgress;
   const worldZoom=from.worldZoom*Math.pow(to.worldZoom/from.worldZoom,zoomProgress);
+  // Offsets cannot be blended independently of zoom: the renderer projects
+  // a tree at worldX * worldZoom + x. Interpolate that screen-space anchor,
+  // then solve for x at this frame's scale so the target cannot overshoot.
+  const targetWorldX=-panX/from.worldZoom;
+  const startAnchor=from.x+targetWorldX*from.worldZoom;
+  const endAnchor=to.x+targetWorldX*to.worldZoom;
+  const anchor=startAnchor+(endAnchor-startAnchor)*panProgress;
   return{
     phase:zoomProgress>0?'approach':'pan',
     done:false,
-    x:sharedScaleX+(to.x-sharedScaleX)*zoomProgress,
+    x:anchor-targetWorldX*worldZoom,
     groundY:from.groundY+(to.groundY-from.groundY)*zoomProgress,
     worldZoom,
   };
