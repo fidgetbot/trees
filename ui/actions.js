@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=fruit-minimap-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=fruit-minimap-v2';
 export function renderActionPanels({
   els,
   categories,
@@ -15,6 +15,10 @@ export function renderActionPanels({
 }) {
   const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
   const dock = updateActionDockStatus(els, actionPoints, allUsableCount);
+  const dockToolbar = els.actionsRemaining?.closest('.dock-toolbar');
+  const isNeighborOverview = contextTarget?.type === 'neighbor-tree';
+  dockToolbar?.classList.toggle('hidden', isNeighborOverview);
+  dockToolbar?.setAttribute('aria-hidden', String(isNeighborOverview));
   els.actionsList.innerHTML = '';
   const sheetActions = document.getElementById('sheet-actions');
   if (sheetActions) sheetActions.innerHTML = '';
@@ -44,7 +48,7 @@ export function renderActionPanels({
 
   const shortlist = document.createElement('div');
   shortlist.className = 'context-shortlist';
-  if (contextTarget?.type === 'neighbor-tree') {
+  if (isNeighborOverview) {
     shortlist.classList.add('neighbor-overview');
     const status = document.createElement('div');
     status.className = `neighbor-status neighbor-status-${(contextPresentation?.relationship || 'unknown').toLowerCase()}`;

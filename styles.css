@@ -1912,6 +1912,14 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   font-size: 19px;
   line-height: 1;
 }
+.minimap-fruit > img {
+  display: block;
+  width: 29px;
+  height: 29px;
+  margin: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px #342e2233);
+}
 .minimap-fruit.player { width: 42px; min-width: 42px; height: 42px; min-height: 42px; border-color: #687d53; }
 .minimap-fruit.selected { border: 3px solid #945e48; background: #fffaf0; box-shadow: 0 0 0 3px #fff9, 0 4px 12px #342e2233; }
 .minimap-fruit:hover,
@@ -1936,6 +1944,7 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .grove-notebook-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; font-size: 16px; }
   .grove-minimap { right: 8px; left: 8px; }
   .minimap-fruit { width: 34px; min-width: 34px; height: 34px; min-height: 34px; font-size: 17px; }
+  .minimap-fruit > img { width: 27px; height: 27px; }
   .minimap-fruit.player { width: 38px; min-width: 38px; height: 38px; min-height: 38px; }
   .game-started .context-shortlist.neighbor-overview { grid-template-columns: 1fr; }
   .neighbor-status { flex-direction: row; align-items: baseline; justify-content: space-between; }
@@ -1950,5 +1959,6 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 @media (max-height: 500px) {
   .grove-minimap { top: max(60px, calc(env(safe-area-inset-top) + 50px)); height: 44px; }
   .minimap-fruit { width: 32px; min-width: 32px; height: 32px; min-height: 32px; font-size: 16px; }
+  .minimap-fruit > img { width: 25px; height: 25px; }
   .minimap-fruit.player { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
 }

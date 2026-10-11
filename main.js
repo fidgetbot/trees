@@ -66,7 +66,7 @@ import {
 import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-action-dock-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v1';
+import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=fruit-minimap-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
@@ -1777,6 +1777,13 @@ function minimapSpeciesFor(target) {
   return null;
 }
 
+function minimapFruitMarkup(species) {
+  if (species === 'Plum') {
+    return '<img src="assets/botanical/plum-fruit-airy.png?rev=fruit-minimap-v2" alt="" aria-hidden="true" />';
+  }
+  return `<span aria-hidden="true">${SPECIES[species]?.icon || '🌳'}</span>`;
+}
+
 function renderGroveMinimap() {
   if (!els.groveMinimap) return;
   const targets = sceneHitTargets.filter(target => ['player-tree', 'neighbor-tree', 'offspring-tree'].includes(target.type) && target.stageName !== 'Dead');
@@ -1790,7 +1797,7 @@ function renderGroveMinimap() {
     button.type = 'button';
     button.className = `minimap-fruit${target.id === 'player' ? ' player' : ''}${target.id === selectedSceneTarget?.id ? ' selected' : ''}`;
     button.style.left = `${50 + ((target.mapPosition || 0) / maxDistance) * 44}%`;
-    button.innerHTML = `<span aria-hidden="true">${SPECIES[species]?.icon || '🌳'}</span>`;
+    button.innerHTML = minimapFruitMarkup(species);
     button.setAttribute('aria-label', `${target.id === 'player' ? 'Your' : target.title} ${target.stageName}; move the view to this tree`);
     if (target.id === selectedSceneTarget?.id) button.setAttribute('aria-current', 'true');
     button.onclick = () => selectSceneTarget(sceneHitTargets.find(candidate => candidate.id === target.id));
