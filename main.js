@@ -403,6 +403,8 @@ function showModal(title, body, onContinue, { record = true, ...presentation } =
   return afterGrowthAnimation(() => showStandardModal(els, title, body, onContinue, presentation));
 }
 
+const POST_GROWTH_DIALOG_PAUSE_MS = 1000;
+
 function afterGrowthAnimation(open) {
   // Some choice outcomes request a dialog before their normal render hook.
   // Draw now so any newly changed tissue starts its reveal before we check it.
@@ -412,23 +414,23 @@ function afterGrowthAnimation(open) {
   const app = document.getElementById('app');
   const previousFocus = document.activeElement;
   if (app) app.inert = true;
-  let finalFrameDrawn = false;
+  let finalFrameDrawnAt = null;
   const waitForPaint = () => {
     if (!els.canvas.isConnected) {
       if (app) app.inert = false;
       return;
     }
     if (growthTransition) {
-      finalFrameDrawn = false;
-    } else if (finalFrameDrawn) {
-      // One more animation frame lets the completed canvas actually paint
-      // before the dialog/backdrop covers it. No fixed extra timeout.
+      finalFrameDrawnAt = null;
+    } else if (finalFrameDrawnAt !== null &&
+        performance.now() - finalFrameDrawnAt >= POST_GROWTH_DIALOG_PAUSE_MS) {
+      // Leave the completed growth visible before covering it with a dialog.
       if (app) app.inert = false;
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       open();
       return;
-    } else {
-      finalFrameDrawn = true;
+    } else if (finalFrameDrawnAt === null) {
+      finalFrameDrawnAt = performance.now();
     }
     requestAnimationFrame(waitForPaint);
   };
