@@ -300,7 +300,7 @@ export function preparePaintedGrowth(image, source, state, stage, geometry, supp
 export function drawGrowthWood(ctx,growth,reveal,season){
   // Major roots and branches use painted persistent modules. The only curved
   // ribbons retained here are short petioles concealed by foliage clusters.
-  if(season!=='Winter')for(const leaf of growth.leaves)ribbon(ctx,growth.texture,leaf.start,leaf.end,leaf.thickness,leafReveal(leaf,reveal));
+  if(season!=='Winter')for(const leaf of growth.leaves)if(leaf.attachmentSurface!=='stem')ribbon(ctx,growth.texture,leaf.start,leaf.end,leaf.thickness,leafReveal(leaf,reveal));
 }
 
 export function drawGrowthLeaves(ctx,growth,reveal,season,getImage,filter='none'){

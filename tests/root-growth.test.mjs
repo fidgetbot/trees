@@ -11,13 +11,17 @@ test('juvenile root investments persist across leaf and stage changes',()=>{
  reveal.progress=1;assert.equal(rootGrowthAmount(s,reveal),rootGrowthAmount(s));
 });
 test('root deformation preserves the collar and increases depth without separate stamps',()=>{
- const calls=[],ctx={drawImage:(...args)=>calls.push(args)},image={width:600,height:900};
+ const calls=[],rows=[],ctx={drawImage:(...args)=>calls.push(args)},image={width:600,height:900};
+ const original=globalThis.document;
+ globalThis.document={createElement:()=>({getContext:()=>({drawImage:(...args)=>rows.push(args)})})};
  const geometry={width:40,height:60,groundRatio:.5,rootStart:.7};
- drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
- assert.ok(calls.every(c=>c[0]===image));
- assert.deepEqual(calls[0].slice(5),[-20,-30,40,42]);
- const first=calls[1],last=calls.at(-1);
- assert.equal(first[6],12,'root collar stays fixed');
- assert.ok(last[6]+last[8]>30,'root tips extend below original image');
- assert.ok(last[7]>first[7],'spread increases smoothly below collar');
+ try{
+  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
+  assert.equal(calls.length,1,'screen receives one connected raster');
+  assert.ok(rows.every(r=>r[0]===image),'all root pixels come from the same specimen');
+  assert.equal(rows[1][6],630,'first root row starts at the unchanged collar');
+  assert.ok(rows.slice(1).every(r=>Number.isInteger(r[6])&&r[8]===1),'raster rows are contiguous, integral and gap-free');
+  assert.ok(calls[0][4]>60,'root depth grows');
+  assert.ok(calls[0][3]>40,'root spread grows');
+ }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original;}
 });

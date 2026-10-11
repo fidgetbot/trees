@@ -1,6 +1,6 @@
 // Dedicated infant plants. Generated masters stay intact; seasonal layers are
 // derived in memory so the living tip and seed survive leaf loss and winter.
-import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v1';
+import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v2';
 export const JUVENILE_KEYS = ['first-leaves', 'unfurling', 'juvenile'];
 const anchors = {
   Cherry: [[.56,.51],[.55,.545],[.55,.59]],
@@ -103,9 +103,11 @@ export function drawJuvenileLeaves(ctx,growth,reveal,season,image,geometry,filte
     const progress=!reveal||part.index<(reveal.from.leaves||0)?1:reveal.progress;
     if(progress<=0)continue;
     const width=part.width*progress,height=width*leaf.height/leaf.width;
-    ctx.save();ctx.translate(part.end.x,part.end.y);ctx.scale(-part.side,1);ctx.filter=filter;
-    // The source leaf's cut petiole is at its lower-right; overlap the painted
-    // connector there, rather than centering a detached leaf over its endpoint.
+    // The cutout already includes its own petiole. Anchor that petiole directly
+    // on the supporting stem; an extra offset/connector can leave it floating
+    // or make it appear to grow from an existing leaf.
+    ctx.save();ctx.translate(part.start.x,part.start.y);ctx.scale(-part.side,1);ctx.filter=filter;
+    // The source leaf's cut petiole is at its right edge, at anchorY.
     ctx.drawImage(leaf,-width,-height*leaf.anchorY,width,height);ctx.restore();
   }
 }

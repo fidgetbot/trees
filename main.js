@@ -1,4 +1,4 @@
-import { syncGrowthAttachments } from './ui/painted-growth.js?rev=continuous-roots-v1';
+import { syncGrowthAttachments } from './ui/painted-growth.js?rev=continuous-roots-v2';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -69,12 +69,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=night-field-journal-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=night-field-journal-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=night-field-journal-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=continuous-roots-v2';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=continuous-roots-v2';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=continuous-roots-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=continuous-roots-v2';
 import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';

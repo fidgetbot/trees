@@ -1,8 +1,8 @@
-import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v1';
+import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v2';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
-import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v1';
-import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=continuous-roots-v1';
+import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
+import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=continuous-roots-v2';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
@@ -29,7 +29,7 @@ const SEED_PALETTES = {
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
-const TREE_GROWTH_ASSET_REVISION='continuous-roots-v1';
+const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
