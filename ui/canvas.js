@@ -439,12 +439,17 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   const trees=[...residentTrees,...childTrees];
   const focusId=measureTargetId||selectedTargetId;
   const isolate=measureTargetId||(immersive&&focusId&&focusId!=='player');
-  const focusedTrees=isolate?trees.filter(tree=>{
+  const isolatedTrees=isolate?trees.filter(tree=>{
     if(focusId==='player')return tree.isPlayer;
     if(focusId.startsWith('neighbor-'))return `neighbor-${tree.neighbor?.targetIndex}`===focusId;
     if(focusId.startsWith('offspring-'))return `offspring-${tree.neighbor?.childId}`===focusId;
     return false;
   }):trees;
+  // Pixel measurement needs the subject's dimensions, not its grove offset.
+  // Center the already-isolated specimen so increasing zoom cannot move it
+  // beyond the padded measuring bitmap and turn a clipped fragment into the
+  // next camera estimate.
+  const focusedTrees=measureTargetId?isolatedTrees.map(tree=>({...tree,x:w/2})):isolatedTrees;
   canvas.dataset.groundY=String(groundY);
   ctx.clearRect(0,0,w,h);
   if(!measureTargetId){
@@ -470,9 +475,9 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     let left=physicalWidth,top=physicalHeight,right=-1,bottom=-1;
     for(let y=0;y<physicalHeight;y++)for(let x=0;x<physicalWidth;x++)if(pixels[(y*physicalWidth+x)*4+3]>16){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y)}
     if(right>=left){
-      const pad=6;
+      const pad=0;
       measuredBounds={
-        x:left-pad-measurementOffset.x,
+        x:left-pad-measurementOffset.x+(isolatedTrees[0]?.x??w/2)-w/2,
         y:top-pad-measurementOffset.y,
         width:right-left+1+pad*2,
         height:bottom-top+1+pad*2,

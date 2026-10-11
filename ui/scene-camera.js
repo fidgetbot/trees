@@ -1,10 +1,29 @@
-export function targetSceneZoom(bounds, viewport, { currentZoom = 1, margin = 12 } = {}) {
+export const STAGE_SCENE_OCCUPANCY=Object.freeze({
+  Seed:.24,
+  Sprout:.34,
+  Seedling:.46,
+  Sapling:.60,
+  'Young Tree':.72,
+  'Mature Tree':.84,
+  Ancient:.92,
+});
+
+export function stageSceneOccupancy(stageName){
+  return STAGE_SCENE_OCCUPANCY[stageName]??STAGE_SCENE_OCCUPANCY.Sapling;
+}
+
+export function targetSceneZoom(bounds, viewport, { currentZoom = 1, margin = 12, stageName = 'Sapling' } = {}) {
   const usableWidth = Math.max(40, viewport.width - margin * 2);
   const usableHeight = Math.max(40, viewport.height - viewport.topInset - viewport.bottomInset);
-  const width = Math.max(1, bounds?.width || 1);
-  const height = Math.max(1, bounds?.height || 1);
-  const adjustment = Math.min(usableWidth / width, usableHeight / height);
-  return Math.max(.08, Math.min(12, currentZoom * adjustment));
+  const width = Number(bounds?.width),height=Number(bounds?.height);
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)return 1;
+  const normalizedExtent=Math.max(width/usableWidth,height/usableHeight);
+  const adjustment=stageSceneOccupancy(stageName)/normalizedExtent;
+  return Math.max(.04,Math.min(3.2,currentZoom*adjustment));
+}
+
+export function isValidSceneCamera(camera){
+  return Boolean(camera&&Number.isFinite(camera.x)&&Number.isFinite(camera.y)&&Number.isFinite(camera.zoom)&&camera.zoom>=.04&&camera.zoom<=3.2);
 }
 
 export function centeredSceneOffset(bounds, viewport) {

@@ -75,7 +75,7 @@ import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tall
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=framed-trees-v1';
-import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=framed-trees-v1';
+import { centeredSceneOffset, interpolateSceneCamera, isValidSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=stage-banded-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
@@ -305,7 +305,8 @@ const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
 const contextualActionOrderByTarget = new Map();
-let sceneCamera = { x: 0, y: 0, zoom: 1 }, cameraAnimationFrame = null;
+let sceneCamera = { x: 0, y: 0, zoom: 1 }, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
+let cameraLayoutFrame=null;
 let lastRenderStage = null;
 let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
 function currentGrowthReveal() {
@@ -345,12 +346,18 @@ function contextualActionOrderKey(target) {
 }
 
 function selectSceneTarget(target) {
-  if (cameraAnimationFrame !== null) cancelAnimationFrame(cameraAnimationFrame);
-  cameraAnimationFrame = null;
+  cancelSceneCameraAnimation();
   selectedSceneTarget = target || playerSceneTarget();
   renderActions();
   const to = sceneCameraForTarget(selectedSceneTarget);
-  animateSceneCamera(to);
+  cameraViewportSignature=sceneViewportSignature();
+  animateSceneCamera(to,cameraStateKey(selectedSceneTarget));
+}
+
+function cancelSceneCameraAnimation(){
+  cameraRevision+=1;
+  if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
+  cameraAnimationFrame=null;
 }
 
 function sceneTopInset(height) {
@@ -374,6 +381,14 @@ function sceneViewport() {
     bottomInset: Math.max(0, height - safeBottom),
     renderHeight: Math.max(topInset + 40, safeBottom),
   };
+}
+
+function sceneViewportSignature(viewport=sceneViewport()){
+  return`${viewport.width}:${viewport.height}:${viewport.topInset}:${viewport.bottomInset}`;
+}
+
+function cameraStateKey(target=activeSceneTarget()){
+  return`${target?.id||'player'}:${target?.stageName||computeCurrentLifeStage().name}:${target?.title||state.selectedSpecies||''}:${sceneViewportSignature()}`;
 }
 
 function measureSceneTarget(targetId, zoom) {
@@ -406,19 +421,23 @@ function measureSceneTarget(targetId, zoom) {
 function sceneCameraForTarget(target) {
   const viewport = sceneViewport();
   if (!target) return { x: 0, y: 0, zoom: 1 };
+  const stageName=target.stageName||computeCurrentLifeStage().name;
   const baseBounds = measureSceneTarget(target.id, 1);
   if (!baseBounds) return { x: 0, y: 0, zoom: 1 };
   let zoom=1,fittedBounds=baseBounds;
-  // Bounds include small fixed hit padding, so converge against the rendered
-  // result instead of assuming every dimension scales perfectly from 1×.
+  // Raster bounds and stage artwork are not perfectly linear at tiny sizes,
+  // so converge the measured limiting extent instead of assuming one pass.
   for(let pass=0;pass<3;pass+=1){
-    zoom=targetSceneZoom(fittedBounds,viewport,{currentZoom:zoom});
+    zoom=targetSceneZoom(fittedBounds,viewport,{currentZoom:zoom,stageName});
     fittedBounds=measureSceneTarget(target.id,zoom)||fittedBounds;
   }
-  return { ...centeredSceneOffset(fittedBounds, viewport), zoom };
+  const camera={...centeredSceneOffset(fittedBounds,viewport),zoom};
+  return isValidSceneCamera(camera)?camera:{x:0,y:0,zoom:1};
 }
 
-function animateSceneCamera(to) {
+function animateSceneCamera(to,expectedStateKey=cameraStateKey()) {
+  if(!isValidSceneCamera(to))to={x:0,y:0,zoom:1};
+  const revision=++cameraRevision;
   const from = { ...sceneCamera };
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
     sceneCamera = to;
@@ -428,21 +447,35 @@ function animateSceneCamera(to) {
   const startedAt = performance.now();
   const duration = 620;
   const tick = now => {
+    if(revision!==cameraRevision)return;
+    if(expectedStateKey!==cameraStateKey()){cameraAnimationFrame=null;return}
     const progress = Math.min(1, (now - startedAt) / duration);
     sceneCamera = interpolateSceneCamera(from, to, progress);
     render();
     if (progress < 1) cameraAnimationFrame = requestAnimationFrame(tick);
     else {
-      const bounds = activeSceneTarget()?.bounds;
-      if (selectedSceneTarget?.id !== 'player' && bounds) {
-        const correction = centeredSceneOffset(bounds, sceneViewport());
-        sceneCamera = { ...sceneCamera, x: sceneCamera.x + correction.x, y: sceneCamera.y + correction.y };
-        render();
-      }
       cameraAnimationFrame = null;
     }
   };
   cameraAnimationFrame = requestAnimationFrame(tick);
+}
+
+function refitSceneCamera({animate=false}={}){
+  if(!state.started)return render();
+  const target=activeSceneTarget(),expectedKey=cameraStateKey(target),to=sceneCameraForTarget(target);
+  if(expectedKey!==cameraStateKey(target))return;
+  cancelSceneCameraAnimation();
+  cameraViewportSignature=sceneViewportSignature();
+  if(animate)animateSceneCamera(to,expectedKey);
+  else{sceneCamera=to;render()}
+}
+
+function scheduleSceneCameraRefit(){
+  if(cameraLayoutFrame!==null)return;
+  cameraLayoutFrame=requestAnimationFrame(()=>{
+    cameraLayoutFrame=null;
+    if(state.started&&cameraViewportSignature!==sceneViewportSignature())refitSceneCamera();
+  });
 }
 
 // Floating feedback system
@@ -1837,8 +1870,10 @@ function render() {
   const stage = computeCurrentLifeStage().name;
   const viewport=sceneViewport();
   if (state.started&&lastRenderStage !== stage) {
+    cancelSceneCameraAnimation();
     selectedSceneTarget=playerSceneTarget();
     sceneCamera=sceneCameraForTarget(selectedSceneTarget);
+    cameraViewportSignature=sceneViewportSignature(viewport);
     lastRenderStage=stage;
   }
   const rendered = renderForestScene({
@@ -1859,7 +1894,7 @@ function render() {
   });
   sceneHitTargets = rendered?.hitTargets || [];
   if (selectedSceneTarget && !sceneHitTargets.some(target => target.id === selectedSceneTarget.id)) {
-    selectedSceneTarget = null; sceneCamera = { x: 0, y: 0, zoom: 1 }; render(); renderActions(); return;
+    cancelSceneCameraAnimation();selectedSceneTarget=playerSceneTarget();sceneCamera=sceneCameraForTarget(selectedSceneTarget);cameraViewportSignature=sceneViewportSignature();render();renderActions();return;
   }
   selectedSceneTarget = activeSceneTarget();
   renderGroveMinimap();
@@ -1915,14 +1950,14 @@ document.getElementById('open-info').onclick = () => openDetailSheet('info');
 document.getElementById('resource-info').onclick = () => openDetailSheet('info');
 document.getElementById('close-sheet').onclick = () => detailSheet.close();
 detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
-new ResizeObserver(() => { if (state.started) render(); }).observe(els.hudPanel);
-window.addEventListener('resize', () => { if (!els.canvas.isConnected) return; if (state.started) selectSceneTarget(activeSceneTarget()); else render(); });
+new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()}).observe(els.hudPanel);
+window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
 
 els.startGame.addEventListener('click', startGame);
 initSceneInteraction();
 initSpeciesSelect();
 render();
 loadCanvasAssets(asset=>{
-  if(state.started&&asset?.family==='trees:structure')sceneCamera=sceneCameraForTarget(activeSceneTarget());
-  render();
+  if(state.started&&asset?.family==='trees:structure')refitSceneCamera();
+  else render();
 });
