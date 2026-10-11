@@ -1,7 +1,8 @@
+import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
-import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=painted-terminal-growth-v1';
-import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=stem-attached-leaves-v1';
+import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v1';
+import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=continuous-roots-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
@@ -28,7 +29,7 @@ const SEED_PALETTES = {
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
-const TREE_GROWTH_ASSET_REVISION='painted-terminal-growth-v1';
+const TREE_GROWTH_ASSET_REVISION='continuous-roots-v1';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -627,12 +628,11 @@ function drawDirectionalCanopyShadows(ctx,trees,groundY){
   trees.filter(tree=>tree.neighbor?.shadingPlayer).forEach(tree=>drawCanopyShadow(ctx,tree,player,groundY,7900+tree.index));
 }
 
-function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false){
+function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false,reveal=null){
   const geometry=getTreeStructureGeometry(stageKey,visualState),{width,height,groundRatio}=geometry;
   ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
-  if(source)ctx.drawImage(image,source.x,source.y,source.width,source.height,-width/2,-height*groundRatio,width,height);
-  else ctx.drawImage(image,-width/2,-height*groundRatio,width,height);
+  drawRootGrowth(ctx,image,source,geometry,visualState,reveal);
   ctx.restore();
 }
 
@@ -683,8 +683,8 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       const filter=paintedFoliageFilter(season,shaded);
       const previousKey=growthReveal&&growthReveal.from.leaves>0?JUVENILE_KEYS[Math.min(2,growthReveal.from.leaves-1)]:null;
       const previous=previousKey&&previousKey!==key&&treeStructureAssets.get(`${species}:${previousKey}`);
-      if(previous)drawJuvenilePlant(ctx,previous,getJuvenileGeometry(species,previousKey,visualState),season,leaves,filter,1-growthReveal.progress);
-      drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1);
+      if(previous)drawJuvenilePlant(ctx,previous,getJuvenileGeometry(species,previousKey,visualState),season,leaves,filter,1-growthReveal.progress,isPlayer?state:visualState,growthReveal);
+      drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1,isPlayer?state:visualState,growthReveal);
       const donor=requestTreeStructureAsset(species,'first-leaves');
       if(donor)drawJuvenileLeaves(ctx,growth,growthReveal,season,donor,getJuvenileGeometry(species,'first-leaves',visualState),filter);
       const targets=attachPests(image,null,geometry,growth);
@@ -699,7 +699,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       const growth=preparePaintedGrowth(structureImage,getTreeStructureSourceRect(species,structureStageKey),state,stage,geometry);
       drawGrowthSprites(ctx,growth,growthReveal,season,growthSprites);
       drawGrowthWood(ctx,growth,growthReveal,season);
-      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);
+      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,{...visualState,taprootDepth:state.taprootDepth},shaded,growthReveal);
       if(!juvenileKey)drawGrowthLeaves(ctx,growth,growthReveal,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
       if(!rootedSeed){
         const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);

@@ -2,6 +2,8 @@
 
 This directory contains persistent transparent growth modules for the six playable fruit-tree species.
 
+**Runtime correction:** only the shoot assets are currently composited. Root stamps are retained as generated source material but disabled: their mature-looking bark and joins clash with juvenile roots. `ui/root-growth.js` instead extends the exact root pixels in each stage specimen with a continuous, fixed-collar deformation. Root colour, texture and connected anatomy therefore remain consistent, and growth persists at the animation endpoint.
+
 Each species has four runtime assets:
 
 - `<species>-shoot-v1.png` — a small terminal branch shoot;

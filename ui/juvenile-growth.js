@@ -1,5 +1,6 @@
 // Dedicated infant plants. Generated masters stay intact; seasonal layers are
 // derived in memory so the living tip and seed survive leaf loss and winter.
+import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v1';
 export const JUVENILE_KEYS = ['first-leaves', 'unfurling', 'juvenile'];
 const anchors = {
   Cherry: [[.56,.51],[.55,.545],[.55,.59]],
@@ -86,11 +87,11 @@ export function getJuvenileLayers(image, geometry) {
   const result={dormant,foliage,singleLeaf};layers.set(image,result);return result;
 }
 
-export function drawJuvenilePlant(ctx,image,geometry,season,leafCount,filter='none',alpha=1) {
+export function drawJuvenilePlant(ctx,image,geometry,season,leafCount,filter='none',alpha=1,state={},reveal=null) {
   const {dormant,foliage}=getJuvenileLayers(image,geometry);
   const args=[-geometry.width*geometry.anchorX,-geometry.height*geometry.groundRatio,geometry.width,geometry.height];
   ctx.save();ctx.globalAlpha=alpha;
-  ctx.drawImage(dormant,...args);
+  drawRootGrowth(ctx,dormant,null,geometry,state,reveal);
   if(season!=='Winter'&&leafCount>0){ctx.filter=filter;ctx.drawImage(foliage,...args);}
   ctx.restore();
 }

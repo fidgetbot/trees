@@ -255,7 +255,8 @@ function drawSprite(ctx,image,module,progress,kind,season){
 }
 
 export function drawGrowthSprites(ctx,growth,reveal,season,{getRootImage,getBranchImage}={}){
-  for(const root of growth.roots)drawSprite(ctx,getRootImage?.(root),root,growthReveal(root.index,root.kind||'roots',reveal),'root',season);
+  // Roots are extended as one connected specimen by drawRootGrowth. Separate
+  // woody stamps are deliberately not composited onto pale juvenile roots.
   for(const branch of growth.branches)drawSprite(ctx,getBranchImage?.(branch),branch,growthReveal(branch.index,'branches',reveal),'shoot',season);
 }
 
@@ -272,9 +273,9 @@ export function preparePaintedGrowth(image, source, state, stage, geometry, supp
     // Root stamps begin within the painted root mass so their blunt source
     // caps remain hidden; only their fine distal growth emerges. Shoots need
     // the actual silhouette edge because their painted base is already slim.
-    const terminal=geometry.juvenile&&module.id.startsWith('root-')
-      ? ink
-      : terminalPoint(surface,ink,direction.x,direction.y);
+    const terminal=module.id.startsWith('branch-')
+      ? terminalPoint(surface,ink,direction.x,direction.y)
+      : ink;
     const start={
       x:(terminal.x/surface.width-(geometry.anchorX||.5))*geometry.width,
       y:(terminal.y/surface.height-geometry.groundRatio)*geometry.height,
