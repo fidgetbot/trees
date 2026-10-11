@@ -308,13 +308,14 @@ const contextualActionOrderByTarget = new Map();
 let sceneCamera = { x: 0, y: 0, zoom: 1 }, comparisonCameraView=null, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
 let cameraLayoutFrame=null;
 let lastRenderStage = null;
-let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
+let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null, growthCameraRefitFrame = null;
 function currentGrowthReveal() {
   const snapshot={species:state.selectedSpecies,roots:state.rootZones||0,leaves:state.leafClusters||0,branches:state.branches||0,taproots:state.taprootDepth||0};
   syncGrowthAttachments(state);
   const previous=lastGrowthSnapshot;
   if(previous&&previous.species===snapshot.species&&['roots','leaves','branches','taproots'].some(key=>snapshot[key]>previous[key])) {
     growthTransition={from:previous,start:performance.now()};
+    scheduleGrowthCameraRefit();
   }
   if(previous?.species!==snapshot.species)growthTransition=null;
   lastGrowthSnapshot=snapshot;
@@ -323,6 +324,18 @@ function currentGrowthReveal() {
   if(elapsed>=1){growthTransition=null;return null;}
   if(growthFrame===null)growthFrame=requestAnimationFrame(()=>{growthFrame=null;render();});
   return {from:growthTransition.from,progress:1-Math.pow(1-Math.max(0,elapsed),3)};
+}
+
+function scheduleGrowthCameraRefit(){
+  if(growthCameraRefitFrame!==null)return;
+  growthCameraRefitFrame=requestAnimationFrame(()=>{
+    growthCameraRefitFrame=null;
+    if(!state.started||activeSceneTarget()?.id!=='player')return;
+    // Measure the completed specimen, then ease from the camera currently on
+    // screen. This lets new tissue reveal while the view smoothly makes room
+    // for its final painted bounds.
+    refitSceneCamera({animate:true});
+  });
 }
 
 function playerSceneTarget() {
@@ -587,7 +600,13 @@ function afterGrowthAnimation(open) {
   // Some choice outcomes request a dialog before their normal render hook.
   // Draw now so any newly changed tissue starts its reveal before we check it.
   render();
-  if (!growthTransition) return open();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches && growthCameraRefitFrame !== null) {
+    cancelAnimationFrame(growthCameraRefitFrame);
+    growthCameraRefitFrame = null;
+    refitSceneCamera();
+    return open();
+  }
+  if (!growthTransition && growthCameraRefitFrame === null) return open();
 
   const app = document.getElementById('app');
   const previousFocus = document.activeElement;
@@ -598,7 +617,7 @@ function afterGrowthAnimation(open) {
       if (app) app.inert = false;
       return;
     }
-    if (growthTransition) {
+    if (growthTransition || growthCameraRefitFrame !== null || cameraAnimationFrame !== null) {
       finalFrameDrawnAt = null;
     } else if (finalFrameDrawnAt !== null &&
         performance.now() - finalFrameDrawnAt >= POST_GROWTH_DIALOG_PAUSE_MS) {
@@ -2017,7 +2036,7 @@ loadCanvasAssets(asset=>{
   if(state.started&&asset?.family==='trees:structure'){
     const target=activeSceneTarget();
     if(comparisonCameraView&&asset.species===minimapSpeciesFor(target))restartSceneTargetComparison();
-    else if(!comparisonCameraView)refitSceneCamera();
+    else if(!comparisonCameraView)refitSceneCamera({animate:Boolean(growthTransition)});
     else render();
   }
   else render();
