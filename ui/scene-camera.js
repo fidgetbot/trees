@@ -9,9 +9,8 @@ export const STAGE_SCENE_OCCUPANCY=Object.freeze({
 });
 
 export const COMPARISON_CAMERA_TIMING=Object.freeze({
-  pan:380,
-  pause:120,
-  zoom:460,
+  duration:820,
+  zoomStart:.65,
 });
 
 export function stageSceneOccupancy(stageName){
@@ -73,6 +72,11 @@ export function easeSceneCamera(progress) {
   return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+export function smootherSceneCamera(progress) {
+  const t=Math.max(0,Math.min(1,progress));
+  return t*t*t*(t*(t*6-15)+10);
+}
+
 export function interpolateSceneCamera(from, to, progress) {
   const t = easeSceneCamera(progress);
   return {
@@ -83,21 +87,19 @@ export function interpolateSceneCamera(from, to, progress) {
 }
 
 export function comparisonCameraFrame({from,panX,to,elapsed,timing=COMPARISON_CAMERA_TIMING}){
-  const panDuration=Math.max(1,timing.pan),pauseDuration=Math.max(0,timing.pause),zoomDuration=Math.max(1,timing.zoom);
-  const panEnd=panDuration,pauseEnd=panEnd+pauseDuration;
-  if(elapsed<panEnd){
-    const t=easeSceneCamera(elapsed/panDuration);
-    return{phase:'pan',done:false,x:from.x+(panX-from.x)*t,groundY:from.groundY,worldZoom:from.worldZoom};
-  }
-  if(elapsed<pauseEnd)return{phase:'pause',done:false,x:panX,groundY:from.groundY,worldZoom:from.worldZoom};
-  const progress=Math.min(1,(elapsed-pauseEnd)/zoomDuration);
+  const duration=Math.max(1,timing.duration);
+  const zoomStart=Math.max(0,Math.min(.99,timing.zoomStart));
+  const progress=Math.max(0,Math.min(1,elapsed/duration));
   if(progress>=1)return{phase:'done',done:true,...to};
-  const t=easeSceneCamera(progress);
+  const panProgress=smootherSceneCamera(progress);
+  const zoomProgress=smootherSceneCamera((panProgress-zoomStart)/(1-zoomStart));
+  const sharedScaleX=from.x+(panX-from.x)*panProgress;
+  const worldZoom=from.worldZoom*Math.pow(to.worldZoom/from.worldZoom,zoomProgress);
   return{
-    phase:'zoom',
+    phase:zoomProgress>0?'approach':'pan',
     done:false,
-    x:panX+(to.x-panX)*t,
-    groundY:from.groundY+(to.groundY-from.groundY)*t,
-    worldZoom:from.worldZoom+(to.worldZoom-from.worldZoom)*t,
+    x:sharedScaleX+(to.x-sharedScaleX)*zoomProgress,
+    groundY:from.groundY+(to.groundY-from.groundY)*zoomProgress,
+    worldZoom,
   };
 }
