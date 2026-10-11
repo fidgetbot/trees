@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement } from '../ui/fauna-art.js';
 
-import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -63,6 +64,32 @@ test('every species and life stage resolves to a dedicated painted structure ass
       assert.match(getTreeStructureAssetUrl(species,stageKey),new RegExp(`${species.toLowerCase()}-${stageKey}-v1\\.png`));
     }
     assert.match(getTreeStructureAssetUrl(species,getTreeStructureStageKey('Seed',{rootedSeed:true})),/rooted-seed-v1\.png/);
+  }
+});
+
+test('every species resolves to painted terminal shoot and root progression assets',()=>{
+  for(const species of ['Plum','Peach','Apricot','Pear','Cherry','Citrus']){
+    for(const key of ['shoot','root-radicle','root-forked','root-fan']){
+      const url=new URL(getTreeGrowthAssetUrl(species,key));url.search='';
+      assert.ok(existsSync(url),`${species} ${key}`);
+    }
+  }
+});
+
+test('painted growth assets load independently and notify after success',async()=>{
+  const originalImage=globalThis.Image;
+  class MockImage{set src(value){queueMicrotask(()=>value.includes('pear-root-fan-v1.png')?this.onerror():this.onload())}}
+  globalThis.Image=MockImage;
+  try{
+    const isolated=await import(`../ui/canvas.js?growth-asset-load-test=${Date.now()}`),loaded=[];
+    isolated.requestTreeGrowthAsset('Plum','shoot',asset=>loaded.push(asset));
+    isolated.requestTreeGrowthAsset('Pear','root-fan',asset=>loaded.push(asset));
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.deepEqual(loaded.map(asset=>[asset.species,asset.assetKey]),[['Plum','shoot']]);
+    assert.ok(isolated.requestTreeGrowthAsset('Plum','shoot'));
+    assert.equal(isolated.requestTreeGrowthAsset('Pear','root-fan'),null);
+  }finally{
+    if(originalImage===undefined)delete globalThis.Image;else globalThis.Image=originalImage;
   }
 });
 

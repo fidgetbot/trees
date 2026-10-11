@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "sourceSheets": {
+    "shoots-source.png": "8bae4409e23e4fe043c8b0640361f2f1408c5573ff772c31fdb5ec7d5a864254",
+    "juvenile-roots-source.png": "bb85a12a7a67141ad23ce25ee3b0c2951d156886acde6c8a715ff73af6801818"
+  },
+  "runtime": {
+    "apricot-shoot-v1.png": "ffbbac6e84838a1fba5acaad6264bd2ce425c807ceb5e5c84ae7d7481fb30555",
+    "apricot-root-radicle-v1.png": "1748242197de7de9852831e45c1f6dc56300b6aed57ab1800185318cff261dfc",
+    "apricot-root-forked-v1.png": "e3921685be3ed18c4f06dcf356f0d9a86f23e4f51c23e908b212829de14244dc",
+    "apricot-root-fan-v1.png": "9a3bde9eaa9ea844b6e265b3e26510e9c59c743177adbde5175448afc3c6ed2f",
+    "cherry-shoot-v1.png": "ad9cde4ab3fbd45f43cc579377b4ab1b7ae2bd6d8d8e7bcaaa758a4e0cedba49",
+    "cherry-root-radicle-v1.png": "42ec4a75798a7310f8cb5fd150f17a3959499c68ce74df456617c0396f298880",
+    "cherry-root-forked-v1.png": "872ee145668ce48a72f42ccef8fb0a0d3a5ea0546b5c4b46ad58ec81b2c4b6ae",
+    "cherry-root-fan-v1.png": "9c2749f380e3d2db7f5749fc72548d89d1c6b7fa5a38f95e3f66fd821ab23108",
+    "citrus-shoot-v1.png": "38fcbb5a59b5f7fd8b1011335b78b752a89155341f9bd66a246a302a9fc8d124",
+    "citrus-root-radicle-v1.png": "7a5ef5e5b34f505dac5d58e6644768ab8def26bd8202262eeedeb1031afdd6bb",
+    "citrus-root-forked-v1.png": "2c8804c7136af52a111ec0a4657301cc47477b4c4573d47f39f876a18f849f59",
+    "citrus-root-fan-v1.png": "c8934b3e395a7882c7c196f982bb6e0ba1598c0c014b197bb02d44101a23ef97",
+    "peach-shoot-v1.png": "21600989fd269933362202732c036d0c97f995a1aaba82575d8a8f5e5a44f23d",
+    "peach-root-radicle-v1.png": "e27e8ee65cb5b8bf7f24ecf9766095ae945a0cfcff28ae4f386e3f4078f96456",
+    "peach-root-forked-v1.png": "765209ee362fc1e1db897242bad5933e45aaca6dd1ef798159d27686de39056a",
+    "peach-root-fan-v1.png": "dfa35b8b8429121ca4d08fde3f717d675063603603a7ebcd98d49cebfd90066d",
+    "pear-shoot-v1.png": "ebfd515d0469497c3ba768d9c9cd1643ec1c8ecad17bf730dd92305031ff6526",
+    "pear-root-radicle-v1.png": "7b1fc47864f7e6db5ef0ace662b8d27594d2e278b4e0a83ff26876923cd1adb9",
+    "pear-root-forked-v1.png": "2072549cd1e8b30db90e3fa127332c6733cf72e72872a5bc4cbd8c0880a750a5",
+    "pear-root-fan-v1.png": "5e8e03466caa8be348281e016cf04811a95de10a3dc7327c55901177bd6df895",
+    "plum-shoot-v1.png": "c135ecec7eabf7adf21a3c9f5c8d2c1ee1ee811e9ce07e47472f40aeb7ae5e2c",
+    "plum-root-radicle-v1.png": "dde177480acf02dbc8d47dfe9f126a6dfe029c41b435421649a3107136900ef0",
+    "plum-root-forked-v1.png": "fb9c4c9f35ef0bb3e8624d0d34f9bf0cfd9f2b61e74c01956885ddfb748616d7",
+    "plum-root-fan-v1.png": "c79fb5688cbbc19a2d2bee8d0ca24fb4a430556dd2c3b4087710b5657e16076c"
+  },
+  "dimensions": {
+    "shoot": [512, 512],
+    "root": [384, 384]
+  }
+}

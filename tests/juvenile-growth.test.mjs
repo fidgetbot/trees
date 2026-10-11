@@ -30,11 +30,11 @@ test('all juvenile states resolve to existing species assets and grow above a co
 test('pictured leaf actions are not double counted and extra leaves retain IDs',()=>{
   const s={selectedSpecies:'Cherry',rootZones:2,leafClusters:2,branches:0};syncGrowthAttachments(s);
   const early=getPaintedGrowthPlan(s,'Sprout',getJuvenileGeometry('Cherry','unfurling'));
-  assert.equal(early.leaves.length,0);assert.equal(early.roots.length,1);
-  s.leafClusters=5;syncGrowthAttachments(s);
+  assert.equal(early.leaves.length,0);assert.equal(early.roots.length,0);
+  s.rootZones++;s.leafClusters=5;syncGrowthAttachments(s);
   const grown=getPaintedGrowthPlan(s,'Seedling',getJuvenileGeometry('Cherry','juvenile'));
   assert.deepEqual(grown.leaves.map(l=>l.id),['leaf-3','leaf-4']);
-  assert.deepEqual(grown.roots.map(r=>r.id),early.roots.map(r=>r.id));
+  assert.deepEqual(grown.roots.map(r=>[r.id,r.spriteVariant]),[['root-2','radicle']]);
 });
 
 test('extra juvenile leaves attach to the foliage-free stem surface',()=>{

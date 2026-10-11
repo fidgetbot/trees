@@ -41,10 +41,22 @@ test('new growth animates without shrinking old parts or stopping at the old fol
  const s=state();s.leafClusters=20;syncGrowthAttachments(s);assert.equal(getPaintedGrowthPlan(s,'Sapling',geometry).leaves.length,20);
 });
 
-test('deepening the taproot extends its persistent painted module',()=>{
- const s={...state(),taprootDepth:1};const first=getPaintedGrowthPlan(s,'Sapling',geometry).roots.find(r=>r.id==='taproot');
- s.taprootDepth++;const next=getPaintedGrowthPlan(s,'Sapling',geometry).roots.find(r=>r.id==='taproot');
- assert.ok(next.dy>first.dy);assert.equal(next.u,first.u);assert.equal(next.v,first.v);
+test('deepening the taproot adds progressively branched painted modules',()=>{
+ const s={...state(),taprootDepth:1};syncGrowthAttachments(s);
+ s.taprootDepth++;let modules=getPaintedGrowthPlan(s,'Sapling',geometry).roots.filter(r=>r.kind==='taproots');
+ assert.deepEqual(modules.map(r=>[r.id,r.spriteVariant]),[['taproot-1','radicle']]);
+ s.taprootDepth++;modules=getPaintedGrowthPlan(s,'Sapling',geometry).roots.filter(r=>r.kind==='taproots');
+ assert.deepEqual(modules.map(r=>[r.id,r.spriteVariant]),[['taproot-1','radicle'],['taproot-2','forked']]);
+});
+
+test('a new life stage absorbs terminal overlays into its painted specimen',()=>{
+ const s={...state(),lifeStage:{name:'Sprout'}};syncGrowthAttachments(s);
+ s.rootZones++;s.branches++;syncGrowthAttachments(s);
+ assert.equal(getPaintedGrowthPlan(s,'Sprout',geometry).roots.length,1);
+ assert.equal(getPaintedGrowthPlan(s,'Sprout',geometry).branches.length,1);
+ s.lifeStage={name:'Seedling'};syncGrowthAttachments(s);
+ assert.equal(getPaintedGrowthPlan(s,'Seedling',geometry).roots.length,0);
+ assert.equal(getPaintedGrowthPlan(s,'Seedling',geometry).branches.length,0);
 });
 
 test('new branch leaves cannot float ahead of their growing support',()=>{

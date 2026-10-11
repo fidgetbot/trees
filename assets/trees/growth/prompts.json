@@ -1,0 +1,18 @@
+{
+  "generator": "built-in image_gen",
+  "referenceOrder": ["Apricot", "Cherry", "Citrus", "Peach", "Pear", "Plum"],
+  "shoots": {
+    "useCase": "stylized-concept",
+    "assetType": "transparent modular growth sprite source sheet for the Trees browser game",
+    "request": "Create exactly six isolated terminal-shoot specimens in a 3 by 2 grid ordered Apricot, Cherry, Citrus, Peach, Pear, Plum. Each is a short naturally tapered twig from a clean lower-left attachment base toward the upper-right, with one small fork and two to four species-appropriate young leaves or buds near the tip.",
+    "style": "Match the canonical botanical watercolor/gouache tree paintings: natural bark grain, softly irregular painted edges, restrained realistic colors, and no outlines.",
+    "constraints": "Genuinely transparent background; six disconnected specimens; continuous wood; large gutters; no fruit, flowers, insects, labels, borders, paper wash, shadows, large limbs, root-like sweeping curves, or detached leaves."
+  },
+  "juvenileRoots": {
+    "useCase": "stylized-concept",
+    "assetType": "transparent modular juvenile-root progression source sheet for the Trees browser game",
+    "request": "Create eighteen isolated young-root specimens in a 3 column by 6 row matrix. Rows are Apricot, Cherry, Citrus, Peach, Pear, Plum. Columns progress from a first radicle with one tiny lateral, to a longer root with two or three lateral forks, to a compact juvenile fan of four to six fine rootlets.",
+    "style": "Match the canonical botanical watercolor/gouache tree paintings with natural root grain, softly irregular painted edges, restrained species colors, and no outlines.",
+    "constraints": "Every specimen begins at a clean top-center root-collar base and grows downward on genuine transparency. No mature roots, trunk, stems, leaves, seed, soil, stones, shadows, labels, borders, paper wash, halos, or loose fragments."
+  }
+}
