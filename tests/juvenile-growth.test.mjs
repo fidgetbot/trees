@@ -37,6 +37,15 @@ test('pictured leaf actions are not double counted and extra leaves retain IDs',
   assert.deepEqual(grown.roots.map(r=>r.id),early.roots.map(r=>r.id));
 });
 
+test('extra juvenile leaves attach to the foliage-free stem surface',()=>{
+  const juvenile={selectedSpecies:'Apricot',rootZones:2,leafClusters:6,branches:0};syncGrowthAttachments(juvenile);
+  const juvenileLeaves=getPaintedGrowthPlan(juvenile,'Seedling',getJuvenileGeometry('Apricot','juvenile')).leaves;
+  assert.ok(juvenileLeaves.length>0);
+  assert.ok(juvenileLeaves.every(leaf=>leaf.attachmentSurface==='stem'));
+  const established=getPaintedGrowthPlan(juvenile,'Sapling',{width:80,height:120,groundRatio:.56}).leaves;
+  assert.ok(established.every(leaf=>leaf.attachmentSurface==='plant'));
+});
+
 test('total leaf loss retains a juvenile stem instead of reverting to a seed',()=>{
   const s={selectedSpecies:'Cherry',leafClusters:3,branches:0};syncGrowthAttachments(s);
   s.leafClusters=0;syncGrowthAttachments(s);

@@ -1,6 +1,6 @@
 import { renderEncounterArt } from './fauna-art.js?rev=encounter-art-v1';
-import { getTreeStructureSourceRect } from './canvas.js?rev=feeding-pests-v1';
-import { getJuvenileStageKey } from './juvenile-growth.js?rev=juvenile-growth-v1';
+import { getTreeStructureSourceRect } from './canvas.js?rev=stem-attached-leaves-v1';
+import { getJuvenileStageKey } from './juvenile-growth.js?rev=stem-attached-leaves-v1';
 
 export function modalPlainText(body) {
   return String(body || '')

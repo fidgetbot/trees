@@ -41,6 +41,7 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
     const host = state.visualGrowth?.leafHosts?.[i] ?? -1;
     const hostSlot=hostSlots.get(host)||0;hostSlots.set(host,hostSlot+1);
     return { id: `leaf-${i}`, index: i, hostSlot, host: host < branches.length ? host : -1,
+      attachmentSurface: geometry.juvenile ? 'stem' : 'plant',
       u: .5, v: .12 + (i % 6) * .067, side,
       dx: side * width * (.21 + (i % 3) * .07 + tier * .065),
       dy: -height * (.025 + (i % 2) * .035),
@@ -75,8 +76,8 @@ export function leafReveal(leaf, reveal) {
 function pixels(image, source) {
   if (imagePixels.has(image)) return imagePixels.get(image);
   const canvas = document.createElement('canvas');
-  canvas.width = source?.width || image.naturalWidth;
-  canvas.height = source?.height || image.naturalHeight;
+  canvas.width = source?.width || image.naturalWidth || image.width;
+  canvas.height = source?.height || image.naturalHeight || image.height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(image, source?.x || 0, source?.y || 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
   const result = { canvas, data: ctx.getImageData(0, 0, canvas.width, canvas.height).data, width: canvas.width, height: canvas.height };
@@ -156,19 +157,22 @@ function ribbon(ctx, texture, start, end, thickness, progress = 1, bend = 0) {
   }
 }
 
-export function preparePaintedGrowth(image, source, state, stage, geometry) {
-  const pixel=pixels(image,source),texture=woodTexture(image,pixel);
+export function preparePaintedGrowth(image, source, state, stage, geometry, supportImage=null) {
+  const pixel=pixels(image,source),supportPixel=supportImage?pixels(supportImage):pixel,texture=woodTexture(image,pixel);
   const plan=getPaintedGrowthPlan(state,stage,geometry);
-  const position=module=>{
-    const ink=inkPoint(pixel,module.u,module.v);
+  const position=(module,surface=pixel)=>{
+    const ink=inkPoint(surface,module.u,module.v);
     if(!ink)return null;
     const start={x:(ink.x/pixel.width-(geometry.anchorX||.5))*geometry.width,y:(ink.y/pixel.height-geometry.groundRatio)*geometry.height};
     return {...module,start,end:{x:start.x+module.dx,y:start.y+module.dy}};
   };
-  const roots=plan.roots.map(position).filter(Boolean),branches=plan.branches.map(position).filter(Boolean);
+  const roots=plan.roots.map(module=>position(module)).filter(Boolean);
+  // Juvenile support images contain the shoot/wood with foliage removed. That
+  // prevents a broad painted leaf from being mistaken for a stem attachment.
+  const branches=plan.branches.map(module=>position(module,geometry.juvenile?supportPixel:pixel)).filter(Boolean);
   const leaves=plan.leaves.map(module=>{
     const host=branches.find(b=>b.index===module.host);
-    if(!host)return position(module);
+    if(!host)return position(module,module.attachmentSurface==='stem'?supportPixel:pixel);
     const attachment=.58+(module.hostSlot%4)*.1,tier=Math.floor(module.hostSlot/4);
     const start=curvePoint(host.start,host.end,host.dx*.1,attachment);
     return {...module,attachment,start,end:{x:start.x+module.side*geometry.width*(.13+tier*.06),y:start.y-geometry.height*(.045+tier*.028)},width:module.width*.85};

@@ -1,7 +1,7 @@
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=feeding-pests-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
-import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=juvenile-growth-v1';
-import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=juvenile-growth-v1';
+import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=stem-attached-leaves-v1';
+import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=stem-attached-leaves-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
@@ -643,7 +643,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     const image=key&&requestTreeStructureAsset(species,key);
     if(image) {
       const geometry=getJuvenileGeometry(species,key,visualState);
-      const growth=preparePaintedGrowth(image,null,isPlayer?state:visualState,stage,geometry);
+      const growth=preparePaintedGrowth(image,null,isPlayer?state:visualState,stage,geometry,getJuvenileLayers(image,geometry).dormant);
       ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
       if(shaded)ctx.filter='brightness(.58) saturate(.76)';
       drawGrowthWood(ctx,growth,growthReveal,season);
