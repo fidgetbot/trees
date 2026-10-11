@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isValidSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
+import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isValidSceneCamera, sceneSafeViewport, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
 
@@ -14,6 +14,19 @@ test('stage framing occupies a monotonic share of the safe region', () => {
 test('tiny subjects remain readable without reaching an extreme zoom', () => {
   assert.equal(targetSceneZoom({ width: 20, height: 40 }, viewport,{stageName:'Seed'}),2.424);
   assert.equal(targetSceneZoom({ width: 1, height: 1 }, viewport,{stageName:'Seed'}),3.2);
+});
+
+test('landscape action dock reserves the right side instead of collapsing scene height',()=>{
+  const safe=sceneSafeViewport({
+    canvasRect:{left:0,top:0,width:1200,height:448},
+    minimapRect:{bottom:160,height:70},
+    hudRect:{left:654,top:120,width:536,height:288},
+    started:true,
+    margin:8,
+  });
+  assert.deepEqual(safe,{width:1200,height:448,topInset:168,bottomInset:0,leftInset:0,rightInset:554,renderHeight:448});
+  assert.deepEqual(centeredSceneOffset({x:500,y:180,width:60,height:80},safe),{x:-207,y:88});
+  assert.ok(targetSceneZoom({width:60,height:80},safe,{stageName:'Seedling'})>1.5);
 });
 
 test('iterative fitting adjusts the current zoom instead of resetting it',()=>{

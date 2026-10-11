@@ -18,8 +18,31 @@ export function stageSceneOccupancy(stageName){
   return STAGE_SCENE_OCCUPANCY[stageName]??STAGE_SCENE_OCCUPANCY.Sapling;
 }
 
+export function sceneSafeViewport({canvasRect,hudRect,minimapRect,started=true,margin=12}={}){
+  const width=Math.max(320,Math.round(canvasRect?.width||900));
+  const height=Math.max(240,Math.round(canvasRect?.height||600));
+  const canvasLeft=Number(canvasRect?.left)||0,canvasTop=Number(canvasRect?.top)||0;
+  const topInset=minimapRect?.height
+    ?Math.max(0,Math.round(minimapRect.bottom-canvasTop+margin))
+    :(height<=500?Math.max(96,Math.round(height*.28)):126);
+  const sideDock=Boolean(started&&height<=500&&width>=600&&hudRect?.width&&hudRect.left>canvasLeft+margin);
+  if(sideDock){
+    return{
+      width,height,topInset,bottomInset:0,leftInset:0,
+      rightInset:Math.max(0,Math.round(canvasLeft+width-hudRect.left+margin)),
+      renderHeight:height,
+    };
+  }
+  const safeBottom=started?Math.round((hudRect?.top??canvasTop+height)-canvasTop-margin):height;
+  return{
+    width,height,topInset,leftInset:0,rightInset:0,
+    bottomInset:Math.max(0,height-safeBottom),
+    renderHeight:Math.max(topInset+40,safeBottom),
+  };
+}
+
 export function targetSceneZoom(bounds, viewport, { currentZoom = 1, margin = 12, stageName = 'Sapling' } = {}) {
-  const usableWidth = Math.max(40, viewport.width - margin * 2);
+  const usableWidth = Math.max(40, viewport.width - (viewport.leftInset||0) - (viewport.rightInset||0) - margin * 2);
   const usableHeight = Math.max(40, viewport.height - viewport.topInset - viewport.bottomInset);
   const width = Number(bounds?.width),height=Number(bounds?.height);
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)return 1;
@@ -33,7 +56,9 @@ export function isValidSceneCamera(camera){
 }
 
 export function centeredSceneOffset(bounds, viewport) {
-  const centerX = viewport.width / 2;
+  const usableLeft=viewport.leftInset||0;
+  const usableRight=Math.max(usableLeft+40,viewport.width-(viewport.rightInset||0));
+  const centerX = usableLeft+(usableRight-usableLeft)/2;
   const usableTop = viewport.topInset;
   const usableBottom = Math.max(usableTop + 40, viewport.height - viewport.bottomInset);
   const centerY = usableTop + (usableBottom - usableTop) * .5;

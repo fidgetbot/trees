@@ -75,7 +75,7 @@ import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-c
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=scale-comparison-camera-v1';
-import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isValidSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=scale-comparison-camera-v1';
+import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=landscape-safe-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
@@ -378,31 +378,16 @@ function currentAbsoluteCameraView(){
   };
 }
 
-function sceneTopInset(height) {
-  return height <= 500 ? Math.max(96, Math.round(height * .28)) : 126;
-}
-
 function sceneViewport() {
   const rect = els.canvas.getBoundingClientRect();
-  const height = Math.max(240, Math.round(rect.height || 600));
   const hudRect = els.hudPanel.getBoundingClientRect();
   const minimapRect = els.groveMinimap?.getBoundingClientRect();
-  const margin = height <= 500 ? 8 : 12;
-  const topInset = minimapRect?.height
-    ? Math.max(0, Math.round(minimapRect.bottom - rect.top + margin))
-    : sceneTopInset(height);
-  const safeBottom = state.started ? Math.round(hudRect.top - rect.top - margin) : height;
-  return {
-    width: Math.max(320, Math.round(rect.width || 900)),
-    height,
-    topInset,
-    bottomInset: Math.max(0, height - safeBottom),
-    renderHeight: Math.max(topInset + 40, safeBottom),
-  };
+  const height=Math.max(240,Math.round(rect.height||600));
+  return sceneSafeViewport({canvasRect:rect,hudRect,minimapRect,started:state.started,margin:height<=500?8:12});
 }
 
 function sceneViewportSignature(viewport=sceneViewport()){
-  return`${viewport.width}:${viewport.height}:${viewport.topInset}:${viewport.bottomInset}`;
+  return`${viewport.width}:${viewport.height}:${viewport.topInset}:${viewport.bottomInset}:${viewport.leftInset||0}:${viewport.rightInset||0}`;
 }
 
 function cameraStateKey(target=activeSceneTarget()){
