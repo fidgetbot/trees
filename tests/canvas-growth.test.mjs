@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getLoggerVariantIndex, getPlayerVisualProfile, getSceneArtKinds, getSurveyorVariantIndex, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -35,6 +35,30 @@ test('a player with no leaf clusters has no generated foliage', () => {
   const profile = getPlayerVisualProfile(state({ leafClusters: 0 }));
   assert.equal(profile.foliageClusters, 0);
   assert.equal(profile.foliageDensity, 0);
+});
+
+test('growth stages use distinct silhouettes and progressively larger foliage modules', () => {
+  const stages=['Seedling','Sapling','Young Tree','Mature Tree','Ancient'];
+  assert.deepEqual(stages.map(stage=>getStageArtProfile(stage).silhouette),['single-leader','open-scaffold','developing-crown','rounded-crown','broad-crown']);
+  const foliageScales=stages.map(stage=>getStageArtProfile(stage).foliageScale);
+  assert.ok(foliageScales.every((scale,index)=>index===0||scale>foliageScales[index-1]));
+  assert.ok(getPlayerVisualProfile(state({lifeStage:{name:'Seedling'}}),'Seedling').trunkWidth<getPlayerVisualProfile(state({lifeStage:{name:'Sapling'}}),'Sapling').trunkWidth);
+});
+
+test('early stages keep painted foliage sparse enough to reveal their scaffold', () => {
+  assert.equal(getPaintedFoliageModuleCount('Seedling',2,8),2);
+  assert.equal(getPaintedFoliageModuleCount('Sapling',4,8),3);
+  assert.equal(getPaintedFoliageModuleCount('Young Tree',7,12),7);
+  assert.equal(getPaintedFoliageModuleCount('Mature Tree',10,14),12);
+  assert.equal(getPaintedFoliageModuleCount('Ancient',15,24),19);
+});
+
+test('connected limbs preserve most of the parent width before tapering', () => {
+  const parentWidth=8;
+  assert.equal(getJoinedLimbWidth(parentWidth,'continuation'),7.52);
+  assert.equal(getJoinedLimbWidth(parentWidth,'lateral'),5.12);
+  assert.ok(getJoinedLimbWidth(parentWidth,'continuation')>getJoinedLimbWidth(parentWidth,'lateral'));
+  assert.ok(getJoinedLimbWidth(parentWidth,'continuation')<parentWidth);
 });
 
 test('flowers appear only after the player produces them in Spring', () => {

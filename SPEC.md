@@ -281,7 +281,7 @@ Non-fruiting trees such as oak or redwood are intentionally deferred for later, 
 
 The current codebase includes:
 - the full seasonal resource → action → event loop, with the opening turn ready for inspection and play without a forced resource-summary modal
-- persistent, species-shaped Canvas trees with connected curved branches and tapered branching root systems; all six playable fruit trees layer stable-seeded transparent botanical-watercolor variants for airy foliage, spring blossoms, and summer fruit while preserving gameplay-driven growth, autumn color, shading, and bare winter silhouettes; Peach, Apricot, Pear, Cherry, and Citrus use species-specific open-canopy scaffolds with tapered wood and attachment-aware fruit placement
+- persistent, species-shaped Canvas trees with connected curved branches and tapered branching root systems; Seedlings use a slender single leader with sparse lateral leaves, Saplings open into a visible scaffold, Young Trees develop a crown, and Mature/Ancient trees gain progressively broader silhouettes; trunk continuations retain their parent width at joins before tapering smoothly into thinner limbs; all six playable fruit trees layer stable-seeded transparent botanical-watercolor variants for airy foliage, spring blossoms, and summer fruit while preserving gameplay-driven growth, autumn color, shading, and bare winter silhouettes; Peach, Apricot, Pear, Cherry, and Citrus use species-specific open-canopy scaffolds with tapered wood and attachment-aware fruit placement
 - automatic life-stage progression
 - six playable fruit-tree species
 - a rebalanced pear profile that no longer starts with an extra trunk and no longer sits above the roster as the default strongest survival pick

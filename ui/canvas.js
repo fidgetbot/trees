@@ -3,6 +3,13 @@ import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Young Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
 const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Young Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
+const STAGE_ART_PROFILES = Object.freeze({
+  Seedling:Object.freeze({silhouette:'single-leader',trunkBaseWidth:3.2,foliageScale:3,foliageMultiplier:1,terminalTaper:.32}),
+  Sapling:Object.freeze({silhouette:'open-scaffold',trunkBaseWidth:6.2,foliageScale:3.55,foliageMultiplier:.75,terminalTaper:.34}),
+  'Young Tree':Object.freeze({silhouette:'developing-crown',trunkBaseWidth:8.2,foliageScale:4.8,foliageMultiplier:1,terminalTaper:.3}),
+  'Mature Tree':Object.freeze({silhouette:'rounded-crown',trunkBaseWidth:10,foliageScale:5.75,foliageMultiplier:1.12,terminalTaper:.27}),
+  Ancient:Object.freeze({silhouette:'broad-crown',trunkBaseWidth:12.5,foliageScale:6.15,foliageMultiplier:1.25,terminalTaper:.24}),
+});
 export const RESIDENT_WORLD_POSITIONS = Object.freeze([-180,-70,0,72,180]);
 const WORLD_POSITIONS = RESIDENT_WORLD_POSITIONS;
 const CHILD_WORLD_POSITIONS = [-84,88,-252,255];
@@ -247,6 +254,20 @@ export function getBotanicalModuleCount(kind,count,clusterCount){
   if(kind==='blossoms')return Math.min(clusterCount,6,Math.ceil(count/2));
   if(kind==='fruit')return Math.min(clusterCount,6,Math.ceil(count/4));
   return 0;
+}
+
+export function getStageArtProfile(stage){
+  return STAGE_ART_PROFILES[stage]||STAGE_ART_PROFILES['Mature Tree'];
+}
+
+export function getJoinedLimbWidth(parentWidth,role='continuation'){
+  const width=Math.max(.55,Number(parentWidth)||0);
+  return width*(role==='continuation'?.94:.64);
+}
+
+export function getPaintedFoliageModuleCount(stage,leafCount,clusterCount){
+  if(leafCount<=0||clusterCount<=0)return 0;
+  return Math.min(clusterCount,Math.max(1,Math.ceil(leafCount*getStageArtProfile(stage).foliageMultiplier)));
 }
 
 function treeHitTarget(tree,state,playerStageName,camera,groundY){
@@ -628,13 +649,16 @@ function drawSprout(ctx,x,y,bark,seed,zoom,leafCount=0,trunkLevel=1){
 }
 
 export function getPlayerVisualProfile(state,stage=state.lifeStage?.name||'Seed'){
-  const branchCount=Math.max(0,state.branches||0),leafCount=Math.max(0,state.leafClusters||0),trunkLevel=Math.max(0,state.trunk||0),canopySpread=Math.max(0,state.canopySpread||0);
+  const branchCount=Math.max(0,state.branches||0),leafCount=Math.max(0,state.leafClusters||0),trunkLevel=Math.max(0,state.trunk||0),canopySpread=Math.max(0,state.canopySpread||0),art=getStageArtProfile(stage);
   return{
     stage,
+    silhouette:art.silhouette,
     branchShoots:Math.min(10,branchCount),
     foliageClusters:leafCount===0?0:Math.max(1,leafCount+Math.floor(leafCount/2)),
     foliageDensity:leafCount===0?0:Math.min(30,5+leafCount*2),
-    trunkWidth:(stage==='Seedling'?6:10)+Math.min(8,trunkLevel*1.2)+Math.min(6,branchCount*.55),
+    trunkWidth:art.trunkBaseWidth+Math.min(8,trunkLevel*(stage==='Seedling'?.7:1.05))+Math.min(6,branchCount*.48),
+    foliageScale:art.foliageScale,
+    terminalTaper:art.terminalTaper,
     canopySpreadFactor:1+Math.min(.38,canopySpread*.07),
     heightFactor:1+Math.min(.5,Math.max(0,state.heightGrowth||0)*.075),
     rootBranches:Math.max(1,Math.min((state.rootZones||0)+((state.rootZones||0)>0?2:0),8)),
@@ -643,24 +667,39 @@ export function getPlayerVisualProfile(state,stage=state.lifeStage?.name||'Seed'
 }
 
 function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpread=0,heightGrowth=0){
-  const r=rng(seed),wood=[],clusters=[],depth=stage==='Seedling'?2:stage==='Ancient'?4:3,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
+  const r=rng(seed),wood=[],clusters=[],depth=stage==='Sapling'?1:stage==='Young Tree'?2:stage==='Ancient'?4:3,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
   const botanicalAngle=angle=>Math.max(-Math.PI+.32,Math.min(-.32,angle));
   function limb(x,y,angle,length,width,remaining,turn=0,z=r()){
     angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.68,endAngle=botanicalAngle(angle+turn+bend),travelAngle=botanicalAngle(angle+turn*.72+bend*.36),p0={x,y},p1={x:x+Math.cos(angle)*length*.38,y:y+Math.sin(angle)*length*.38},p3={x:x+Math.cos(travelAngle)*length*habit.spread*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.32,y:p3.y-Math.sin(endAngle)*length*.32},points=[];
-    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-.52*t)})}wood.push({points,z});
+    const endRatio=remaining?.7:profile.terminalTaper;
+    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-(1-endRatio)*t)})}wood.push({points,z});
     if(!remaining){clusters.push({x:p3.x,y:p3.y,size:8+r()*5+Math.min(5,leafCount*.12),z});return}
-    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.62+r()*.07),end.width*.62,remaining-1,(r()-.5)*.12,z+.01);
-    [-1,1].forEach(side=>{const k=8+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.13),p.width*.5,remaining-1,side*(.58+r()*.3),z+side*.08)})
+    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.62+r()*.07),getJoinedLimbWidth(end.width,'continuation'),remaining-1,(r()-.5)*.12,z+.01);
+    [-1,1].forEach(side=>{const k=8+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.13),getJoinedLimbWidth(p.width,'lateral'),remaining-1,side*(.58+r()*.3),z+side*.08)})
   }
   function vaseLimb(x,y,angle,length,width,remaining,side,z=r()){
     angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.34,endAngle=botanicalAngle(angle+bend),travelAngle=botanicalAngle(angle+bend*.48),p0={x,y},p1={x:x+Math.cos(angle)*length*.36,y:y+Math.sin(angle)*length*.36},p3={x:x+Math.cos(travelAngle)*length*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.3,y:p3.y-Math.sin(endAngle)*length*.3},points=[];
-    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-.58*t)})}wood.push({points,z});
+    const endRatio=remaining?.72:profile.terminalTaper;
+    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-(1-endRatio)*t)})}wood.push({points,z});
     if(!remaining){clusters.push({x:p3.x,y:p3.y,size:9+r()*4+Math.min(4,leafCount*.12),z});return}
     const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);
     const continuationScale=remaining===1?.54+r()*.04:.64+r()*.06,forkScale=remaining===1?.38+r()*.05:.46+r()*.08;
-    vaseLimb(end.x,end.y,tangent+(r()-.5)*.12,length*continuationScale,end.width*.63,remaining-1,side,z+.01);
+    vaseLimb(end.x,end.y,tangent+(r()-.5)*.12,length*continuationScale,getJoinedLimbWidth(end.width,'continuation'),remaining-1,side,z+.01);
     const k=9+Math.floor(r()*3),p=points[k],q=points[k-1],heading=Math.atan2(p.y-q.y,p.x-q.x);
-    vaseLimb(p.x,p.y,heading+side*(.42+r()*.18),length*forkScale,p.width*.5,remaining-1,side,z+side*.08);
+    vaseLimb(p.x,p.y,heading+side*(.42+r()*.18),length*forkScale,getJoinedLimbWidth(p.width,'lateral'),remaining-1,side,z+side*.08);
+  }
+  if(stage==='Seedling'){
+    const stemHeight=(49+Math.min(5,heightGrowth)*3.2)*habit.height,stemLean=(r()-.5)*3.2,stem=[];
+    for(let i=0;i<=18;i++){const t=i/18;stem.push({x:stemLean*t*t,y:-stemHeight*t,width:profile.trunkWidth*(1-(1-profile.terminalTaper)*t)})}
+    wood.push({points:stem,z:.5});
+    const lateralCount=Math.max(1,Math.min(4,leafCount));
+    for(let i=0;i<lateralCount;i+=1){
+      const side=i%2?-1:1,t=.48+(Math.floor(i/2)*.16)+(i%2)*.07,attach=stem[Math.min(16,Math.round(t*18))],previous=stem[Math.max(0,Math.round(t*18)-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),length=10.5+(i%2)*1.8+r()*2.2,angle=heading+side*(.72+r()*.12),end={x:attach.x+Math.cos(angle)*length,y:attach.y+Math.sin(angle)*length},points=[];
+      for(let p=0;p<=10;p+=1){const progress=p/10;points.push({x:attach.x+(end.x-attach.x)*progress,y:attach.y+(end.y-attach.y)*progress-Math.sin(progress*Math.PI)*1.1,width:getJoinedLimbWidth(attach.width,'lateral')*(1-(1-profile.terminalTaper)*progress)})}
+      wood.push({points,z:.42+i*.05});clusters.push({x:end.x,y:end.y,size:4.1+r()*1.1,z:.42+i*.05});
+    }
+    clusters.push({x:stem.at(-1).x,y:stem.at(-1).y-1,size:4.6+r(),z:.58});
+    return{wood,clusters,leafCount,profile};
   }
   if((habit===HABITS.Peach||habit===HABITS.Apricot||habit===HABITS.Pear||habit===HABITS.Cherry||habit===HABITS.Citrus)&&stage!=='Seedling'){
     const isApricot=habit===HABITS.Apricot,isPear=habit===HABITS.Pear,isCherry=habit===HABITS.Cherry,isCitrus=habit===HABITS.Citrus,trunkHeight=(stage==='Sapling'?(isPear?46:isCherry?40:isCitrus?34:38):isPear?68:isCherry?50:isCitrus?45:isApricot?54:50)*profile.heightFactor,trunkLean=(r()-.5)*(isPear?3:isCherry?3.1:isCitrus?2.8:3.4),trunkPoints=[];
@@ -682,10 +721,10 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
       isApricot?
         [{t:.54,angle:-2.53,length:32,side:-1},{t:.66,angle:-2.08,length:34,side:-1},{t:.78,angle:-1.58,length:35,side:1},{t:.69,angle:-1.06,length:34,side:1},{t:.56,angle:-.6,length:32,side:1}]:
         [{t:.56,angle:-2.48,length:31,side:-1},{t:.68,angle:-2.02,length:36,side:-1},{t:.74,angle:-1.12,length:37,side:1},{t:.6,angle:-.64,length:32,side:1}];
-    scaffolds.forEach((scaffold,index)=>{const attach=trunkPoints[Math.round(scaffold.t*18)],angle=scaffold.angle+(r()-.5)*.1,length=scaffold.length*(.94+r()*.12);vaseLimb(attach.x,attach.y,angle,length,Math.max(2.3,attach.width*.58),scaffold.depth??scaffoldDepth,scaffold.side,.36+index*.09)});
+    scaffolds.forEach((scaffold,index)=>{const attach=trunkPoints[Math.round(scaffold.t*18)],angle=scaffold.angle+(r()-.5)*.1,length=scaffold.length*(.94+r()*.12);vaseLimb(attach.x,attach.y,angle,length,getJoinedLimbWidth(attach.width,'lateral'),scaffold.depth??scaffoldDepth,scaffold.side,.36+index*.09)});
     if(stage==='Mature Tree'||stage==='Ancient'){
-      clusters.push({x:trunkLean*.7,y:-trunkHeight-(isPear?20:isCherry?22:isCitrus?20:isApricot?19:27),size:isPear?12.8:isCherry?13.1:isCitrus?13.8:isApricot?12.2:13.2,z:.52,foliageOnly:true});
-      if(stage==='Ancient')clusters.push({x:trunkLean*.7+9,y:-trunkHeight-9,size:10.5,z:.5,foliageOnly:true});
+      const top=trunkPoints.at(-1),previous=trunkPoints.at(-2),heading=Math.atan2(top.y-previous.y,top.x-previous.x),leaderLength=(stage==='Ancient'?28:22)*(isPear?1.12:isCitrus?.9:1);
+      vaseLimb(top.x,top.y,heading,leaderLength,getJoinedLimbWidth(top.width,'continuation'),stage==='Ancient'?1:0,1,.52);
     }
     return{wood,clusters,leafCount,profile};
   }
@@ -695,7 +734,8 @@ function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpr
   return{wood,clusters,leafCount,profile};
 }
 
-function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.strokeStyle=bark;strokeTapered(ctx,p,1);ctx.strokeStyle=highlight;ctx.save();ctx.translate(-p[0].width*.13,0);strokeTapered(ctx,p,.13,.38);ctx.restore()});const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.fillStyle=bark;ctx.beginPath();ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14);ctx.fill()}
+function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.fillStyle=bark;fillTapered(ctx,p);ctx.strokeStyle=highlight;ctx.save();ctx.translate(-p[0].width*.11,0);strokeTapered(ctx,p,.12,.34);ctx.restore()});ctx.fillStyle=bark;ctx.beginPath();if(tree.profile?.stage==='Seedling'){const radius=(tree.profile.trunkWidth||3.2)*.5;ctx.moveTo(-radius*.82,-10);ctx.quadraticCurveTo(-radius*.95,-3,-radius*1.55,2.5);ctx.quadraticCurveTo(-radius*.62,1.4,0,.7);ctx.quadraticCurveTo(radius*.62,1.5,radius*1.55,2.5);ctx.quadraticCurveTo(radius*.95,-3,radius*.82,-10)}else{const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14)}ctx.closePath();ctx.fill()}
+function fillTapered(ctx,points,scale=1,minWidth=.55){if(points.length<2)return;const left=[],right=[];points.forEach((point,index)=>{const before=points[Math.max(0,index-1)],after=points[Math.min(points.length-1,index+1)],dx=after.x-before.x,dy=after.y-before.y,length=Math.hypot(dx,dy)||1,radius=Math.max(minWidth,point.width*scale)/2,nx=-dy/length,ny=dx/length;left.push({x:point.x+nx*radius,y:point.y+ny*radius});right.push({x:point.x-nx*radius,y:point.y-ny*radius})});ctx.beginPath();ctx.moveTo(left[0].x,left[0].y);left.slice(1).forEach(point=>ctx.lineTo(point.x,point.y));[...right].reverse().forEach(point=>ctx.lineTo(point.x,point.y));ctx.closePath();ctx.fill()}
 function strokeTapered(ctx,points,scale=1,minWidth=.55){for(let i=1;i<points.length;i+=1){ctx.lineWidth=Math.max(minWidth,(points[i-1].width+points[i].width)*.5*scale);ctx.beginPath();ctx.moveTo(points[i-1].x,points[i-1].y);ctx.lineTo(points[i].x,points[i].y);ctx.stroke()}}
 function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
 
@@ -724,8 +764,8 @@ function paintedFoliageFilter(season,shaded){
   return shaded?`${seasonal==='none'?'':seasonal+' '}brightness(.58) saturate(.76)`:seasonal;
 }
 function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species){
-  const baseCount=tree.profile?.foliageClusters||0,count=baseCount>0?Math.ceil(baseCount*(player?1.65:1.5)):0;
-  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||((species==='Peach'||species==='Apricot'||species==='Pear'||species==='Cherry'||species==='Citrus')?!front:(cluster.z>.48)!==front))return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,6.1,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
+  const count=getPaintedFoliageModuleCount(tree.profile?.stage,tree.leafCount||0,tree.clusters.length);
+  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||((species==='Peach'||species==='Apricot'||species==='Pear'||species==='Cherry'||species==='Citrus')?!front:(cluster.z>.48)!==front))return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,tree.profile?.foliageScale||5.75,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
 }
 function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plum'){
   if(season==='Winter')return;
