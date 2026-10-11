@@ -222,7 +222,9 @@ export function createEngine(deps) {
     state.sunlight = Math.min(capacities.sunlight, beforeCapacity.sunlight);
     state.water = Math.min(capacities.water, beforeCapacity.water);
     state.nutrients = Math.min(capacities.nutrients, beforeCapacity.nutrients);
-    state.actions = actionsForGathering(sunlightGain + waterGain + nutrientGain);
+    const totalGathered = sunlightGain + waterGain + nutrientGain;
+    const actionsAwarded = actionsForGathering(totalGathered);
+    state.actions = actionsAwarded;
 
     return {
       sunlightGain,
@@ -271,6 +273,9 @@ export function createEngine(deps) {
       },
       relations,
       season,
+      totalGathered,
+      actionsAwarded,
+      bonusActions: actionsAwarded - BASE_ACTIONS_PER_TURN,
     };
   }
 
@@ -433,8 +438,6 @@ export function createEngine(deps) {
       commit();
       completed = true;
       if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
-      // Root connection already presents its outcome in a dedicated dialog.
-      if (action.key !== 'connect') showFeedback?.(`${action.name} succeeded!`, 'success');
       addLog?.(`Action: ${action.name}.`);
       if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
       if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');

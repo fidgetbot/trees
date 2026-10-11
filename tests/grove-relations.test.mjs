@@ -359,6 +359,18 @@ test('gathering summary reports the actual number of bonus actions', () => {
   assert.match(summary, /\+2 bonus actions from high resource yield/);
 });
 
+test('high gathering adds bonus actions to both state and the displayed tally', () => {
+  const state = gatheringState({ leafClusters: 10, trunk: 4, rootZones: 4 });
+  const gains = engine().collectResources(state);
+  assert.equal(gains.totalGathered, gains.sunlightGain + gains.waterGain + gains.nutrientGain);
+  assert.equal(state.actions, gains.actionsAwarded);
+  assert.equal(gains.bonusActions, state.actions - 3);
+  assert.ok(state.actions > 3);
+  const summary = renderResourcePhaseBody({ state, gains });
+  assert.match(summary, new RegExp(`<strong>${state.actions} actions<\\/strong>`));
+  assert.match(summary, new RegExp(`\\+${gains.bonusActions} bonus action`));
+});
+
 test('gathering summary separates bonuses and penalties into readable factors', () => {
   const state = gatheringState({
     heightGrowth: 2,

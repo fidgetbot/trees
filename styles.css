@@ -1687,6 +1687,26 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
 .modal .neighbor-choice:hover:not(:disabled) { background: #dbe3ce; border-color: #8d9d78; }
 .modal .neighbor-choice:disabled { color: #727666; background: #ebe9df; opacity: .65; }
 .modal[data-kind="growth"] .modal-card { padding-top: 35px; }
+.modal[data-kind="ominous"] { background: #11160fc7; }
+.modal[data-kind="ominous"] .modal-card {
+  --text: #e7e0cf;
+  --muted: #b8ad99;
+  border-color: #95856b52;
+  background:
+    radial-gradient(ellipse at top right, #6b513b24, transparent 58%),
+    linear-gradient(155deg, #30342c, #1d211c 72%);
+  color: var(--text);
+  box-shadow: 0 30px 100px #050705b8, inset 0 0 0 1px #d2c2a512;
+}
+.modal[data-kind="ominous"] #modal-title { color: #f0e3ca; }
+.modal[data-kind="ominous"] #modal-body { color: #d4ccbc; }
+.modal[data-kind="ominous"] #modal-body em { color: inherit; }
+.modal[data-kind="ominous"] #modal-button {
+  border-color: #8b6a55;
+  background: #6e493b;
+  color: #fff4df;
+}
+.modal[data-kind="ominous"] #modal-button:hover { background: #7e5545; }
 .modal[data-kind="growth"] #modal-kicker { padding-right: 90px; }
 .modal[data-kind="growth"] #modal-title { padding-right: 100px; margin-bottom: 34px; font-size: 46px; }
 .growth-portrait { position: absolute; top: 18px; right: 24px; width: 94px; height: 112px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(ellipse, #dce3cba6, transparent 72%); pointer-events: none; }

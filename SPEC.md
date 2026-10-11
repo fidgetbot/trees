@@ -114,7 +114,7 @@ Season directly modifies gathering: Spring produces 100% normal sunlight and 100
 ### Action Economy
 
 - **Base actions per turn:** 3
-- High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; the gathering summary reports the exact number earned
+- High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; one authoritative award sets both the gathering summary and the action tally that persists into play
 - Actions spend combinations of sunlight, water, and nutrients
 - Multi-step actions remain pending until the player confirms a final target or investment; backing out, declining confirmation, or losing every valid target spends no resources and no action
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful. Mature and Ancient costs shift modestly toward sunlight and water and away from nutrients, turning late-game surplus into useful growth rather than deepening a single nutrient bottleneck
@@ -245,7 +245,7 @@ Current systems include:
 - chemical-defense threat chains that resolve after an unanswered warning; the warning says only that the threat was not contained, and the subsequent consequence supplies the logical damage conclusion without redundantly forecasting an immediately following message
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
-- a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer
+- a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer; its felling chapters use a distinctly dark, ominous card treatment, while the final protected-grove coda returns to the normal presentation
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health
@@ -459,7 +459,7 @@ The current high-level goals are:
 
 - The action dock distinguishes the remaining action budget from usable moves. While moves are available, it reports “N actions remaining” and offers More actions. If no action is currently legal/affordable, both of those secondary labels disappear and End turn becomes the sole prominent dock control; the explanatory sentence above it gives the reason. Empty object-specific lists instead direct the player to other available moves. Zero-action states still allow End turn.
 
-- Encounter dialogs omit the generic “Life in the grove” kicker; chapter and gathering dialogs may retain a specific contextual kicker. Root-connection outcomes use their dedicated result dialog without a second generic “Seek Root Connection succeeded” notification.
+- Encounter dialogs omit the generic “Life in the grove” kicker; chapter and gathering dialogs may retain a specific contextual kicker. Completed actions rely on their visible animation, specific outcome dialog, and history entry rather than a generic “Action succeeded” toast.
 
 - Info is a restrained botanical notebook: the painted species specimen and exact species description/bonus lead the sheet, followed by score, growth requirements, statistics, seasons, offspring and log. Redundant selection/“Your tree” labels and inspector/group toggle headings are removed. All Info sections are always open, with one internal sheet scrollbar; the action catalog keeps its separate behavior.
 

@@ -44,11 +44,18 @@ test('fungal rumors arrive in order and are not repeated', () => {
   const s = state({ lifeStage: LIFE_STAGES[2], humanStoryTurns: 5 });
   const first = advanceHumanSystem(s, deps);
   assert.equal(first.rumor.title, HUMAN_RUMORS[0].title);
+  assert.equal(first.rumor.presentation, 'ominous');
   const tooSoon = advanceHumanSystem(s, deps);
   assert.equal(tooSoon.rumor, undefined);
   s.humanStoryTurns += 5;
   const second = advanceHumanSystem(s, deps);
   assert.equal(second.rumor.title, HUMAN_RUMORS[1].title);
+  assert.equal(second.rumor.presentation, 'ominous');
+});
+
+test('the felling storyline is visually marked as ominous until the hopeful coda', () => {
+  assert.ok(HUMAN_RUMORS.slice(0, -1).every(rumor => rumor.presentation === 'ominous'));
+  assert.equal(HUMAN_RUMORS.at(-1).presentation, undefined);
 });
 
 test('a branch drop repels cutters but sacrifices structure', () => {

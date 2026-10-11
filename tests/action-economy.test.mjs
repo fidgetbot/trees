@@ -129,6 +129,21 @@ test('root connection relies on its result dialog instead of a second success to
   assert.deepEqual(feedback, []);
 });
 
+test('completed actions rely on their animation and do not emit generic success toasts', () => {
+  const state = actionState();
+  const feedback = [];
+  actionEngine().executeAction(state, {
+    key: 'growLeaves',
+    name: 'Grow Leaf',
+    effect(target) { target.leafClusters = (target.leafClusters || 0) + 1; },
+  }, { sunlight: 0, water: 0, nutrients: 0 }, {
+    spend: spendFrom(state),
+    showFeedback: (message, type) => feedback.push({ message, type }),
+  });
+  assert.equal(state.actions, 2);
+  assert.deepEqual(feedback, []);
+});
+
 test('selected-object context reaches the action effect unchanged', () => {
   const state = actionState();
   let received;

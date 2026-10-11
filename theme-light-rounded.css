@@ -14,6 +14,9 @@ body.theme-light-rounded .action-unlock strong{color:var(--rounded-ink)}
 body.theme-light-rounded #species-panel .intro-footnote{font:600 19px/1.5 Caveat,cursive}
 
 body.theme-light-rounded .modal[data-kind=gathering] .actions-earned{background:var(--rounded-wash);border-color:#b0a49955;color:var(--rounded-ink)}
+body.theme-light-rounded .modal[data-kind=ominous] #modal-title{color:#f0e3ca}
+body.theme-light-rounded .modal[data-kind=ominous] #modal-body{color:#d4ccbc}
+body.theme-light-rounded .modal[data-kind=ominous] #modal-button{background:#6e493b;border-color:#8b6a55;color:#fff4df}
 /* Carry the selected typography through the playing surface without changing geometry. */
 body.theme-light-rounded :is(input,select,textarea,.grove-time-pill,.grove-resource,.context-command-heading strong,.context-command-heading h3,.context-action,.sheet-header h2,.species-summary-title-row h3,.game-over-card blockquote){font-family:Nunito,system-ui,sans-serif}
 body.theme-light-rounded :is(.grove-time-pill,.context-command-heading strong,.context-command-heading h3,.sheet-header h2){color:var(--rounded-ink);letter-spacing:0;font-weight:500}

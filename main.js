@@ -62,8 +62,8 @@ import {
   resolveOffspringCrisisAid,
   resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=offspring-support-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-action-dock-v1';
+} from './core/humans.js?rev=ominous-rumors-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-tally-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
@@ -71,7 +71,7 @@ import { getContextualActions, getTargetActionContext, pickSceneTarget } from '.
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=quiet-action-dock-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=encounter-art-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=fruit-minimap-v1';
@@ -1611,7 +1611,12 @@ function showEventPhase() {
   if (humanUpdate.event) minors.push(humanUpdate.event);
   if (humanUpdate.rumor) {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
-    state.pendingInteractions.push(done => showModal(humanUpdate.rumor.title, `<p><em>${humanUpdate.rumor.body}</em></p>`, done));
+    state.pendingInteractions.push(done => showModal(
+      humanUpdate.rumor.title,
+      `<p><em>${humanUpdate.rumor.body}</em></p>`,
+      done,
+      { kind: humanUpdate.rumor.presentation || '' },
+    ));
   }
   if (humanUpdate.decision) state.pendingInteractions.push(done => queueHumanDecision(humanUpdate.decision, done));
   state.activeSceneArt = [...new Set([

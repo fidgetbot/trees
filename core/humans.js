@@ -6,31 +6,37 @@ export const HUMAN_RUMORS = [
     title: 'A Distant Tremor',
     body: 'A faint warning travels through the fungal dark. Far away, an old tree feels repeated blows against its trunk.',
     minRank: 2,
+    presentation: 'ominous',
   },
   {
     title: 'The Signal Falters',
     body: 'The distant tree speaks only in broken pulses now. Around it, familiar root-signals are disappearing one by one.',
     minRank: 2,
+    presentation: 'ominous',
   },
   {
     title: 'Silence in the Network',
     body: 'The old tree is gone. Where its roots once answered, the fungal network carries only a cold and empty silence.',
     minRank: 3,
+    presentation: 'ominous',
   },
   {
     title: 'A Pattern of Loss',
     body: 'Other forests whisper of the same destruction. Humans are seeking the largest trunks and leaving broken ground behind them.',
     minRank: 4,
+    presentation: 'ominous',
   },
   {
     title: 'The Cutting Draws Nearer',
     body: 'The missing forests are no longer impossibly distant. Each season, the edge of the silence feels closer.',
     minRank: 5,
+    presentation: 'ominous',
   },
   {
     title: 'The Largest Trees',
     body: 'A grim rumor spreads: forests holding the greatest trees are being marked first. Their wood has drawn human attention.',
     minRank: 5,
+    presentation: 'ominous',
   },
   {
     title: 'A Grove Left Standing',
