@@ -1,0 +1,164 @@
+[
+  {
+    "file": "apricot-first-leaves-v1.png",
+    "sourceSha256": "29f8e4ede5d784ad0eb071ed6384bc9111ede7127f19cbeef343de7621b06c67",
+    "runtimeSha256": "6c48a513138995cb50e5b16b6c064da59b38cb029e55b431e0d05a26a94c244a",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "apricot-juvenile-v1.png",
+    "sourceSha256": "3a2fa51abf848c9259046e80c8575ce53ec625fb3e45f865e9ab0d196a57fedc",
+    "runtimeSha256": "dd177671bf8a10ce765071b9ae9fe90a36102a199034cec348fdb41dc6c8ff05",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "apricot-unfurling-v1.png",
+    "sourceSha256": "23c907ebf8b3c078af262e3c22442a1e861e9c2a4480deacbf9e2591e8369137",
+    "runtimeSha256": "6b931076057ce637a2f10049e51d914a06141f814998312cb8457ff02f0bfef6",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "cherry-first-leaves-v1.png",
+    "sourceSha256": "3b228bee3810df824ea4affce168d86df7d3365f495bd3490c217b2a4d84f99f",
+    "runtimeSha256": "be87bbc93ce727ef9e42d70a240c8adc8b431ceec0f9539b1a6b451f9e2c5dae",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "cherry-juvenile-v1.png",
+    "sourceSha256": "da33343cad62a183f40eab680cb3637ba22a279cb36726a322f55506472d2150",
+    "runtimeSha256": "57d11423761d34dabe875d4dc0d6a67b364dcd40f2ca2f14d4980e59cb009935",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "cherry-unfurling-v1.png",
+    "sourceSha256": "21c9602db6d13f87c867a2c75dab08d10f238fedbe590727c730380b3c54b2ef",
+    "runtimeSha256": "7ad9eecb9e4250b6ca71baf1bc1b3acf15916327077aeac43b2a687a2c5e1e22",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "citrus-first-leaves-v1.png",
+    "sourceSha256": "38b6cea89b3e555fd93554cae8e5cee0fd792dea218406ea49eb93600a2eda57",
+    "runtimeSha256": "0418fa30af20e42c04586adaeebb21d94f89534d7fe305e9de87bbe76adb218c",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "citrus-juvenile-v1.png",
+    "sourceSha256": "d4d7d42fccb18b15bdcca2cd4e91add6c2ea64ead8ece44172dbf467e50ce700",
+    "runtimeSha256": "3090814d8c9afcbb312674b34f6d1e312b37a213eb3470206c366caffcdb5800",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "citrus-unfurling-v1.png",
+    "sourceSha256": "d747f6dfdb5f75a768428f55bd0561c6f52f65ffeab5ffcfd4d190ae86e89f0a",
+    "runtimeSha256": "d5379a1a080e1690f1c0e5b5cf4af3a6a5142c2e97dd3c7fa7a98f5e93678612",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "peach-first-leaves-v1.png",
+    "sourceSha256": "46d82b97f187d19d10c986f83a44350fdb4bf78ef1a4b917649b6901036e34fd",
+    "runtimeSha256": "569a5da8f6f0735f9f4e27a17f8794c6e21b9d0abcc4541691d307b29caf1b4c",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "peach-juvenile-v1.png",
+    "sourceSha256": "2e0f4e9f1ba4a368c23cb44c45b0fcddd29cc1eeb4893a2377acd26855c1249f",
+    "runtimeSha256": "5722d2b7a20ca992917d04bab13f9d147f280e891215127cbe8c9e7b45876954",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "peach-unfurling-v1.png",
+    "sourceSha256": "a7a58ba7febc0d60f426ae6d14d7be36381eba3691721c902f77438b3af85175",
+    "runtimeSha256": "7d6a8ca4e2aeae1c56f274632d1f99c4b9ead7fd32d155be8baaf7c9b1ceec79",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "pear-first-leaves-v1.png",
+    "sourceSha256": "578a440c5664d1ea31c4ddc32c46726d9b031bf0f46a5fc4851a9374cb0e13fd",
+    "runtimeSha256": "dde2f4a83cfba3a0ad5f84e7ded7e557f3f340abffa2cd1b0d648c146767f75d",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "pear-juvenile-v1.png",
+    "sourceSha256": "73d8ded2a6e7b02aef3e6d62984fd216319a235259f583dcb5e9192bed7222c6",
+    "runtimeSha256": "e8c291e8ac6fdd3e21ec7c2eef216efaaf9b277c92642eebf0b98a4d89a98f15",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "pear-unfurling-v1.png",
+    "sourceSha256": "6358c90b0469cd503df69d84884e3209ee80ec854fc0d802303033fce9f1c525",
+    "runtimeSha256": "e1924d21731b3b120b38eed58415afddd9c4995e83b088882478a26ab9141a39",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "plum-first-leaves-v1.png",
+    "sourceSha256": "9c76916a291a2d968151a6ba0afc00640d72973903c0f7d30497923c651eaf74",
+    "runtimeSha256": "9dc2b22b58bdce435859e4fcc0032add33e0354b21b2bc31cbb66b25dd967e48",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "plum-juvenile-v1.png",
+    "sourceSha256": "cfc697b974d330d2f95c8d73fa6da34c7d125c4f1456458a45323b867014f944",
+    "runtimeSha256": "9f8d54466d23cfc502351002005619f78de1604d70b399c4ad7fa1bbb15dee75",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  },
+  {
+    "file": "plum-unfurling-v1.png",
+    "sourceSha256": "8232b497f7ec326a7f5c542ef14eabc850170a3b5523a248c394c21e12b22698",
+    "runtimeSha256": "05c0cc7c1db6023bceb95f14c4137f86da6401cd3231038130ef0b8f989a7cea",
+    "sourceSize": [
+      1024,
+      1536
+    ]
+  }
+]

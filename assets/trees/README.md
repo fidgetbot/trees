@@ -38,6 +38,12 @@ The early sheets are not perfectly aligned to equal cells: some Seed and rooted-
 
 ## Action-driven growth
 
+### Juvenile specimens
+
+`juvenile/` adds eighteen independently generated transparent PNGs: `first-leaves`, `unfurling`, and `juvenile` for each of the six species. These replace the old woody Sprout and Seedling composites during early play. Runtime copies are 512×768, resized without repainting from the full-size masters. `juvenile/manifest.json` records source and runtime SHA-256 hashes; `juvenile/prompts.json` preserves the generation specifications. The normal built-in image generator was used, following Nicolas's explicit permission to allow its previews for this task. Full-size originals remain in `~/.openclaw/playground/trees-juvenile-assets/masters/`.
+
+`ui/juvenile-growth.js` defines reviewed collar anchors and increasing above-ground heights, derives seasonal leaf/stem layers without changing the masters, and supplies a juvenile leaf for additional actions. The first three pictured leaf investments are subtracted from additional modules. Existing root IDs remain intact, new roots attach to the actual radicle, and full leaf loss preserves the green shoot rather than reverting to seed framing. All early specimens preload while the seed is displayed. The later mature module system below continues from Sapling onward.
+
 `ui/painted-growth.js` adds persistent player root, taproot, branch, and leaf modules around these bases. Attachments are located on opaque pixels of the actual source image; roots and branches carry a straightened strip of that same painted wood along a tapered curve. No original PNG is modified and no new generated artwork is required. Leaves use the existing species-specific botanical PNGs, with a connecting petiole ending inside the painted cluster.
 
 The visual ledger keeps each existing leaf on its original host when later branches are added; new branch foliage attaches to its new branch. Module IDs follow structural counts across stage changes, and roots/leaves no longer silently stop responding at the former coarse foliage cap. New parts reveal over 650 ms unless reduced motion is requested. Gameplay costs, resource accounting, progression, and event rules are unchanged.

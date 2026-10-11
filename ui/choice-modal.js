@@ -1,4 +1,4 @@
-import { openModalSurface } from './modal.js?rev=action-growth-v2';
+import { openModalSurface } from './modal.js?rev=juvenile-growth-v1';
 
 export function showChoiceModalUI(els, title, body, choices) {
   els.modalTitle.textContent = title;

@@ -8,6 +8,7 @@ export function syncGrowthAttachments(state) {
   const species = state.selectedSpecies || 'Plum';
   const fresh = !state.visualGrowth || state.visualGrowth.species !== species;
   if (fresh) state.visualGrowth = { species, leafHosts: [] };
+  state.visualGrowth.juvenilePeak = Math.max(state.visualGrowth.juvenilePeak || 0, count(state.leafClusters));
   const hosts = state.visualGrowth.leafHosts;
   hosts.length = Math.min(hosts.length, count(state.leafClusters));
   while (hosts.length < count(state.leafClusters)) {
@@ -22,7 +23,7 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
   const juvenile = stage === 'Seed' || stage === 'Sprout' || stage === 'Seedling';
   const roots = Array.from({ length: Math.max(0, count(state.rootZones) - 1) }, (_, i) => {
     const side = i % 2 ? 1 : -1, tier = Math.floor(i / 6);
-    return { id: `root-${i + 1}`, index: i + 1, u: .5, v: .66 + (i % 3) * .055,
+    return { id: `root-${i + 1}`, index: i + 1, u: .5, v: (geometry.rootStart || .66) + (i % 3) * (geometry.juvenile?.045:.055),
       dx: side * width * (.30 + (i % 3) * .095 + tier * .045),
       dy: height * (.16 + (i % 2) * .05 + tier * .025),
       thickness: width * (juvenile ? .026 : .016) };
@@ -45,7 +46,17 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
       dy: -height * (.025 + (i % 2) * .035),
       width: width * (juvenile ? .50 : .39), thickness: width * (juvenile ? .025 : .013) };
   });
-  return { roots, branches, leaves };
+  if(geometry.juvenile) {
+    for(const leaf of leaves) {
+      const slot=leaf.index-(geometry.representedLeaves||0);
+      leaf.v=.22+(Math.max(0,slot)%5)*.047;
+      leaf.dx=leaf.side*width*(.12+Math.floor(Math.max(0,slot)/5)*.025);
+      leaf.dy=-height*.012;
+      leaf.width=width*.25;
+      leaf.thickness=width*.009;
+    }
+  }
+  return { roots, branches, leaves:geometry.juvenile?leaves.slice(geometry.representedLeaves):leaves };
 }
 
 export function growthReveal(index, kind, reveal) {
@@ -151,7 +162,7 @@ export function preparePaintedGrowth(image, source, state, stage, geometry) {
   const position=module=>{
     const ink=inkPoint(pixel,module.u,module.v);
     if(!ink)return null;
-    const start={x:(ink.x/pixel.width-.5)*geometry.width,y:(ink.y/pixel.height-geometry.groundRatio)*geometry.height};
+    const start={x:(ink.x/pixel.width-(geometry.anchorX||.5))*geometry.width,y:(ink.y/pixel.height-geometry.groundRatio)*geometry.height};
     return {...module,start,end:{x:start.x+module.dx,y:start.y+module.dy}};
   };
   const roots=plan.roots.map(position).filter(Boolean),branches=plan.branches.map(position).filter(Boolean);

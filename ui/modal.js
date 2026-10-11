@@ -1,4 +1,5 @@
-import { getTreeStructureSourceRect } from './canvas.js?rev=action-growth-v2';
+import { getTreeStructureSourceRect } from './canvas.js?rev=juvenile-growth-v1';
+import { getJuvenileStageKey } from './juvenile-growth.js?rev=juvenile-growth-v1';
 
 export function modalPlainText(body) {
   return String(body || '')
@@ -38,9 +39,10 @@ export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove'
   };
 }
 
-export function renderGrowthChapter(stage, speciesName, stages, unlockHtml, { rootedSeed = false } = {}) {
-  const stageKey = rootedSeed ? 'rooted-seed' : stage.name.toLowerCase().replaceAll(' ', '-');
-  const source = `assets/trees/${speciesName.toLowerCase()}-${stageKey}-v1.png?rev=painted-life-stages-v1`;
+export function renderGrowthChapter(stage, speciesName, stages, unlockHtml, { rootedSeed = false, leafClusters = 0 } = {}) {
+  const juvenileKey=getJuvenileStageKey({leafClusters},stage.name);
+  const stageKey = juvenileKey || (rootedSeed ? 'rooted-seed' : stage.name.toLowerCase().replaceAll(' ', '-'));
+  const source = `assets/trees/${juvenileKey?'juvenile/':''}${speciesName.toLowerCase()}-${stageKey}-v1.png?rev=painted-life-stages-v1`;
   const bounds = getTreeStructureSourceRect(speciesName, stageKey);
   const portrait = bounds
     ? `<svg viewBox="0 0 ${bounds.width} ${bounds.height}" aria-hidden="true"><svg width="${bounds.width}" height="${bounds.height}" overflow="hidden"><image href="${source}" width="${bounds.width}" height="${bounds.imageHeight}" /></svg></svg>`

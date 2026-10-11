@@ -1,0 +1,163 @@
+[
+  {
+    "species": "Cherry",
+    "stage": "first-leaves",
+    "filename": "cherry-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational. Asset type: transparent botanical watercolor game sprite, ONE complete very young CHERRY seedling. Only its first TWO small juvenile leaves, just unfolded, on short soft petioles directly attached to a tender curved GREEN shoot, an intact pointed living terminal bud. A small rounded tan split cherry stone remains attached at the root collar. Narrow soft green shoot above and a slender cream radicle below, only two or three fine lateral rootlets. Natural juvenile anatomy with continuous stem-to-root join. Full isolated plant from bud to root tip, front view, centered, generous transparent margins. Warm detailed watercolor/gouache botanical painting with organic edges and delicate texture within the subject. The shoot should be only about three seed diameters tall, NOT a tree trunk. No adult bark, no cut top, no mature branch or canopy, no fruit, flowers, soil, pot, horizon, shadow, labels, panels, border, watermark or paper background. Genuine transparent background.",
+    "mode": "built-in image_gen",
+    "transparent_background": true
+  },
+  {
+    "species": "Cherry",
+    "stage": "unfurling",
+    "filename": "cherry-unfurling-v1.png",
+    "prompt": "Create the NEXT early growth state of this exact Cherry seedling, same watercolor style, seed, root collar and lower two leaves. A second pair of small leaves has unfurled above the original pair, so exactly FOUR simple leaves now attach directly to the soft green stem. Retain the natural pointed growing tip. Extend the slender green leader modestly to fit the new pair; retain the split cherry seed attached at base and slender continuous radicle with fine rootlets. One complete juvenile plant, no adult wood, mature branches, flowers, fruit, soil, text, shadow, or scenery. Full subject in a portrait frame with generous margins. Genuine transparent background, no halo.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Cherry",
+    "stage": "juvenile",
+    "filename": "cherry-juvenile-v1.png",
+    "prompt": "Create a slightly older juvenile CHERRY seedling in exactly this watercolor style: SIX delicate ovate serrated leaves on short petioles along a slender soft green single leader, three tiers, intact natural pointed apical bud. No woody lateral branch, no bark or blunt top. Keep same organically curved green stem, attached split tan cherry stone remnant at collar (slightly smaller weathered), slender cream radicle and several fine connected rootlets. This is still a tiny infant plant, not a mini adult tree. One full isolated plant, front view, generous transparent margins, portrait framing, no text/soil/pot/shadow/scenery. Genuine transparent background.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Apricot",
+    "stage": "first-leaves",
+    "filename": "apricot-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete apricot seedling per image.\nPrimary request: only the first small juvenile leaf pair, just unfolded; prominent residual split seed remains at the collar; a tender curved green shoot with intact folded terminal bud. Species cues: rounded flattened warm ochre apricot stone; broad ovate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nThe supplied Cherry image is STYLE REFERENCE ONLY. Create the APRICOT subject described above. Preserve the delicate green shoot, small size, framing and watercolor treatment, with broader ovate apricot juvenile leaves and an apricot stone. Only TWO leaves.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Apricot",
+    "stage": "unfurling",
+    "filename": "apricot-unfurling-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete apricot seedling per image.\nPrimary request: first pair retained and one additional pair opening above it; seed remains visible by the collar; soft green leader ending in a natural pointed living bud. Species cues: rounded flattened warm ochre apricot stone; broad ovate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nUse this exact young APRICOT plant as the reference. Retain lower two leaves and add a second pair of small leaves above, FOUR leaves total, slight upward growth. Keep the stone and roots, style and silhouette coherent. No mature wood.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "apricot-first-leaves-v1.png"
+  },
+  {
+    "species": "Apricot",
+    "stage": "juvenile",
+    "filename": "apricot-juvenile-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete apricot seedling per image.\nPrimary request: a few simple juvenile true leaves attached by short petioles along a single slender green leader; smaller weathered seed remnant still at the collar; no woody scaffold branches. Species cues: rounded flattened warm ochre apricot stone; broad ovate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nUse the reference APRICOT as the same plant slightly older. FIVE or SIX broad juvenile apricot leaves along a soft green leader, retained lower leaves plus new upper leaves. Smaller weathered attached stone. Preserve medium, proportions, delicate roots and living tip.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "apricot-first-leaves-v1.png"
+  },
+  {
+    "species": "Citrus",
+    "stage": "first-leaves",
+    "filename": "citrus-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete citrus seedling per image.\nPrimary request: only the first small juvenile leaf pair, just unfolded; prominent residual split seed remains at the collar; a tender curved green shoot with intact folded terminal bud. Species cues: small ivory citrus seed at the collar; simple oval glossy juvenile leaves, no wings exaggerated.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nThe reference is Cherry for STYLE only. Generate CITRUS: replace tan cherry stone with a small cream ivory citrus seed, replace serrated leaves with TWO simple smooth-edged oval glossy citrus juvenile leaves. Tiny pointed folded living tip, soft green shoot. No cherry serrations or woody scales.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Citrus",
+    "stage": "unfurling",
+    "filename": "citrus-unfurling-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete citrus seedling per image.\nPrimary request: first pair retained and one additional pair opening above it; seed remains visible by the collar; soft green leader ending in a natural pointed living bud. Species cues: small ivory citrus seed at the collar; simple oval glossy juvenile leaves, no wings exaggerated.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nGrow this exact CITRUS seedling to FOUR smooth-edged oval juvenile leaves, two new small leaves above the original pair. Modestly extend the soft leader, retain natural tip and ivory split seed, same roots and watercolor medium. Full isolated subject.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "citrus-first-leaves-v1.png"
+  },
+  {
+    "species": "Citrus",
+    "stage": "juvenile",
+    "filename": "citrus-juvenile-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete citrus seedling per image.\nPrimary request: a few simple juvenile true leaves attached by short petioles along a single slender green leader; smaller weathered seed remnant still at the collar; no woody scaffold branches. Species cues: small ivory citrus seed at the collar; simple oval glossy juvenile leaves, no wings exaggerated.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame CITRUS plant a little older with SIX glossy smooth oval juvenile leaves, three tiers along the soft green leader. Tiny apical bud, smaller weathered ivory seed remnant, continuous fine roots. Retain reference medium, no wood branches.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "citrus-first-leaves-v1.png"
+  },
+  {
+    "species": "Peach",
+    "stage": "first-leaves",
+    "filename": "peach-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete peach seedling per image.\nPrimary request: only the first small juvenile leaf pair, just unfolded; prominent residual split seed remains at the collar; a tender curved green shoot with intact folded terminal bud. Species cues: ridged peach pit at the base, proportionate to the tiny shoot; narrow lanceolate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nCherry reference is STYLE ONLY. Generate PEACH with TWO slender narrow lanceolate finely serrated first leaves and an attached ridged peach pit, tiny soft green stem and living terminal bud. Peach-specific leaves are narrow, NOT broad cherry leaves. Keep infant scale and full connected root.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Peach",
+    "stage": "unfurling",
+    "filename": "peach-unfurling-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete peach seedling per image.\nPrimary request: first pair retained and one additional pair opening above it; seed remains visible by the collar; soft green leader ending in a natural pointed living bud. Species cues: ridged peach pit at the base, proportionate to the tiny shoot; narrow lanceolate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame exact PEACH reference seedling, now FOUR narrow lanceolate first leaves on short petioles, one new pair above original leaves. Keep green tender stem and pointed bud, ridged peach seed, roots, full portrait framing and medium.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "peach-first-leaves-v1.png"
+  },
+  {
+    "species": "Peach",
+    "stage": "juvenile",
+    "filename": "peach-juvenile-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete peach seedling per image.\nPrimary request: a few simple juvenile true leaves attached by short petioles along a single slender green leader; smaller weathered seed remnant still at the collar; no woody scaffold branches. Species cues: ridged peach pit at the base, proportionate to the tiny shoot; narrow lanceolate juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame PEACH seedling a little older with FIVE or SIX narrow lanceolate juvenile leaves in tiers on a slender soft green leader, attached smaller weathered peach pit, intact pointed growing tip, small continuous roots. Keep reference style. No adult branch.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "peach-first-leaves-v1.png"
+  },
+  {
+    "species": "Pear",
+    "stage": "first-leaves",
+    "filename": "pear-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete pear seedling per image.\nPrimary request: only the first small juvenile leaf pair, just unfolded; prominent residual split seed remains at the collar; a tender curved green shoot with intact folded terminal bud. Species cues: small dark brown teardrop pear seed coat; rounded oval first leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nCherry reference is STYLE ONLY. Generate PEAR: TWO rounded oval juvenile first leaves and a SMALL dark brown teardrop PEAR SEED COAT attached at collar, much smaller than a cherry stone. Fine green stem and natural living tip, no bark. Same detailed delicate watercolor medium.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Pear",
+    "stage": "unfurling",
+    "filename": "pear-unfurling-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete pear seedling per image.\nPrimary request: first pair retained and one additional pair opening above it; seed remains visible by the collar; soft green leader ending in a natural pointed living bud. Species cues: small dark brown teardrop pear seed coat; rounded oval first leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame exact PEAR seedling, FOUR rounded oval juvenile leaves with two small new leaves above the original pair. Keep soft green leader, living bud, small dark brown pear seed coat and slender root, same style and proportions.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "pear-first-leaves-v1.png"
+  },
+  {
+    "species": "Pear",
+    "stage": "juvenile",
+    "filename": "pear-juvenile-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete pear seedling per image.\nPrimary request: a few simple juvenile true leaves attached by short petioles along a single slender green leader; smaller weathered seed remnant still at the collar; no woody scaffold branches. Species cues: small dark brown teardrop pear seed coat; rounded oval first leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame PEAR seedling slightly older, FIVE or SIX rounded oval juvenile leaves along a single soft leader, no branches. Smaller weathered brown pear seed attached at collar. Keep style, natural tip, continuous delicate roots and transparent framing.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "pear-first-leaves-v1.png"
+  },
+  {
+    "species": "Plum",
+    "stage": "first-leaves",
+    "filename": "plum-first-leaves-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete plum seedling per image.\nPrimary request: only the first small juvenile leaf pair, just unfolded; prominent residual split seed remains at the collar; a tender curved green shoot with intact folded terminal bud. Species cues: small oval ridged plum stone; oval gently serrated juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nCherry reference is STYLE ONLY. Create PLUM with TWO softly oval gently serrated first leaves, small oval ridged plum stone attached at collar, soft green gently curved shoot, natural pointed live bud and delicate roots. Preserve same full subject scale and detailed watercolor medium.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "cherry-first-leaves-v1.png"
+  },
+  {
+    "species": "Plum",
+    "stage": "unfurling",
+    "filename": "plum-unfurling-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete plum seedling per image.\nPrimary request: first pair retained and one additional pair opening above it; seed remains visible by the collar; soft green leader ending in a natural pointed living bud. Species cues: small oval ridged plum stone; oval gently serrated juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame exact PLUM seedling now with FOUR oval gently serrated juvenile leaves: original lower pair and two new leaves above. Small soft green growing leader, living apical bud, retain plum stone and roots. No woody branch. Same watercolor medium.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "plum-first-leaves-v1.png"
+  },
+  {
+    "species": "Plum",
+    "stage": "juvenile",
+    "filename": "plum-juvenile-v1.png",
+    "prompt": "Use case: scientific-educational\nAsset type: transparent botanical watercolor game sprite, ONE complete plum seedling per image.\nPrimary request: a few simple juvenile true leaves attached by short petioles along a single slender green leader; smaller weathered seed remnant still at the collar; no woody scaffold branches. Species cues: small oval ridged plum stone; oval gently serrated juvenile leaves.\nComposition: full isolated plant from living terminal bud to finest root tip, front view, generous transparent margin, root collar centered horizontally; narrow soft shoot above and a slender cream radicle below, only a few fine lateral rootlets. Natural juvenile anatomy, continuous stem-to-root join. Preserve sensible seed-to-shoot proportions.\nStyle: detailed warm watercolor and gouache botanical painting, subtle textured color, delicate organically tapering edges; consistent with Trees painted seeds. No adult bark, no sawn or abruptly clipped top, no miniature mature branch or adult canopy, no fruit or flowers. No soil, pot, horizon, shadow, paper texture outside plant, labels, panels, border or watermark. Genuine transparent background. All plant parts connected except a seed-coat half touching the collar.\nSame exact PLUM seedling slightly older with FIVE or SIX oval gently serrated juvenile leaves in tiers along a slender green leader. Smaller attached weathered plum stone, intact pointed tip, delicate root system, no adult branches. Same watercolor style.",
+    "mode": "built-in image_gen",
+    "transparent_background": true,
+    "reference": "plum-first-leaves-v1.png"
+  }
+]
