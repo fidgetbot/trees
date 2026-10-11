@@ -352,13 +352,6 @@ function treeHitTarget(tree,state,playerStageName,camera,groundY){
   return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
 }
 
-function drawSelectedTarget(ctx,target){
-  if(!target)return;
-  const {x,y,width,height}=target.bounds;
-  ctx.save();ctx.strokeStyle='rgba(244,228,166,.65)';ctx.lineWidth=2;ctx.shadowColor='rgba(255,236,157,.65)';ctx.shadowBlur=18;
-  ctx.beginPath();ctx.ellipse(x+width/2,y+height-22,Math.max(24,width*.6),9,0,0,TAU);ctx.stroke();ctx.restore();
-}
-
 export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,viewOffset={x:0,y:0}}) {
   const w=canvas.width,h=canvas.height;
   let subjectState=state,subjectStage=playerStageName;
@@ -396,7 +389,6 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
   drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets);
   drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
-  drawSelectedTarget(ctx,hitTargets.find(target=>target.id===selectedTargetId));
   if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
   trees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
