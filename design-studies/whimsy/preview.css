@@ -1,0 +1,20 @@
+/* Review-only typography and color overrides. Layout comes from the game stylesheet. */
+@font-face{font-family:Fraunces;src:url(fonts/fraunces.ttf);font-weight:600;font-display:swap}
+@font-face{font-family:Kalam;src:url(fonts/kalam.ttf);font-weight:400;font-display:swap}
+@font-face{font-family:Caveat;src:url(fonts/caveat.ttf);font-weight:600;font-display:swap}
+@font-face{font-family:Nunito;src:url(fonts/nunito.ttf);font-weight:500;font-display:swap}
+body[data-theme=serif]{--study-title:Fraunces,Georgia,serif;--study-weight:600;--study-ink:#594451;--study-accent:#855269;--study-wash:#eee4e7}
+body[data-theme=hand]{--study-title:Kalam,cursive;--study-weight:400;--study-ink:#434956;--study-accent:#4e697b;--study-wash:#e4e9ed}
+body[data-theme=rounded]{--study-title:Nunito,system-ui,sans-serif;--study-weight:500;--study-ink:#574739;--study-accent:#945e48;--study-wash:#efe4dc}
+body:not([data-theme=current]){font-family:Nunito,system-ui,sans-serif}
+body:not([data-theme=current]) :is(button,.reveal-description,.reveal-trait>span:last-child){font-family:Nunito,system-ui,sans-serif}
+body:not([data-theme=current]) :is(.intro-wordmark,.species-reveal h1,.reveal-trait strong,#modal-title,.modal .res-name,.modal .res-value,.modal .actions-earned strong){font-family:var(--study-title);font-weight:var(--study-weight);letter-spacing:0;color:var(--study-ink)}
+body:not([data-theme=current]) :is(.botanical-kicker,.intro-masthead .botanical-kicker){letter-spacing:.015em;text-transform:none;font-weight:500;color:#716761}
+body:not([data-theme=current]) :is(#start-game,#modal-button){background:var(--study-accent);border-color:var(--study-accent);font-weight:500;letter-spacing:0;box-shadow:none}
+body:not([data-theme=current]) :is(#start-game,#modal-button):hover{filter:brightness(.93)}
+body:not([data-theme=current]) :is(#modal-body .growth-prose,#modal-body .gather-prose,.intro-footnote){font-family:Nunito,system-ui,sans-serif;font-style:normal;color:#68615e}
+body:not([data-theme=current]) :is(.actions-earned,.growth-unlocks){background:var(--study-wash);border-color:#b0a49955;color:var(--study-ink)}
+body:not([data-theme=current]) .action-unlock strong{color:var(--study-ink)}
+body[data-theme=rounded] #species-panel .intro-footnote{font:600 19px/1.5 Caveat,cursive}
+
+body:not([data-theme=current]) .modal[data-kind=gathering] .actions-earned{background:var(--study-wash);border-color:#b0a49955;color:var(--study-ink)}

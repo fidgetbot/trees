@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="../../"><title>Trees style preview</title><link rel="icon" href="data:,"><link rel="stylesheet" href="styles.css?rev=botanical-gathering-v1"><link rel="stylesheet" href="design-studies/whimsy/preview.css?rev=type-2"></head><body>
+<div id="app"><main class="layout"><section class="left-panel panel" id="species-panel"><header class="intro-masthead"><span class="intro-wordmark">Trees</span><span class="botanical-kicker">A life in the grove</span></header><div id="species-list" class="species-list"></div><button id="start-game">Begin</button><p class="intro-footnote">Put down roots. Find your place.</p></section></main></div>
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><p id="modal-kicker" class="botanical-kicker"></p><h2 id="modal-title"></h2><div id="modal-body"></div><button id="modal-button">Continue</button></div></div>
+<script type="module">
+import {SPECIES} from './core/species.js';
+import {LIFE_STAGES,SEASONS} from './core/constants.js';
+import {renderSpeciesSummary} from './ui/species.js';
+import {renderResourcePhaseBody} from './ui/resources.js';
+import {renderGrowthChapter,openModalSurface} from './ui/modal.js';
+const params=new URLSearchParams(location.search);document.body.dataset.theme=params.get('theme')||'serif';
+const $=s=>document.querySelector(s);$('#species-list').innerHTML=renderSpeciesSummary('Peach',SPECIES.Peach,{reveal:true});
+let closeModal;
+function show(screen){
+ closeModal?.();closeModal=null;
+ if(screen==='intro'){$('#start-game').focus({preventScroll:true});return;}
+ const growth=screen==='growth';
+ $('#modal-title').textContent=growth?'Seedling':'You Gather';
+ $('#modal-body').innerHTML=growth?renderGrowthChapter(LIFE_STAGES[2],'Peach',LIFE_STAGES,'<div class="action-unlock"><strong>Grow Taller</strong>Reach higher into the light.</div>',{leafClusters:3}):renderResourcePhaseBody({state:{selectedSpecies:'Peach',sunlight:8,water:7,nutrients:5,actions:3,leafClusters:3,trunk:1,rootZones:2},gains:{season:SEASONS[0],exposure:1,sunlightGain:3,waterGain:2,nutrientGain:1,capacities:{sunlight:33,water:28,nutrients:18}}});
+ closeModal=openModalSurface({modal:$('#modal')},{kind:screen,eyebrow:growth?'A new chapter · 3 of 7':'Year 1 · Spring'});
+ $('#modal-button').textContent=growth?'Keep growing':'Continue';$('#modal-button').onclick=()=>show(growth?'intro':'growth');$('#modal-button').focus({preventScroll:true});
+}
+$('#start-game').onclick=()=>show('gathering');show(params.get('screen')||'intro');
+</script></body></html>
