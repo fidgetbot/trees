@@ -2,6 +2,8 @@ import { clearSceneArt } from './scene-art.js?rev=feeding-pests-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
 
+export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
+
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
@@ -178,16 +180,20 @@ export function buildConnectionDecision(state, deps = {}) {
           : relationName === 'Ally'
             ? 'Renewing contact strengthens an existing bond.'
             : 'Reaching out may build trust, but rejection can cost health or resources.';
+        const affinity = state.selectedSpecies === neighbor.species && relationName !== 'Ally'
+          ? ` As another ${neighbor.species}, it is more likely to accept your roots.`
+          : '';
         return {
           id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — ${stage.name} · ${relationName}`,
-          description: `${advantages} ${risk}`,
+          description: `${advantages} ${risk}${affinity}`,
           targetIndex,
           meta: {
             species: neighbor.species,
             relationName,
             canStrengthenAlliance: relationName === 'Ally',
             isRisky: relationName === 'Rival' || relationName === 'Hostile',
+            sameSpeciesAffinity: state.selectedSpecies === neighbor.species,
           },
         };
       }),
@@ -272,6 +278,9 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
 
   const rootBonus = Math.min(0.35, Math.max(0, state.rootZones - 2) * 0.08);
   const oldState = getRelationshipState(neighbor.relation).name;
+  const sameSpeciesAffinity = state.selectedSpecies === neighbor.species;
+  const affinityBonus = sameSpeciesAffinity && oldState !== 'Ally' ? SAME_SPECIES_CONNECTION_BONUS : 0;
+  const breakthroughBonus = affinityBonus / 3;
   const roll = random();
   let message = '';
   let feedback = { text: '', type: 'info' };
@@ -287,8 +296,8 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     message = `Your roots find the familiar touch of the ${neighbor.species}. Resources and signals pass warmly between you.`;
     feedback = { text: `${neighbor.species} strengthens your alliance`, type: 'success' };
   } else if (oldState === 'Friendly') {
-    const breakthroughChance = 0.12 + (rootBonus * 0.35);
-    const successChance = 0.64 + rootBonus;
+    const breakthroughChance = 0.12 + (rootBonus * 0.35) + breakthroughBonus;
+    const successChance = Math.min(0.99, 0.64 + rootBonus + affinityBonus);
     if (roll < breakthroughChance) {
       applyDelta(42);
       message = `Something clicks beneath the soil. The ${neighbor.species} opens itself to you all at once, and the two of you braid roots in sudden trust.`;
@@ -307,8 +316,8 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
       feedback = { text: `${neighbor.species} turned sharply away`, type: 'error' };
     }
   } else if (oldState === 'Neutral') {
-    const breakthroughChance = 0.10 + (rootBonus * 0.3);
-    const successChance = 0.52 + rootBonus;
+    const breakthroughChance = 0.10 + (rootBonus * 0.3) + breakthroughBonus;
+    const successChance = Math.min(0.99, 0.52 + rootBonus + affinityBonus);
     if (roll < breakthroughChance) {
       applyDelta(55);
       message = `Against all expectation, the ${neighbor.species} answers with immediate warmth. Your tentative greeting becomes a full fungal bond almost at once.`;
@@ -329,11 +338,11 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
       feedback = { text: `${neighbor.species} rebuffed you hard`, type: 'error' };
     }
   } else if (oldState === 'Rival') {
-    if (roll < 0.12 + rootBonus) {
+    if (roll < 0.12 + rootBonus + breakthroughBonus) {
       applyDelta(32);
       message = `After a tense silence, the ${neighbor.species} relents more than you expected. The rivalry cracks and something calmer pushes through.`;
       feedback = { text: `${neighbor.species} softened unexpectedly`, type: 'success' };
-    } else if (roll < 0.32 + rootBonus) {
+    } else if (roll < Math.min(0.99, 0.32 + rootBonus + affinityBonus)) {
       applyDelta(18);
       message = `After a tense silence, the ${neighbor.species} relents. The rivalry softens, if only a little.`;
       feedback = { text: `${neighbor.species} softened`, type: 'success' };
@@ -346,7 +355,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
       feedback = { text: `${neighbor.species} retaliated`, type: 'error' };
     }
   } else if (oldState === 'Hostile') {
-    if (roll < 0.06 + rootBonus) {
+    if (roll < Math.min(0.99, 0.06 + rootBonus + affinityBonus)) {
       applyDelta(30);
       message = `Against all expectation, the ${neighbor.species} does not strike. Its hatred cools, though distrust still lingers.`;
       feedback = { text: `${neighbor.species} cooled slightly`, type: 'success' };
@@ -373,6 +382,8 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     newState,
     message,
     feedback,
+    sameSpeciesAffinity,
+    affinityBonus,
   };
 }
 

@@ -51,7 +51,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=feeding-pests-v1';
+} from './core/diplomacy.js?rev=same-species-affinity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -1034,7 +1034,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
     showFeedback(outcome.feedback.text, outcome.feedback.type);
     refreshMainView({ actions: true });
 
-    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p><p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
+    const affinityLine = outcome.affinityBonus
+      ? `<p><em>Shared species made this contact more likely to succeed.</em></p>`
+      : '';
+    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p>${affinityLine}<p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
       refreshRenderedView({ actions: true });
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });

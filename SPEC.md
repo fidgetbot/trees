@@ -203,7 +203,7 @@ Current relationship states:
 - Hostile
 
 Current diplomacy/rivalry systems include:
-- root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks
+- root connection with variable outcomes, including rare immediate breakthroughs or sharp setbacks; contacting a tree of the player's own species adds 15 percentage points to the chance of a favorable response and a smaller increase to immediate breakthroughs, independently of root development and Cherry's positive-relationship bonus
 - aid to injured allies after the first alliance
 - requesting health, water, or nutrients from allies after the first alliance
 - shading one immediately adjacent left/right tree starting alongside Grow Taller in the Seedling stage, including proactive aggression against neutral, friendly, or allied neighbors; canopy advantage/crowding persists in both rules and Canvas geometry
