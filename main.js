@@ -74,8 +74,8 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=framed-trees-v1';
-import { centeredSceneOffset, interpolateSceneCamera, isValidSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=stage-banded-camera-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=scale-comparison-camera-v1';
+import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isValidSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=scale-comparison-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
@@ -305,7 +305,7 @@ const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
 const contextualActionOrderByTarget = new Map();
-let sceneCamera = { x: 0, y: 0, zoom: 1 }, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
+let sceneCamera = { x: 0, y: 0, zoom: 1 }, comparisonCameraView=null, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
 let cameraLayoutFrame=null;
 let lastRenderStage = null;
 let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
@@ -346,18 +346,36 @@ function contextualActionOrderKey(target) {
 }
 
 function selectSceneTarget(target) {
+  const previousTarget=activeSceneTarget();
+  const fromView=currentAbsoluteCameraView();
+  const nextTarget=target||playerSceneTarget();
+  if(previousTarget?.id===nextTarget?.id){
+    if(comparisonCameraView)return;
+    selectedSceneTarget=nextTarget;renderActions();refitSceneCamera();return;
+  }
   cancelSceneCameraAnimation();
-  selectedSceneTarget = target || playerSceneTarget();
+  selectedSceneTarget = nextTarget;
   renderActions();
-  const to = sceneCameraForTarget(selectedSceneTarget);
+  const plan=sceneCameraPlanForTarget(selectedSceneTarget);
   cameraViewportSignature=sceneViewportSignature();
-  animateSceneCamera(to,cameraStateKey(selectedSceneTarget));
+  animateSceneTargetComparison(fromView,plan,selectedSceneTarget,cameraStateKey(selectedSceneTarget));
 }
 
 function cancelSceneCameraAnimation(){
   cameraRevision+=1;
   if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
   cameraAnimationFrame=null;
+  comparisonCameraView=null;
+}
+
+function currentAbsoluteCameraView(){
+  if(comparisonCameraView)return{...comparisonCameraView};
+  const worldZoom=Number(els.canvas.dataset.worldZoom),groundY=Number(els.canvas.dataset.groundY);
+  return{
+    x:sceneCamera.x,
+    groundY:Number.isFinite(groundY)?groundY:sceneViewport().renderHeight*.7,
+    worldZoom:Number.isFinite(worldZoom)&&worldZoom>0?worldZoom:1,
+  };
 }
 
 function sceneTopInset(height) {
@@ -415,29 +433,70 @@ function measureSceneTarget(targetId, zoom) {
     getNeighborTree, getRelationshipState, topInset: viewport.topInset,
     selectedTargetId: targetId,measureTargetId:targetId,
   });
-  return rendered?.measuredBounds||rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds||null;
+  return{
+    bounds:rendered?.measuredBounds||rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds||null,
+    groundY:rendered?.groundY,
+    worldZoom:rendered?.worldZoom,
+  };
 }
 
-function sceneCameraForTarget(target) {
+function sceneCameraPlanForTarget(target) {
   const viewport = sceneViewport();
-  if (!target) return { x: 0, y: 0, zoom: 1 };
+  if (!target) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
   const stageName=target.stageName||computeCurrentLifeStage().name;
-  const baseBounds = measureSceneTarget(target.id, 1);
-  if (!baseBounds) return { x: 0, y: 0, zoom: 1 };
-  let zoom=1,fittedBounds=baseBounds;
+  const baseMetrics = measureSceneTarget(target.id, 1);
+  if (!baseMetrics.bounds) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
+  let zoom=1,fittedMetrics=baseMetrics;
   // Raster bounds and stage artwork are not perfectly linear at tiny sizes,
   // so converge the measured limiting extent instead of assuming one pass.
   for(let pass=0;pass<3;pass+=1){
-    zoom=targetSceneZoom(fittedBounds,viewport,{currentZoom:zoom,stageName});
-    fittedBounds=measureSceneTarget(target.id,zoom)||fittedBounds;
+    zoom=targetSceneZoom(fittedMetrics.bounds,viewport,{currentZoom:zoom,stageName});
+    const measured=measureSceneTarget(target.id,zoom);
+    if(measured.bounds)fittedMetrics=measured;
   }
-  const camera={...centeredSceneOffset(fittedBounds,viewport),zoom};
-  return isValidSceneCamera(camera)?camera:{x:0,y:0,zoom:1};
+  const camera={...centeredSceneOffset(fittedMetrics.bounds,viewport),zoom};
+  const validCamera=isValidSceneCamera(camera)?camera:{x:0,y:0,zoom:1};
+  return{
+    camera:validCamera,
+    groundY:(Number.isFinite(fittedMetrics.groundY)?fittedMetrics.groundY:viewport.renderHeight*.7)+validCamera.y,
+    worldZoom:Number.isFinite(fittedMetrics.worldZoom)&&fittedMetrics.worldZoom>0?fittedMetrics.worldZoom:1,
+  };
+}
+
+function sceneCameraForTarget(target){return sceneCameraPlanForTarget(target).camera}
+
+function animateSceneTargetComparison(from,plan,target,expectedStateKey){
+  const to=plan.camera;
+  if(!isValidSceneCamera(to)||!Number.isFinite(from?.x)||!Number.isFinite(from?.groundY)||!Number.isFinite(from?.worldZoom)||from.worldZoom<=0){
+    comparisonCameraView=null;sceneCamera=isValidSceneCamera(to)?to:{x:0,y:0,zoom:1};render();return;
+  }
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+    comparisonCameraView=null;sceneCamera=to;render();return;
+  }
+  const revision=++cameraRevision,startedAt=performance.now();
+  const panX=-(Number(target?.mapPosition)||0)*from.worldZoom;
+  const destination={x:to.x,groundY:plan.groundY,worldZoom:plan.worldZoom};
+  const tick=now=>{
+    if(revision!==cameraRevision)return;
+    if(expectedStateKey!==cameraStateKey()){cameraAnimationFrame=null;comparisonCameraView=null;return}
+    const frame=comparisonCameraFrame({from,panX,to:destination,elapsed:now-startedAt});
+    comparisonCameraView=frame;
+    render();
+    if(!frame.done)cameraAnimationFrame=requestAnimationFrame(tick);
+    else{
+      cameraAnimationFrame=null;
+      comparisonCameraView=null;
+      sceneCamera=to;
+      render();
+    }
+  };
+  cameraAnimationFrame=requestAnimationFrame(tick);
 }
 
 function animateSceneCamera(to,expectedStateKey=cameraStateKey()) {
   if(!isValidSceneCamera(to))to={x:0,y:0,zoom:1};
   const revision=++cameraRevision;
+  comparisonCameraView=null;
   const from = { ...sceneCamera };
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
     sceneCamera = to;
@@ -1871,7 +1930,7 @@ function render() {
   const viewport=sceneViewport();
   if (state.started&&lastRenderStage !== stage) {
     cancelSceneCameraAnimation();
-    selectedSceneTarget=playerSceneTarget();
+    selectedSceneTarget={id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,mapPosition:0};
     sceneCamera=sceneCameraForTarget(selectedSceneTarget);
     cameraViewportSignature=sceneViewportSignature(viewport);
     lastRenderStage=stage;
@@ -1881,8 +1940,11 @@ function render() {
     canvas: { width, height: viewport.renderHeight, dataset: els.canvas.dataset },
     immersive: true,
     frameSelectedSubject: true,
-    viewOffset: { x: sceneCamera.x, y: sceneCamera.y },
+    isolateFocusedSubject:!comparisonCameraView||!['pan','pause'].includes(comparisonCameraView.phase),
+    viewOffset: { x: comparisonCameraView?.x??sceneCamera.x, y: comparisonCameraView?0:sceneCamera.y },
     zoomMultiplier: sceneCamera.zoom,
+    worldZoomOverride:comparisonCameraView?.worldZoom??null,
+    groundYOverride:comparisonCameraView?.groundY??null,
     state,
     currentSeason: currentSeason(),
     playerStageName: computeCurrentLifeStage().name,

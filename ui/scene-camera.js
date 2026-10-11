@@ -8,6 +8,12 @@ export const STAGE_SCENE_OCCUPANCY=Object.freeze({
   Ancient:.92,
 });
 
+export const COMPARISON_CAMERA_TIMING=Object.freeze({
+  pan:380,
+  pause:120,
+  zoom:460,
+});
+
 export function stageSceneOccupancy(stageName){
   return STAGE_SCENE_OCCUPANCY[stageName]??STAGE_SCENE_OCCUPANCY.Sapling;
 }
@@ -48,5 +54,25 @@ export function interpolateSceneCamera(from, to, progress) {
     x: from.x + (to.x - from.x) * t,
     y: from.y + (to.y - from.y) * t,
     zoom: from.zoom + (to.zoom - from.zoom) * t,
+  };
+}
+
+export function comparisonCameraFrame({from,panX,to,elapsed,timing=COMPARISON_CAMERA_TIMING}){
+  const panDuration=Math.max(1,timing.pan),pauseDuration=Math.max(0,timing.pause),zoomDuration=Math.max(1,timing.zoom);
+  const panEnd=panDuration,pauseEnd=panEnd+pauseDuration;
+  if(elapsed<panEnd){
+    const t=easeSceneCamera(elapsed/panDuration);
+    return{phase:'pan',done:false,x:from.x+(panX-from.x)*t,groundY:from.groundY,worldZoom:from.worldZoom};
+  }
+  if(elapsed<pauseEnd)return{phase:'pause',done:false,x:panX,groundY:from.groundY,worldZoom:from.worldZoom};
+  const progress=Math.min(1,(elapsed-pauseEnd)/zoomDuration);
+  if(progress>=1)return{phase:'done',done:true,...to};
+  const t=easeSceneCamera(progress);
+  return{
+    phase:'zoom',
+    done:false,
+    x:panX+(to.x-panX)*t,
+    groundY:from.groundY+(to.groundY-from.groundY)*t,
+    worldZoom:from.worldZoom+(to.worldZoom-from.worldZoom)*t,
   };
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { centeredSceneOffset, interpolateSceneCamera, isValidSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
+import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isValidSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
 
@@ -34,4 +34,23 @@ test('camera interpolation reaches both exact endpoints', () => {
   const to = { x: -240, y: 90, zoom: 1.8 };
   assert.deepEqual(interpolateSceneCamera(from, to, 0), from);
   assert.deepEqual(interpolateSceneCamera(from, to, 1), to);
+});
+
+test('tree comparison pans at shared scale before changing zoom',()=>{
+  const from={x:40,groundY:520,worldZoom:18};
+  const to={x:-120,groundY:470,worldZoom:1.8};
+  const panX=-300;
+  const midPan=comparisonCameraFrame({from,panX,to,elapsed:COMPARISON_CAMERA_TIMING.pan/2});
+  assert.equal(midPan.phase,'pan');
+  assert.equal(midPan.worldZoom,from.worldZoom);
+  assert.equal(midPan.groundY,from.groundY);
+  assert.ok(midPan.x<from.x&&midPan.x>panX);
+  const pause=comparisonCameraFrame({from,panX,to,elapsed:COMPARISON_CAMERA_TIMING.pan+COMPARISON_CAMERA_TIMING.pause/2});
+  assert.deepEqual(pause,{phase:'pause',done:false,x:panX,groundY:from.groundY,worldZoom:from.worldZoom});
+  const midZoom=comparisonCameraFrame({from,panX,to,elapsed:COMPARISON_CAMERA_TIMING.pan+COMPARISON_CAMERA_TIMING.pause+COMPARISON_CAMERA_TIMING.zoom/2});
+  assert.equal(midZoom.phase,'zoom');
+  assert.ok(midZoom.worldZoom<from.worldZoom&&midZoom.worldZoom>to.worldZoom);
+  assert.ok(midZoom.groundY<from.groundY&&midZoom.groundY>to.groundY);
+  const done=comparisonCameraFrame({from,panX,to,elapsed:Infinity});
+  assert.deepEqual(done,{phase:'done',done:true,...to});
 });

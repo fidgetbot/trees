@@ -399,7 +399,7 @@ function treeHitTarget(tree,state,playerStageName,camera,groundY){
   return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,mapPosition:tree.worldPosition||0,bounds};
 }
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,frameSelectedSubject=true,viewOffset={x:0,y:0},growthReveal=null,measureTargetId=null}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,worldZoomOverride=null,groundYOverride=null,centerHorizon=false,selectedTargetId=null,immersive=false,frameSelectedSubject=true,isolateFocusedSubject=true,viewOffset={x:0,y:0},growthReveal=null,measureTargetId=null}) {
   const w=canvas.width,h=canvas.height;
   const physicalWidth=canvas.measurementWidth||w,physicalHeight=canvas.measurementHeight||h;
   const measurementOffset=measureTargetId
@@ -428,7 +428,8 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     camera.zoom*=Math.min(5,desired/playerHeight(framingState,subjectStage,camera));
   }
   camera.zoom*=zoomMultiplier;
-  const centered=centerHorizon||playerStageName==='Seed',groundY=(immersive?Math.max(topInset+playerHeight(framingState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))))+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
+  if(Number.isFinite(worldZoomOverride)&&worldZoomOverride>0)camera.zoom=worldZoomOverride;
+  const centered=centerHorizon||playerStageName==='Seed',naturalGroundY=immersive?Math.max(topInset+playerHeight(framingState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))),groundY=(Number.isFinite(groundYOverride)?groundYOverride:naturalGroundY)+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
     const neighbor=index===2?null:getNeighborTree(index),arrangement=getCanopyArrangement(state,index,index===2,neighbor);
     return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean,worldPosition:WORLD_POSITIONS[index]+arrangement.worldOffset};
   });
@@ -438,7 +439,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   });
   const trees=[...residentTrees,...childTrees];
   const focusId=measureTargetId||selectedTargetId;
-  const isolate=measureTargetId||(immersive&&focusId&&focusId!=='player');
+  const isolate=measureTargetId||(isolateFocusedSubject&&immersive&&focusId&&focusId!=='player');
   const isolatedTrees=isolate?trees.filter(tree=>{
     if(focusId==='player')return tree.isPlayer;
     if(focusId.startsWith('neighbor-'))return `neighbor-${tree.neighbor?.targetIndex}`===focusId;
@@ -451,6 +452,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   // next camera estimate.
   const focusedTrees=measureTargetId?isolatedTrees.map(tree=>({...tree,x:w/2})):isolatedTrees;
   canvas.dataset.groundY=String(groundY);
+  canvas.dataset.worldZoom=String(camera.zoom);
   ctx.clearRect(0,0,w,h);
   if(!measureTargetId){
     ctx.fillStyle=background(ctx,currentSeason);ctx.fillRect(0,0,w,groundY);
@@ -485,7 +487,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     }
   }
   ctx.restore();
-  return{hitTargets,groundY,measuredBounds};
+  return{hitTargets,groundY,worldZoom:camera.zoom,measuredBounds};
 }
 
 function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,viewportWidth){
