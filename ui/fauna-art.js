@@ -1,5 +1,6 @@
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
+const EVENT_ASSET_REVISION='night-field-journal-v1';
 export const ANIMAL_ASSET_URLS=Object.freeze({
   woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
@@ -18,6 +19,17 @@ export const INSECT_ASSET_URLS=Object.freeze({
   aphids:new URL(`../assets/insects/pest-aphids-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
   'surface-crawlers':new URL(`../assets/insects/pest-surface-crawlers-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
   mites:new URL(`../assets/insects/pest-mites-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
+});
+export const EVENT_ASSET_URLS=Object.freeze({
+  'event-drought':new URL(`../assets/botanical/plum-foliage-airy.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-storm':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-winter-gale':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-wildfire':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-late-frost':new URL(`../assets/botanical/plum-blossoms-airy.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-fungal-blight':new URL(`../assets/events/fungal-blight-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-mycorrhizal-bloom':new URL(`../assets/trees/plum-rooted-seed-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'damp-rot':new URL(`../assets/events/damp-rot-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'airborne-spores':new URL(`../assets/events/airborne-spores-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
 });
 
 export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
@@ -40,6 +52,11 @@ const LABELS = {
   'pollinator-bumblebee': 'Bumblebee', 'pollinator-honeybee': 'Honeybee',
   'pollinator-mason-bee': 'Solitary bee', 'pollinator-hoverfly': 'Hoverfly',
   'pollinator-butterfly': 'Butterfly', 'pollinator-beetle': 'Pollinating beetle',
+  'event-drought': 'Leaves under drought stress', 'event-storm': 'Tree in an autumn storm',
+  'event-winter-gale': 'Tree in a winter gale', 'event-wildfire': 'Tree facing wildfire',
+  'event-late-frost': 'Blossoms touched by late frost', 'event-fungal-blight': 'Fungal blight',
+  'event-mycorrhizal-bloom': 'Flourishing roots and fungal network',
+  'damp-rot': 'Damp rot on a young stem', 'airborne-spores': 'Spores settling on a wounded leaf',
 };
 
 // Use the event's explicit identity, never guesses from its title or prose.
@@ -47,5 +64,5 @@ export function renderEncounterArt(sceneArt) {
   const kinds = [...new Set([sceneArt].flat().flatMap(kind => kind === 'browsers'
     ? ['browser-deer', 'browser-rabbit'] : [kind]))].filter(kind => Object.hasOwn(LABELS, kind));
   if (!kinds.length) return '';
-  return `<span class="encounter-art">${kinds.map(kind => `<img src="${ANIMAL_ASSET_URLS[kind] || INSECT_ASSET_URLS[kind]}" alt="${LABELS[kind]}" width="96" height="88" />`).join('')}</span>`;
+  return `<span class="encounter-art">${kinds.map(kind => `<img data-scene-art="${kind}" src="${ANIMAL_ASSET_URLS[kind] || INSECT_ASSET_URLS[kind] || EVENT_ASSET_URLS[kind]}" alt="${LABELS[kind]}" width="96" height="88" />`).join('')}</span>`;
 }

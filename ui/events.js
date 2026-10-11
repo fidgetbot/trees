@@ -1,4 +1,4 @@
-import { renderEncounterArt } from './fauna-art.js?rev=encounter-art-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=night-field-journal-v1';
 
 export function renderEventPhaseBody({ major, minors, consequences }) {
   let majorHtml = '';
@@ -26,10 +26,9 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
         </div>
       </div>
     `;
-  } else {
+  } else if (!minors.length) {
     majorHtml = `
-      <div class="event-major event-good">
-        <div class="event-icon">🌙</div>
+      <div class="event-major event-good event-quiet">
         <div class="event-content">
           <h3>Quiet Night</h3>
           <p>The forest is still. You rest.</p>
@@ -47,9 +46,11 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
         : `<span>${e.text}</span>`;
       return `<li class="${classes}">${art}${copy}</li>`;
     }).join('')}</ul></div>`
-    : '<p class="no-events">The forest sleeps quietly this turn.</p>';
+    : '';
 
   return `
+    <img class="night-specimen" src="assets/events/moonlit-grove-v1.png?rev=night-field-journal-v1" alt="" aria-hidden="true" />
+    <p class="night-prose">Darkness settles over the grove. What stirred beneath the leaves is gathered here.</p>
     ${majorHtml}
     ${minorHtml}
   `;

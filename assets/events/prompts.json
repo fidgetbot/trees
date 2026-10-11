@@ -1,0 +1,22 @@
+{
+  "generator": "built-in image_gen",
+  "generated": "2026-10-11",
+  "assets": {
+    "moonlit-grove-v1.png": {
+      "master": "~/.openclaw/playground/trees-night-events/masters/moonlit-grove-master.png",
+      "masterSha256": "a7ba83a645e5d89ad93beaea974e8de798f8c425fc1ed8ba5e5e13d942a31203",
+      "runtimeSha256": "9421646914d67b5b36cec671ea1143ce738d4bf98d1fca3017c66bdbc1ac133b",
+      "prompt": "Use case: stylized-concept. Asset type: transparent painted UI specimen for the top-right corner of a field-journal game dialog. Primary request: a beautiful moonlit grove of several old fruit trees at night, seen as a small intimate woodland vignette. Scene/backdrop: no rectangular scene or horizon panel; the grove itself fades organically at the edges into transparency. Subject: a clustered grove of varied fruit-tree silhouettes, overlapping leafy crowns, a slim crescent moon visible through the upper branches, faint low mist and a few tiny firefly-like points of light. Style/medium: detailed warm watercolor and gouache natural-history illustration, delicate organic edges, subtle paper-like pigment texture only within the painted subject, matching refined botanical watercolor game specimens. Composition/framing: compact landscape-shaped vignette, readable at roughly 100 by 80 pixels, strong unified silhouette, generous transparent margins, no element touching the canvas edge. Lighting/mood: deep indigo and muted blue-green moonlight, tranquil and mysterious, restrained warm highlights, not frightening. Constraints: genuine transparent background and alpha; no text, labels, border, card, frame, UI, people, buildings, animals, watermark, or opaque paper background; keep the grove readable when downscaled."
+    },
+    "fungal-threats": {
+      "master": "~/.openclaw/playground/trees-night-events/masters/fungal-threats-master.png",
+      "masterSha256": "fc6fa04d0b8d9d85c29b6b319da4912f49539efd97941f523101f47e972e188b",
+      "runtimeSha256": {
+        "fungal-blight-v1.png": "161134638d20d2e3d490d24b31c94dbf3aa023c4d4242bf742dfe38a2f0f5276",
+        "damp-rot-v1.png": "def36f97778fe87e2ecafcb31388bcfff20055f37d836a54e8b88c8fbfc3093f",
+        "airborne-spores-v1.png": "9a470b2e53c8a6aa06466f79852b6b05278111b8ffba34f475527f78461d0b19"
+      },
+      "prompt": "Use case: scientific-educational. Asset type: transparent three-specimen watercolor source sheet for small game encounter portraits. Primary request: create three clearly separated botanical pathology vignettes in one horizontal row, each independently readable and extractable, with wide completely transparent gutters between them. Left—Fungal Blight: a small fruit-tree twig with mottled curling leaves, pale lesions, and delicate white mycelial threads. Center—Damp Rot: a tender young green seedling stem at a tiny wet root collar, with subtle pale mold and dark softened tissue creeping upward. Right—Spores on the Damp Air: a wounded fruit-tree leaf and short twig with a graceful cloud of tiny ochre-gray spores settling onto the wound. Style: refined warm watercolor and gouache natural-history illustration with delicate organic edges. Exactly three non-overlapping subjects in equal-width thirds, generous transparent margins, natural muted palette, clear at 96 by 88 pixels. Genuine transparent background; no text, dividers, frames, panels, cast shadows, watermark, people, animals, border, or opaque paper background; no subject crosses into another third."
+    }
+  }
+}

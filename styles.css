@@ -1857,7 +1857,42 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
 body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned { background: #945e48; border-color: #945e48; color: #fff8ed; }
 body.theme-light-rounded #modal[data-kind="gathering"] button.actions-earned :is(strong, small) { color: inherit; }
 body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hover { background: #81503e; border-color: #81503e; }
+
+/* Night Falls: the gathering journal's quieter nocturnal companion. */
+.modal[data-kind="night"] #modal-title { margin-bottom: 15px; padding-right: 112px; font-size: 40px; }
+.modal[data-kind="night"] #modal-kicker { padding-right: 112px; }
+.night-specimen { position: absolute; top: 18px; right: 17px; width: 112px; height: 91px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 6px #23333124); }
+#modal-body .night-prose { max-width: 33ch; margin: 0 0 17px; color: #69715e; font: italic 17px/1.5 Georgia, 'Times New Roman', serif; }
+.modal[data-kind="night"] .event-major { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 13px; margin: 0; padding: 14px 0 16px; border: 0; border-top: 1px solid #7c87662e; border-radius: 0; background: none; }
+.modal[data-kind="night"] .event-major.event-quiet { display: block; padding-left: 0; }
+.modal[data-kind="night"] .event-major > .encounter-art { width: 72px; height: 68px; flex-basis: 72px; }
+.modal[data-kind="night"] .event-content h3 { margin: 0 0 3px; color: #40523d; font: 20px/1.3 Georgia, 'Times New Roman', serif; }
+.modal[data-kind="night"] .event-content > p { color: #68705f; font-size: 13px; line-height: 1.5; }
+.modal[data-kind="night"] .event-consequences { margin: 8px 0 0; padding: 0; border: 0; border-radius: 0; background: none; color: #69715e; font-size: 12px; }
+.modal[data-kind="night"] .event-consequences strong { color: #59664f; }
+.modal[data-kind="night"] .event-consequences ul { margin-top: 3px; }
+.modal[data-kind="night"] .event-consequences li { color: #5f6657; }
+.modal[data-kind="night"] .minor-events { padding-top: 15px; border-top: 1px solid #7c87662e; }
+.modal[data-kind="night"] .minor-events h4 { margin-bottom: 5px; color: #69715e; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.modal[data-kind="night"] .minor-events ul { margin: 0; padding: 0; list-style: none; }
+.modal[data-kind="night"] .minor-events li { display: flex; align-items: center; gap: 6px; min-height: 44px; margin: 0; padding: 9px 0; border-bottom: 1px solid #7c87661e; color: #515d4b; line-height: 1.5; }
+.modal[data-kind="night"] .minor-events li::before { content: '•'; flex: 0 0 12px; color: #7b876a; }
+.modal[data-kind="night"] .minor-events li.illustrated-event::before { display: none; }
+.modal[data-kind="night"] .minor-events li.compact-threat-event { margin: 0; padding: 10px 0; border: 0; border-bottom: 1px solid #9b6e4729; border-radius: 0; background: none; }
+.modal[data-kind="night"] .compact-threat-copy small { color: #9b654b; }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-drought"] { filter: sepia(.65) saturate(.68) hue-rotate(344deg) brightness(.88); }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-storm"] { filter: saturate(.58) hue-rotate(153deg) brightness(.68) contrast(1.08); }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-winter-gale"] { filter: grayscale(.35) saturate(.55) hue-rotate(150deg) brightness(.96); }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-wildfire"] { filter: sepia(.75) saturate(1.55) hue-rotate(328deg) brightness(.82); }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-late-frost"] { filter: saturate(.48) hue-rotate(147deg) brightness(1.08); }
+.modal[data-kind="night"] .encounter-art img[data-scene-art="event-mycorrhizal-bloom"] { filter: saturate(.78) hue-rotate(25deg) brightness(1.04); }
 @media (max-width: 380px) {
+  .modal[data-kind="night"] #modal-title { padding-right: 88px; font-size: 36px; }
+  .modal[data-kind="night"] #modal-kicker { padding-right: 88px; }
+  .night-specimen { width: 88px; height: 76px; }
+  #modal-body .night-prose { font-size: 15px; }
+  .modal[data-kind="night"] .event-major { grid-template-columns: 60px minmax(0, 1fr); gap: 10px; padding-block: 11px 13px; }
+  .modal[data-kind="night"] .event-major > .encounter-art { width: 60px; height: 58px; }
   .modal-heading.has-encounter-art { grid-template-columns: minmax(0, 1fr) 80px; gap: 10px; }
   .modal-heading > .encounter-art { width: 80px; height: 76px; }
   .modal-heading.has-encounter-art #modal-title { font-size: 30px; }

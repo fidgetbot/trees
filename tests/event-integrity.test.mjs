@@ -109,6 +109,21 @@ test('named wildlife and browser threats carry renderer scene metadata', () => {
   assert.equal(majorEvents.find(event => event.key === 'Beaver').sceneArt, 'beaver');
   assert.equal(majorEvents.find(event => event.key === 'Herbivores').sceneArt, 'browsers');
   assert.equal(majorEvents.find(event => event.key === 'BirdDispersal').sceneArt, 'fruit-robin');
+  assert.deepEqual(
+    majorEvents.map(event => [event.key, event.sceneArt]),
+    [
+      ['Drought', 'event-drought'],
+      ['Herbivores', 'browsers'],
+      ['Storm', 'event-storm'],
+      ['WinterStorm', 'event-winter-gale'],
+      ['Fire', 'event-wildfire'],
+      ['LateFrost', 'event-late-frost'],
+      ['FungalBlight', 'event-fungal-blight'],
+      ['Beaver', 'beaver'],
+      ['MycorrhizalBloom', 'event-mycorrhizal-bloom'],
+      ['BirdDispersal', 'fruit-robin'],
+    ],
+  );
 
   const browserThreat = {
     kind: 'browsers', title: 'Hungry Browsers', sceneArt: 'browsers', warning: 'Browsers approach.',

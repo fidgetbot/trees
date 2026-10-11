@@ -68,9 +68,9 @@ import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neigh
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
-import { renderEventPhaseBody } from './ui/events.js?rev=simplified-event-flow-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-foliage-attachments-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=simplified-event-flow-v1';
+import { renderEventPhaseBody } from './ui/events.js?rev=night-field-journal-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=night-field-journal-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=night-field-journal-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
@@ -1693,7 +1693,7 @@ function showEventPhase() {
   updateUI();
   render();
 
-  showModal('Night Falls...', renderEventPhaseBody({ major, minors, consequences }), () => {
+  showModal('Night Falls', renderEventPhaseBody({ major, minors, consequences }), () => {
     engine.continueAfterEvent(state, {
       processPendingInteractions,
       maybeShowHealthWarning,
@@ -1702,7 +1702,7 @@ function showEventPhase() {
         showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
       },
     });
-  }, { record: false });
+  }, { record: false, kind: 'night', eyebrow: `${currentSeason().name} · Year ${state.year}` });
 }
 
 function queueHumanDecision(decision, done) {

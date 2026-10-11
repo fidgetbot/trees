@@ -61,7 +61,7 @@ export function createMajorEvents(deps) {
       seasons: ['Summer'],
       icon: '☀️',
       desc: 'The rains fail. Every drop matters now.',
-      severity: 'bad',
+      severity: 'bad', sceneArt: 'event-drought',
       apply: (s) => {
         const droughtResist = getDroughtResistance();
         const baseDroughtModifier = Math.max(0.15, 0.55 - (s.trunk * 0.08));
@@ -104,15 +104,15 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'Storm', name: 'Autumn Storm', seasons: ['Autumn'], icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad',
+      key: 'Storm', name: 'Autumn Storm', seasons: ['Autumn'], icon: '⛈️', desc: 'Fierce winds test your structure. Flexibility and strength determine survival.', severity: 'bad', sceneArt: 'event-storm',
       apply: (s) => applyWindStorm(s, false),
     },
     {
-      key: 'WinterStorm', name: 'Winter Gale', seasons: ['Winter'], icon: '🌨️', desc: 'A bitter gale drives ice through the grove and tests every unbraced limb.', severity: 'bad',
+      key: 'WinterStorm', name: 'Winter Gale', seasons: ['Winter'], icon: '🌨️', desc: 'A bitter gale drives ice through the grove and tests every unbraced limb.', severity: 'bad', sceneArt: 'event-winter-gale',
       apply: (s) => applyWindStorm(s, true),
     },
     {
-      key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical',
+      key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical', sceneArt: 'event-wildfire',
       apply: (s) => {
         const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
         const damage = Math.max(0, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
@@ -126,7 +126,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'LateFrost', name: 'Late Frost', seasons: ['Spring'], icon: '❄️', desc: 'An unexpected freeze damages new growth and tender flowers.', severity: 'bad',
+      key: 'LateFrost', name: 'Late Frost', seasons: ['Spring'], icon: '❄️', desc: 'An unexpected freeze damages new growth and tender flowers.', severity: 'bad', sceneArt: 'event-late-frost',
       apply: (s) => {
         const effects = [];
         if (s.flowers > 0) {
@@ -146,7 +146,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'FungalBlight', name: 'Fungal Blight', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad',
+      key: 'FungalBlight', name: 'Fungal Blight', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad', sceneArt: 'event-fungal-blight',
       apply: (s) => {
         s.eventModifiers.disease = 0.5;
         const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
@@ -183,7 +183,7 @@ export function createMajorEvents(deps) {
       }
     },
     {
-      key: 'MycorrhizalBloom', name: 'Mycorrhizal Bloom', seasons: ['Spring', 'Summer', 'Autumn', 'Winter'], icon: '✨', desc: 'The fungal network flourishes, sharing nutrients generously.', severity: 'good',
+      key: 'MycorrhizalBloom', name: 'Mycorrhizal Bloom', seasons: ['Spring', 'Summer', 'Autumn', 'Winter'], icon: '✨', desc: 'The fungal network flourishes, sharing nutrients generously.', severity: 'good', sceneArt: 'event-mycorrhizal-bloom',
       apply: (s) => {
         const connectedAllies = s.neighbors.filter(neighbor => (
           !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally'
@@ -340,6 +340,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
       },
       {
         title: 'Damp Rot',
+        sceneArt: 'damp-rot',
         warning: 'The soil around you stays too wet. Mold creeps up your tender stem.',
         defend: () => { state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9); return 'You mobilize protective chemistry. The mold cannot take hold on your tissues.'; },
         ignore: () => { state.health = Math.max(0, state.health - 2); return { body: 'The damp rot spreads. You lose 2 health as your stem weakens.', damage: { amount: 2, cause: 'blight' } }; }
@@ -373,6 +374,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
       },
       {
         title: 'Spores on the Damp Air',
+        sceneArt: 'airborne-spores',
         warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
         defend: () => { state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.9); return 'You mobilize defensive chemistry before the infection can take hold.'; },
         ignore: () => { state.health = Math.max(0, state.health - 2); return { body: 'Blight takes hold. You lose 2 health to spreading infection.', damage: { amount: 2, cause: 'blight' } }; }

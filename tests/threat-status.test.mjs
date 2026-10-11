@@ -82,6 +82,26 @@ test('an unaffordable chemical threat becomes one compact shortage row', () => {
   assert.match(nightBody, /compact-threat-event/);
   assert.equal((nightBody.match(/Aphid Cluster/g) || []).length, 1);
   assert.equal((nightBody.match(/Defense requires ☀️3 more\./g) || []).length, 1);
+  assert.match(nightBody, /night-specimen/);
+  assert.match(nightBody, /Darkness settles over the grove/);
+});
+
+test('fungal chemical threats carry distinct painted identities through the shared flow', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0.99;
+  try {
+    const seedlingDecision = buildChemicalDefenseDecision(state(), { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
+    assert.equal(seedlingDecision.title, 'Damp Rot');
+    assert.equal(seedlingDecision.meta.threat.sceneArt, 'damp-rot');
+    assert.equal(describeDecisionPrompt(seedlingDecision).sceneArt, 'damp-rot');
+
+    const matureDecision = buildChemicalDefenseDecision(state(), { computeCurrentLifeStage: () => ({ name: 'Mature Tree' }) });
+    assert.equal(matureDecision.title, 'Spores on the Damp Air');
+    assert.equal(matureDecision.meta.threat.sceneArt, 'airborne-spores');
+    assert.equal(describeDecisionPrompt(matureDecision).sceneArt, 'airborne-spores');
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test('hungry browsers recognize permanent thorns and toxic leaves without another resource cost', () => {
