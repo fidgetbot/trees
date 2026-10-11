@@ -54,6 +54,24 @@ export function showChoiceModalUI(els, title, body, choices, presentation = {}) 
     btn.appendChild(copy);
     btn.disabled = choice.disabled === true;
     btn.onclick = () => {
+      if (presentation.resolveInPlace) {
+        const outcome = choice.onChoose?.();
+        if (!outcome) return;
+        els.modalTitle.textContent = outcome.title || title;
+        els.modalBody.innerHTML = outcome.body || '';
+        els.modalButton.textContent = outcome.buttonLabel || 'Continue';
+        els.modalButton.style.display = '';
+        let continued = false;
+        els.modalButton.onclick = () => {
+          if (continued) return;
+          continued = true;
+          close();
+          outcome.onContinue?.();
+        };
+        els.modal.querySelector('.modal-card').scrollTop = 0;
+        els.modalButton.focus({ preventScroll: true });
+        return;
+      }
       close();
       els.modalButton.style.display = '';
       choice.onChoose?.();

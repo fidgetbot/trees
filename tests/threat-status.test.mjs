@@ -3,12 +3,14 @@ import test from 'node:test';
 
 import {
   buildChemicalDefenseDecision,
+  describeDecisionPrompt,
   processSeasonalReproduction,
   resolveChemicalDefenseChoice,
   resolvePendingStartOfTurnEffects,
 } from '../core/events.js';
 import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
+import { renderEventPhaseBody } from '../ui/events.js';
 
 function state(overrides = {}) {
   return {
@@ -40,13 +42,18 @@ function ally() {
   };
 }
 
-test('chemical defense describes the danger naturally as gathering and then passed', () => {
+test('chemical defense introduces the threat in the night summary and resolves on one encounter surface', () => {
   const originalRandom = Math.random;
   Math.random = () => 0;
   try {
     const s = state();
     const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
-    assert.match(decision.body, /danger is still gathering/i);
+    assert.doesNotMatch(decision.body, /aphids|danger is still gathering/i);
+    const prompt = describeDecisionPrompt(decision);
+    assert.equal(prompt.compactThreat, true);
+    assert.equal(prompt.title, 'Aphid Cluster');
+    assert.match(prompt.text, /aphids gather/i);
+    assert.equal(prompt.status, 'A response is available.');
     const outcome = resolveChemicalDefenseChoice(s, decision, 'defend');
     assert.equal(outcome.threatStatus, 'solved');
     assert.match(outcome.body, /danger has passed/i);
@@ -54,6 +61,27 @@ test('chemical defense describes the danger naturally as gathering and then pass
   } finally {
     Math.random = originalRandom;
   }
+});
+
+test('an unaffordable chemical threat becomes one compact shortage row', () => {
+  const s = state({ sunlight: 0, water: 1, nutrients: 2 });
+  const threat = {
+    title: 'Aphid Cluster',
+    sceneArt: 'aphids',
+    warning: 'Tiny aphids gather on your tender stem.',
+    defend: () => 'The aphids retreat.',
+    ignore: () => ({ body: 'The aphids feed.' }),
+  };
+  const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat });
+  const prompt = describeDecisionPrompt(decision);
+  assert.deepEqual(decision.options.map(option => option.id), ['conserve']);
+  assert.equal(prompt.compactThreat, true);
+  assert.equal(prompt.status, 'Defense requires ☀️3 more.');
+  assert.doesNotMatch(decision.body, /Your resources|danger is still gathering/i);
+  const nightBody = renderEventPhaseBody({ major: null, minors: [prompt], consequences: [] });
+  assert.match(nightBody, /compact-threat-event/);
+  assert.equal((nightBody.match(/Aphid Cluster/g) || []).length, 1);
+  assert.equal((nightBody.match(/Defense requires ☀️3 more\./g) || []).length, 1);
 });
 
 test('hungry browsers recognize permanent thorns and toxic leaves without another resource cost', () => {
@@ -86,7 +114,7 @@ test('an unanswered chemical threat reports its final damaging conclusion', () =
     const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
     const deferred = resolveChemicalDefenseChoice(s, decision, 'conserve');
     assert.equal(deferred.threatStatus, 'growing');
-    assert.match(deferred.body, /have not contained the threat/i);
+    assert.match(deferred.body, /remains unresolved/i);
     assert.doesNotMatch(deferred.body, /next turn/i);
     const [resolved] = resolvePendingStartOfTurnEffects(s);
     assert.match(resolved.body, /danger has passed, though it left damage behind/i);

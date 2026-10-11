@@ -391,7 +391,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
     return createDecision({
       kind: 'chemical-defense',
       title: threat.title,
-      body: `<p><em>${threat.warning}</em></p><p><strong>Your established ${defenseText} already protect this growth.</strong></p><p>Let those permanent defenses meet the browsers.</p>`,
+      body: `<p><strong>Your established ${defenseText} are ready.</strong> Choose whether to rely on them.</p>`,
       options: [{
         id: 'use-permanent-defenses',
         label: `Rely on your ${defenseText}`,
@@ -411,14 +411,12 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   if (deficits.water) deficitParts.push(`💧+${deficits.water}`);
   if (deficits.nutrients) deficitParts.push(`🌱+${deficits.nutrients}`);
   const deficitText = deficitParts.join(' ');
-  const affordText = canAffordDefense
-    ? 'You can afford this response.'
-    : `You do not have enough stored resources for this response. Needed to defend: ${deficitText}.`;
-
   return createDecision({
     kind: 'chemical-defense',
     title: threat.title,
-    body: `<p><em>${threat.warning}</em></p><p class="threat-status threat-growing">The danger is still gathering.</p><p>${canAffordDefense ? 'How do you respond?' : 'You cannot currently afford a chemical defense.'}</p><p><strong>Defense cost:</strong> ${costText}</p><p><strong>Your resources:</strong> ☀️${state.sunlight} 💧${state.water} 🌱${state.nutrients}</p><p><em>${affordText}</em></p>`,
+    body: canAffordDefense
+      ? '<p>Choose whether to spend reserves now or conserve them while the threat remains.</p>'
+      : `<p><strong>Defense unavailable:</strong> need ${deficitText} more.</p>`,
     options: canAffordDefense ? [
       {
         id: 'defend',
@@ -476,7 +474,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
       };
       return {
         title: threat.title,
-        body: `<p>You do not have enough reserves to mount a chemical defense. You have not contained the threat.</p><p class="threat-status threat-growing">The danger continues to gather.</p>`,
+        body: '<p>Your reserves are no longer sufficient. The threat remains unresolved.</p>',
         threatStatus: 'growing',
       };
     }
@@ -504,7 +502,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   };
   return {
     title: threat.title,
-    body: `<p>You conserve your reserves. You have not contained the threat.</p><p class="threat-status threat-growing">The danger continues to gather.</p>`,
+    body: '<p>You conserve your reserves. The threat remains unresolved.</p>',
     threatStatus: 'growing',
   };
 }
@@ -696,19 +694,33 @@ export function describeDecisionPrompt(decision) {
     };
   }
   if (decision.kind === 'chemical-defense') {
+    const threat = decision.meta?.threat;
     const permanentDefense = decision.meta?.permanentBrowserDefense;
+    const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+    const deficits = decision.meta?.deficits || {};
+    const deficitParts = [
+      deficits.sunlight ? `☀️${deficits.sunlight}` : null,
+      deficits.water ? `💧${deficits.water}` : null,
+      deficits.nutrients ? `🌱${deficits.nutrients}` : null,
+    ].filter(Boolean);
     if (permanentDefense?.total > 0) {
       const defenses = [permanentDefense.thorns > 0 ? 'thorns' : null, permanentDefense.toxins > 0 ? 'toxic leaves' : null].filter(Boolean).join(' and ');
       return {
-        text: `${decision.meta?.threat?.warning || 'Browsers approach your foliage.'} Your established ${defenses} stand ready.`,
+        title: decision.title,
+        text: threat?.warning || 'Browsers approach your foliage.',
+        status: `Your established ${defenses} stand ready.`,
         effect: 'good',
-        sceneArt: decision.meta?.threat?.sceneArt,
+        sceneArt: threat?.sceneArt,
+        compactThreat: true,
       };
     }
     return {
-      text: `${decision.meta?.threat?.warning || 'A chemical threat rises around you.'} The danger is still gathering.`,
+      title: decision.title,
+      text: threat?.warning || 'A chemical threat rises around you.',
+      status: hasResponse ? 'A response is available.' : `Defense requires ${deficitParts.join(' ')} more.`,
       effect: 'warning',
-      sceneArt: decision.meta?.threat?.sceneArt,
+      sceneArt: threat?.sceneArt,
+      compactThreat: true,
     };
   }
   return null;

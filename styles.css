@@ -1100,6 +1100,24 @@ canvas {
   margin-bottom: 6px;
   color: var(--text);
 }
+.minor-events li.compact-threat-event {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(146, 112, 37, .24);
+  border-radius: 13px;
+  background: rgba(146, 112, 37, .07);
+}
+.compact-threat-copy {
+  display: grid;
+  gap: 2px;
+}
+.compact-threat-copy strong {
+  font-size: 15px;
+}
+.compact-threat-copy small {
+  color: var(--warn);
+  font-weight: 700;
+}
 .no-events {
   color: var(--muted);
   font-style: italic;

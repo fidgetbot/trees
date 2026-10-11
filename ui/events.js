@@ -39,7 +39,14 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
   }
 
   const minorHtml = minors.length
-    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => `<li class="${renderEncounterArt(e.sceneArt) ? 'illustrated-event' : ''}">${renderEncounterArt(e.sceneArt)}<span>${e.text}</span></li>`).join('')}</ul></div>`
+    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => {
+      const art = renderEncounterArt(e.sceneArt);
+      const classes = [art ? 'illustrated-event' : '', e.compactThreat ? 'compact-threat-event' : ''].filter(Boolean).join(' ');
+      const copy = e.compactThreat
+        ? `<span class="compact-threat-copy"><strong>${e.title}</strong><span>${e.text}</span><small>${e.status}</small></span>`
+        : `<span>${e.text}</span>`;
+      return `<li class="${classes}">${art}${copy}</li>`;
+    }).join('')}</ul></div>`
     : '<p class="no-events">The forest sleeps quietly this turn.</p>';
 
   return `

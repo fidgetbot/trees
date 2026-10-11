@@ -300,6 +300,7 @@ The current codebase includes:
 - diplomacy/rivalry actions and ally-state tracking
 - reproduction through flowers, fruit, seeds, and spring seed fate
 - threat-response chains for fruit threats and chemical defense
+- nighttime chemical threats appear first as one compact illustrated status row. Unaffordable threats state only the missing resources and proceed directly to play while remaining on the tree; they do not open a redundant decision or outcome modal. Affordable threats open one focused response sheet, and the chosen result replaces that sheet's contents in place rather than opening a third surface
 - fruit-threat warnings persist through a full action phase before resolution, and a resolved threat cannot be replaced by another warning in the same event phase
 - wildfire records fire as its sole damage cause and can be fully resisted by sufficient bark/shelter protection
 - escalating fungal rumors, visible human encounters, permanent human deterrence, cutting scars, and distinct branch/thorn/oil/fungal-support encounter responses

@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=feeding-pests-v1';
+} from './core/events.js?rev=simplified-event-flow-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -68,9 +68,9 @@ import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neigh
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
-import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
+import { renderEventPhaseBody } from './ui/events.js?rev=simplified-event-flow-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-foliage-attachments-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=neighbor-fruit-cards-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=simplified-event-flow-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
@@ -1514,6 +1514,14 @@ function queueSharedDecisionInteraction(decision, done) {
       computeCurrentLifeStage,
       threat: decision.meta?.threat,
     });
+    const hasResponse = currentDecision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+    if (!hasResponse) {
+      resolveSharedDecision(state, currentDecision, 'conserve', { recordDamage });
+      showFeedback(`${currentDecision.title} remains unresolved — reserves are no longer sufficient.`, 'warning');
+      refreshMainView();
+      done?.();
+      return;
+    }
   } else if (decision.kind === 'hostile-encroachment') {
     const neighbor = decision.meta?.neighbor;
     if (!neighbor || neighbor.dead) {
@@ -1542,6 +1550,18 @@ function queueSharedDecisionInteraction(decision, done) {
           recordDamage,
           random: Math.random,
         });
+        if (currentDecision.kind === 'chemical-defense') {
+          recordPopup(outcome.title, outcome.body);
+          refreshMainView();
+          return {
+            title: outcome.title,
+            body: outcome.body,
+            onContinue: () => {
+              refreshMainView();
+              done?.();
+            },
+          };
+        }
         showModal(outcome.title, outcome.body, () => {
           refreshMainView();
           const neighborName = currentDecision.meta?.neighbor?.species;
@@ -1550,10 +1570,13 @@ function queueSharedDecisionInteraction(decision, done) {
             return;
           }
           done?.();
-        }, { sceneArt: currentDecision.meta?.threat?.sceneArt });
+        });
       },
     })),
-    { sceneArt: currentDecision.meta?.threat?.sceneArt }
+    {
+      sceneArt: currentDecision.meta?.threat?.sceneArt,
+      resolveInPlace: currentDecision.kind === 'chemical-defense',
+    }
   );
 }
 
@@ -1576,6 +1599,11 @@ function queueChemicalDefenseThreat(events) {
   });
   const prompt = describeDecisionPrompt(decision);
   if (prompt) events.push(prompt);
+  const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+  if (!hasResponse) {
+    resolveSharedDecision(state, decision, 'conserve', { recordDamage });
+    return;
+  }
   state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
 }
 
