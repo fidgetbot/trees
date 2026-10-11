@@ -1,3 +1,4 @@
+import { clearSceneArt } from './scene-art.js?rev=feeding-pests-v1';
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
@@ -283,6 +284,7 @@ export function resolvePendingStartOfTurnEffects(state) {
   if (state.pendingChemicalThreat) {
     const delayed = state.pendingChemicalThreat;
     state.pendingChemicalThreat = null;
+    clearSceneArt(state, delayed.sceneArt);
     resolved.push({
       key: 'pendingChemicalThreat',
       title: delayed.title,
@@ -445,6 +447,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   const costText = `☀️${cost.sunlight} 💧${cost.water} 🌱${cost.nutrients}`;
 
   if (choiceId === 'use-permanent-defenses' && threat.kind === 'browsers') {
+    clearSceneArt(state, threat.sceneArt);
     const defenses = getHerbivoreDefense(state);
     const defenseResult = defenses.thorns > 0 && defenses.toxins > 0
       ? 'Thorns bar the browsers from your lower growth, while toxic leaves make every reachable bite unpalatable.'
@@ -481,6 +484,7 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
     state.water -= cost.water;
     state.nutrients -= cost.nutrients;
     const body = threat.defend();
+    clearSceneArt(state, threat.sceneArt);
     return {
       title: threat.title,
       body: `<p>${body}</p><p class="threat-status threat-solved">The danger has passed.</p><p><em>Spent: ${costText}</em></p>`,

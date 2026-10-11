@@ -56,3 +56,12 @@ test('player tree priorities begin with unmet foundational growth', () => {
     ['extendRoot', 'growLeaves', 'growBranch'],
   );
 });
+
+test('dock distinguishes spendable moves from leftover action points', async () => {
+  const { getActionDockState } = await import('../ui/context-actions.js');
+  assert.equal(getActionDockState(2, 0).status, 'No actions available');
+  assert.equal(getActionDockState(2, 0).catalogLabel, 'Unavailable');
+  assert.equal(getActionDockState(0, 3).canAct, false);
+  assert.equal(getActionDockState(2, 3).status, '2 action points');
+  assert.equal(getActionDockState(2, 3).canAct, true);
+});

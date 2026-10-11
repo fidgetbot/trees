@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=encounter-art-v1';
+} from './core/events.js?rev=feeding-pests-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -51,7 +51,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=help-minimum-v1';
+} from './core/diplomacy.js?rev=feeding-pests-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -66,16 +66,16 @@ import {
 import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=context-selection-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=final-fauna-rollout-v1';
+import { renderActionPanels } from './ui/actions.js?rev=feeding-pests-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=feeding-pests-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=encounter-art-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=encounter-art-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=feeding-pests-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=feeding-pests-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=encounter-art-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
-import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=botanical-chapters-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=encounter-art-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
+import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=feeding-pests-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=feeding-pests-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
 function computeCurrentLifeStage() {
@@ -1300,7 +1300,6 @@ function renderActions() {
     }
   });
 
-  const noUsableActions = state.actions > 0 && Object.values(categories).every(arr => arr.length === 0);
   const contextTarget = activeSceneTarget();
   const contextualActions = getContextualActions({
     target: contextTarget,
@@ -1318,7 +1317,7 @@ function renderActions() {
     unavailableActions,
     futureActions,
     categoryNames: CATEGORY_NAMES,
-    noUsableActions,
+    actionPoints: state.actions,
     onUseAction: (action, scaledCost) => {
       engine.executeAction(state, action, scaledCost, {
         spend,
@@ -1345,7 +1344,7 @@ function renderActions() {
         });
         return;
       }
-      showFeedback('Turn ended early', 'info');
+      showFeedback(getAffordableActions().length ? 'Turn ended early' : 'Turn ended', 'info');
       showEventPhase();
     },
   });
@@ -1666,8 +1665,7 @@ function updateUI() {
     speciesBadgeHtml: state.selectedSpecies
       ? renderSpeciesSummary(state.selectedSpecies, SPECIES[state.selectedSpecies], {
           title: state.selectedSpecies,
-          intro: 'Species',
-          compact: true,
+          notebook: true,
         })
       : '',
   });
@@ -1838,9 +1836,10 @@ function initMapExplorer() {
 
 const detailSheet = document.getElementById('detail-sheet');
 function openDetailSheet(kind) {
+  detailSheet.dataset.section = kind;
   document.getElementById('sheet-actions').hidden = kind !== 'actions';
   document.getElementById('sheet-info').hidden = kind !== 'info';
-  document.getElementById('sheet-title').textContent = kind === 'actions' ? 'All actions' : 'Grove notebook';
+  document.getElementById('sheet-title').textContent = kind === 'actions' ? document.getElementById('open-actions').dataset.sheetTitle || 'Actions and requirements' : 'Grove notebook';
   if (!detailSheet.open) detailSheet.showModal();
   detailSheet.querySelector('.sheet-scroll').scrollTop = 0;
 }

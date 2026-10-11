@@ -1,3 +1,4 @@
+import { updateActionDockStatus } from './context-actions.js?rev=feeding-pests-v1';
 export function renderActionPanels({
   els,
   categories,
@@ -10,8 +11,10 @@ export function renderActionPanels({
   onUseAction,
   onFinishTurn,
   onSelectPlayer,
-  noUsableActions = false,
+  actionPoints = 0,
 }) {
+  const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
+  const dock = updateActionDockStatus(els, actionPoints, allUsableCount);
   els.actionsList.innerHTML = '';
   const sheetActions = document.getElementById('sheet-actions');
   if (sheetActions) sheetActions.innerHTML = '';
@@ -55,7 +58,9 @@ export function renderActionPanels({
   } else {
     const empty = document.createElement('p');
     empty.className = 'context-empty';
-    empty.textContent = 'No direct action is available for this selection right now.';
+    empty.textContent = dock.canAct
+      ? 'No actions for this selection. Choose your tree or More actions for available moves.'
+      : actionPoints <= 0 ? 'Your action points are used up. End turn to continue.' : 'You cannot take any actions with your current resources and conditions. End turn to continue.';
     shortlist.appendChild(empty);
   }
   context.appendChild(shortlist);
@@ -64,7 +69,6 @@ export function renderActionPanels({
   const allActions = document.createElement('details');
   allActions.className = 'all-actions';
   allActions.open = true;
-  const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
   allActions.innerHTML = `<summary>More actions <span>${allUsableCount} available</span></summary>`;
   const catalog = document.createElement('div');
   catalog.className = 'all-actions-catalog';
@@ -106,8 +110,8 @@ export function renderActionPanels({
   if (unavailableActions.length > 0) {
     const section = document.createElement('section');
     section.className = 'unavailable-actions';
-    section.setAttribute('aria-label', 'Other actions available at this growth stage');
-    section.innerHTML = '<h4>Other actions at this stage</h4>';
+    section.setAttribute('aria-label', 'Unavailable actions and requirements');
+    section.innerHTML = '<h4>Unavailable right now</h4><p>These actions cannot currently be taken. Each lists what is missing.</p>';
     const wrap = document.createElement('div');
     wrap.className = 'unavailable-actions-list';
     unavailableActions.forEach(({ action, costsHtml, statusText, reason }) => {
@@ -153,11 +157,10 @@ export function renderActionPanels({
   allActions.appendChild(catalog);
   (sheetActions || els.actionsList).appendChild(allActions);
 
-  const canEndTurn = Object.values(categories).some(arr => arr.length > 0) || noUsableActions;
   if (els.finishTurn) {
-    els.finishTurn.classList.toggle('hidden', !canEndTurn);
+    els.finishTurn.classList.remove('hidden');
     els.finishTurn.textContent = 'End turn →';
-    els.finishTurn.title = noUsableActions ? 'No affordable actions remain' : 'End the turn with remaining actions unused';
-    els.finishTurn.onclick = canEndTurn ? onFinishTurn : null;
+    els.finishTurn.title = dock.endTitle;
+    els.finishTurn.onclick = onFinishTurn;
   }
 }

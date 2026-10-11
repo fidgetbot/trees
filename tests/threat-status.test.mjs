@@ -98,9 +98,11 @@ test('an unanswered chemical threat reports its final damaging conclusion', () =
 
 test('ally help clears a pending aphid threat as well as restoring health', () => {
   const s = state({
+    activeSceneArt: ['aphids', 'woodpecker'],
     pendingChemicalThreat: {
       title: 'Aphid Cluster',
       warning: 'Aphids are feeding.',
+      sceneArt: 'aphids',
       ignore: () => 'Damage',
     },
   });
@@ -109,6 +111,7 @@ test('ally help clears a pending aphid threat as well as restoring health', () =
     getNeighborStage,
     random: () => 0,
   });
+  assert.deepEqual(s.activeSceneArt, ['woodpecker']);
   assert.equal(outcome.clearedThreat.title, 'Aphid Cluster');
   assert.equal(outcome.threatStatus, 'solved');
   assert.equal(s.pendingChemicalThreat, null);
@@ -199,5 +202,19 @@ test('delayed chemical consequences preserve the original creature identity', ()
     assert.equal(consequence.sceneArt, 'surface-crawlers');
     assert.equal(consequence.title, 'Surface Crawlers');
     assert.equal(s.pendingChemicalThreat, null);
+  }
+});
+
+test('solved pests leave the scene while conserved pests and unrelated wildlife remain', () => {
+  for (const choice of ['defend', 'conserve']) {
+    const s = state({ activeSceneArt: ['aphids', 'woodpecker'] });
+    const threat = { title: 'Aphid Cluster', sceneArt: 'aphids', warning: 'Sap feeding.', defend: () => 'They retreat.', ignore: () => ({body:'Damage.'}) };
+    const decision = buildChemicalDefenseDecision(s, {computeCurrentLifeStage: () => ({name:'Seedling'}), threat});
+    resolveChemicalDefenseChoice(s, decision, choice);
+    assert.deepEqual(s.activeSceneArt, choice === 'defend' ? ['woodpecker'] : ['aphids', 'woodpecker']);
+    if (choice === 'conserve') {
+      resolvePendingStartOfTurnEffects(s);
+      assert.deepEqual(s.activeSceneArt, ['woodpecker']);
+    }
   }
 });

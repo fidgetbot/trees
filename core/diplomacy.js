@@ -1,3 +1,4 @@
+import { clearSceneArt } from './scene-art.js?rev=feeding-pests-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
 
@@ -133,7 +134,10 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
   const clearedThreat = requestKind === 'health' && state.pendingChemicalThreat
     ? { title: state.pendingChemicalThreat.title, warning: state.pendingChemicalThreat.warning }
     : null;
-  if (clearedThreat) state.pendingChemicalThreat = null;
+  if (clearedThreat) {
+    clearSceneArt(state, state.pendingChemicalThreat.sceneArt);
+    state.pendingChemicalThreat = null;
+  }
   neighbor.helpReceivedFromThem += 1;
   const oldState = getRelationshipState(neighbor.relation).name;
   const adjusted = getAdjustedRelationshipDelta(state, relationShift);

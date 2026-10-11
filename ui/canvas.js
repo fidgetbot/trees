@@ -1,3 +1,4 @@
+import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=feeding-pests-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS } from './fauna-art.js?rev=encounter-art-v1';
 import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=juvenile-growth-v1';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=juvenile-growth-v1';
@@ -375,9 +376,11 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
   drawDirectionalCanopyShadows(ctx,trees,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
-  trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal}));
+  const attachedTargets=[];
+  trees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
   const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
   drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets);
+  hitTargets.push(...attachedTargets);
   drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
   if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   const labelRows=[];
@@ -404,7 +407,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
     hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:left-padding,y:top-padding,width:displayWidth+padding*2,height:displayHeight+padding*2}});
   };
   ctx.save();
-  kinds.forEach(kind=>{
+  kinds.filter(kind=>!PEST_KINDS.includes(kind)).forEach(kind=>{
     if(kind==='woodpecker'){
       const image=animalAssets.get(kind);if(!image)return;
       const displayHeight=64*scale,displayWidth=displayHeight*2/3;
@@ -427,9 +430,6 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
     const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
     if(kind==='fruit-robin'){drawFloating(kind,x+48*scale,canopyY-16*scale,72*scale,'Fruit-visiting robin');return}
     if(kind==='fruit-squirrel'){drawFloating(kind,x-46*scale,canopyY+18*scale,58*scale,'Fruit-visiting squirrel');return}
-    if(kind==='surface-crawlers'){drawGrounded(kind,x+42*scale,58*scale,'Surface crawlers');return}
-    if(kind==='aphids'){drawFloating(kind,x+42*scale,canopyY+12*scale,52*scale,'Aphid cluster');return}
-    if(kind==='mites'){drawFloating(kind,x-42*scale,canopyY+10*scale,52*scale,'Mite surge');return}
     if(kind.startsWith('pollinator-')){
       const titles={
         'pollinator-bumblebee':'Bumblebee','pollinator-honeybee':'Honeybee','pollinator-mason-bee':'Mason bee',
@@ -620,6 +620,11 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
   const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`),shaded=!isPlayer&&isTreeShaded(state,neighbor),wood=getWoodPalette(habit.bark,shaded);
+  const attachPests=(image,source,geometry,growth)=>isPlayer?drawAttachedPests({
+    ctx,state,kinds:getSceneArtKinds(state),image,source,geometry,growth,season,
+    getImage:kind=>insectAssets.get(kind),getLeafImage:i=>botanicalAsset(species,'foliage',seed,i),
+    reveal:growthReveal,scale,toScreen:p=>({x:x+(p.x-canopyLean*.16*p.y)*scale,y:groundY+p.y*scale}),
+  }):[];
   const rootedSeed=shouldDrawSeedRadicle(stage,roots,leaves);
   if(!isPlayer&&neighbor?.dead){
     drawDeadTree(ctx,x,groundY,stage,branches,trunk,roots,heightGrowth,habit,camera,seed,neighbor.deathAge||0);
@@ -646,7 +651,8 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1);
       const donor=requestTreeStructureAsset(species,'first-leaves');
       if(donor)drawJuvenileLeaves(ctx,growth,growthReveal,season,donor,getJuvenileGeometry(species,'first-leaves',visualState),filter);
-      ctx.restore();return;
+      const targets=attachPests(image,null,geometry,growth);
+      ctx.restore();return targets;
     }
   }
   const structureStageKey=juvenileKey?'rooted-seed':getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey);
@@ -664,7 +670,8 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
         if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers,species);
         if(season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
       }
-      ctx.restore();return;
+      const targets=attachPests(structureImage,getTreeStructureSourceRect(species,structureStageKey),geometry,growth);
+      ctx.restore();return targets;
     }
     if(stage==='Seed'){
       requestTreeStructureAsset(species,'rooted-seed');requestTreeStructureAsset(species,'sprout');

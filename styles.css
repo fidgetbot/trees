@@ -1797,3 +1797,37 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
   .modal-heading > .encounter-art { width: 80px; height: 76px; }
   .modal-heading.has-encounter-art #modal-title { font-size: 30px; }
 }
+
+/* End turn is the clear next step when the action budget cannot be spent. */
+.dock-toolbar[data-no-actions="true"] { flex-wrap: wrap; }
+.dock-toolbar[data-no-actions="true"] > span { flex-basis: 100%; margin: 0 0 3px; }
+body.theme-light-rounded.game-started #hud-panel #finish-turn.suggested-next { margin-left: auto; flex: 1; background: #945e48; color: #fff8ed; border: 1px solid #945e48; font-weight: 750; }
+body.theme-light-rounded.game-started #hud-panel #finish-turn.suggested-next:hover { background: #81503e; }
+@media (max-width: 380px) { .dock-toolbar { flex-wrap: wrap; } .dock-toolbar > span { flex-basis: 100%; } }
+
+/* Botanical notebook: a painted specimen and quiet, always-open records. */
+#detail-sheet[data-section="info"] { background: radial-gradient(ellipse at top right, #e3dfcc66, transparent 55%), #f8f3e6; }
+#detail-sheet[data-section="info"] .sheet-header { border-bottom: 1px solid #9c8c6b33; }
+#sheet-info .notebook-species { margin: 0 0 18px; padding: 0 0 18px; background: none; border: 0; border-bottom: 1px solid #9c8c6b44; border-radius: 0; }
+.notebook-specimen { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 10px 14px; }
+.notebook-specimen-copy { min-width: 0; }
+body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; color: #594b40; font: 500 32px/1.2 Nunito, sans-serif; }
+.notebook-specimen-copy p { margin: 0; font-size: 14px; line-height: 1.6; color: #68615e; }
+.notebook-specimen > img { display: block; width: 112px; height: 130px; object-fit: contain; }
+.notebook-specimen .notebook-nature { grid-column: 1 / -1; margin: 0; font-size: 13px; line-height: 1.6; color: #68615e; }
+#sheet-info .notebook-score { margin: 0 0 10px; font-size: 13px; color: #68615e; }
+#sheet-info .growth-hint { margin-bottom: 18px; padding: 10px 0; border: 0; border-block: 1px solid #9c8c6b33; border-radius: 0; background: none; }
+.game-started #hud-panel #sheet-info .stat-group { border: 0; border-bottom: 1px solid #9c8c6b44; border-radius: 0; background: none; margin-bottom: 16px; padding-bottom: 12px; }
+#sheet-info .stat-group-content { display: block; padding: 0; }
+#sheet-info .stat-row { border-color: #9c8c6b22; }
+#sheet-info :is(#season-guide-summary,#offspring-stats-summary) { margin: 0 0 10px; font-size: 12px; font-weight: 600; line-height: 1.6; }
+#sheet-info #log { max-height: none; overflow: visible; border: 0; background: none; padding: 0; }
+@media (max-width: 380px) {
+  .notebook-specimen { grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; }
+  .notebook-specimen > img { width: 82px; height: 114px; }
+  body.theme-light-rounded #sheet-info .notebook-specimen h3 { font-size: 28px; }
+}
+
+.scene-tools { max-width: calc(100% - 28px); }
+.scene-tools > button { flex: 0 0 auto; }
+.scene-tools .focus-picker, .scene-tools .focus-picker select { min-width: 0; }

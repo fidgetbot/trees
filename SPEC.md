@@ -451,3 +451,14 @@ The current high-level goals are:
 
 - Creature encounter choices and their immediate/delayed outcomes show compact portraits from the same approved fauna library used in the grove, keyed by explicit event identity. Nightly major/minor event entries illustrate their own visitors, including pests, browsers, birds, beavers, woodpeckers and pollinators. Unmapped events stay text-only; reused dialogs clear old art and preserve focus, animation timing, and choices.
 - The gathering sheet’s actions-available panel is its single continuation button, retaining the action count and bonus explanation. The separate Continue button is hidden only on gathering; mouse, touch and keyboard activate the existing continuation exactly once without re-awarding resources.
+
+### Feeding pests attached to tissue
+
+- Surface crawlers feed against the painted root collar and shallow root/seed tissue, aphids attach to the stem, and mites attach to actual leaf paint (bark when leafless or dormant). Individual specimens are isolated in memory from the approved cluster images, with their feeding ends anchored to opaque tissue. They inherit the plant’s species geometry, scale, shade lean, pan and zoom; no detached pest-cluster billboard is drawn. Pests remain selectable, and no extra damage or action cost is invented by the illustration.
+- Successful chemical or permanent defense, delayed threat resolution, and healing aid remove the resolved encounter’s scene artwork without removing unrelated wildlife. Conserved or unaffordable threats keep their insects until resolved.
+
+- The action dock distinguishes action points from usable moves. If no action is currently legal/affordable, it says “No actions available,” labels the catalog “Unavailable” with per-action requirements, and promotes End turn as the primary control. Empty object-specific lists instead direct the player to other available moves; they do not falsely imply the whole turn is blocked. Zero-point states still allow End turn.
+
+- Info is a restrained botanical notebook: the painted species specimen and exact species description/bonus lead the sheet, followed by score, growth requirements, statistics, seasons, offspring and log. Redundant selection/“Your tree” labels and inspector/group toggle headings are removed. All Info sections are always open, with one internal sheet scrollbar; the action catalog keeps its separate behavior.
+
+- The notebook is opened by a labeled Notebook control beside Focus/Explore above the grove (or by tapping the resource bar), not from the action/End turn dock. Top controls shrink within narrow viewports without hiding the notebook.

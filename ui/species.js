@@ -8,6 +8,13 @@ export function renderSpeciesSummary(speciesName, species, options = {}) {
     reveal = false,
   } = options;
 
+  if (options.notebook) return `
+    <div class="notebook-specimen">
+      <div class="notebook-specimen-copy"><h3>${speciesName}</h3><p>${species.description}</p></div>
+      <img src="assets/botanical/${speciesName === 'Plum' ? 'plum-fruit-airy' : `${speciesName.toLowerCase()}-fruit-v1`}.png?rev=fruiting-botanical-library-v1" alt="Botanical illustration of ${speciesName.toLowerCase()} fruit" width="144" height="144" />
+      <p class="notebook-nature"><strong>${species.bonusTitle}</strong> — ${species.bonusText}</p>
+    </div>`;
+
   if (reveal) return `
     <div class="species-reveal">
       <div class="reveal-art" aria-hidden="true"><img src="assets/botanical/${speciesName === 'Plum' ? 'plum-fruit-airy' : `${speciesName.toLowerCase()}-fruit-v1`}.png?rev=fruiting-botanical-library-v1" alt="" width="768" height="768" /></div>

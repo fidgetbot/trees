@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=encounter-art-v1" />
+  <link rel="stylesheet" href="styles.css?rev=feeding-pests-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=1" />
 </head>
 <body class="theme-light-rounded">
@@ -33,7 +33,7 @@
               <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
-            <div class="scene-tools"><label class="focus-picker">Focus <select id="scene-focus" aria-label="Focus a grove object"><option value="player">Your tree</option></select></label><button id="explore-grove" type="button">Explore</button></div>
+            <div class="scene-tools"><label class="focus-picker">Focus <select id="scene-focus" aria-label="Focus a grove object"><option value="player">Your tree</option></select></label><button id="explore-grove" type="button">Explore</button><button id="open-info" type="button" aria-label="Open botanical notebook">Notebook</button></div>
             <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Select a tree or visitor. Press Enter to explore the whole grove."></canvas>
           </div>
         </div>
@@ -47,8 +47,7 @@
         <div id="actions-list" class="actions-list"></div>
         <div class="dock-toolbar">
           <span id="actions-remaining" aria-live="polite"></span>
-          <button id="open-actions" type="button">All actions</button>
-          <button id="open-info" type="button">Info</button>
+          <button id="open-actions" type="button">More actions</button>
           <button id="finish-turn" class="finish-turn-btn" type="button">End turn →</button>
         </div>
         <dialog id="detail-sheet" class="detail-sheet" aria-labelledby="sheet-title">
@@ -56,16 +55,13 @@
           <div class="sheet-scroll">
             <section id="sheet-actions" hidden></section>
             <section id="sheet-info" hidden>
-              <p id="selected-info"></p>
-              <h3>Your tree</h3><p>Score <strong id="notebook-score">0</strong></p>
+              <div id="species-badge" class="species-badge notebook-species"></div>
+              <p class="notebook-score">Score <strong id="notebook-score">0</strong></p>
               <div id="growth-hint" class="growth-hint"></div>
-        <details class="tree-inspector" open>
-          <summary>Resources, structure and history</summary>
+        <div class="tree-inspector">
           <div class="tree-inspector-content">
-        <div id="species-badge" class="species-badge post-actions-status"></div>
         <div class="stats-container">
-          <div class="stat-group" data-group="resources">
-            <h4 class="stat-group-title">📊 Resources</h4>
+          <div class="stat-group" data-group="resources" aria-label="Resources">
             <div class="stat-group-content">
               <div class="stat-row" data-stat="sunlight" data-help="Leaves gather sunlight each turn. More leaves = more sunlight.">
                 <span class="stat-icon">☀️</span>
@@ -94,20 +90,19 @@
                 <span class="stat-name">Allies</span>
                 <span class="stat-value" id="allies">0</span>
               </div>
-              <details class="offspring-stats hidden" id="offspring-stats">
-                <summary id="offspring-stats-summary">Offspring</summary>
+              <section class="offspring-stats hidden" id="offspring-stats">
+                <h4 id="offspring-stats-summary">Offspring</h4>
                 <div id="offspring-stats-list"></div>
-              </details>
-              <details class="season-guide" id="season-guide">
-                <summary id="season-guide-summary">Seasonal gathering</summary>
+              </section>
+              <section class="season-guide" id="season-guide">
+                <p id="season-guide-summary">Seasonal gathering</p>
                 <div class="season-guide-grid" id="season-guide-grid"></div>
                 <p>Nutrient gathering has no direct seasonal penalty.</p>
-              </details>
+              </section>
             </div>
           </div>
           
-          <div class="stat-group" data-group="structure">
-            <h4 class="stat-group-title">🌳 Structure</h4>
+          <div class="stat-group" data-group="structure" aria-label="Structure">
             <div class="stat-group-content">
               <div class="stat-row" data-stat="trunk" data-help="Thicker trunk increases max health, water storage, and drought resistance.">
                 <span class="stat-icon">🪵</span>
@@ -142,8 +137,7 @@
             </div>
           </div>
           
-          <div class="stat-group" data-group="reproduction">
-            <h4 class="stat-group-title">🌸 Reproduction</h4>
+          <div class="stat-group" data-group="reproduction" aria-label="Reproduction">
             <div class="stat-group-content">
               <div class="stat-row compact" data-stat="flowers" data-help="Flowers may become pollinated by insects, producing seeds.">
                 <span class="stat-icon">🌸</span>
@@ -173,7 +167,7 @@
         <h3>Log</h3>
         <div id="log" class="log"></div>
           </div>
-        </details>
+        </div>
             </section>
           </div>
         </dialog>
@@ -227,6 +221,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=encounter-art-v1"></script>
+  <script type="module" src="main.js?rev=feeding-pests-v1"></script>
 </body>
 </html>

@@ -109,3 +109,35 @@ export function getTargetActionContext(target, state, getRelationshipState = () 
   }
   return { kicker: 'Selected wildlife', title: target.title, detail: 'Actions relevant to this visitor' };
 }
+
+// Action points are a budget, not a promise that an affordable move exists.
+export function getActionDockState(points, usableCount) {
+  const canAct = points > 0 && usableCount > 0;
+  return {
+    canAct,
+    status: canAct ? `${points} action point${points === 1 ? '' : 's'}` : 'No actions available',
+    catalogLabel: canAct ? 'More actions' : 'Unavailable',
+    catalogTitle: canAct ? 'Actions and requirements' : 'Unavailable actions',
+    endTitle: canAct ? 'End the turn with remaining action points unused' : 'No actions available — end this turn',
+  };
+}
+
+export function updateActionDockStatus(els, points, usableCount) {
+  const status = getActionDockState(points, usableCount);
+  if (els.actionsRemaining) {
+    els.actionsRemaining.textContent = status.status;
+    els.actionsRemaining.classList.remove('hidden');
+    els.actionsRemaining.closest('.dock-toolbar')?.setAttribute('data-no-actions', String(!status.canAct));
+  }
+  const catalog = document.getElementById('open-actions');
+  if (catalog) {
+    catalog.textContent = status.catalogLabel;
+    catalog.dataset.sheetTitle = status.catalogTitle;
+    catalog.setAttribute('aria-label', status.canAct ? 'View all actions and requirements' : 'View unavailable actions and their requirements');
+  }
+  if (els.finishTurn) {
+    els.finishTurn.classList.toggle('suggested-next', !status.canAct);
+    els.finishTurn.title = status.endTitle;
+  }
+  return status;
+}

@@ -1,3 +1,4 @@
+import { updateActionDockStatus } from './context-actions.js?rev=feeding-pests-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;
@@ -168,10 +169,7 @@ export function updateHudUI({
       </div>`).join('');
   }
 
-  if (els.actionsRemaining) {
-    els.actionsRemaining.textContent = `${state.actions} ${state.actions === 1 ? 'action' : 'actions'} left`;
-    els.actionsRemaining.classList.remove('hidden');
-  }
+  updateActionDockStatus(els, state.actions, affordableActions.length);
   if (els.finishTurn) {
     els.finishTurn.dataset.actionsRemaining = String(state.actions);
   }
