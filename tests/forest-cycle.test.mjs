@@ -93,6 +93,16 @@ test('connection choices disclose same-species affinity', () => {
   assert.equal(decision.options[0].meta.sameSpeciesAffinity, true);
 });
 
+test('connection choices explain why friendly trees are easier allies', () => {
+  const state = { selectedSpecies: 'Apricot', neighbors: [
+    { species: 'Pear', relation: 20, stageScore: 600, dead: false },
+    { species: 'Peach', relation: 0, stageScore: 600, dead: false },
+  ] };
+  const decision = buildConnectionDecision(state, { getRelationshipState, getNeighborStage: score => LIFE_STAGES.findLast(stage => score >= stage.threshold) });
+  assert.match(decision.options[0].description, /Already friendly.*more likely.*allyship/i);
+  assert.equal(decision.options[1].description, null);
+});
+
 test('offer aid only targets injured allies', () => {
   const state = { neighbors: [
     { species: 'Pear', relation: 70, health: 10, maxHealth: 10, dead: false },

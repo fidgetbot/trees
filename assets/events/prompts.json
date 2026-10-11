@@ -2,6 +2,12 @@
   "generator": "built-in image_gen",
   "generated": "2026-10-11",
   "assets": {
+    "moonlit-night-branches-v1.png": {
+      "master": "~/.openclaw/playground/trees-night-events/masters/moonlit-night-branches-master.png",
+      "masterSha256": "3c69ad40635ecd1de51e3febd9cc408d5ce30ad0ea619baee9f6b99238cbc94b",
+      "runtimeSha256": "ee969e4cf45a98cee252b319cf7e8bd7135d37ec3b8faeba0cc5530fbfeae65e",
+      "prompt": "Use case: stylized-concept. Asset type: very small upper-right game-dialog specimen, displayed around 100 by 80 pixels on a warm cream card. Primary request: replace a visually dense moonlit grove with an extremely simple, instantly legible night scene. Subject: one large pale full moon against a clear deep indigo-blue patch of night sky, framed by only two or three dark fruit-tree branch silhouettes entering from the lower-left and upper-right edges, with a few simple leaf clusters. Style/medium: restrained watercolor and gouache botanical illustration, soft pigment texture, high contrast, elegant and calm, matching a hand-painted nature journal. Composition/framing: compact horizontal oval or softly organic vignette; moon is the dominant shape and occupies about one third of the image height; branches act as a sparse frame and never cross the moon; strong silhouette readable at thumbnail size; generous transparent margin around the vignette. Lighting/mood: quiet, nocturnal, serene. Color palette: deep indigo, blue-black branches, muted blue-green leaves, warm ivory moon. Constraints: genuinely transparent outside the compact vignette; no text, no stars, no mist, no fireflies, no fruit, no animals, no people, no buildings, no border, no card, no UI, no watermark; avoid dense foliage and fine detail; nothing touches the outer canvas edges."
+    },
     "moonlit-grove-v1.png": {
       "master": "~/.openclaw/playground/trees-night-events/masters/moonlit-grove-master.png",
       "masterSha256": "a7ba83a645e5d89ad93beaea974e8de798f8c425fc1ed8ba5e5e13d942a31203",

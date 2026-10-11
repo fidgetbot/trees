@@ -207,13 +207,16 @@ export function buildConnectionDecision(state, deps = {}) {
           : relationName === 'Ally'
             ? 'Renewing contact strengthens an existing bond.'
             : '';
+        const relationshipHint = relationName === 'Friendly'
+          ? 'Already friendly, it is more likely to welcome your roots and move toward allyship.'
+          : '';
         const affinity = state.selectedSpecies === neighbor.species && relationName !== 'Ally'
           ? ` As another ${neighbor.species}, it is more likely to accept your roots.`
           : '';
         return {
           id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — ${stage.name} · ${relationName}`,
-          description: `${risk}${affinity}`.trim() || null,
+          description: `${risk}${relationshipHint ? ` ${relationshipHint}` : ''}${affinity}`.trim() || null,
           group: ageBand.label,
           groupDescription: ageBand.description,
           groupOrder: CONNECTION_AGE_BANDS.indexOf(ageBand),

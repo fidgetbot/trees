@@ -49,7 +49,7 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
     : '';
 
   return `
-    <img class="night-specimen" src="assets/events/moonlit-grove-v1.png?rev=night-field-journal-v1" alt="" aria-hidden="true" />
+    <img class="night-specimen" src="assets/events/moonlit-night-branches-v1.png?rev=night-branches-v1" alt="" aria-hidden="true" />
     <p class="night-prose">Darkness settles over the grove. What stirred beneath the leaves is gathered here.</p>
     ${majorHtml}
     ${minorHtml}

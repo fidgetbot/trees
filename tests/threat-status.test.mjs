@@ -83,6 +83,7 @@ test('an unaffordable chemical threat becomes one compact shortage row', () => {
   assert.equal((nightBody.match(/Aphid Cluster/g) || []).length, 1);
   assert.equal((nightBody.match(/Defense requires ☀️3 more\./g) || []).length, 1);
   assert.match(nightBody, /night-specimen/);
+  assert.match(nightBody, /moonlit-night-branches-v1\.png/);
   assert.match(nightBody, /Darkness settles over the grove/);
 });
 
