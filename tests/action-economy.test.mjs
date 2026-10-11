@@ -115,6 +115,20 @@ test('confirming a deferred action commits its cost exactly once', () => {
   assert.equal(eventPhases, 0);
 });
 
+test('root connection relies on its result dialog instead of a second success toast', () => {
+  const state = actionState();
+  const feedback = [];
+  actionEngine().executeAction(state, {
+    key: 'connect',
+    name: 'Seek Root Connection',
+    effect() {},
+  }, { sunlight: 0, water: 0, nutrients: 0 }, {
+    spend: spendFrom(state),
+    showFeedback: (message, type) => feedback.push({ message, type }),
+  });
+  assert.deepEqual(feedback, []);
+});
+
 test('selected-object context reaches the action effect unchanged', () => {
   const state = actionState();
   let received;

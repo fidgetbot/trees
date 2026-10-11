@@ -1799,8 +1799,6 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 }
 
 /* End turn is the clear next step when the action budget cannot be spent. */
-.dock-toolbar[data-no-actions="true"] { flex-wrap: wrap; }
-.dock-toolbar[data-no-actions="true"] > span { flex-basis: 100%; margin: 0 0 3px; }
 body.theme-light-rounded.game-started #hud-panel #finish-turn.suggested-next { margin-left: auto; flex: 1; background: #945e48; color: #fff8ed; border: 1px solid #945e48; font-weight: 750; }
 body.theme-light-rounded.game-started #hud-panel #finish-turn.suggested-next:hover { background: #81503e; }
 @media (max-width: 380px) { .dock-toolbar { flex-wrap: wrap; } .dock-toolbar > span { flex-basis: 100%; } }

@@ -17,7 +17,7 @@ export function buildPopupLogMessage(title, body, maxLength = 220) {
   return `${title}: ${excerpt}${text.length > excerpt.length ? '…' : ''}`;
 }
 
-export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove', sceneArt } = {}) {
+export function openModalSurface(els, { kind = '', eyebrow = '', sceneArt } = {}) {
   els.modal.dataset.kind = kind;
   // The same surface is reused by encounters, chapters and gathering.
   let heading = els.modal.querySelector('.modal-heading');
@@ -34,7 +34,9 @@ export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove'
   const art = renderEncounterArt(sceneArt);
   heading.classList.toggle('has-encounter-art', !!art);
   if (art) heading.insertAdjacentHTML('beforeend', art);
-  els.modal.querySelector('#modal-kicker').textContent = eyebrow;
+  const kicker = els.modal.querySelector('#modal-kicker');
+  kicker.textContent = eyebrow;
+  kicker.classList.toggle('hidden', !eyebrow);
   els.modal.classList.remove('hidden');
   els.modal.querySelector('.modal-card').scrollTop = 0;
   // Keep keyboard navigation in the active dialog, including choice dialogs.

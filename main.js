@@ -63,19 +63,19 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=offspring-support-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=context-selection-v1';
+import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-action-dock-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=feeding-pests-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=feeding-pests-v1';
+import { renderActionPanels } from './ui/actions.js?rev=quiet-action-dock-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=quiet-action-dock-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=feeding-pests-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=feeding-pests-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=quiet-action-dock-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=encounter-art-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=feeding-pests-v1';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=feeding-pests-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
 function computeCurrentLifeStage() {

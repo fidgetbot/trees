@@ -433,7 +433,8 @@ export function createEngine(deps) {
       commit();
       completed = true;
       if (action.key === 'extendRoot' && state.lifeStage.name === 'Seed') state.firstRootActionTaken = true;
-      showFeedback?.(`${action.name} succeeded!`, 'success');
+      // Root connection already presents its outcome in a dedicated dialog.
+      if (action.key !== 'connect') showFeedback?.(`${action.name} succeeded!`, 'success');
       addLog?.(`Action: ${action.name}.`);
       if (action.key === 'growBranch') addLog?.('A new branch pushes outward.');
       if (action.key === 'extendRoot') addLog?.('Your roots spread into new soil.');

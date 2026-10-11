@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=feeding-pests-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=quiet-action-dock-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;

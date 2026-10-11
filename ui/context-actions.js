@@ -115,10 +115,10 @@ export function getActionDockState(points, usableCount) {
   const canAct = points > 0 && usableCount > 0;
   return {
     canAct,
-    status: canAct ? `${points} action point${points === 1 ? '' : 's'}` : 'No actions available',
-    catalogLabel: canAct ? 'More actions' : 'Unavailable',
-    catalogTitle: canAct ? 'Actions and requirements' : 'Unavailable actions',
-    endTitle: canAct ? 'End the turn with remaining action points unused' : 'No actions available — end this turn',
+    status: canAct ? `${points} action${points === 1 ? '' : 's'} remaining` : '',
+    catalogLabel: 'More actions',
+    catalogTitle: 'Actions and requirements',
+    endTitle: canAct ? 'End the turn with remaining actions unused' : 'End this turn to continue',
   };
 }
 
@@ -126,14 +126,15 @@ export function updateActionDockStatus(els, points, usableCount) {
   const status = getActionDockState(points, usableCount);
   if (els.actionsRemaining) {
     els.actionsRemaining.textContent = status.status;
-    els.actionsRemaining.classList.remove('hidden');
+    els.actionsRemaining.classList.toggle('hidden', !status.canAct);
     els.actionsRemaining.closest('.dock-toolbar')?.setAttribute('data-no-actions', String(!status.canAct));
   }
   const catalog = document.getElementById('open-actions');
   if (catalog) {
     catalog.textContent = status.catalogLabel;
     catalog.dataset.sheetTitle = status.catalogTitle;
-    catalog.setAttribute('aria-label', status.canAct ? 'View all actions and requirements' : 'View unavailable actions and their requirements');
+    catalog.setAttribute('aria-label', 'View all actions and requirements');
+    catalog.classList.toggle('hidden', !status.canAct);
   }
   if (els.finishTurn) {
     els.finishTurn.classList.toggle('suggested-next', !status.canAct);

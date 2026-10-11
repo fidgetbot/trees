@@ -1,4 +1,4 @@
-import { openModalSurface } from './modal.js?rev=feeding-pests-v1';
+import { openModalSurface } from './modal.js?rev=quiet-action-dock-v1';
 
 export function showChoiceModalUI(els, title, body, choices, presentation = {}) {
   els.modalTitle.textContent = title;
