@@ -1731,3 +1731,49 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
   .intro-footnote { margin-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { #start-game, #modal-button { transition: none; } }
+
+/* Seasonal gathering: a quiet field-journal page with inspectable accounting. */
+.modal[data-kind="gathering"] #modal-title { margin-bottom: 15px; padding-right: 75px; font-size: 40px; }
+.modal[data-kind="gathering"] #modal-kicker { padding-right: 75px; }
+.gather-specimen { position: absolute; top: 19px; right: 21px; width: 82px; height: 92px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 4px #56603a12); }
+#modal-body .gather-prose { max-width: 35ch; margin: 0 0 18px; color: #69715e; font: italic 17px/1.5 Georgia, 'Times New Roman', serif; }
+.modal[data-kind="gathering"] .resource-summary { margin: 0; }
+.modal[data-kind="gathering"] .res-line { --resource-ink: #866628; --resource-wash: #eee5c9; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 2px 12px; padding: 13px 0; border-bottom: 1px solid #7c87662e; }
+.modal[data-kind="gathering"] .gather-water { --resource-ink: #446c77; --resource-wash: #e0e9e4; }
+.modal[data-kind="gathering"] .gather-nutrients { --resource-ink: #566d40; --resource-wash: #e4e8d5; }
+.modal[data-kind="gathering"] .res-icon { display: grid; place-items: center; grid-row: 1 / 3; align-self: start; width: 38px; height: 42px; margin-top: 3px; border-radius: 15px 15px 18px 18px; color: var(--resource-ink); background: var(--resource-wash); }
+.res-icon svg { width: 26px; height: 26px; }
+.modal[data-kind="gathering"] .res-name { min-width: 0; color: #3e513a; font: 22px/1.3 Georgia, 'Times New Roman', serif; }
+.modal[data-kind="gathering"] .res-value { min-width: 0; color: var(--resource-ink); font: 30px/1.2 Georgia, 'Times New Roman', serif; font-variant-numeric: tabular-nums; }
+.gather-storage { grid-column: 2 / -1; display: flex; align-items: center; gap: 12px; color: #6b715f; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gather-storage meter { flex: 1; min-width: 30px; max-width: 90px; height: 5px; border: 0; border-radius: 5px; background: #e0e1d2; appearance: none; }
+.gather-storage meter::-webkit-meter-bar { height: 5px; border: 0; border-radius: 5px; background: #e0e1d2; box-shadow: none; }
+.gather-storage meter::-webkit-meter-optimum-value { border-radius: 5px; background: var(--resource-ink); }
+.gather-storage meter::-moz-meter-bar { border-radius: 5px; background: var(--resource-ink); }
+#modal-body .gather-overflow { grid-column: 2 / -1; margin: 5px 0 0; color: #855a35; font-size: 11px; }
+.gather-details { grid-column: 2 / -1; min-width: 0; }
+.gather-details summary { width: fit-content; padding: 8px 0; color: #61704f; cursor: pointer; font-size: 11px; text-decoration: underline; text-decoration-color: #86947166; text-underline-offset: 3px; }
+.gather-details summary::marker { color: #879275; font-size: 9px; }
+.gather-details summary:focus-visible { outline: 2px solid #8c713e; outline-offset: 3px; border-radius: 3px; }
+.gather-details .resource-factors { margin: 2px 0 8px; gap: 5px; }
+.gather-details .resource-factor { padding: 5px 7px; border-radius: 6px; border: 1px solid #88916e30; background: #efeee3; color: #656d58; font-size: 11px; line-height: 1.45; }
+.gather-details .resource-factor.positive { color: #4f663f; background: #e8eddc; border-color: #879d683d; }
+.gather-details .resource-factor.negative { color: #8b5235; background: #f2e8db; border-color: #ad85553b; }
+.gather-details .grove-effect { margin: 7px 0 10px; color: #6c735f; font-size: 11px; line-height: 1.55; }
+.gather-details .grove-effect.positive { color: #4f663f; }
+.gather-details .grove-effect.negative { color: #8b5235; }
+.modal[data-kind="gathering"] .actions-earned { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: center; column-gap: 7px; margin-top: 18px; padding: 13px 10px; border: 1px solid #8c9c7030; border-radius: 13px; color: #627257; background: #e7ecdc; font-size: 12px; }
+.modal[data-kind="gathering"] .actions-earned strong { color: #415b3b; font: 20px/1.3 Georgia, 'Times New Roman', serif; }
+.actions-earned small { flex-basis: 100%; margin-top: 5px; font-size: 11px; }
+.modal[data-kind="gathering"] #modal-button { margin-top: 16px; }
+@media (max-width: 380px), (max-height: 700px) {
+  .modal[data-kind="gathering"] .modal-card { padding: 20px; }
+  .modal[data-kind="gathering"] #modal-title { font-size: 33px; margin-bottom: 12px; }
+  .gather-specimen { width: 66px; height: 72px; right: 16px; top: 15px; }
+  #modal-body .gather-prose { font-size: 15px; margin-bottom: 9px; }
+  .modal[data-kind="gathering"] .res-line { padding: 9px 0; gap: 1px 9px; }
+  .modal[data-kind="gathering"] .res-name { font-size: 20px; }
+  .modal[data-kind="gathering"] .res-value { font-size: 26px; }
+  .modal[data-kind="gathering"] .actions-earned { margin-top: 12px; padding: 10px 6px; }
+  .modal[data-kind="gathering"] #modal-button { margin-top: 12px; }
+}

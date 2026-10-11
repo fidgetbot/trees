@@ -1,4 +1,4 @@
-import { openModalSurface } from './modal.js?rev=botanical-chapters-v1';
+import { openModalSurface } from './modal.js?rev=botanical-gathering-v1';
 
 export function showChoiceModalUI(els, title, body, choices) {
   els.modalTitle.textContent = title;

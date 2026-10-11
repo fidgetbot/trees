@@ -19,13 +19,14 @@ export function openModalSurface(els, { kind = '', eyebrow = 'Life in the grove'
   els.modal.dataset.kind = kind;
   els.modal.querySelector('#modal-kicker').textContent = eyebrow;
   els.modal.classList.remove('hidden');
+  els.modal.querySelector('.modal-card').scrollTop = 0;
   // Keep keyboard navigation in the active dialog, including choice dialogs.
   const app = document.getElementById('app');
   const previousFocus = document.activeElement;
   if (app) app.inert = true;
   els.modal.onkeydown = event => {
     if (event.key !== 'Tab') return;
-    const buttons = [...els.modal.querySelectorAll('button:not(:disabled), [href], select, input, [tabindex="0"]')].filter(el => el.getClientRects().length);
+    const buttons = [...els.modal.querySelectorAll('button:not(:disabled), summary, [href], select, input, [tabindex="0"]')].filter(el => el.getClientRects().length);
     const first = buttons[0], last = buttons.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
