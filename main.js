@@ -2035,7 +2035,8 @@ render();
 loadCanvasAssets(asset=>{
   if(state.started&&asset?.family==='trees:structure'){
     const target=activeSceneTarget();
-    if(comparisonCameraView&&asset.species===minimapSpeciesFor(target))restartSceneTargetComparison();
+    if(asset.species!==minimapSpeciesFor(target))return render();
+    if(comparisonCameraView)restartSceneTargetComparison();
     else if(!comparisonCameraView)refitSceneCamera({animate:Boolean(growthTransition)});
     else render();
   }
