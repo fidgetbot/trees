@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rootGrowthAmount,drawRootGrowth} from '../ui/root-growth.js';
+import {rootGrowthAmount,rootRevealEffect,drawRootGrowth} from '../ui/root-growth.js';
 test('juvenile root investments persist across leaf and stage changes',()=>{
  const s={lifeStage:{name:'Sprout'},rootZones:4,visualGrowth:{structuralBase:{roots:4,taproots:0}}};
  assert.equal(rootGrowthAmount(s),3);
@@ -9,6 +9,18 @@ test('juvenile root investments persist across leaf and stage changes',()=>{
  assert.equal(rootGrowthAmount(s,reveal),2);
  reveal.progress=.5;assert.equal(rootGrowthAmount(s,reveal),2.5);
  reveal.progress=1;assert.equal(rootGrowthAmount(s,reveal),rootGrowthAmount(s));
+});
+test('root emphasis follows only new bounds and disappears at the endpoint',()=>{
+ const state={presentationStage:'Seedling',rootZones:3};
+ const geometry={width:40,height:60,groundRatio:.5,rootStart:.7};
+ const from={roots:2,taproots:0};
+ const middle=rootRevealEffect(state,{from,progress:.5},geometry);
+ assert.ok(middle.current.width>middle.previous.width);
+ assert.ok(middle.current.height>middle.previous.height);
+ assert.equal(middle.pulse,1);
+ assert.equal(rootRevealEffect(state,{from,progress:0},geometry).pulse,0);
+ assert.ok(rootRevealEffect(state,{from,progress:1},geometry).pulse<1e-12);
+ assert.equal(rootRevealEffect(state,{from:{roots:3,taproots:0},progress:.5},geometry),null,'leaf-only reveals do not flash roots');
 });
 test('root deformation preserves the collar and increases depth without separate stamps',()=>{
  const calls=[],rows=[],ctx={drawImage:(...args)=>calls.push(args)},image={width:600,height:900};

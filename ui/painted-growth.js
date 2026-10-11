@@ -5,6 +5,22 @@ const textures = new WeakMap();
 const spriteMetrics = new WeakMap();
 const count = value => Math.max(0, Math.floor(Number(value) || 0));
 
+export function growthRevealDuration(current,previous){
+  const rootChanged=(current?.roots||0)>(previous?.roots||0)||(current?.taproots||0)>(previous?.taproots||0);
+  return rootChanged?900:650;
+}
+
+export function isRootGrowthReveal(current,previous){
+  return (current?.roots||0)>(previous?.roots||0)||(current?.taproots||0)>(previous?.taproots||0);
+}
+
+export function growthRevealProgress(elapsed,isRoot=false){
+  const t=Math.max(0,Math.min(1,elapsed));
+  // Roots are small changes, so distribute their movement across the full
+  // reveal instead of spending most of it in the first few frames.
+  return isRoot?t*t*t*(t*(t*6-15)+10):1-Math.pow(1-t,3);
+}
+
 export function syncGrowthAttachments(state) {
   const species = state.selectedSpecies || 'Plum';
   const fresh = !state.visualGrowth || state.visualGrowth.species !== species;

@@ -1,4 +1,4 @@
-import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=framed-trees-v1';
+import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-root-reveal-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';

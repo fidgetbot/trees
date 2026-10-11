@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {getPaintedGrowthPlan,syncGrowthAttachments,growthReveal,leafReveal,drawGrowthLeaves} from '../ui/painted-growth.js';
+import {getPaintedGrowthPlan,syncGrowthAttachments,growthReveal,growthRevealDuration,growthRevealProgress,isRootGrowthReveal,leafReveal,drawGrowthLeaves} from '../ui/painted-growth.js';
 const geometry={width:40,height:60,groundRatio:.57};
 const state=()=>({selectedSpecies:'Peach',rootZones:2,leafClusters:3,branches:0});
 
@@ -39,6 +39,19 @@ test('new growth animates without shrinking old parts or stopping at the old fol
  assert.equal(growthReveal(1,'roots',reveal),1);assert.equal(growthReveal(2,'roots',reveal),.4);
  assert.equal(growthReveal(2,'leaves',reveal),1);assert.equal(growthReveal(3,'leaves',reveal),.4);
  const s=state();s.leafClusters=20;syncGrowthAttachments(s);assert.equal(getPaintedGrowthPlan(s,'Sapling',geometry).leaves.length,20);
+});
+
+test('root investments receive a longer reveal without slowing other growth',()=>{
+ const before={roots:2,taproots:0,leaves:3,branches:1};
+ assert.equal(growthRevealDuration({...before,roots:3},before),900);
+ assert.equal(growthRevealDuration({...before,taproots:1},before),900);
+ assert.equal(growthRevealDuration({...before,leaves:4},before),650);
+ assert.equal(growthRevealDuration({...before,branches:2},before),650);
+ assert.equal(isRootGrowthReveal({...before,roots:3},before),true);
+ assert.equal(isRootGrowthReveal({...before,leaves:4},before),false);
+ assert.equal(growthRevealProgress(.5,true),.5);
+ assert.ok(growthRevealProgress(.25,true)<growthRevealProgress(.25,false),'root motion remains visible later instead of front-loading the change');
+ assert.equal(growthRevealProgress(1,true),1);
 });
 
 test('deepening the taproot adds progressively branched painted modules',()=>{

@@ -1,4 +1,4 @@
-import { syncGrowthAttachments } from './ui/painted-growth.js?rev=continuous-roots-v2';
+import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=emphasized-root-reveal-v1';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -314,16 +314,16 @@ function currentGrowthReveal() {
   syncGrowthAttachments(state);
   const previous=lastGrowthSnapshot;
   if(previous&&previous.species===snapshot.species&&['roots','leaves','branches','taproots'].some(key=>snapshot[key]>previous[key])) {
-    growthTransition={from:previous,start:performance.now()};
+    growthTransition={from:previous,start:performance.now(),duration:growthRevealDuration(snapshot,previous),root:isRootGrowthReveal(snapshot,previous)};
     scheduleGrowthCameraRefit();
   }
   if(previous?.species!==snapshot.species)growthTransition=null;
   lastGrowthSnapshot=snapshot;
   if(!growthTransition||matchMedia('(prefers-reduced-motion: reduce)').matches){growthTransition=null;return null;}
-  const elapsed=(performance.now()-growthTransition.start)/650;
+  const elapsed=(performance.now()-growthTransition.start)/growthTransition.duration;
   if(elapsed>=1){growthTransition=null;return null;}
   if(growthFrame===null)growthFrame=requestAnimationFrame(()=>{growthFrame=null;render();});
-  return {from:growthTransition.from,progress:1-Math.pow(1-Math.max(0,elapsed),3)};
+  return {from:growthTransition.from,progress:growthRevealProgress(elapsed,growthTransition.root)};
 }
 
 function scheduleGrowthCameraRefit(){
