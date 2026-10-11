@@ -76,6 +76,7 @@ import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, r
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=fruit-minimap-v1';
 import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
+import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
 
@@ -1782,26 +1783,18 @@ function minimapSpeciesFor(target) {
   return null;
 }
 
-function minimapFruitMarkup(species) {
-  if (species === 'Plum') {
-    return '<img src="assets/botanical/plum-fruit-airy.png?rev=fruit-minimap-v2" alt="" aria-hidden="true" />';
-  }
-  return `<span aria-hidden="true">${SPECIES[species]?.icon || '🌳'}</span>`;
-}
-
 function renderGroveMinimap() {
   if (!els.groveMinimap) return;
   const targets = sceneHitTargets.filter(target => ['player-tree', 'neighbor-tree', 'offspring-tree'].includes(target.type) && target.stageName !== 'Dead');
-  const maxDistance = Math.max(1, ...targets.map(target => Math.abs(target.mapPosition || 0)));
   const signature = targets.map(target => `${target.id}:${target.title}:${target.mapPosition}:${target.id === selectedSceneTarget?.id}`).join('|');
   if (els.groveMinimap.dataset.signature === signature) return;
   els.groveMinimap.dataset.signature = signature;
-  els.groveMinimap.replaceChildren(...targets.sort((a,b)=>(a.mapPosition||0)-(b.mapPosition||0)).map(target => {
+  els.groveMinimap.replaceChildren(...layoutMinimapTargets(targets).map(({ target, leftPercent }) => {
     const species = minimapSpeciesFor(target);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `minimap-fruit${target.id === 'player' ? ' player' : ''}${target.id === selectedSceneTarget?.id ? ' selected' : ''}`;
-    button.style.left = `${50 + ((target.mapPosition || 0) / maxDistance) * 44}%`;
+    button.style.left = `${leftPercent}%`;
     button.innerHTML = minimapFruitMarkup(species);
     button.setAttribute('aria-label', `${target.id === 'player' ? 'Your' : target.title} ${target.stageName}; move the view to this tree`);
     if (target.id === selectedSceneTarget?.id) button.setAttribute('aria-current', 'true');
