@@ -1,4 +1,4 @@
-import { getTreeStructureSourceRect } from './canvas.js?rev=no-selection-oval-v1';
+import { getTreeStructureSourceRect } from './canvas.js?rev=action-growth-v1';
 
 export function modalPlainText(body) {
   return String(body || '')

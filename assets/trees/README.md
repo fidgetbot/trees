@@ -17,7 +17,7 @@ Each species has eight independently loadable PNG assets:
 
 The current species are Apricot, Cherry, Citrus, Peach, Pear, and Plum, for 48 runtime assets in total. File names follow `<species>-<stage>-v1.png`.
 
-The renderer treats these as the complete seed/root/stem/trunk/branch structure. Species-specific painted foliage, blossoms, and fruit from `assets/botanical/` are layered separately so game state and season can change them without replacing the structural artwork.
+The renderer treats these as the stage's base seed/root/stem/trunk/branch structure, not the complete result of every growth action. Species-specific painted foliage, blossoms, and fruit from `assets/botanical/` are layered separately so game state and season can change them without replacing the structural artwork.
 
 ## Artwork contract
 
@@ -35,3 +35,9 @@ The early sheet maps top-left to Seed, top-right to rooted Seed, bottom-left to 
 Runtime assets are extracted from those cells, low-alpha generation wash is removed, the remaining subject is alpha-trimmed with a transparent margin, and the source pixels are otherwise preserved.
 
 The early sheets are not perfectly aligned to equal cells: some Seed and rooted-Seed files retain a fragment of the next row. `getTreeStructureSourceRect` in `ui/canvas.js` defines the reviewed source rectangle for each of those twelve sprites, retaining the complete seed/radicle and transparent margin while excluding the next plant. Canvas rendering and growth-chapter portraits use the same bounds. The original PNGs remain unchanged, and destination aspect ratios follow the isolated source bounds rather than stretching the contaminated cell.
+
+## Action-driven growth
+
+`ui/painted-growth.js` adds persistent player root, taproot, branch, and leaf modules around these bases. Attachments are located on opaque pixels of the actual source image; roots and branches carry a straightened strip of that same painted wood along a tapered curve. No original PNG is modified and no new generated artwork is required. Leaves use the existing species-specific botanical PNGs, with a connecting petiole ending inside the painted cluster.
+
+The visual ledger keeps each existing leaf on its original host when later branches are added; new branch foliage attaches to its new branch. Module IDs follow structural counts across stage changes, and roots/leaves no longer silently stop responding at the former coarse foliage cap. New parts reveal over 650 ms unless reduced motion is requested. Gameplay costs, resource accounting, progression, and event rules are unchanged.

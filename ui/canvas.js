@@ -1,3 +1,4 @@
+import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-growth-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
@@ -282,8 +283,8 @@ export function getTreeStructureGeometry(stageKey,state={}){
   const seedBounds=getTreeStructureSourceRect(state.selectedSpecies,stageKey);
   if(seedBounds)return{...base,height:base.width*seedBounds.height/seedBounds.width,groundRatio:stageKey==='seed'?.92:base.groundRatio*seedBounds.imageHeight/seedBounds.height};
   if(stageKey==='seed'||stageKey==='rooted-seed')return{...base};
-  const branchGrowth=Math.min(.18,Math.max(0,state.branches||0)*.012),canopyGrowth=Math.min(.22,Math.max(0,state.canopySpread||0)*.035),trunkGrowth=Math.min(.1,Math.max(0,state.trunk||0)*.008),heightGrowth=Math.min(.42,Math.max(0,state.heightGrowth||0)*.075);
-  return{...base,width:base.width*(1+branchGrowth+canopyGrowth+trunkGrowth),height:base.height*(1+heightGrowth)};
+  const canopyGrowth=Math.min(.22,Math.max(0,state.canopySpread||0)*.035),trunkGrowth=Math.min(.1,Math.max(0,state.trunk||0)*.008),heightGrowth=Math.min(.42,Math.max(0,state.heightGrowth||0)*.075);
+  return{...base,width:base.width*(1+canopyGrowth+trunkGrowth),height:base.height*(1+heightGrowth)};
 }
 
 export function requestTreeStructureAsset(species,stageKey,onAssetLoad=null){
@@ -352,7 +353,7 @@ function treeHitTarget(tree,state,playerStageName,camera,groundY){
   return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
 }
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,viewOffset={x:0,y:0}}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,viewOffset={x:0,y:0},growthReveal=null}) {
   const w=canvas.width,h=canvas.height;
   let subjectState=state,subjectStage=playerStageName;
   if(immersive&&selectedTargetId?.startsWith('neighbor-')) {
@@ -363,13 +364,16 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     const child=(state.offspringRecords||[]).find(c=>`offspring-${c.id}`===selectedTargetId&&!c.dead);
     if(child){subjectStage=stageForScore(child.stageScore);subjectState={selectedSpecies:child.species,trunk:2,branches:3,leafClusters:3};}
   }
-  const camera=cameraFor(subjectState,subjectStage);camera.zoom*=zoomMultiplier;
+  // Frame by stage, not current root/leaf totals: spending on growth must not
+  // shrink the camera by an equal amount and erase the visible result.
+  const framingState={...subjectState,rootZones:1,leafClusters:shouldDrawSeedRadicle(subjectStage,subjectState.rootZones||0,subjectState.leafClusters||0)?0:2,branches:0,trunk:1,canopySpread:0,heightGrowth:0};
+  const camera=cameraFor(framingState,subjectStage);camera.zoom*=zoomMultiplier;
   if(immersive){
     const rooted=subjectStage==='Sprout'&&!(subjectState.leafClusters>0);
     const desired=subjectStage==='Seed'||rooted?Math.min(82,w*.20):Math.min(h*.42,w*.65);
-    camera.zoom*=Math.min(5,desired/(rooted?2.6*camera.zoom:playerHeight(subjectState,subjectStage,camera)));
+    camera.zoom*=Math.min(5,desired/(rooted?2.6*camera.zoom:playerHeight(framingState,subjectStage,camera)));
   }
-  const centered=centerHorizon||playerStageName==='Seed',groundY=(immersive?Math.max(topInset+playerHeight(subjectState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))))+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
+  const centered=centerHorizon||playerStageName==='Seed',groundY=(immersive?Math.max(topInset+playerHeight(framingState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))))+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
     const neighbor=index===2?null:getNeighborTree(index),arrangement=getCanopyArrangement(state,index,index===2,neighbor);
     return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean};
   });
@@ -385,7 +389,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
   drawDirectionalCanopyShadows(ctx,trees,groundY);
   drawNearGround(ctx,w,h,groundY,camera.rank);
-  trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera}));
+  trees.forEach(tree=>drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal}));
   const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
   drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets);
   drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
@@ -554,8 +558,7 @@ function drawWinterWeather(ctx,w,h,groundY){
 
 function cameraFor(state,stage){
   const order=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'],rank=Math.max(0,order.indexOf(stage));
-  const structuralGrowth=Math.min(.14,((state.rootZones||0)+(state.leafClusters||0)+(state.branches||0))*0.006);
-  return{rank,zoom:(CAMERA_ZOOM[stage]||1)*(1-structuralGrowth)};
+  return{rank,zoom:CAMERA_ZOOM[stage]||1};
 }
 
 function background(ctx,season){const g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,season.top);g.addColorStop(1,season.bottom);return g}
@@ -626,7 +629,7 @@ function drawPaintedSproutFoliage(ctx,species,seed,leafCount,season,shaded=false
   }
 }
 
-function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0}){
+function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0,growthReveal=null}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
@@ -639,6 +642,23 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   const structureStageKey=getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey),visualState={selectedSpecies:species,branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth};
   if(structureImage){
     ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+    if(isPlayer&&stage!=='Seed'){
+      const geometry=getTreeStructureGeometry(structureStageKey,visualState);
+      const growth=preparePaintedGrowth(structureImage,getTreeStructureSourceRect(species,structureStageKey),state,stage,geometry);
+      drawGrowthWood(ctx,growth,growthReveal,season);
+      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);
+      drawGrowthLeaves(ctx,growth,growthReveal,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
+      if(!rootedSeed){
+        const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);
+        if(state.thornDefense>0||state.toxicLeaves>0)drawPlayerDefenses(ctx,tree,state,seed);
+        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers,species);
+        if(season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
+      }
+      ctx.restore();return;
+    }
+    if(stage==='Seed'){
+      requestTreeStructureAsset(species,'rooted-seed');requestTreeStructureAsset(species,'sprout');
+    }
     if(stage==='Seed'||rootedSeed){drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);ctx.restore();return}
     if(stage==='Sprout'){
       drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawPaintedSproutFoliage(ctx,species,seed,leaves,season,shaded);ctx.restore();return;

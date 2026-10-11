@@ -1,3 +1,4 @@
+import { syncGrowthAttachments } from './ui/painted-growth.js?rev=action-growth-v1';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -68,12 +69,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=single-screen-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=final-fauna-rollout-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=second-person-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=no-selection-oval-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=no-selection-oval-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=action-growth-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=action-growth-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-gathering-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=botanical-chapters-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=no-selection-oval-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=action-growth-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=single-screen-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
 
@@ -304,6 +305,22 @@ let sceneHitTargets = [];
 let selectedSceneTarget = null;
 let viewOffset = { x: 0, y: 0 }, focusAnimation = null;
 let lastRenderStage = null;
+let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
+function currentGrowthReveal() {
+  const snapshot={species:state.selectedSpecies,roots:state.rootZones||0,leaves:state.leafClusters||0,branches:state.branches||0,taproots:state.taprootDepth||0};
+  syncGrowthAttachments(state);
+  const previous=lastGrowthSnapshot;
+  if(previous&&previous.species===snapshot.species&&['roots','leaves','branches','taproots'].some(key=>snapshot[key]>previous[key])) {
+    growthTransition={from:previous,start:performance.now()};
+  }
+  if(previous?.species!==snapshot.species)growthTransition=null;
+  lastGrowthSnapshot=snapshot;
+  if(!growthTransition||matchMedia('(prefers-reduced-motion: reduce)').matches){growthTransition=null;return null;}
+  const elapsed=(performance.now()-growthTransition.start)/650;
+  if(elapsed>=1){growthTransition=null;return null;}
+  if(growthFrame===null)growthFrame=requestAnimationFrame(()=>{growthFrame=null;render();});
+  return {from:growthTransition.from,progress:1-Math.pow(1-Math.max(0,elapsed),3)};
+}
 
 function playerSceneTarget() {
   return sceneHitTargets.find(target => target.id === 'player') || {
@@ -1651,6 +1668,7 @@ function render() {
     getRelationshipState,
     topInset: 92,
     selectedTargetId: selectedSceneTarget?.id || 'player',
+    growthReveal: currentGrowthReveal(),
   });
   sceneHitTargets = rendered?.hitTargets || [];
   if (selectedSceneTarget && !sceneHitTargets.some(target => target.id === selectedSceneTarget.id)) {
