@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { LIFE_STAGES, getRelationshipState } from '../core/constants.js';
 import { createActions } from '../core/actions.js';
-import { buildAidDecision, buildConnectionDecision, buildHelpRequestDecision, resolveAidToAlly, resolveConnectionAttempt, resolveDiplomacyDecision, resolveHelpRequestFromAlly, SAME_SPECIES_CONNECTION_BONUS, updateAlliesCount } from '../core/diplomacy.js';
+import { buildAidDecision, buildConnectionDecision, buildHelpRequestDecision, getConnectionAgeBand, resolveAidToAlly, resolveConnectionAttempt, resolveDiplomacyDecision, resolveHelpRequestFromAlly, SAME_SPECIES_CONNECTION_BONUS, updateAlliesCount } from '../core/diplomacy.js';
 import { shouldSkipGathering, updateResourceShortageNudges } from '../core/engine.js';
 import { advanceNeighborDeathCycle } from '../core/neighbors.js';
 import { getSpeciesAdjustedCost } from '../core/species.js';
@@ -36,22 +36,48 @@ test('early shortage guidance only names actions the player has unlocked', () =>
 });
 
 test('connection choices show stage and biological tradeoffs', () => {
-  const state = { selectedSpecies: 'Apricot', neighbors: [{ species: 'Pear', relation: 0, stageScore: 3300, dead: false }] };
+  const state = { selectedSpecies: 'Apricot', neighbors: [
+    { species: 'Pear', relation: 0, stageScore: 3300, dead: false },
+    { species: 'Peach', relation: 0, stageScore: 100, dead: false },
+    { species: 'Citrus', relation: 0, stageScore: 1000, dead: false },
+  ] };
   const decision = buildConnectionDecision(state, { getRelationshipState, getNeighborStage: score => LIFE_STAGES.findLast(stage => score >= stage.threshold) });
-  assert.match(decision.options[0].label, /Mature Tree/);
-  assert.match(decision.options[0].description, /share more water and nutrients/);
-  assert.match(decision.options[0].description, /rejection/);
+  assert.deepEqual(decision.options.map(option => option.group), ['Young trees', 'Established trees', 'Mature trees']);
+  assert.match(decision.options[0].groupDescription, /Easiest to befriend.*15 percentage points/i);
+  assert.match(decision.options[1].groupDescription, /7 percentage points/i);
+  assert.match(decision.options[2].groupDescription, /sharing the most water and nutrients/i);
+  assert.ok(decision.options.every(option => option.description === null));
+  assert.match(decision.body, /Smaller trees are easier to befriend/i);
+});
+
+test('connection age bands make smaller trees easier to befriend', () => {
+  assert.equal(getConnectionAgeBand(1).chanceBonus, 0.15);
+  assert.equal(getConnectionAgeBand(4).chanceBonus, 0.07);
+  assert.equal(getConnectionAgeBand(6).chanceBonus, 0);
+  const makeState = () => ({ selectedSpecies: 'Pear', rootZones: 2, health: 10, water: 5, nutrients: 5 });
+  const young = { species: 'Apricot', relation: 0, stageScore: 100, ally: false };
+  const mature = { species: 'Apricot', relation: 0, stageScore: 3300, ally: false };
+  const deps = { getRelationshipState, getNeighborStage: score => LIFE_STAGES.findLast(stage => score >= stage.threshold), random: () => 0.6 };
+
+  const youngResult = resolveConnectionAttempt(makeState(), young, deps);
+  const matureResult = resolveConnectionAttempt(makeState(), mature, deps);
+
+  assert.equal(young.relation, 20);
+  assert.equal(mature.relation, 3);
+  assert.equal(youngResult.ageBonus, 0.15);
+  assert.equal(matureResult.ageBonus, 0);
 });
 
 test('same-species root contact has a higher chance of a favorable response', () => {
   assert.equal(SAME_SPECIES_CONNECTION_BONUS, 0.15);
   const makeState = selectedSpecies => ({ selectedSpecies, rootZones: 2, health: 10, water: 5, nutrients: 5 });
-  const makeNeighbor = () => ({ species: 'Apricot', relation: 0, ally: false });
+  const makeNeighbor = () => ({ species: 'Apricot', relation: 0, stageScore: 3300, ally: false });
   const ordinaryNeighbor = makeNeighbor();
   const affinityNeighbor = makeNeighbor();
 
-  const ordinary = resolveConnectionAttempt(makeState('Pear'), ordinaryNeighbor, { getRelationshipState, random: () => 0.6 });
-  const affinity = resolveConnectionAttempt(makeState('Apricot'), affinityNeighbor, { getRelationshipState, random: () => 0.6 });
+  const deps = { getRelationshipState, getNeighborStage: score => LIFE_STAGES.findLast(stage => score >= stage.threshold), random: () => 0.6 };
+  const ordinary = resolveConnectionAttempt(makeState('Pear'), ordinaryNeighbor, deps);
+  const affinity = resolveConnectionAttempt(makeState('Apricot'), affinityNeighbor, deps);
 
   assert.equal(ordinaryNeighbor.relation, 3);
   assert.equal(affinityNeighbor.relation, 20);

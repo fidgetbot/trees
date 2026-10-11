@@ -4,6 +4,34 @@ import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, player
 
 export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
 
+export const CONNECTION_AGE_BANDS = [
+  {
+    key: 'young',
+    label: 'Young trees',
+    maxRank: 2,
+    chanceBonus: 0.15,
+    description: 'Easiest to befriend (+15 percentage points). They share less at first, but can grow alongside you.',
+  },
+  {
+    key: 'established',
+    label: 'Established trees',
+    maxRank: 4,
+    chanceBonus: 0.07,
+    description: 'More receptive (+7 percentage points) and able to offer meaningful support sooner.',
+  },
+  {
+    key: 'mature',
+    label: 'Mature trees',
+    maxRank: Number.POSITIVE_INFINITY,
+    chanceBonus: 0,
+    description: 'Hardest to befriend, but capable of sharing the most water and nutrients.',
+  },
+];
+
+export function getConnectionAgeBand(stageRank = 0) {
+  return CONNECTION_AGE_BANDS.find(band => stageRank <= band.maxRank) || CONNECTION_AGE_BANDS.at(-1);
+}
+
 export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelationshipDelta) {
   const adjustedDelta = getAdjustedRelationshipDelta(state, delta);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjustedDelta));
@@ -165,28 +193,30 @@ export function buildConnectionDecision(state, deps = {}) {
   return createDecision({
     kind: 'connection',
     title: 'Reach toward which neighbor?',
-    body: 'Choose a neighboring tree to contact through the soil.',
+    body: 'Choose a neighboring tree to contact through the soil. Smaller trees are easier to befriend; rejection can cost health or resources.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead)
+      .sort((left, right) => getNeighborStage(left.neighbor.stageScore).rank - getNeighborStage(right.neighbor.stageScore).rank)
       .map(({ neighbor, targetIndex }) => {
         const relationName = getRelationshipState(neighbor.relation).name;
         const stage = getNeighborStage(neighbor.stageScore);
-        const advantages = stage.rank >= 4
-          ? 'A larger tree can share more water and nutrients if the bond becomes an alliance.'
-          : 'A younger tree offers less immediate support, but the relationship can grow alongside it.';
+        const ageBand = getConnectionAgeBand(stage.rank);
         const risk = relationName === 'Rival' || relationName === 'Hostile'
           ? 'Its present hostility makes contact risky.'
           : relationName === 'Ally'
             ? 'Renewing contact strengthens an existing bond.'
-            : 'Reaching out may build trust, but rejection can cost health or resources.';
+            : '';
         const affinity = state.selectedSpecies === neighbor.species && relationName !== 'Ally'
           ? ` As another ${neighbor.species}, it is more likely to accept your roots.`
           : '';
         return {
           id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — ${stage.name} · ${relationName}`,
-          description: `${advantages} ${risk}${affinity}`,
+          description: `${risk}${affinity}`.trim() || null,
+          group: ageBand.label,
+          groupDescription: ageBand.description,
+          groupOrder: CONNECTION_AGE_BANDS.indexOf(ageBand),
           targetIndex,
           meta: {
             species: neighbor.species,
@@ -194,6 +224,8 @@ export function buildConnectionDecision(state, deps = {}) {
             canStrengthenAlliance: relationName === 'Ally',
             isRisky: relationName === 'Rival' || relationName === 'Hostile',
             sameSpeciesAffinity: state.selectedSpecies === neighbor.species,
+            ageBand: ageBand.key,
+            ageBonus: ageBand.chanceBonus,
           },
         };
       }),
@@ -272,15 +304,19 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
     getAdjustedRelationshipDelta = (_state, delta) => delta,
+    getNeighborStage = () => ({ rank: 0 }),
     recordDamage = () => {},
     random = Math.random,
   } = deps;
 
   const rootBonus = Math.min(0.35, Math.max(0, state.rootZones - 2) * 0.08);
   const oldState = getRelationshipState(neighbor.relation).name;
+  const ageBand = getConnectionAgeBand(getNeighborStage(neighbor.stageScore).rank);
   const sameSpeciesAffinity = state.selectedSpecies === neighbor.species;
   const affinityBonus = sameSpeciesAffinity && oldState !== 'Ally' ? SAME_SPECIES_CONNECTION_BONUS : 0;
-  const breakthroughBonus = affinityBonus / 3;
+  const ageBonus = oldState !== 'Ally' ? ageBand.chanceBonus : 0;
+  const favorableBonus = affinityBonus + ageBonus;
+  const breakthroughBonus = favorableBonus / 3;
   const roll = random();
   let message = '';
   let feedback = { text: '', type: 'info' };
@@ -297,7 +333,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     feedback = { text: `${neighbor.species} strengthens your alliance`, type: 'success' };
   } else if (oldState === 'Friendly') {
     const breakthroughChance = 0.12 + (rootBonus * 0.35) + breakthroughBonus;
-    const successChance = Math.min(0.99, 0.64 + rootBonus + affinityBonus);
+    const successChance = Math.min(0.99, 0.64 + rootBonus + favorableBonus);
     if (roll < breakthroughChance) {
       applyDelta(42);
       message = `Something clicks beneath the soil. The ${neighbor.species} opens itself to you all at once, and the two of you braid roots in sudden trust.`;
@@ -317,7 +353,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     }
   } else if (oldState === 'Neutral') {
     const breakthroughChance = 0.10 + (rootBonus * 0.3) + breakthroughBonus;
-    const successChance = Math.min(0.99, 0.52 + rootBonus + affinityBonus);
+    const successChance = Math.min(0.99, 0.52 + rootBonus + favorableBonus);
     if (roll < breakthroughChance) {
       applyDelta(55);
       message = `Against all expectation, the ${neighbor.species} answers with immediate warmth. Your tentative greeting becomes a full fungal bond almost at once.`;
@@ -342,7 +378,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
       applyDelta(32);
       message = `After a tense silence, the ${neighbor.species} relents more than you expected. The rivalry cracks and something calmer pushes through.`;
       feedback = { text: `${neighbor.species} softened unexpectedly`, type: 'success' };
-    } else if (roll < Math.min(0.99, 0.32 + rootBonus + affinityBonus)) {
+    } else if (roll < Math.min(0.99, 0.32 + rootBonus + favorableBonus)) {
       applyDelta(18);
       message = `After a tense silence, the ${neighbor.species} relents. The rivalry softens, if only a little.`;
       feedback = { text: `${neighbor.species} softened`, type: 'success' };
@@ -355,7 +391,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
       feedback = { text: `${neighbor.species} retaliated`, type: 'error' };
     }
   } else if (oldState === 'Hostile') {
-    if (roll < Math.min(0.99, 0.06 + rootBonus + affinityBonus)) {
+    if (roll < Math.min(0.99, 0.06 + rootBonus + favorableBonus)) {
       applyDelta(30);
       message = `Against all expectation, the ${neighbor.species} does not strike. Its hatred cools, though distrust still lingers.`;
       feedback = { text: `${neighbor.species} cooled slightly`, type: 'success' };
@@ -384,6 +420,9 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
     feedback,
     sameSpeciesAffinity,
     affinityBonus,
+    ageBand: ageBand.key,
+    ageBonus,
+    favorableBonus,
   };
 }
 
@@ -536,6 +575,7 @@ export function resolveDiplomacyDecision(state, decision, choiceId, deps = {}) {
       outcome: resolveConnectionAttempt(state, neighbor, {
         getRelationshipState: deps.getRelationshipState,
         getAdjustedRelationshipDelta: deps.getAdjustedRelationshipDelta,
+        getNeighborStage: deps.getNeighborStage,
         recordDamage: deps.recordDamage,
         random: deps.random,
       }),

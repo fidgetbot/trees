@@ -54,6 +54,21 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   line-height: 1.35;
   opacity: 0.78;
 }
+.neighbor-choice-group {
+  display: grid;
+  gap: 2px;
+  padding: 9px 4px 2px;
+  color: #3f583b;
+}
+.neighbor-choice-group-title {
+  font-size: .9rem;
+  letter-spacing: .025em;
+}
+.neighbor-choice-group-description {
+  color: #66715f;
+  font-size: .79rem;
+  line-height: 1.35;
+}
 .neighbor-choice:disabled {
   background: #718096;
   color: #e2e8f0;

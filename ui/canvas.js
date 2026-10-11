@@ -1,5 +1,5 @@
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=feeding-pests-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS } from './fauna-art.js?rev=encounter-art-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
 import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=juvenile-growth-v1';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=juvenile-growth-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
@@ -396,8 +396,9 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
   const drawGrounded=(kind,centerX,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
-    const top=groundY-displayHeight*482/512;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
-    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
+    const contactY=getAnimalScenePlacement(kind).contactY??.94;
+    const top=groundY-displayHeight*contactY;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,anchor:{type:'ground',x:centerX,y:groundY},bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
   };
   const drawFloating=(kind,centerX,centerY,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
@@ -414,8 +415,9 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
       const displayHeight=64*scale,displayWidth=displayHeight*2/3;
       const treeHeight=playerHeight(state,playerStageName,camera);
       const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
-      const left=x+7*scale,top=centerY-displayHeight*.48;ctx.drawImage(image,left,top,displayWidth,displayHeight);
-      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',bounds:{x:left-10,y:top-10,width:displayWidth+20,height:displayHeight+20}});
+      const contactX=getAnimalScenePlacement(kind).contactX??.27;
+      const left=x-displayWidth*contactX,top=centerY-displayHeight*.48;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',anchor:{type:'trunk',x,y:centerY},bounds:{x:left-10,y:top-10,width:displayWidth+20,height:displayHeight+20}});
       return;
     }
     if(kind==='beaver'){
@@ -427,10 +429,10 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
       drawGrounded('browser-rabbit',x+70*scale,46*scale,'Browsing rabbit');
       return;
     }
+    if(kind==='fruit-robin'){drawGrounded(kind,x+76*scale,72*scale,'Fruit-visiting robin');return}
+    if(kind==='fruit-squirrel'){drawGrounded(kind,x-68*scale,58*scale,'Fruit-visiting squirrel');return}
     const treeHeight=playerHeight(state,playerStageName,camera);
     const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
-    if(kind==='fruit-robin'){drawFloating(kind,x+48*scale,canopyY-16*scale,72*scale,'Fruit-visiting robin');return}
-    if(kind==='fruit-squirrel'){drawFloating(kind,x-46*scale,canopyY+18*scale,58*scale,'Fruit-visiting squirrel');return}
     if(kind.startsWith('pollinator-')){
       const titles={
         'pollinator-bumblebee':'Bumblebee','pollinator-honeybee':'Honeybee','pollinator-mason-bee':'Mason bee',

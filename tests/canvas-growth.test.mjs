@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { getAnimalScenePlacement } from '../ui/fauna-art.js';
+
 import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
@@ -247,6 +249,15 @@ test('scene art keeps named wildlife and expands browser groups without duplicat
     ['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids'],
   );
   assert.deepEqual(getSceneArtKinds({}), []);
+});
+
+test('animal artwork uses pose-appropriate scene anchors', () => {
+  for (const kind of ['fruit-robin', 'fruit-squirrel', 'beaver', 'browser-deer', 'browser-rabbit']) {
+    assert.equal(getAnimalScenePlacement(kind).anchor, 'ground', `${kind} should stand on the ground`);
+    assert.ok(getAnimalScenePlacement(kind).contactY > 0.85, `${kind} feet should meet the ground`);
+  }
+  assert.equal(getAnimalScenePlacement('woodpecker').anchor, 'trunk');
+  assert.equal(getAnimalScenePlacement('pollinator-butterfly').anchor, 'air');
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {

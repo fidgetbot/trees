@@ -20,6 +20,19 @@ export const INSECT_ASSET_URLS=Object.freeze({
   mites:new URL(`../assets/insects/pest-mites-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
 });
 
+export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
+  woodpecker:Object.freeze({anchor:'trunk',contactX:.27}),
+  beaver:Object.freeze({anchor:'ground',contactY:.93}),
+  'browser-deer':Object.freeze({anchor:'ground',contactY:.94}),
+  'browser-rabbit':Object.freeze({anchor:'ground',contactY:.94}),
+  'fruit-robin':Object.freeze({anchor:'ground',contactY:.89}),
+  'fruit-squirrel':Object.freeze({anchor:'ground',contactY:.92}),
+});
+
+export function getAnimalScenePlacement(kind){
+  return ANIMAL_SCENE_PLACEMENT[kind]||Object.freeze({anchor:'air'});
+}
+
 const LABELS = {
   woodpecker: 'Woodpecker', beaver: 'Beaver', 'browser-deer': 'Browsing deer',
   'browser-rabbit': 'Browsing rabbit', 'fruit-robin': 'Robin', 'fruit-squirrel': 'Squirrel',

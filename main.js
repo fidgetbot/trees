@@ -51,7 +51,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=same-species-affinity-v1';
+} from './core/diplomacy.js?rev=age-affinity-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -70,11 +70,11 @@ import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=fruit-minimap-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=quiet-action-dock-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=age-affinity-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=fruit-minimap-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=animal-anchors-v1';
 import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
@@ -708,10 +708,14 @@ function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a ne
       return {
         label: presentation.label || `${n.species} (${rel}${healthText})`,
         description: presentation.description,
+        group: presentation.group,
+        groupDescription: presentation.groupDescription,
+        groupOrder: presentation.groupOrder,
         disabled: presentation.disabled,
         onChoose: () => onPick(n),
       };
-    });
+    })
+    .sort((left, right) => (left.groupOrder ?? Number.POSITIVE_INFINITY) - (right.groupOrder ?? Number.POSITIVE_INFINITY));
   if (includeBack) choices.push({ label: 'Back', onChoose: () => onBack?.() });
   showChoiceModal(title, `<p>${body}</p>`, choices);
 }
@@ -1037,7 +1041,10 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
     const affinityLine = outcome.affinityBonus
       ? `<p><em>Shared species made this contact more likely to succeed.</em></p>`
       : '';
-    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p>${affinityLine}<p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
+    const ageLine = outcome.ageBonus
+      ? `<p><em>${outcome.ageBand === 'young' ? 'This young tree' : 'This established tree'} was more receptive to a new bond.</em></p>`
+      : '';
+    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p>${affinityLine}${ageLine}<p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
       refreshRenderedView({ actions: true });
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
     });
@@ -1155,7 +1162,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     cancel,
     neighbor => {
       const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-      return option ? { label: option.label, description: option.description, disabled: option.disabled } : null;
+      return option ? { label: option.label, description: option.description, group: option.group, groupDescription: option.groupDescription, groupOrder: option.groupOrder, disabled: option.disabled } : null;
     },
   );
   return { deferred: true };
