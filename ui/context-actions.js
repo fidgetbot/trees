@@ -84,6 +84,22 @@ export function getContextualActions({ target, usableActions, state, getRelation
     .map(({ entry }) => entry);
 }
 
+export function describeNeighborEffects(neighbor, relationship = 'Neutral') {
+  if (!neighbor) return ['No current effects'];
+  const effects = [];
+  if (relationship === 'Ally') effects.push('Shares water and nutrients through the fungal network');
+  if (neighbor.playerShading) effects.push('Growing under your shade; its growth is slowed');
+  if (neighbor.shadingPlayer) effects.push('Crowding your canopy and reducing your available light');
+  if (relationship === 'Rival') effects.push('Its roots compete with yours for nutrients');
+  if (relationship === 'Hostile') effects.push('Its roots compete for nutrients and reduce your water');
+  if ((neighbor.rhizosphereBonus || 0) > 0) effects.push('Benefits from your enriched rhizosphere');
+  for (const crisis of neighbor.activeCrises || []) effects.push(crisis.title || 'Needs support');
+  if (Number.isFinite(neighbor.health) && Number.isFinite(neighbor.maxHealth) && neighbor.health < neighbor.maxHealth) {
+    effects.push(`Injured · ${Math.max(0, neighbor.health)}/${neighbor.maxHealth} health`);
+  }
+  return effects.length ? effects : ['No current effects'];
+}
+
 export function getTargetActionContext(target, state, getRelationshipState = () => ({ name: 'Neutral' })) {
   if (!target || target.type === 'player-tree') {
     return {
@@ -99,6 +115,8 @@ export function getTargetActionContext(target, state, getRelationshipState = () 
       kicker: 'Selected neighbor',
       title: neighbor?.species || target.title || 'Neighboring tree',
       detail: `${target.stageName || 'Tree'} · ${relationship}`,
+      relationship,
+      effects: describeNeighborEffects(neighbor, relationship),
     };
   }
   if (target.type === 'offspring-tree') {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getContextualActions, isActionRelevantToTarget, pickSceneTarget } from '../ui/context-actions.js';
+import { describeNeighborEffects, getContextualActions, isActionRelevantToTarget, pickSceneTarget } from '../ui/context-actions.js';
 
 const entry = (key, category = 'growth') => ({ action: { key, category, name: key } });
 const relationship = value => ({ name: value >= 60 ? 'Ally' : value < 0 ? 'Rival' : 'Neutral' });
@@ -22,6 +22,19 @@ test('a selected ally shows only actions concerning that exact tree', () => {
   const chosen = getContextualActions({ target, usableActions, state, getRelationshipState: relationship });
   assert.deepEqual(chosen.map(item => item.action.key), ['aidAlly', 'requestHelp', 'connect']);
   assert.equal(isActionRelevantToTarget({ key: 'growBranch' }, target, state, relationship), false);
+});
+
+test('neighbor overview describes relationship effects from authoritative state', () => {
+  assert.deepEqual(describeNeighborEffects({ health: 8, maxHealth: 10, playerShading: true, rhizosphereBonus: .5 }, 'Ally'), [
+    'Shares water and nutrients through the fungal network',
+    'Growing under your shade; its growth is slowed',
+    'Benefits from your enriched rhizosphere',
+    'Injured · 8/10 health',
+  ]);
+  assert.deepEqual(describeNeighborEffects({ health: 10, maxHealth: 10, shadingPlayer: true }, 'Hostile'), [
+    'Crowding your canopy and reducing your available light',
+    'Its roots compete for nutrients and reduce your water',
+  ]);
 });
 
 test('wildlife selection produces a stable relevant shortlist without padding', () => {

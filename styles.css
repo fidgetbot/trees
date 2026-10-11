@@ -1829,3 +1829,126 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 .scene-tools { max-width: calc(100% - 28px); }
 .scene-tools > button { flex: 0 0 auto; }
 .scene-tools .focus-picker, .scene-tools .focus-picker select { min-width: 0; }
+
+/* Fruit minimap navigation and notebook placement. */
+.game-started .map-status {
+  top: max(12px, env(safe-area-inset-top));
+  right: 14px;
+  bottom: auto;
+  left: 14px;
+  height: 46px;
+  display: grid;
+  grid-template-columns: max-content 40px max-content;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.game-started .grove-time-pill,
+.game-started .grove-resource-pill,
+.game-started .grove-notebook-button {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  transform: none;
+}
+.grove-notebook-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid #fff8;
+  border-radius: 50%;
+  color: #55483b;
+  background: rgba(249,245,229,.9);
+  box-shadow: 0 3px 18px #443c2810;
+  backdrop-filter: blur(14px);
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: auto;
+}
+.grove-notebook-button:hover,
+.grove-notebook-button:focus-visible { background: #fffaf0; outline: 2px solid #8c713e; outline-offset: 2px; }
+.game-started .grove-resource-pill { pointer-events: auto; }
+.grove-minimap {
+  position: absolute;
+  z-index: 3;
+  top: max(68px, calc(env(safe-area-inset-top) + 56px));
+  right: 14px;
+  left: 14px;
+  height: 52px;
+  border: 1px solid #fff8;
+  border-radius: 26px;
+  background: rgba(249,245,229,.78);
+  box-shadow: 0 3px 18px #443c2810;
+  backdrop-filter: blur(14px);
+}
+.grove-minimap::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  left: 22px;
+  height: 1px;
+  background: #796e5738;
+}
+.minimap-fruit {
+  position: absolute;
+  top: 50%;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 1px solid #7d765e55;
+  border-radius: 50%;
+  color: #423c31;
+  background: #f8f2df;
+  box-shadow: 0 2px 8px #342e2222;
+  font-size: 19px;
+  line-height: 1;
+}
+.minimap-fruit.player { width: 42px; min-width: 42px; height: 42px; min-height: 42px; border-color: #687d53; }
+.minimap-fruit.selected { border: 3px solid #945e48; background: #fffaf0; box-shadow: 0 0 0 3px #fff9, 0 4px 12px #342e2233; }
+.minimap-fruit:hover,
+.minimap-fruit:focus-visible { z-index: 2; background: #fffaf0; outline: 2px solid #8c713e; outline-offset: 2px; }
+
+.game-started .context-shortlist.neighbor-overview { display: grid; grid-template-columns: minmax(105px,.7fr) minmax(0,1.8fr); gap: 8px; }
+.neighbor-status,
+.neighbor-effects { min-width: 0; padding: 10px 12px; border: 1px solid #66826130; border-radius: 13px; background: #eef0de; }
+.neighbor-status { display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.neighbor-status span,
+.neighbor-effects > span { color: #777565; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.neighbor-status strong { color: #486244; font-size: 16px; }
+.neighbor-status-rival strong,
+.neighbor-status-hostile strong { color: #945e48; }
+.neighbor-effects ul { margin: 5px 0 0; padding-left: 17px; color: #555548; font-size: 11px; line-height: 1.35; }
+.context-reset { white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .game-started .map-status { right: 8px; left: 8px; gap: 4px; grid-template-columns: max-content 36px minmax(0,max-content); }
+  .game-started .grove-time-pill { padding: 7px 8px; font-size: 10px; }
+  .game-started .grove-resource-pill { gap: 4px; padding: 7px 6px; }
+  .grove-notebook-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; font-size: 16px; }
+  .grove-minimap { right: 8px; left: 8px; }
+  .minimap-fruit { width: 34px; min-width: 34px; height: 34px; min-height: 34px; font-size: 17px; }
+  .minimap-fruit.player { width: 38px; min-width: 38px; height: 38px; min-height: 38px; }
+  .game-started .context-shortlist.neighbor-overview { grid-template-columns: 1fr; }
+  .neighbor-status { flex-direction: row; align-items: baseline; justify-content: space-between; }
+}
+
+@media (max-width: 350px) {
+  .grove-score { display: none; }
+  .game-started .grove-resource-pill { gap: 2px; }
+  .grove-resource { font-size: 9px; }
+}
+
+@media (max-height: 500px) {
+  .grove-minimap { top: max(60px, calc(env(safe-area-inset-top) + 50px)); height: 44px; }
+  .minimap-fruit { width: 32px; min-width: 32px; height: 32px; min-height: 32px; font-size: 16px; }
+  .minimap-fruit.player { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+}

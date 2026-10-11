@@ -37,7 +37,7 @@ As work proceeds, the relevant GitHub issue(s) should be updated instead of appe
 - **Platform:** Web-based HTML5 game
 - **Graphics:** HTML5 Canvas, 2D
 - **Hosting:** GitHub Pages from `fidgetbot/trees`
-- **Resolution:** responsive viewport-sized Canvas with device-pixel scaling; separate 4096×1200 explorer
+- **Resolution:** responsive viewport-sized Canvas with device-pixel scaling
 - **Current focus:** fruiting trees only
 
 The game combines:
@@ -156,7 +156,7 @@ Current browser HUD behavior:
 - after the first root extends but before the first leaf grows, the young player remains visibly a seed with one small radicle emerging below it; the stem and leaves do not appear early
 - Sprout and Seedling foliage uses eighteen dedicated juvenile watercolor specimens (three per species): first leaves, a second unfolding pair, and a small juvenile plant. The first leaf action reveals a soft green shoot with an intact growing tip and residual seed, never a blunt woody stem or miniature adult branch. Selection follows leaf actions, independently of root investment; later leaves use a juvenile leaf cutout and connected petiole. The pictured growth is not double-counted. Each specimen has a reviewed root-collar anchor and above-ground height; same-stage camera framing is stable, including complete leaf loss. All three images preload from the seed, and pending images retain an available earlier specimen. Seasonal layers retain the exact painted shoot/bud/seed/roots while hiding foliage in winter or after total leaf loss; autumn filters affect foliage only. Growth-chapter portraits use the matching juvenile image. Masters, prompt specifications, and runtime hashes are preserved.
 - Grow Taller and Shade Neighbor unlock immediately upon reaching Seedling. Grow Taller lengthens the trunk, provides one additional point of sunlight gathering, and raises the player's competitive canopy height; each unbraced level adds one storm damage, at most three levels may remain unbraced, and Fortify Bark unlocks one season later to brace one level while also improving trunk strength, health, water storage, and resistance to drought, storms, insects, fire, and woodpeckers
-- **Explore** (or Enter/Space on the scene) opens the larger grove explorer with accelerated panning, button/keyboard/trackpad/pinch zoom from 3% to 300%, and Reset. Continuous pinch and Ctrl/⌘-scroll use a GPU live preview and one committed redraw. Explorer camera state remains independent of the normal focused view. Tapping empty normal-scene space returns selection to the player.
+- A full-width fruit minimap forms the second control row above the grove. It preserves each tree's relative position with the player centered; each fruit is a keyboard-accessible target that smoothly pans and zooms the main scene to fit that tree. Selecting a neighbor replaces the contextual action shortlist with its relationship and current-effects card. That card provides a smooth return to the player's tree, while the complete action catalog remains available through More actions. Tapping empty scene space also returns to the player.
 - Action count stays visible beside the dock controls rather than inside a lengthy end-turn label.
 - End turn stays outside the scrollable full-action catalog, beside Info and All actions; the fixed dock remains reachable at small phone sizes and in landscape.
 - a compact live resource-and-health strip sits directly beneath the Actions heading; action cards show only their required amounts with a small `cost` label, while shortages receive a stronger warning treatment, avoiding repeated `cost / yours` figures now that current totals remain visible beside the list
@@ -463,4 +463,4 @@ The current high-level goals are:
 
 - Info is a restrained botanical notebook: the painted species specimen and exact species description/bonus lead the sheet, followed by score, growth requirements, statistics, seasons, offspring and log. Redundant selection/“Your tree” labels and inspector/group toggle headings are removed. All Info sections are always open, with one internal sheet scrollbar; the action catalog keeps its separate behavior.
 
-- The notebook is opened by a labeled Notebook control beside Focus/Explore above the grove (or by tapping the resource bar), not from the action/End turn dock. Top controls shrink within narrow viewports without hiding the notebook.
+- The notebook is opened by a book-icon button between the year/season and resource bar (or by tapping the resource bar), not from the action/End turn dock. Top controls shrink within narrow viewports without hiding the notebook.

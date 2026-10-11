@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=quiet-action-dock-v1" />
+  <link rel="stylesheet" href="styles.css?rev=fruit-minimap-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=1" />
 </head>
 <body class="theme-light-rounded">
@@ -24,6 +24,7 @@
           <div class="map-frame">
             <div class="map-status" aria-label="Current game status">
               <div class="grove-time-pill">Year <strong id="year">1</strong><span aria-hidden="true"> · </span><strong id="season">Spring</strong></div>
+              <button id="open-info" class="grove-notebook-button" type="button" aria-label="Open botanical notebook" title="Notebook"><span aria-hidden="true">📖</span></button>
               <button type="button" id="resource-info" class="grove-resource-pill" aria-label="Resources and health — tap for details">
                 <span class="grove-resource grove-score" title="Score"><span aria-hidden="true">✦</span><strong id="score">0</strong></span>
                 <span class="grove-resource grove-sun" title="Sunlight"><span aria-hidden="true">☀️</span><strong id="grove-sunlight">0</strong></span>
@@ -33,8 +34,8 @@
               <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
             </div>
-            <div class="scene-tools"><label class="focus-picker">Focus <select id="scene-focus" aria-label="Focus a grove object"><option value="player">Your tree</option></select></label><button id="explore-grove" type="button">Explore</button><button id="open-info" type="button" aria-label="Open botanical notebook">Notebook</button></div>
-            <canvas id="game-canvas" width="900" height="600" tabindex="0" role="button" aria-label="Select a tree or visitor. Press Enter to explore the whole grove."></canvas>
+            <nav id="grove-minimap" class="grove-minimap" aria-label="Trees in the grove"></nav>
+            <canvas id="game-canvas" width="900" height="600" tabindex="0" aria-label="Grove view. Select a tree or visitor in the scene or use the fruit minimap above."></canvas>
           </div>
         </div>
       </section>
@@ -188,27 +189,6 @@
     </div>
   </div>
 
-  <div id="map-explorer" class="map-explorer hidden" role="dialog" aria-modal="true" aria-labelledby="map-explorer-title">
-    <div class="map-explorer-shell">
-      <div class="map-explorer-header">
-        <div>
-          <h2 id="map-explorer-title">Explore the Grove</h2>
-          <p>Drag to pan. Pinch, use the buttons, or Ctrl/⌘-scroll to zoom. Tap the view to return.</p>
-        </div>
-        <div class="map-explorer-controls" aria-label="Map zoom controls">
-          <button id="map-explorer-zoom-out" type="button" aria-label="Zoom out">−</button>
-          <span id="map-explorer-zoom-label" aria-live="polite">100%</span>
-          <button id="map-explorer-zoom-in" type="button" aria-label="Zoom in">+</button>
-          <button id="map-explorer-reset" type="button">Reset</button>
-          <button id="map-explorer-close" type="button" aria-label="Close map explorer">×</button>
-        </div>
-      </div>
-      <div id="map-explorer-viewport" class="map-explorer-viewport" tabindex="0" aria-label="Scrollable grove view">
-        <canvas id="map-explorer-canvas" width="4096" height="1200"></canvas>
-      </div>
-    </div>
-  </div>
-
   <script>
     fetch('./version.json?ts=' + Date.now())
       .then(r => r.json())
@@ -221,6 +201,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=quiet-action-dock-v1"></script>
+  <script type="module" src="main.js?rev=fruit-minimap-v1"></script>
 </body>
 </html>

@@ -66,17 +66,18 @@ import {
 import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-action-dock-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=quiet-action-dock-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=quiet-action-dock-v1';
+import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=fruit-minimap-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=quiet-action-dock-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=encounter-art-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=feeding-pests-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=fruit-minimap-v1';
+import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=grove-mode-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -302,7 +303,7 @@ const els = getBrowserElements(document);
 const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
-let viewOffset = { x: 0, y: 0 }, focusAnimation = null;
+let sceneCamera = { x: 0, y: 0, zoom: 1 }, cameraAnimationFrame = null;
 let lastRenderStage = null;
 let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
 function currentGrowthReveal() {
@@ -334,24 +335,82 @@ function activeSceneTarget() {
 }
 
 function selectSceneTarget(target) {
-  focusAnimation?.cancel();
+  if (cameraAnimationFrame !== null) cancelAnimationFrame(cameraAnimationFrame);
+  cameraAnimationFrame = null;
   selectedSceneTarget = target || playerSceneTarget();
-  viewOffset = { x: 0, y: 0 };
-  render();
-  const from = { ...viewOffset }, bounds = activeSceneTarget().bounds;
-  const rect = els.canvas.getBoundingClientRect();
-  const availableHeight = Math.max(160, rect.height - els.hudPanel.offsetHeight - 34);
-  const to = selectedSceneTarget.id === 'player' ? { x: 0, y: 0 } : {
-    x: from.x + rect.width / 2 - (bounds.x + bounds.width / 2),
-    y: from.y + Math.max(150, availableHeight * .54) - (bounds.y + bounds.height / 2),
-  };
   renderActions();
-  viewOffset = to;
-  render();
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    focusAnimation = els.canvas.animate([{ opacity: .72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-  }
+  const to = sceneCameraForTarget(selectedSceneTarget);
+  animateSceneCamera(to);
+}
 
+function sceneTopInset(height) {
+  return height <= 500 ? Math.max(96, Math.round(height * .28)) : 126;
+}
+
+function sceneViewport() {
+  const rect = els.canvas.getBoundingClientRect();
+  const height = Math.max(240, Math.round(rect.height || 600));
+  const hudRect = els.hudPanel.getBoundingClientRect();
+  return {
+    width: Math.max(320, Math.round(rect.width || 900)),
+    height,
+    topInset: sceneTopInset(height),
+    bottomInset: state.started ? Math.max(0, height - (hudRect.top - rect.top)) : 0,
+    renderHeight: Math.max(220, height - (state.started ? els.hudPanel.offsetHeight + 26 : 0)),
+  };
+}
+
+function measureSceneTarget(targetId, zoom) {
+  const viewport = sceneViewport();
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.renderHeight;
+  const rendered = renderForestScene({
+    ctx: canvas.getContext('2d'), canvas,
+    immersive: true, frameSelectedSubject: false,
+    viewOffset: { x: 0, y: 0 }, zoomMultiplier: zoom,
+    state, currentSeason: currentSeason(), playerStageName: computeCurrentLifeStage().name,
+    getNeighborTree, getRelationshipState, topInset: viewport.topInset,
+    selectedTargetId: targetId,
+  });
+  return rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds || null;
+}
+
+function sceneCameraForTarget(target) {
+  const viewport = sceneViewport();
+  if (!target || target.id === 'player') return { x: 0, y: 0, zoom: 1 };
+  const baseBounds = measureSceneTarget(target.id, 1);
+  if (!baseBounds) return { x: 0, y: 0, zoom: 1 };
+  const zoom = targetSceneZoom(baseBounds, viewport);
+  const fittedBounds = measureSceneTarget(target.id, zoom) || baseBounds;
+  return { ...centeredSceneOffset(fittedBounds, viewport), zoom };
+}
+
+function animateSceneCamera(to) {
+  const from = { ...sceneCamera };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    sceneCamera = to;
+    render();
+    return;
+  }
+  const startedAt = performance.now();
+  const duration = 620;
+  const tick = now => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    sceneCamera = interpolateSceneCamera(from, to, progress);
+    render();
+    if (progress < 1) cameraAnimationFrame = requestAnimationFrame(tick);
+    else {
+      const bounds = activeSceneTarget()?.bounds;
+      if (selectedSceneTarget?.id !== 'player' && bounds) {
+        const correction = centeredSceneOffset(bounds, sceneViewport());
+        sceneCamera = { ...sceneCamera, x: sceneCamera.x + correction.x, y: sceneCamera.y + correction.y };
+        render();
+      }
+      cameraAnimationFrame = null;
+    }
+  };
+  cameraAnimationFrame = requestAnimationFrame(tick);
 }
 
 // Floating feedback system
@@ -516,7 +575,6 @@ function showGameOverScreen(summary) {
   document.body.classList.remove('game-started');
   document.getElementById('detail-sheet')?.close();
   els.modal?.classList.add('hidden');
-  els.mapExplorer?.classList.add('hidden');
   document.querySelectorAll('.game-panel, #species-panel').forEach(panel => panel.classList.add('hidden'));
   const app = document.getElementById('app');
   app.innerHTML = renderFullGameOverBody(summary);
@@ -1687,151 +1745,66 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#332f25"; ctx.fillRect(0, 0, width, height);
   const stage = computeCurrentLifeStage().name;
-  if (lastRenderStage !== stage) { viewOffset = { x: 0, y: 0 }; selectedSceneTarget = null; lastRenderStage = stage; }
+  if (lastRenderStage !== stage) { sceneCamera = { x: 0, y: 0, zoom: 1 }; selectedSceneTarget = null; lastRenderStage = stage; }
   const rendered = renderForestScene({
     ctx,
     canvas: { width, height: Math.max(220, height - (state.started ? els.hudPanel.offsetHeight + 26 : 0)), dataset: els.canvas.dataset },
     immersive: true,
-    viewOffset,
+    frameSelectedSubject: false,
+    viewOffset: { x: sceneCamera.x, y: sceneCamera.y },
+    zoomMultiplier: sceneCamera.zoom,
     state,
     currentSeason: currentSeason(),
     playerStageName: computeCurrentLifeStage().name,
     getNeighborTree,
     getRelationshipState,
-    topInset: 92,
+    topInset: sceneTopInset(height),
     selectedTargetId: selectedSceneTarget?.id || 'player',
     growthReveal: currentGrowthReveal(),
   });
   sceneHitTargets = rendered?.hitTargets || [];
   if (selectedSceneTarget && !sceneHitTargets.some(target => target.id === selectedSceneTarget.id)) {
-    selectedSceneTarget = null; viewOffset = { x: 0, y: 0 }; render(); renderActions(); return;
+    selectedSceneTarget = null; sceneCamera = { x: 0, y: 0, zoom: 1 }; render(); renderActions(); return;
   }
   selectedSceneTarget = activeSceneTarget();
-  const focus = document.getElementById('scene-focus');
-  if (focus) {
-    const targets = sceneHitTargets.filter(target => target.id === 'player' || (target.stageName !== 'Dead'));
-    const signature = targets.map(target => `${target.id}:${target.title}`).join('|');
-    if (focus.dataset.signature !== signature) {
-      focus.replaceChildren(...targets.map(target => new Option(target.id === 'player' ? 'Your tree' : target.title, target.id)));
-      focus.dataset.signature = signature;
-    }
-    focus.value = selectedSceneTarget.id;
-  }
-  if (!els.mapExplorer?.classList.contains('hidden')) renderMapExplorer();
+  renderGroveMinimap();
 }
 
-let mapExplorerZoom=1,mapExplorerPreviewZoom=null,mapExplorerPreviewAnchor=null,mapExplorerWheelTimer=null;
-
-function renderMapExplorer() {
-  if (!els.mapExplorerCanvas) return;
-  renderForestScene({
-    ctx: els.mapExplorerCanvas.getContext('2d'),
-    canvas: els.mapExplorerCanvas,
-    state,
-    currentSeason: currentSeason(),
-    playerStageName: computeCurrentLifeStage().name,
-    getNeighborTree,
-    getRelationshipState,
-    zoomMultiplier: mapExplorerZoom,
-    centerHorizon: true,
-  });
+function minimapSpeciesFor(target) {
+  if (target.id === 'player') return state.selectedSpecies;
+  if (target.type === 'neighbor-tree') return state.neighbors?.[target.targetIndex]?.species || target.title;
+  if (target.type === 'offspring-tree') return (state.offspringRecords || []).find(child => child.id === target.childId)?.species || state.selectedSpecies;
+  return null;
 }
 
-function centerMapExplorer() {
-  const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
-  if(!viewport||!canvas)return;
-  viewport.scrollLeft=(canvas.width-viewport.clientWidth)/2;
-  viewport.scrollTop=(canvas.height-viewport.clientHeight)/2;
+function renderGroveMinimap() {
+  if (!els.groveMinimap) return;
+  const targets = sceneHitTargets.filter(target => ['player-tree', 'neighbor-tree', 'offspring-tree'].includes(target.type) && target.stageName !== 'Dead');
+  const maxDistance = Math.max(1, ...targets.map(target => Math.abs(target.mapPosition || 0)));
+  const signature = targets.map(target => `${target.id}:${target.title}:${target.mapPosition}:${target.id === selectedSceneTarget?.id}`).join('|');
+  if (els.groveMinimap.dataset.signature === signature) return;
+  els.groveMinimap.dataset.signature = signature;
+  els.groveMinimap.replaceChildren(...targets.sort((a,b)=>(a.mapPosition||0)-(b.mapPosition||0)).map(target => {
+    const species = minimapSpeciesFor(target);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `minimap-fruit${target.id === 'player' ? ' player' : ''}${target.id === selectedSceneTarget?.id ? ' selected' : ''}`;
+    button.style.left = `${50 + ((target.mapPosition || 0) / maxDistance) * 44}%`;
+    button.innerHTML = `<span aria-hidden="true">${SPECIES[species]?.icon || '🌳'}</span>`;
+    button.setAttribute('aria-label', `${target.id === 'player' ? 'Your' : target.title} ${target.stageName}; move the view to this tree`);
+    if (target.id === selectedSceneTarget?.id) button.setAttribute('aria-current', 'true');
+    button.onclick = () => selectSceneTarget(sceneHitTargets.find(candidate => candidate.id === target.id));
+    return button;
+  }));
 }
 
-function clearMapExplorerPreview() {
-  const canvas=els.mapExplorerCanvas;
-  if(canvas){canvas.style.transform='';canvas.style.transformOrigin='';canvas.classList.remove('zoom-preview')}
-  if(mapExplorerWheelTimer){clearTimeout(mapExplorerWheelTimer);mapExplorerWheelTimer=null}
-  mapExplorerPreviewZoom=null;mapExplorerPreviewAnchor=null;
-}
-
-function previewMapExplorerZoom(next,{clientX,clientY}={}) {
-  const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
-  if(!viewport||!canvas)return;
-  const zoom=Math.max(.03,Math.min(3,next)),rect=viewport.getBoundingClientRect(),anchorX=clientX==null?viewport.clientWidth/2:clientX-rect.left,anchorY=clientY==null?viewport.clientHeight/2:clientY-rect.top,canvasX=viewport.scrollLeft+anchorX,canvasY=viewport.scrollTop+anchorY;
-  mapExplorerPreviewZoom=zoom;mapExplorerPreviewAnchor={clientX:rect.left+anchorX,clientY:rect.top+anchorY};
-  canvas.style.transformOrigin=`${canvasX}px ${canvasY}px`;canvas.style.transform=`scale(${zoom/mapExplorerZoom})`;canvas.classList.add('zoom-preview');
-  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent=`${Math.round(zoom*100)}%`;
-}
-
-function commitMapExplorerPreview() {
-  if(mapExplorerPreviewZoom==null)return;
-  const zoom=mapExplorerPreviewZoom,anchor=mapExplorerPreviewAnchor;
-  clearMapExplorerPreview();setMapExplorerZoom(zoom,anchor||{});
-}
-
-function setMapExplorerZoom(next,{clientX,clientY}={}) {
-  const viewport=els.mapExplorerViewport,canvas=els.mapExplorerCanvas;
-  if(!viewport||!canvas)return;
-  const previous=mapExplorerZoom,zoom=Math.max(.03,Math.min(3,next));
-  if(Math.abs(zoom-previous)<.0001)return;
-  const rect=viewport.getBoundingClientRect(),anchorX=clientX==null?viewport.clientWidth/2:clientX-rect.left,anchorY=clientY==null?viewport.clientHeight/2:clientY-rect.top;
-  const canvasX=viewport.scrollLeft+anchorX,canvasY=viewport.scrollTop+anchorY,ratio=zoom/previous;
-  mapExplorerZoom=zoom;renderMapExplorer();
-  viewport.scrollLeft=canvas.width/2+(canvasX-canvas.width/2)*ratio-anchorX;
-  viewport.scrollTop=canvas.height/2+(canvasY-canvas.height/2)*ratio-anchorY;
-  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent=`${Math.round(zoom*100)}%`;
-}
-
-function resetMapExplorer() {
-  clearMapExplorerPreview();mapExplorerZoom=1;renderMapExplorer();
-  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent='100%';
-  centerMapExplorer();
-}
-
-function openMapExplorer() {
-  if (!state.started || !els.mapExplorer || !els.mapExplorerViewport) return;
-  els.mapExplorer.classList.remove('hidden');
-  document.body.classList.add('map-explorer-open');
-  clearMapExplorerPreview();mapExplorerZoom=1;renderMapExplorer();
-  if(els.mapExplorerZoomLabel)els.mapExplorerZoomLabel.textContent='100%';
-  requestAnimationFrame(() => {
-    const viewport=els.mapExplorerViewport;
-    centerMapExplorer();
-    viewport.focus();
-  });
-}
-
-function closeMapExplorer() {
-  clearMapExplorerPreview();
-  els.mapExplorer?.classList.add('hidden');
-  document.body.classList.remove('map-explorer-open');
-  els.canvas?.focus();
-}
-
-function initMapExplorer() {
-  const viewport=els.mapExplorerViewport;
-  if (!viewport) return;
-  const panSpeed=2.75,wheelSpeed=4;
+function initSceneInteraction() {
   els.canvas.addEventListener('click',event=>{
     const rect=els.canvas.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
     const target=pickSceneTarget(sceneHitTargets,x,y);
     if(target){selectSceneTarget(target);return}
     selectSceneTarget(playerSceneTarget());
   });
-  els.canvas.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openMapExplorer()}});
-  els.mapExplorerClose?.addEventListener('click',closeMapExplorer);
-  els.mapExplorerZoomIn?.addEventListener('click',()=>{const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom*1.4)});
-  els.mapExplorerZoomOut?.addEventListener('click',()=>{const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom/1.4)});
-  els.mapExplorerReset?.addEventListener('click',resetMapExplorer);
-  els.mapExplorer?.addEventListener('click',event=>{if(event.target===els.mapExplorer)closeMapExplorer()});
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!els.mapExplorer.classList.contains('hidden'))closeMapExplorer()});
-  const pointers=new Map();let drag=null,pinch=null;
-  const pointerDistance=()=>{const [a,b]=[...pointers.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
-  const pointerMidpoint=()=>{const [a,b]=[...pointers.values()];return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};
-  viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse'&&event.button!==0)return;event.preventDefault();pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});viewport.classList.add('dragging');if(pointers.size===1)drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop,moved:false};else if(pointers.size===2){commitMapExplorerPreview();pinch={distance:pointerDistance(),zoom:mapExplorerZoom};drag=null}});
-  window.addEventListener('pointermove',event=>{if(!pointers.has(event.pointerId))return;event.preventDefault();pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pinch&&pointers.size>=2){const midpoint=pointerMidpoint();previewMapExplorerZoom(pinch.zoom*pointerDistance()/Math.max(1,pinch.distance),{clientX:midpoint.x,clientY:midpoint.y});return}if(!drag||drag.id!==event.pointerId)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(dx,dy)>7)drag.moved=true;viewport.scrollLeft=drag.left-dx*panSpeed;viewport.scrollTop=drag.top-dy*panSpeed});
-  const endPointer=event=>{if(!pointers.has(event.pointerId))return;const wasTap=drag?.id===event.pointerId&&!drag.moved&&!pinch,wasPinching=Boolean(pinch&&pointers.size>=2);if(wasPinching){commitMapExplorerPreview();pinch=null}pointers.delete(event.pointerId);if(pointers.size===0){drag=null;pinch=null;viewport.classList.remove('dragging');if(wasTap)closeMapExplorer()}else if(pointers.size===1){const [id,point]=[...pointers.entries()][0];pinch=null;drag={id,x:point.x,y:point.y,left:viewport.scrollLeft,top:viewport.scrollTop,moved:true}}};
-  window.addEventListener('pointerup',endPointer);
-  window.addEventListener('pointercancel',endPointer);
-  viewport.addEventListener('wheel',event=>{event.preventDefault();if(event.ctrlKey||event.metaKey){const current=mapExplorerPreviewZoom??mapExplorerZoom;previewMapExplorerZoom(current*Math.exp(-event.deltaY*.002),{clientX:event.clientX,clientY:event.clientY});if(mapExplorerWheelTimer)clearTimeout(mapExplorerWheelTimer);mapExplorerWheelTimer=setTimeout(commitMapExplorerPreview,90);return}viewport.scrollLeft+=event.deltaX*wheelSpeed;viewport.scrollTop+=event.deltaY*wheelSpeed},{passive:false});
-  viewport.addEventListener('keydown',event=>{if(event.key==='+'||event.key==='='){event.preventDefault();const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom*1.4)}else if(event.key==='-'){event.preventDefault();const zoom=mapExplorerPreviewZoom??mapExplorerZoom;clearMapExplorerPreview();setMapExplorerZoom(zoom/1.4)}else if(event.key==='0'){event.preventDefault();resetMapExplorer()}});
 }
 
 const detailSheet = document.getElementById('detail-sheet');
@@ -1848,13 +1821,11 @@ document.getElementById('open-info').onclick = () => openDetailSheet('info');
 document.getElementById('resource-info').onclick = () => openDetailSheet('info');
 document.getElementById('close-sheet').onclick = () => detailSheet.close();
 detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
-document.getElementById('explore-grove').onclick = openMapExplorer;
-document.getElementById('scene-focus').onchange = event => selectSceneTarget(sceneHitTargets.find(target => target.id === event.target.value));
 new ResizeObserver(() => { if (state.started) render(); }).observe(els.hudPanel);
 window.addEventListener('resize', () => { if (!els.canvas.isConnected) return; if (state.started) selectSceneTarget(activeSceneTarget()); else render(); });
 
 els.startGame.addEventListener('click', startGame);
-initMapExplorer();
+initSceneInteraction();
 initSpeciesSelect();
 render();
 loadCanvasAssets(()=>render());

@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=quiet-action-dock-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=fruit-minimap-v1';
 export function renderActionPanels({
   els,
   categories,
@@ -36,7 +36,7 @@ export function renderActionPanels({
     const reset = document.createElement('button');
     reset.type = 'button';
     reset.className = 'context-reset';
-    reset.textContent = 'Your tree';
+    reset.textContent = contextTarget.type === 'neighbor-tree' ? 'Return to your tree' : 'Your tree';
     reset.onclick = onSelectPlayer;
     heading.appendChild(reset);
   }
@@ -44,7 +44,16 @@ export function renderActionPanels({
 
   const shortlist = document.createElement('div');
   shortlist.className = 'context-shortlist';
-  if (contextualActions.length) {
+  if (contextTarget?.type === 'neighbor-tree') {
+    shortlist.classList.add('neighbor-overview');
+    const status = document.createElement('div');
+    status.className = `neighbor-status neighbor-status-${(contextPresentation?.relationship || 'unknown').toLowerCase()}`;
+    status.innerHTML = `<span>Relationship</span><strong>${contextPresentation?.relationship || 'Unknown'}</strong>`;
+    const effects = document.createElement('div');
+    effects.className = 'neighbor-effects';
+    effects.innerHTML = `<span>Current effects</span><ul>${(contextPresentation?.effects || ['No current effects']).map(effect => `<li>${effect}</li>`).join('')}</ul>`;
+    shortlist.append(status, effects);
+  } else if (contextualActions.length) {
     contextualActions.forEach(({ action, scaledCost, costsHtml }) => {
       const button = document.createElement('button');
       button.type = 'button';
