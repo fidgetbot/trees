@@ -1,0 +1,27 @@
+/* Approved Light & rounded theme. Typography and accents only; layout lives in styles.css. */
+@font-face{font-family:Caveat;src:url(assets/fonts/caveat.ttf);font-weight:600;font-display:swap}
+@font-face{font-family:Nunito;src:url(assets/fonts/nunito.ttf);font-weight:500;font-display:swap}
+body.theme-light-rounded{--rounded-title:Nunito,system-ui,sans-serif;--rounded-weight:500;--rounded-ink:#574739;--rounded-accent:#945e48;--rounded-wash:#efe4dc}
+body.theme-light-rounded{font-family:Nunito,system-ui,sans-serif}
+body.theme-light-rounded :is(button,.reveal-description,.reveal-trait>span:last-child){font-family:Nunito,system-ui,sans-serif}
+body.theme-light-rounded :is(.intro-wordmark,.species-reveal h1,.reveal-trait strong,#modal-title,.modal .res-name,.modal .res-value,.modal .actions-earned strong){font-family:var(--rounded-title);font-weight:var(--rounded-weight);letter-spacing:0;color:var(--rounded-ink)}
+body.theme-light-rounded :is(.botanical-kicker,.intro-masthead .botanical-kicker){letter-spacing:.015em;text-transform:none;font-weight:500;color:#716761}
+body.theme-light-rounded :is(#start-game,#modal-button){background:var(--rounded-accent);border-color:var(--rounded-accent);font-weight:500;letter-spacing:0;box-shadow:none}
+body.theme-light-rounded :is(#start-game,#modal-button):hover{filter:brightness(.93)}
+body.theme-light-rounded :is(#modal-body .growth-prose,#modal-body .gather-prose,.intro-footnote){font-family:Nunito,system-ui,sans-serif;font-style:normal;color:#68615e}
+body.theme-light-rounded :is(.actions-earned,.growth-unlocks){background:var(--rounded-wash);border-color:#b0a49955;color:var(--rounded-ink)}
+body.theme-light-rounded .action-unlock strong{color:var(--rounded-ink)}
+body.theme-light-rounded #species-panel .intro-footnote{font:600 19px/1.5 Caveat,cursive}
+
+body.theme-light-rounded .modal[data-kind=gathering] .actions-earned{background:var(--rounded-wash);border-color:#b0a49955;color:var(--rounded-ink)}
+/* Carry the selected typography through the playing surface without changing geometry. */
+body.theme-light-rounded :is(input,select,textarea,.grove-time-pill,.grove-resource,.context-command-heading strong,.context-command-heading h3,.context-action,.sheet-header h2,.species-summary-title-row h3,.game-over-card blockquote){font-family:Nunito,system-ui,sans-serif}
+body.theme-light-rounded :is(.grove-time-pill,.context-command-heading strong,.context-command-heading h3,.sheet-header h2){color:var(--rounded-ink);letter-spacing:0;font-weight:500}
+body.theme-light-rounded .grove-resource{font-variant-numeric:tabular-nums}
+body.theme-light-rounded.game-started .context-action{background:#efe4dcbb;border-color:#b0a49955;color:var(--rounded-ink)}
+body.theme-light-rounded :is(.dock-toolbar button,.scene-tools button,.focus-picker,.sheet-header button){color:var(--rounded-ink)}
+body.theme-light-rounded :is(.sheet-header button,.context-reset){background:var(--rounded-wash)}
+body.theme-light-rounded.game-started #hud-panel .finish-turn-btn{background:var(--rounded-wash);color:var(--rounded-ink)}
+body.theme-light-rounded .modal .neighbor-choice:not(:disabled):not(.warning){background:var(--rounded-wash);border-color:#b0a49955;color:var(--rounded-ink)}
+body.theme-light-rounded .modal .neighbor-choice:not(:disabled):not(.warning):hover{background:#e6d8ce}
+body.theme-light-rounded.game-started #hud-panel :is(h2,h3){font-family:Nunito,system-ui,sans-serif}

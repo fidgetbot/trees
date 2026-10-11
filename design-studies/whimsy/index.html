@@ -2,12 +2,12 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trees · Small changes, three directions</title><link rel="icon" href="data:,"><link rel="stylesheet" href="study.css?rev=type-2"></head><body>
 <header><a href="../../">← Back to the current game</a><p class="eyebrow">Trees · Typography studies</p><h1>Same grove. A lighter touch.</h1><p>The existing layout, cream backgrounds, and painted plants stay.<br>Only fonts, ink colors, button accents, and small details change. No notebook treatment.</p>
 <div class="controls" aria-label="Preview screens"><button data-screen="intro" aria-pressed="true">Introduction</button><button data-screen="gathering" aria-pressed="false">You gather</button><button data-screen="growth" aria-pressed="false">Growth</button></div>
-<label class="compare"><input type="checkbox" id="original"> Compare with current styling</label><p class="hint">All three show the same screen and sample data. The live game is unchanged.</p></header>
+<label class="compare"><input type="checkbox" id="original"> Compare with pre-change styling</label><p class="hint">All three show the same screen and sample data. Option 3 is selected and applied to the live game.</p></header>
 <main>
 <article><h2>01 · Soft serif</h2><p>Fraunces + Nunito. Warm plum ink, a muted berry button, and sentence-case labels. Closest to the current design.</p><iframe title="Soft serif preview" data-theme="serif" src="preview.html?theme=serif&amp;screen=intro&amp;rev=2"></iframe></article>
 <article><h2>02 · Gentle handwriting</h2><p>Kalam + Nunito. Hand-lettered headings, charcoal ink, and a dusty blue button. A little more playful, without added decoration.</p><iframe title="Gentle handwriting preview" data-theme="hand" src="preview.html?theme=hand&amp;screen=intro&amp;rev=2"></iframe></article>
-<article><h2>03 · Light & rounded</h2><p>Nunito, with a small Caveat footnote. Soft rounded titles, brown ink, and a clay-colored button. Simple and quietly friendly.</p><iframe title="Light and rounded preview" data-theme="rounded" src="preview.html?theme=rounded&amp;screen=intro&amp;rev=2"></iframe></article>
-</main><footer>Preview only · Same structure, same artwork, same information.<br>Use Begin or Continue inside a preview to cycle through its three screens.</footer>
+<article><h2>03 · Light & rounded · Selected</h2><p>Nunito, with a small Caveat footnote. Soft rounded titles, brown ink, and a clay-colored button. Simple and quietly friendly.</p><iframe title="Light and rounded preview" data-theme="rounded" src="preview.html?theme=rounded&amp;screen=intro&amp;rev=2"></iframe></article>
+</main><footer>Design reference · Option 3 is now the live theme.<br>Use Begin or Continue inside a preview to cycle through its three screens.</footer>
 <script>
 let screen='intro';
 function refresh(){document.querySelectorAll('iframe').forEach(f=>{f.src=`preview.html?theme=${document.querySelector('#original').checked?'current':f.dataset.theme}&screen=${screen}&rev=2`;});}
