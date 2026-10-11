@@ -1,4 +1,5 @@
-import { openModalSurface } from './modal.js?rev=quiet-action-dock-v1';
+import { MINIMAP_FRUIT_ASSETS } from './grove-minimap.js?rev=fruit-minimap-v3';
+import { openModalSurface } from './modal.js?rev=painted-foliage-attachments-v1';
 
 export function showChoiceModalUI(els, title, body, choices, presentation = {}) {
   els.modalTitle.textContent = title;
@@ -29,16 +30,28 @@ export function showChoiceModalUI(els, title, body, choices, presentation = {}) 
     }
     const btn = document.createElement('button');
     btn.className = 'neighbor-choice';
+    const fruitSrc = MINIMAP_FRUIT_ASSETS[choice.species];
+    if (fruitSrc) {
+      const fruit = document.createElement('img');
+      fruit.className = 'neighbor-choice-fruit';
+      fruit.src = fruitSrc;
+      fruit.alt = '';
+      fruit.setAttribute('aria-hidden', 'true');
+      btn.appendChild(fruit);
+    }
+    const copy = document.createElement('span');
+    copy.className = 'neighbor-choice-copy';
     const label = document.createElement('span');
     label.className = 'neighbor-choice-label';
     label.textContent = choice.label;
-    btn.appendChild(label);
+    copy.appendChild(label);
     if (choice.description) {
       const description = document.createElement('span');
       description.className = 'neighbor-choice-description';
       description.textContent = choice.description;
-      btn.appendChild(description);
+      copy.appendChild(description);
     }
+    btn.appendChild(copy);
     btn.disabled = choice.disabled === true;
     btn.onclick = () => {
       close();

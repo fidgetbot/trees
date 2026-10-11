@@ -17,7 +17,7 @@ export const CONNECTION_AGE_BANDS = [
     label: 'Established trees',
     maxRank: 4,
     chanceBonus: 0.07,
-    description: 'More receptive (+7 percentage points) and able to offer meaningful support sooner.',
+    description: 'A smaller advantage than young trees (+7 percentage points), with meaningful support available sooner.',
   },
   {
     key: 'mature',
@@ -193,7 +193,7 @@ export function buildConnectionDecision(state, deps = {}) {
   return createDecision({
     kind: 'connection',
     title: 'Reach toward which neighbor?',
-    body: 'Choose a neighboring tree to contact through the soil. Smaller trees are easier to befriend; rejection can cost health or resources.',
+    body: 'Choose a neighboring tree to contact through the soil. Rejection can cost health or resources.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead)

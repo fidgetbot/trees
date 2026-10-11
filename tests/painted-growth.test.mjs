@@ -60,3 +60,9 @@ test('repeated leaf growth on one branch gets distinct persistent attachment slo
  const leaves=getPaintedGrowthPlan(s,'Sapling',geometry).leaves;
  assert.deepEqual(leaves.map(leaf=>leaf.hostSlot),Array.from({length:15},(_,i)=>i));
 });
+
+test('every established foliage offset keeps its supporting twig inside the painted cluster',()=>{
+ const s={...state(),branches:0,leafClusters:24};syncGrowthAttachments(s);
+ const leaves=getPaintedGrowthPlan(s,'Mature Tree',{width:120,height:180,groundRatio:.68}).leaves;
+ assert.ok(leaves.every(leaf=>Math.hypot(leaf.dx,leaf.dy)<leaf.width*.5));
+});

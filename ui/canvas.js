@@ -1,6 +1,6 @@
-import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=feeding-pests-v1';
+import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
-import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=stem-attached-leaves-v1';
+import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=painted-foliage-attachments-v1';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=stem-attached-leaves-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
@@ -683,11 +683,14 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     if(stage==='Sprout'){
       drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawPaintedSproutFoliage(ctx,species,seed,leaves,season,shaded);ctx.restore();return;
     }
-    const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0,heightGrowth);
-    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded,species);drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded,species);
-    if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
-    if(isPlayer&&shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers,species);
-    if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
+    // Neighbor foliage must use the same painted-tissue attachment system as
+    // the player. The old procedural crown had different branch geometry from
+    // the painted structure beneath it, so otherwise-correct clusters floated.
+    const geometry=getTreeStructureGeometry(structureStageKey,visualState);
+    const growth=preparePaintedGrowth(structureImage,getTreeStructureSourceRect(species,structureStageKey),visualState,stage,geometry);
+    drawGrowthWood(ctx,growth,null,season);
+    drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);
+    drawGrowthLeaves(ctx,growth,null,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
     ctx.restore();return;
   }
 }

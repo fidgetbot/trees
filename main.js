@@ -1,4 +1,4 @@
-import { syncGrowthAttachments } from './ui/painted-growth.js?rev=stem-attached-leaves-v1';
+import { syncGrowthAttachments } from './ui/painted-growth.js?rev=painted-foliage-attachments-v1';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -51,7 +51,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=age-affinity-v1';
+} from './core/diplomacy.js?rev=neighbor-fruit-cards-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -69,12 +69,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=fruit-minimap-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=quiet-action-dock-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=age-affinity-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-foliage-attachments-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=neighbor-fruit-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=stem-attached-leaves-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=painted-foliage-attachments-v1';
 import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
@@ -716,6 +716,7 @@ function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a ne
         group: presentation.group,
         groupDescription: presentation.groupDescription,
         groupOrder: presentation.groupOrder,
+        species: presentation.species || n.species,
         disabled: presentation.disabled,
         onChoose: () => onPick(n),
       };
@@ -1167,7 +1168,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     cancel,
     neighbor => {
       const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
-      return option ? { label: option.label, description: option.description, group: option.group, groupDescription: option.groupDescription, groupOrder: option.groupOrder, disabled: option.disabled } : null;
+      return option ? { label: option.label, description: option.description, group: option.group, groupDescription: option.groupDescription, groupOrder: option.groupOrder, species: option.meta?.species || neighbor.species, disabled: option.disabled } : null;
     },
   );
   return { deferred: true };

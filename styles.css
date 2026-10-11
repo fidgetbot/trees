@@ -37,11 +37,23 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   margin-top: 14px;
 }
 .neighbor-choice {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
+}
+.neighbor-choice-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.neighbor-choice-fruit {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
 }
 .neighbor-choice-label {
   font-size: 14px;

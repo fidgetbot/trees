@@ -44,10 +44,10 @@ test('connection choices show stage and biological tradeoffs', () => {
   const decision = buildConnectionDecision(state, { getRelationshipState, getNeighborStage: score => LIFE_STAGES.findLast(stage => score >= stage.threshold) });
   assert.deepEqual(decision.options.map(option => option.group), ['Young trees', 'Established trees', 'Mature trees']);
   assert.match(decision.options[0].groupDescription, /Easiest to befriend.*15 percentage points/i);
-  assert.match(decision.options[1].groupDescription, /7 percentage points/i);
+  assert.match(decision.options[1].groupDescription, /smaller advantage than young trees.*7 percentage points/i);
   assert.match(decision.options[2].groupDescription, /sharing the most water and nutrients/i);
   assert.ok(decision.options.every(option => option.description === null));
-  assert.match(decision.body, /Smaller trees are easier to befriend/i);
+  assert.doesNotMatch(decision.body, /Smaller trees are easier to befriend/i);
 });
 
 test('connection age bands make smaller trees easier to befriend', () => {

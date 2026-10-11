@@ -40,12 +40,16 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
     const side = i % 2 ? -1 : 1, tier = Math.floor(i / 6);
     const host = state.visualGrowth?.leafHosts?.[i] ?? -1;
     const hostSlot=hostSlots.get(host)||0;hostSlots.set(host,hostSlot+1);
+    const foliageWidth=width*(juvenile ? .50 : .42);
     return { id: `leaf-${i}`, index: i, hostSlot, host: host < branches.length ? host : -1,
       attachmentSurface: geometry.juvenile ? 'stem' : 'plant',
       u: .5, v: .12 + (i % 6) * .067, side,
-      dx: side * width * (.21 + (i % 3) * .07 + tier * .065),
-      dy: -height * (.025 + (i % 2) * .035),
-      width: width * (juvenile ? .50 : .39), thickness: width * (juvenile ? .025 : .013) };
+      // Keep the supporting twig's end well inside the foliage module. Older
+      // offsets could exceed half the painted cluster width and read as a
+      // detached crown, especially on broad Plum specimens.
+      dx: side * width * (.10 + (i % 3) * .018 + Math.min(3,tier) * .012),
+      dy: -height * (.012 + (i % 2) * .012),
+      width: foliageWidth, thickness: width * (juvenile ? .025 : .013) };
   });
   if(geometry.juvenile) {
     for(const leaf of leaves) {
@@ -175,7 +179,8 @@ export function preparePaintedGrowth(image, source, state, stage, geometry, supp
     if(!host)return position(module,module.attachmentSurface==='stem'?supportPixel:pixel);
     const attachment=.58+(module.hostSlot%4)*.1,tier=Math.floor(module.hostSlot/4);
     const start=curvePoint(host.start,host.end,host.dx*.1,attachment);
-    return {...module,attachment,start,end:{x:start.x+module.side*geometry.width*(.13+tier*.06),y:start.y-geometry.height*(.045+tier*.028)},width:module.width*.85};
+    const reach=Math.min(module.width*.34,geometry.width*(.08+Math.min(3,tier)*.015));
+    return {...module,attachment,start,end:{x:start.x+module.side*reach,y:start.y-Math.min(module.width*.1,geometry.height*.02)}};
   }).filter(Boolean);
   return {texture,roots,branches,leaves};
 }
