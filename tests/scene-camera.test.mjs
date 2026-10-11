@@ -53,17 +53,31 @@ test('tree comparison preserves shared scale before blending pan and logarithmic
   const from={x:40,groundY:520,worldZoom:18};
   const to={x:-120,groundY:470,worldZoom:1.8};
   const panX=-300;
-  const midPan=comparisonCameraFrame({from,panX,to,elapsed:COMPARISON_CAMERA_TIMING.duration/2});
+  const midPan=comparisonCameraFrame({from,panX,to,elapsed:400});
   assert.equal(midPan.phase,'pan');
   assert.equal(midPan.worldZoom,from.worldZoom);
   assert.equal(midPan.groundY,from.groundY);
   assert.ok(midPan.x<from.x&&midPan.x>panX);
-  const approach=comparisonCameraFrame({from,panX,to,elapsed:COMPARISON_CAMERA_TIMING.duration*.7});
+  const approach=comparisonCameraFrame({from,panX,to,elapsed:700});
   assert.equal(approach.phase,'approach');
   assert.ok(approach.worldZoom<from.worldZoom&&approach.worldZoom>to.worldZoom);
   assert.ok(approach.groundY<from.groundY&&approach.groundY>to.groundY);
   const done=comparisonCameraFrame({from,panX,to,elapsed:Infinity});
   assert.deepEqual(done,{phase:'done',done:true,...to});
+});
+
+test('zooming out begins earlier and spreads a large scale change across the approach',()=>{
+  const from={x:0,groundY:500,worldZoom:18};
+  const to={x:-100,groundY:450,worldZoom:1.8};
+  const before=comparisonCameraFrame({from,panX:-300,to,elapsed:400});
+  const earlyApproach=comparisonCameraFrame({from,panX:-300,to,elapsed:500});
+  const middleApproach=comparisonCameraFrame({from,panX:-300,to,elapsed:700});
+  assert.equal(before.phase,'pan');
+  assert.equal(before.worldZoom,from.worldZoom);
+  assert.equal(earlyApproach.phase,'approach');
+  assert.ok(earlyApproach.worldZoom<17.5&&earlyApproach.worldZoom>16.5);
+  assert.ok(middleApproach.worldZoom<6&&middleApproach.worldZoom>4);
+  assert.deepEqual(comparisonCameraFrame({from,panX:-300,to,elapsed:COMPARISON_CAMERA_TIMING.zoomOutDuration}),{phase:'done',done:true,...to});
 });
 
 test('comparison zoom begins at 65 percent of traveled distance without a velocity seam',()=>{
@@ -85,7 +99,7 @@ test('comparison zoom begins at 65 percent of traveled distance without a veloci
 });
 
 test('comparison zoom is multiplicatively symmetric in both directions',()=>{
-  const timing={duration:1000,zoomStart:0};
+  const timing={duration:1000,zoomStart:0,zoomOutDuration:1000,zoomOutStart:0};
   const out=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:1},panX:-100,to:{x:-20,groundY:450,worldZoom:16},elapsed:500,timing});
   const inward=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:16},panX:-100,to:{x:-20,groundY:450,worldZoom:1},elapsed:500,timing});
   assert.equal(out.worldZoom,4);

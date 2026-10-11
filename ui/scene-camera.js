@@ -11,6 +11,8 @@ export const STAGE_SCENE_OCCUPANCY=Object.freeze({
 export const COMPARISON_CAMERA_TIMING=Object.freeze({
   duration:820,
   zoomStart:.65,
+  zoomOutDuration:940,
+  zoomOutStart:.42,
 });
 
 export function stageSceneOccupancy(stageName){
@@ -77,6 +79,18 @@ export function smootherSceneCamera(progress) {
   return t*t*t*(t*(t*6-15)+10);
 }
 
+function inverseSmootherSceneCamera(value){
+  const target=Math.max(0,Math.min(1,value));
+  if(target===0||target===1)return target;
+  let low=0,high=1;
+  for(let pass=0;pass<24;pass+=1){
+    const middle=(low+high)/2;
+    if(smootherSceneCamera(middle)<target)low=middle;
+    else high=middle;
+  }
+  return(low+high)/2;
+}
+
 export function interpolateSceneCamera(from, to, progress) {
   const t = easeSceneCamera(progress);
   return {
@@ -87,12 +101,16 @@ export function interpolateSceneCamera(from, to, progress) {
 }
 
 export function comparisonCameraFrame({from,panX,to,elapsed,timing=COMPARISON_CAMERA_TIMING}){
-  const duration=Math.max(1,timing.duration);
-  const zoomStart=Math.max(0,Math.min(.99,timing.zoomStart));
+  const zoomingOut=to.worldZoom<from.worldZoom;
+  const duration=Math.max(1,zoomingOut?(timing.zoomOutDuration??timing.duration):timing.duration);
+  const zoomStart=Math.max(0,Math.min(.99,zoomingOut?(timing.zoomOutStart??timing.zoomStart):timing.zoomStart));
   const progress=Math.max(0,Math.min(1,elapsed/duration));
   if(progress>=1)return{phase:'done',done:true,...to};
   const panProgress=smootherSceneCamera(progress);
-  const zoomProgress=smootherSceneCamera((panProgress-zoomStart)/(1-zoomStart));
+  const zoomStartProgress=zoomingOut?inverseSmootherSceneCamera(zoomStart):0;
+  const zoomProgress=zoomingOut
+    ?smootherSceneCamera((progress-zoomStartProgress)/(1-zoomStartProgress))
+    :smootherSceneCamera((panProgress-zoomStart)/(1-zoomStart));
   const sharedScaleX=from.x+(panX-from.x)*panProgress;
   const worldZoom=from.worldZoom*Math.pow(to.worldZoom/from.worldZoom,zoomProgress);
   return{
