@@ -493,6 +493,15 @@ function animateSceneTargetComparison(from,plan,target,expectedStateKey){
   cameraAnimationFrame=requestAnimationFrame(tick);
 }
 
+function restartSceneTargetComparison(){
+  if(!comparisonCameraView)return refitSceneCamera();
+  const from=currentAbsoluteCameraView(),target=activeSceneTarget();
+  cancelSceneCameraAnimation();
+  const plan=sceneCameraPlanForTarget(target);
+  cameraViewportSignature=sceneViewportSignature();
+  animateSceneTargetComparison(from,plan,target,cameraStateKey(target));
+}
+
 function animateSceneCamera(to,expectedStateKey=cameraStateKey()) {
   if(!isValidSceneCamera(to))to={x:0,y:0,zoom:1};
   const revision=++cameraRevision;
@@ -533,7 +542,7 @@ function scheduleSceneCameraRefit(){
   if(cameraLayoutFrame!==null)return;
   cameraLayoutFrame=requestAnimationFrame(()=>{
     cameraLayoutFrame=null;
-    if(state.started&&cameraViewportSignature!==sceneViewportSignature())refitSceneCamera();
+    if(state.started&&cameraViewportSignature!==sceneViewportSignature())restartSceneTargetComparison();
   });
 }
 
@@ -2020,6 +2029,11 @@ initSceneInteraction();
 initSpeciesSelect();
 render();
 loadCanvasAssets(asset=>{
-  if(state.started&&asset?.family==='trees:structure')refitSceneCamera();
+  if(state.started&&asset?.family==='trees:structure'){
+    const target=activeSceneTarget();
+    if(comparisonCameraView&&asset.species===minimapSpeciesFor(target))restartSceneTargetComparison();
+    else if(!comparisonCameraView)refitSceneCamera();
+    else render();
+  }
   else render();
 });
