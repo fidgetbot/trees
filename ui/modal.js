@@ -1,5 +1,5 @@
 import { renderEncounterArt } from './fauna-art.js?rev=night-field-journal-v1';
-import { getTreeStructureSourceRect } from './canvas.js?rev=continuous-roots-v2';
+import { getTreeStructureSourceRect } from './canvas.js?rev=framed-trees-v1';
 import { getJuvenileStageKey } from './juvenile-growth.js?rev=continuous-roots-v2';
 
 export function modalPlainText(body) {

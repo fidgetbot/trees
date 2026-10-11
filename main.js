@@ -69,13 +69,13 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=night-field-journal-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=continuous-roots-v2';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=continuous-roots-v2';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=framed-trees-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=continuous-roots-v2';
-import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=fruit-minimap-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=framed-trees-v1';
+import { centeredSceneOffset, interpolateSceneCamera, targetSceneZoom } from './ui/scene-camera.js?rev=framed-trees-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
@@ -361,38 +361,60 @@ function sceneViewport() {
   const rect = els.canvas.getBoundingClientRect();
   const height = Math.max(240, Math.round(rect.height || 600));
   const hudRect = els.hudPanel.getBoundingClientRect();
+  const minimapRect = els.groveMinimap?.getBoundingClientRect();
+  const margin = height <= 500 ? 8 : 12;
+  const topInset = minimapRect?.height
+    ? Math.max(0, Math.round(minimapRect.bottom - rect.top + margin))
+    : sceneTopInset(height);
+  const safeBottom = state.started ? Math.round(hudRect.top - rect.top - margin) : height;
   return {
     width: Math.max(320, Math.round(rect.width || 900)),
     height,
-    topInset: sceneTopInset(height),
-    bottomInset: state.started ? Math.max(0, height - (hudRect.top - rect.top)) : 0,
-    renderHeight: Math.max(220, height - (state.started ? els.hudPanel.offsetHeight + 26 : 0)),
+    topInset,
+    bottomInset: Math.max(0, height - safeBottom),
+    renderHeight: Math.max(topInset + 40, safeBottom),
   };
 }
 
 function measureSceneTarget(targetId, zoom) {
   const viewport = sceneViewport();
   const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.renderHeight;
+  // Measure on a generously padded bitmap while retaining the live canvas's
+  // logical dimensions. During zoom fitting, a tree can temporarily exceed
+  // the viewport; clipping that intermediate render makes the camera mistake
+  // a surviving fragment for the complete canopy/root system.
+  canvas.width = viewport.width * 2;
+  canvas.height = viewport.renderHeight * 2;
+  const logicalCanvas = {
+    width: viewport.width,
+    height: viewport.renderHeight,
+    dataset: {},
+    measurementWidth: canvas.width,
+    measurementHeight: canvas.height,
+  };
   const rendered = renderForestScene({
-    ctx: canvas.getContext('2d'), canvas,
-    immersive: true, frameSelectedSubject: false,
+    ctx: canvas.getContext('2d'), canvas: logicalCanvas,
+    immersive: true, frameSelectedSubject: true,
     viewOffset: { x: 0, y: 0 }, zoomMultiplier: zoom,
     state, currentSeason: currentSeason(), playerStageName: computeCurrentLifeStage().name,
     getNeighborTree, getRelationshipState, topInset: viewport.topInset,
-    selectedTargetId: targetId,
+    selectedTargetId: targetId,measureTargetId:targetId,
   });
-  return rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds || null;
+  return rendered?.measuredBounds||rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds||null;
 }
 
 function sceneCameraForTarget(target) {
   const viewport = sceneViewport();
-  if (!target || target.id === 'player') return { x: 0, y: 0, zoom: 1 };
+  if (!target) return { x: 0, y: 0, zoom: 1 };
   const baseBounds = measureSceneTarget(target.id, 1);
   if (!baseBounds) return { x: 0, y: 0, zoom: 1 };
-  const zoom = targetSceneZoom(baseBounds, viewport);
-  const fittedBounds = measureSceneTarget(target.id, zoom) || baseBounds;
+  let zoom=1,fittedBounds=baseBounds;
+  // Bounds include small fixed hit padding, so converge against the rendered
+  // result instead of assuming every dimension scales perfectly from 1×.
+  for(let pass=0;pass<3;pass+=1){
+    zoom=targetSceneZoom(fittedBounds,viewport,{currentZoom:zoom});
+    fittedBounds=measureSceneTarget(target.id,zoom)||fittedBounds;
+  }
   return { ...centeredSceneOffset(fittedBounds, viewport), zoom };
 }
 
@@ -1813,12 +1835,17 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#332f25"; ctx.fillRect(0, 0, width, height);
   const stage = computeCurrentLifeStage().name;
-  if (lastRenderStage !== stage) { sceneCamera = { x: 0, y: 0, zoom: 1 }; selectedSceneTarget = null; lastRenderStage = stage; }
+  const viewport=sceneViewport();
+  if (state.started&&lastRenderStage !== stage) {
+    selectedSceneTarget=playerSceneTarget();
+    sceneCamera=sceneCameraForTarget(selectedSceneTarget);
+    lastRenderStage=stage;
+  }
   const rendered = renderForestScene({
     ctx,
-    canvas: { width, height: Math.max(220, height - (state.started ? els.hudPanel.offsetHeight + 26 : 0)), dataset: els.canvas.dataset },
+    canvas: { width, height: viewport.renderHeight, dataset: els.canvas.dataset },
     immersive: true,
-    frameSelectedSubject: false,
+    frameSelectedSubject: true,
     viewOffset: { x: sceneCamera.x, y: sceneCamera.y },
     zoomMultiplier: sceneCamera.zoom,
     state,
@@ -1826,7 +1853,7 @@ function render() {
     playerStageName: computeCurrentLifeStage().name,
     getNeighborTree,
     getRelationshipState,
-    topInset: sceneTopInset(height),
+    topInset: viewport.topInset,
     selectedTargetId: selectedSceneTarget?.id || 'player',
     growthReveal: currentGrowthReveal(),
   });
@@ -1895,4 +1922,7 @@ els.startGame.addEventListener('click', startGame);
 initSceneInteraction();
 initSpeciesSelect();
 render();
-loadCanvasAssets(()=>render());
+loadCanvasAssets(asset=>{
+  if(state.started&&asset?.family==='trees:structure')sceneCamera=sceneCameraForTarget(activeSceneTarget());
+  render();
+});

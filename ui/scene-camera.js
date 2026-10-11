@@ -1,13 +1,10 @@
-export function targetSceneZoom(bounds, viewport, { player = false } = {}) {
-  if (player) return 1;
-  const usableWidth = Math.max(180, viewport.width * .72);
+export function targetSceneZoom(bounds, viewport, { currentZoom = 1, margin = 12 } = {}) {
+  const usableWidth = Math.max(40, viewport.width - margin * 2);
   const usableHeight = Math.max(40, viewport.height - viewport.topInset - viewport.bottomInset);
   const width = Math.max(1, bounds?.width || 1);
   const height = Math.max(1, bounds?.height || 1);
-  const widthZoom = width <= 44 ? 2.6 : (usableWidth - 44) / (width - 44);
-  const desiredHeight = Math.max(58, usableHeight * .78);
-  const heightZoom = height <= 58 ? 2.6 : (desiredHeight - 58) / (height - 58);
-  return Math.max(.0005, Math.min(2.6, widthZoom, heightZoom));
+  const adjustment = Math.min(usableWidth / width, usableHeight / height);
+  return Math.max(.08, Math.min(12, currentZoom * adjustment));
 }
 
 export function centeredSceneOffset(bounds, viewport) {

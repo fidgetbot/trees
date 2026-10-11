@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement } from '../ui/fauna-art.js';
 
-import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -285,6 +285,24 @@ test('animal artwork uses pose-appropriate scene anchors', () => {
   }
   assert.equal(getAnimalScenePlacement('woodpecker').anchor, 'trunk');
   assert.equal(getAnimalScenePlacement('pollinator-butterfly').anchor, 'air');
+});
+
+test('large grounded wildlife remains inside the visible scene margin',()=>{
+  assert.deepEqual(clampGroundedArtwork(-40,205,390),{width:205,centerX:114.5});
+  assert.deepEqual(clampGroundedArtwork(430,205,390),{width:205,centerX:275.5});
+  assert.deepEqual(clampGroundedArtwork(195,500,390),{width:366,centerX:195});
+});
+
+test('winter ground painting loads independently',async()=>{
+  const originalImage=globalThis.Image;
+  class MockImage{set src(value){this.loadedUrl=value;queueMicrotask(()=>this.onload())}}
+  globalThis.Image=MockImage;
+  try{
+    const isolated=await import(`../ui/canvas.js?winter-ground-test=${Date.now()}`),loaded=[];
+    assert.equal(await isolated.loadWinterGroundAsset(asset=>loaded.push(asset)),true);
+    assert.equal(loaded.length,1);assert.equal(loaded[0].family,'ground:winter');
+    assert.match(loaded[0].url,/winter-snow-tile-v1\.png\?rev=painted-snow-v1/);
+  }finally{if(originalImage===undefined)delete globalThis.Image;else globalThis.Image=originalImage;}
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {

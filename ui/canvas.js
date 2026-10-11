@@ -1,4 +1,4 @@
-import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v2';
+import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=framed-trees-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
@@ -30,6 +30,8 @@ const SEED_PALETTES = {
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
+const GROUND_ASSET_REVISION='painted-snow-v1';
+const WINTER_SNOW_TILE_URL=new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${GROUND_ASSET_REVISION}`,import.meta.url).href;
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -197,6 +199,9 @@ const animalAssets=new Map();
 let animalAssetLoadPromise=null;
 const insectAssets=new Map();
 let insectAssetLoadPromise=null;
+let winterSnowAsset=null;
+let winterSnowAssetLoadPromise=null;
+let mirroredSnowTile=null;
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -259,9 +264,20 @@ export function loadInsectAssets(onAssetLoad){
   return insectAssetLoadPromise;
 }
 
+export function loadWinterGroundAsset(onAssetLoad){
+  if(winterSnowAssetLoadPromise)return winterSnowAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  winterSnowAssetLoadPromise=new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{winterSnowAsset=image;mirroredSnowTile=null;onAssetLoad?.({family:'ground:winter',url:WINTER_SNOW_TILE_URL});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=WINTER_SNOW_TILE_URL;
+  });
+  return winterSnowAssetLoadPromise;
+}
+
 export function loadCanvasAssets(onAssetLoad){
   canvasAssetLoadListener=onAssetLoad||canvasAssetLoadListener;
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad)]).then(results=>results.some(Boolean));
 }
 
 export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
@@ -319,6 +335,11 @@ export function getSceneArtKinds(state){
   return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)||Object.hasOwn(INSECT_ASSET_URLS,kind)))];
 }
 
+export function clampGroundedArtwork(centerX,displayWidth,viewportWidth,margin=12){
+  const width=Math.min(displayWidth,Math.max(24,viewportWidth-margin*2));
+  return{width,centerX:Math.max(width/2+margin,Math.min(viewportWidth-width/2-margin,centerX))};
+}
+
 export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
   if(variantCount<=0)return-1;
   return Math.abs(placementIndex)%variantCount;
@@ -359,17 +380,34 @@ export function getPaintedFoliageModuleCount(stage,leafCount,clusterCount){
 
 function treeHitTarget(tree,state,playerStageName,camera,groundY){
   const stage=tree.isPlayer?playerStageName:(tree.neighbor?.stageName||'Sapling');
-  const rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stage);
-  const height=playerHeight(tree.isPlayer?state:{...tree.neighbor,selectedSpecies:tree.neighbor?.species,rootZones:tree.neighbor?.roots,leafClusters:tree.neighbor?.leafClusters??tree.neighbor?.branches??2},stage,camera);
-  const width=Math.max(44,Math.min(240,(rank<2?4.4*camera.zoom:height*.72)));
   const neighbor=tree.neighbor;
-  if(tree.isPlayer)return{id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,subtitle:`${stage} · You`,mapPosition:tree.worldPosition||0,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
-  if(neighbor?.offspring)return{id:`offspring-${neighbor.childId}`,type:'offspring-tree',childId:neighbor.childId,title:`${neighbor.species} offspring`,stageName:stage,subtitle:`${stage} · Ally`,mapPosition:tree.worldPosition||0,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
-  return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,mapPosition:tree.worldPosition||0,bounds:{x:tree.x-width/2,y:groundY-height-18,width,height:height+58}};
+  const visual=tree.isPlayer?state:{...neighbor,selectedSpecies:neighbor?.species,rootZones:neighbor?.roots,leafClusters:neighbor?.leafClusters??neighbor?.branches??2,visualGrowth:null};
+  const leaves=visual.leafClusters||0,roots=visual.rootZones||0,rooted=shouldDrawSeedRadicle(stage,roots,leaves);
+  const juvenile=getJuvenileStageKey(visual,stage);
+  const key=juvenile||getTreeStructureStageKey(stage,{rootedSeed:rooted});
+  const geometry=juvenile?getJuvenileGeometry(visual.selectedSpecies||'Plum',juvenile,visual):getTreeStructureGeometry(key,visual);
+  const trunk=visual.trunk||1,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
+  const amount=tree.isPlayer?rootGrowthAmount({...visual,presentationStage:stage}):0;
+  const spread=.45*amount,depth=1+.22*Math.sqrt(amount);
+  const above=geometry.height*geometry.groundRatio*scale;
+  const below=geometry.height*(1-geometry.groundRatio)*depth*scale;
+  const paintedWidth=geometry.width*(1+spread)*scale;
+  const sidePad=Math.max(6,paintedWidth*.12),topPad=Math.max(4,above*.05),bottomPad=4;
+  const bounds={x:tree.x-paintedWidth/2-sidePad,y:groundY-above-topPad,width:paintedWidth+sidePad*2,height:above+below+topPad+bottomPad};
+  if(tree.isPlayer)return{id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,subtitle:`${stage} · You`,mapPosition:tree.worldPosition||0,bounds};
+  if(neighbor?.offspring)return{id:`offspring-${neighbor.childId}`,type:'offspring-tree',childId:neighbor.childId,title:`${neighbor.species} offspring`,stageName:stage,subtitle:`${stage} · Ally`,mapPosition:tree.worldPosition||0,bounds};
+  return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,mapPosition:tree.worldPosition||0,bounds};
 }
 
-export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,frameSelectedSubject=true,viewOffset={x:0,y:0},growthReveal=null}) {
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,centerHorizon=false,selectedTargetId=null,immersive=false,frameSelectedSubject=true,viewOffset={x:0,y:0},growthReveal=null,measureTargetId=null}) {
   const w=canvas.width,h=canvas.height;
+  const physicalWidth=canvas.measurementWidth||w,physicalHeight=canvas.measurementHeight||h;
+  const measurementOffset=measureTargetId
+    ?{x:(physicalWidth-w)/2,y:(physicalHeight-h)/2}
+    :{x:0,y:0};
+  if(measureTargetId)ctx.clearRect(0,0,physicalWidth,physicalHeight);
+  ctx.save();
+  if(measureTargetId)ctx.translate(measurementOffset.x,measurementOffset.y);
   let subjectState=state,subjectStage=playerStageName;
   if(immersive&&frameSelectedSubject&&selectedTargetId?.startsWith('neighbor-')) {
     const index=Number(selectedTargetId.slice(9));
@@ -399,31 +437,59 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom+viewOffset.x,index:5+index,isPlayer:false,worldPosition:CHILD_WORLD_POSITIONS[index],neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
   });
   const trees=[...residentTrees,...childTrees];
+  const focusId=measureTargetId||selectedTargetId;
+  const isolate=measureTargetId||(immersive&&focusId&&focusId!=='player');
+  const focusedTrees=isolate?trees.filter(tree=>{
+    if(focusId==='player')return tree.isPlayer;
+    if(focusId.startsWith('neighbor-'))return `neighbor-${tree.neighbor?.targetIndex}`===focusId;
+    if(focusId.startsWith('offspring-'))return `offspring-${tree.neighbor?.childId}`===focusId;
+    return false;
+  }):trees;
   canvas.dataset.groundY=String(groundY);
-  ctx.clearRect(0,0,w,h); ctx.fillStyle=background(ctx,currentSeason); ctx.fillRect(0,0,w,groundY);
-  const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
-  ctx.fillStyle=soil; ctx.fillRect(0,groundY,w,h-groundY); ctx.strokeStyle='rgba(84,70,45,.3)'; line(ctx,0,groundY,w,groundY);
-  if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
-  drawDirectionalCanopyShadows(ctx,trees,groundY);
-  drawNearGround(ctx,w,h,groundY,camera.rank);
+  ctx.clearRect(0,0,w,h);
+  if(!measureTargetId){
+    ctx.fillStyle=background(ctx,currentSeason);ctx.fillRect(0,0,w,groundY);
+    const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
+    ctx.fillStyle=soil;ctx.fillRect(0,groundY,w,h-groundY);ctx.strokeStyle='rgba(84,70,45,.3)';line(ctx,0,groundY,w,groundY);
+    if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
+    drawDirectionalCanopyShadows(ctx,focusedTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
+  }
   const attachedTargets=[];
-  trees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
+  focusedTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
   const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
-  drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets);
-  hitTargets.push(...attachedTargets);
-  drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
-  if(camera.rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
+  if(!measureTargetId){
+    drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
+    hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
+    if(camera.rank>=2)drawFungalNetwork(ctx,focusedTrees,groundY,getRelationshipState);
+  }
   const labelRows=[];
-  trees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
-  return{hitTargets,groundY};
+  focusedTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+  let measuredBounds=null;
+  if(measureTargetId&&ctx.getImageData){
+    const pixels=ctx.getImageData(0,0,physicalWidth,physicalHeight).data;
+    let left=physicalWidth,top=physicalHeight,right=-1,bottom=-1;
+    for(let y=0;y<physicalHeight;y++)for(let x=0;x<physicalWidth;x++)if(pixels[(y*physicalWidth+x)*4+3]>16){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y)}
+    if(right>=left){
+      const pad=6;
+      measuredBounds={
+        x:left-pad-measurementOffset.x,
+        y:top-pad-measurementOffset.y,
+        width:right-left+1+pad*2,
+        height:bottom-top+1+pad*2,
+      };
+    }
+  }
+  ctx.restore();
+  return{hitTargets,groundY,measuredBounds};
 }
 
-function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
+function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,viewportWidth){
   const kinds=getSceneArtKinds(state);
   if(!kinds.length)return;
   const scale=Math.max(.62,Math.min(2.5,camera.zoom/.86));
   const drawGrounded=(kind,centerX,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
+    ({width:displayWidth,centerX}=clampGroundedArtwork(centerX,displayWidth,viewportWidth));
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
     const contactY=getAnimalScenePlacement(kind).contactY??.94;
     const top=groundY-displayHeight*contactY;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
@@ -450,7 +516,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets){
       return;
     }
     if(kind==='beaver'){
-      drawGrounded(kind,x-112*scale,82*scale,'Beaver');
+      drawGrounded(kind,x-112*scale,Math.min(82*scale,viewportWidth*.3),'Beaver');
       return;
     }
     if(kind==='browsers'){
@@ -564,12 +630,26 @@ function drawNearGround(ctx,w,h,groundY,rank){
   ctx.restore();
 }
 
+function winterGroundTile(){
+  if(!winterSnowAsset)return null;
+  if(mirroredSnowTile)return mirroredSnowTile;
+  const size=192,tile=document.createElement('canvas');tile.width=tile.height=size*2;
+  const paint=tile.getContext('2d');
+  for(let row=0;row<2;row++)for(let column=0;column<2;column++){
+    paint.save();paint.translate(column*size+(column?size:0),row*size+(row?size:0));paint.scale(column?-1:1,row?-1:1);
+    paint.drawImage(winterSnowAsset,0,0,size,size);paint.restore();
+  }
+  mirroredSnowTile=tile;return tile;
+}
+
 function drawWinterWeather(ctx,w,h,groundY){
   const r=rng(77213);ctx.save();
-  const snow=ctx.createLinearGradient(0,groundY-4,0,groundY+18);snow.addColorStop(0,'rgba(250,253,255,.94)');snow.addColorStop(1,'rgba(218,231,240,.72)');
-  ctx.fillStyle=snow;ctx.beginPath();ctx.moveTo(0,groundY+13);
+  const tile=winterGroundTile(),snow=ctx.createLinearGradient(0,groundY-4,0,groundY+30);snow.addColorStop(0,'rgba(250,253,255,.96)');snow.addColorStop(1,'rgba(218,231,240,.78)');
+  ctx.beginPath();ctx.moveTo(0,groundY+13);
   for(let x=0;x<=w;x+=24){ctx.lineTo(x,groundY+5+Math.sin(x*.035)*3+r()*2)}
-  ctx.lineTo(w,groundY+18);ctx.lineTo(0,groundY+18);ctx.closePath();ctx.fill();
+  ctx.lineTo(w,groundY+34);ctx.lineTo(0,groundY+34);ctx.closePath();
+  if(tile){ctx.save();ctx.clip();ctx.globalAlpha=.9;ctx.fillStyle=ctx.createPattern(tile,'repeat');ctx.translate(0,groundY-64);ctx.fillRect(0,0,w,110);ctx.restore()}
+  ctx.fillStyle=snow;ctx.globalAlpha=tile?.32:1;ctx.fill();ctx.globalAlpha=1;
   for(let i=0;i<46;i++){const x=r()*w,y=8+r()*Math.max(16,groundY-18),radius=.7+r()*1.7;ctx.fillStyle=`rgba(248,252,255,${.42+r()*.42})`;ctx.beginPath();ctx.arc(x,y,radius,0,TAU);ctx.fill()}
   ctx.restore();
 }
