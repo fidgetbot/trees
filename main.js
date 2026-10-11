@@ -71,7 +71,7 @@ import { getContextualActions, getTargetActionContext, pickSceneTarget } from '.
 import { renderEventPhaseBody } from './ui/events.js?rev=night-field-journal-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=framed-trees-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=bonus-action-tally-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=scale-comparison-camera-v1';

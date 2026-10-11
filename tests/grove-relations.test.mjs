@@ -367,8 +367,9 @@ test('high gathering adds bonus actions to both state and the displayed tally', 
   assert.equal(gains.bonusActions, state.actions - 3);
   assert.ok(state.actions > 3);
   const summary = renderResourcePhaseBody({ state, gains });
-  assert.match(summary, new RegExp(`<strong>${state.actions} actions<\\/strong>`));
+  assert.match(summary, /<strong>3 actions<\/strong><span> available this turn<\/span>/);
   assert.match(summary, new RegExp(`\\+${gains.bonusActions} bonus action`));
+  assert.match(summary, new RegExp(`aria-label="Start this turn with ${state.actions} total actions: 3 base and ${gains.bonusActions} bonus"`));
 });
 
 test('gathering summary separates bonuses and penalties into readable factors', () => {

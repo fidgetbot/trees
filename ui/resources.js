@@ -13,6 +13,7 @@ export function renderResourcePhaseBody({ state, gains }) {
   const relations = gains.relations || { shadedNeighbors: 0, crowdingNeighbors: 0, connectedAllies: 0 };
   const actionsAwarded = gains.actionsAwarded ?? state.actions;
   const bonusActions = gains.bonusActions ?? Math.max(0, actionsAwarded - 3);
+  const baseActions = Math.max(0, actionsAwarded - bonusActions);
   const number = value => Number(value || 0).toFixed(2).replace(/\.?0+$/, '');
   const factor = (label, tone = 'neutral') => `<span class="resource-factor ${tone}">${label}</span>`;
   const seasonalFactor = (kind, value) => factor(`${gains.season.name} ${kind} ×${number(value)}`, value > 1 ? 'positive' : value < 1 ? 'negative' : 'neutral');
@@ -107,8 +108,8 @@ export function renderResourcePhaseBody({ state, gains }) {
         ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
         </details>
       </section>
-      <button type="button" class="actions-earned" aria-label="Start this turn with ${actionsAwarded} actions">
-        <strong>${actionsAwarded} actions</strong><span> available this turn</span>
+      <button type="button" class="actions-earned" aria-label="Start this turn with ${actionsAwarded} total actions: ${baseActions} base${bonusActions > 0 ? ` and ${bonusActions} bonus` : ''}">
+        <strong>${baseActions} actions</strong><span> available this turn</span>
         ${bonusActions > 0 ? `<small>+${bonusActions} bonus action${bonusActions === 1 ? '' : 's'} from high resource yield</small>` : ''}
       </button>
     </div>
