@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import {
+  applyGatheringActionAward,
   actionsForGathering,
   BASE_ACTIONS_PER_TURN,
   createEngine,
@@ -170,6 +171,15 @@ test('high gathering preserves early bonuses but caps each turn at six actions',
   assert.equal(actionsForGathering(15), BASE_ACTIONS_PER_TURN + MAX_BONUS_ACTIONS_PER_TURN);
   assert.equal(actionsForGathering(10_000), BASE_ACTIONS_PER_TURN + MAX_BONUS_ACTIONS_PER_TURN);
   assert.equal(BASE_ACTIONS_PER_TURN + MAX_BONUS_ACTIONS_PER_TURN, 6);
+});
+
+test('entering the action phase restores the exact gathering award', () => {
+  const state = actionState();
+  state.actions = BASE_ACTIONS_PER_TURN;
+  const gains = { actionsAwarded: BASE_ACTIONS_PER_TURN + 1 };
+
+  assert.equal(applyGatheringActionAward(state, gains), 4);
+  assert.equal(state.actions, 4);
 });
 
 test('every browser multi-step action receives the authoritative transaction context', () => {

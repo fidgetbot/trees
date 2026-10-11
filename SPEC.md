@@ -114,7 +114,7 @@ Season directly modifies gathering: Spring produces 100% normal sunlight and 100
 ### Action Economy
 
 - **Base actions per turn:** 3
-- High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; one authoritative award sets both the gathering summary and the action tally that persists into play
+- High gathering yields award one additional action per complete five resources gathered, capped at three bonus actions and six total actions per turn; one authoritative award sets both the gathering summary and the overall action tally, and that exact award is committed again when the gathering sheet hands control to the playable turn
 - Actions spend combinations of sunlight, water, and nutrients
 - Multi-step actions remain pending until the player confirms a final target or investment; backing out, declining confirmation, or losing every valid target spends no resources and no action
 - Costs scale upward by life stage so later growth and defense decisions remain meaningful. Mature and Ancient costs shift modestly toward sunlight and water and away from nutrients, turning late-game surplus into useful growth rather than deepening a single nutrient bottleneck

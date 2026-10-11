@@ -63,7 +63,7 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=ominous-rumors-v1';
-import { createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-tally-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-handoff-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
@@ -626,16 +626,21 @@ function showResourcePhase({ quiet = false } = {}) {
   return engine.startTurn(state, {
     addLog,
     presentResources: (gains) => {
-      if (quiet) {
+      const enterActionPhase = () => {
+        applyGatheringActionAward(state, gains);
+        updateUI();
         renderActions();
+      };
+      if (quiet) {
+        enterActionPhase();
         return;
       }
       const nudge = updateResourceShortageNudges(state, gains);
       showModal('You gather', renderResourcePhaseBody({ state, gains }), () => {
         if (nudge) {
           addLog(nudge.log);
-          showModal(nudge.title, `<p><em>${nudge.body}</em></p><p>${nudge.remedy}</p>`, () => renderActions());
-        } else renderActions();
+          showModal(nudge.title, `<p><em>${nudge.body}</em></p><p>${nudge.remedy}</p>`, enterActionPhase);
+        } else enterActionPhase();
       }, { record: false, kind: 'gathering', eyebrow: `${gains.season.name} · Year ${state.year}` });
     },
   });

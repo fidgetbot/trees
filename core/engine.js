@@ -48,6 +48,15 @@ export function actionsForGathering(totalGathered) {
   return BASE_ACTIONS_PER_TURN + bonusActions;
 }
 
+export function applyGatheringActionAward(state, gains) {
+  const awarded = Math.max(
+    BASE_ACTIONS_PER_TURN,
+    Math.min(MAX_BONUS_ACTIONS_PER_TURN + BASE_ACTIONS_PER_TURN, Math.trunc(gains.actionsAwarded)),
+  );
+  state.actions = awarded;
+  return awarded;
+}
+
 export function shouldSkipGathering(state) {
   return (state.rootZones || 0) === 0;
 }
@@ -224,7 +233,7 @@ export function createEngine(deps) {
     state.nutrients = Math.min(capacities.nutrients, beforeCapacity.nutrients);
     const totalGathered = sunlightGain + waterGain + nutrientGain;
     const actionsAwarded = actionsForGathering(totalGathered);
-    state.actions = actionsAwarded;
+    applyGatheringActionAward(state, { actionsAwarded });
 
     return {
       sunlightGain,
