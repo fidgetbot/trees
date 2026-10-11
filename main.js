@@ -222,8 +222,7 @@ function tryAdvanceLifeStage(onContinue) {
     unlockedActions.forEach(action => addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`));
     const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
     const chapterBody = renderGrowthChapter(next, state.selectedSpecies, LIFE_STAGES, unlockHtml, { rootedSeed: next.name === 'Sprout' && state.leafClusters === 0, leafClusters: state.leafClusters });
-    // Refresh the scene before the chapter opens so the visible tree and dock
-    // already reflect this stage while the player reads about it.
+    // Refresh the scene; the shared dialog gate waits for its growth reveal.
     updateUI();
     render();
     showModal(next.name, chapterBody, () => {
@@ -401,7 +400,39 @@ function recordPopup(title, body) {
 
 function showModal(title, body, onContinue, { record = true, ...presentation } = {}) {
   if (record) recordPopup(title, body);
-  return showStandardModal(els, title, body, onContinue, presentation);
+  return afterGrowthAnimation(() => showStandardModal(els, title, body, onContinue, presentation));
+}
+
+function afterGrowthAnimation(open) {
+  // Some choice outcomes request a dialog before their normal render hook.
+  // Draw now so any newly changed tissue starts its reveal before we check it.
+  render();
+  if (!growthTransition) return open();
+
+  const app = document.getElementById('app');
+  const previousFocus = document.activeElement;
+  if (app) app.inert = true;
+  let finalFrameDrawn = false;
+  const waitForPaint = () => {
+    if (!els.canvas.isConnected) {
+      if (app) app.inert = false;
+      return;
+    }
+    if (growthTransition) {
+      finalFrameDrawn = false;
+    } else if (finalFrameDrawn) {
+      // One more animation frame lets the completed canvas actually paint
+      // before the dialog/backdrop covers it. No fixed extra timeout.
+      if (app) app.inert = false;
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      open();
+      return;
+    } else {
+      finalFrameDrawn = true;
+    }
+    requestAnimationFrame(waitForPaint);
+  };
+  requestAnimationFrame(waitForPaint);
 }
 
 function generateSuccessionChoices(count = 3) {
@@ -476,7 +507,7 @@ function continueAsSuccessor(choice) {
 
 function showChoiceModal(title, body, choices) {
   recordPopup(title, body);
-  return showChoiceModalUI(els, title, body, choices);
+  return afterGrowthAnimation(() => showChoiceModalUI(els, title, body, choices));
 }
 
 function showGameOverScreen(summary) {
