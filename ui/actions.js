@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=fruit-minimap-v2';
+import { updateActionDockStatus } from './context-actions.js?rev=stable-action-order-v1';
 export function renderActionPanels({
   els,
   categories,

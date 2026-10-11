@@ -66,8 +66,8 @@ import {
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-handoff-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=fruit-minimap-v2';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=fruit-minimap-v1';
+import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=encounter-art-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-foliage-attachments-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=neighbor-fruit-cards-v1';
@@ -304,6 +304,7 @@ const els = getBrowserElements(document);
 const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
+const contextualActionOrderByTarget = new Map();
 let sceneCamera = { x: 0, y: 0, zoom: 1 }, cameraAnimationFrame = null;
 let lastRenderStage = null;
 let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null;
@@ -333,6 +334,14 @@ function playerSceneTarget() {
 function activeSceneTarget() {
   if (!selectedSceneTarget) return playerSceneTarget();
   return sceneHitTargets.find(target => target.id === selectedSceneTarget.id) || playerSceneTarget();
+}
+
+function contextualActionOrderKey(target) {
+  if (!target || target.type === 'player-tree') return 'player-tree';
+  if (target.id) return target.id;
+  if (target.type === 'neighbor-tree') return `neighbor-tree:${target.targetIndex}`;
+  if (target.type === 'offspring-tree') return `offspring-tree:${target.childId}`;
+  return `${target.type || 'scene-target'}:${target.kind || target.title || 'unknown'}`;
 }
 
 function selectSceneTarget(target) {
@@ -426,6 +435,7 @@ function initSpeciesSelect() {
 
 function startGame() {
   const spec = SPECIES[state.selectedSpecies];
+  contextualActionOrderByTarget.clear();
   return startBrowserGame({
     state,
     initPanelCollapse: () => initPanelCollapseUI(els),
@@ -1376,12 +1386,20 @@ function renderActions() {
   });
 
   const contextTarget = activeSceneTarget();
+  const contextOrderKey = contextualActionOrderKey(contextTarget);
+  const stableKeys = contextualActionOrderByTarget.get(contextOrderKey) || [];
   const contextualActions = getContextualActions({
     target: contextTarget,
     usableActions: Object.values(categories).flat(),
     state: { ...state, currentSeasonName: currentSeason().name },
     getRelationshipState,
+    stableKeys,
   });
+  const visibleKeys = contextualActions.map(({ action }) => action.key);
+  contextualActionOrderByTarget.set(contextOrderKey, [
+    ...stableKeys,
+    ...visibleKeys.filter(key => !stableKeys.includes(key)),
+  ]);
 
   renderActionPanels({
     els,

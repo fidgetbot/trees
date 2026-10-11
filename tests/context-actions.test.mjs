@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeNeighborEffects, getContextualActions, isActionRelevantToTarget, pickSceneTarget } from '../ui/context-actions.js';
+import { describeNeighborEffects, getContextualActions, isActionRelevantToTarget, pickSceneTarget, stabilizeContextualActionOrder } from '../ui/context-actions.js';
 
 const entry = (key, category = 'growth') => ({ action: { key, category, name: key } });
 const relationship = value => ({ name: value >= 60 ? 'Ally' : value < 0 ? 'Rival' : 'Neutral' });
@@ -68,6 +68,31 @@ test('player tree priorities begin with unmet foundational growth', () => {
     getContextualActions({ target, usableActions, state }).map(item => item.action.key),
     ['extendRoot', 'growLeaves', 'growBranch'],
   );
+});
+
+test('repeated contextual choices retain their established button order when priorities change', () => {
+  const target = { type: 'player-tree' };
+  const usableActions = ['growLeaves', 'extendRoot'].map(key => entry(key));
+  const first = getContextualActions({
+    target,
+    usableActions,
+    state: { firstRootActionTaken: false, rootZones: 1, leafClusters: 0, health: 10, maxHealth: 10 },
+  });
+  assert.deepEqual(first.map(item => item.action.key), ['extendRoot', 'growLeaves']);
+
+  const next = getContextualActions({
+    target,
+    usableActions,
+    state: { firstRootActionTaken: true, rootZones: 2, leafClusters: 0, health: 10, maxHealth: 10 },
+    stableKeys: first.map(item => item.action.key),
+  });
+  assert.deepEqual(next.map(item => item.action.key), ['extendRoot', 'growLeaves']);
+});
+
+test('newly relevant actions keep their ranked slot without reversing familiar choices', () => {
+  const actions = ['bark', 'growLeaves', 'extendRoot'].map(key => entry(key));
+  const stabilized = stabilizeContextualActionOrder(actions, ['extendRoot', 'growLeaves']);
+  assert.deepEqual(stabilized.map(item => item.action.key), ['bark', 'extendRoot', 'growLeaves']);
 });
 
 test('dock distinguishes spendable moves from leftover action points', async () => {

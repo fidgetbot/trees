@@ -62,7 +62,26 @@ function playerPriority(state) {
   return [...new Set(priorities)];
 }
 
-export function getContextualActions({ target, usableActions, state, getRelationshipState, limit = 3 }) {
+export function stabilizeContextualActionOrder(entries, stableKeys = []) {
+  if (!stableKeys.length || entries.length < 2) return entries;
+
+  const stableIndex = new Map(stableKeys.map((key, index) => [key, index]));
+  const stableSlots = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => stableIndex.has(entry.action.key));
+  if (stableSlots.length < 2) return entries;
+
+  const orderedStableEntries = stableSlots
+    .map(({ entry }) => entry)
+    .sort((left, right) => stableIndex.get(left.action.key) - stableIndex.get(right.action.key));
+  const stabilized = [...entries];
+  stableSlots.forEach(({ index }, stableEntryIndex) => {
+    stabilized[index] = orderedStableEntries[stableEntryIndex];
+  });
+  return stabilized;
+}
+
+export function getContextualActions({ target, usableActions, state, getRelationshipState, limit = 3, stableKeys = [] }) {
   const relevant = (usableActions || []).filter(({ action }) => (
     isActionRelevantToTarget(action, target, state, getRelationshipState)
   ));
@@ -74,7 +93,7 @@ export function getContextualActions({ target, usableActions, state, getRelation
   else priorities = TARGET_PRIORITIES[target.kind] || [];
 
   const priorityIndex = new Map(priorities.map((key, index) => [key, index]));
-  return relevant
+  const ranked = relevant
     .map((entry, index) => ({ entry, index }))
     .sort((a, b) => (
       (priorityIndex.get(a.entry.action.key) ?? 999) - (priorityIndex.get(b.entry.action.key) ?? 999)
@@ -82,6 +101,7 @@ export function getContextualActions({ target, usableActions, state, getRelation
     ))
     .slice(0, limit)
     .map(({ entry }) => entry);
+  return stabilizeContextualActionOrder(ranked, stableKeys);
 }
 
 export function describeNeighborEffects(neighbor, relationship = 'Neutral') {
