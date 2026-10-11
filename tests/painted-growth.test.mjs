@@ -53,3 +53,10 @@ test('new branch leaves cannot float ahead of their growing support',()=>{
  assert.ok(leafReveal(leaf,{from:{leaves:3,branches:0},progress:.9})>0);
  assert.equal(leafReveal(leaf,{from:{leaves:4,branches:1},progress:.4}),1);
 });
+
+test('repeated leaf growth on one branch gets distinct persistent attachment slots',()=>{
+ const s={...state(),branches:1,leafClusters:0};syncGrowthAttachments(s);
+ for(let i=0;i<15;i++){s.leafClusters++;syncGrowthAttachments(s);}
+ const leaves=getPaintedGrowthPlan(s,'Sapling',geometry).leaves;
+ assert.deepEqual(leaves.map(leaf=>leaf.hostSlot),Array.from({length:15},(_,i)=>i));
+});

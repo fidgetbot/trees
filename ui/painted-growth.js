@@ -34,10 +34,12 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
       dx: side * width * (.35 + (i % 3) * .07 + tier * .035),
       dy: -height * (.12 + (i % 3) * .025), thickness: width * .032 };
   });
+  const hostSlots = new Map();
   const leaves = Array.from({ length: count(state.leafClusters) }, (_, i) => {
     const side = i % 2 ? -1 : 1, tier = Math.floor(i / 6);
     const host = state.visualGrowth?.leafHosts?.[i] ?? -1;
-    return { id: `leaf-${i}`, index: i, host: host < branches.length ? host : -1,
+    const hostSlot=hostSlots.get(host)||0;hostSlots.set(host,hostSlot+1);
+    return { id: `leaf-${i}`, index: i, hostSlot, host: host < branches.length ? host : -1,
       u: .5, v: .12 + (i % 6) * .067, side,
       dx: side * width * (.21 + (i % 3) * .07 + tier * .065),
       dy: -height * (.025 + (i % 2) * .035),
@@ -55,7 +57,7 @@ export function leafReveal(leaf, reveal) {
   const progress=growthReveal(leaf.index,'leaves',reveal);
   if(!reveal||leaf.host<0||leaf.host<(reveal.from.branches||0))return progress;
   // New foliage waits for its supporting branch to reach its attachment.
-  const attachment=.65+(leaf.index%3)*.13;
+  const attachment=leaf.attachment??(.58+(leaf.hostSlot||0)%4*.1);
   return progress*Math.max(0,(reveal.progress-attachment)/(1-attachment));
 }
 
@@ -156,8 +158,9 @@ export function preparePaintedGrowth(image, source, state, stage, geometry) {
   const leaves=plan.leaves.map(module=>{
     const host=branches.find(b=>b.index===module.host);
     if(!host)return position(module);
-    const start=curvePoint(host.start,host.end,host.dx*.1,.65+(module.index%3)*.13);
-    return {...module,start,end:{x:start.x+module.side*geometry.width*.13,y:start.y-geometry.height*.045},width:module.width*.85};
+    const attachment=.58+(module.hostSlot%4)*.1,tier=Math.floor(module.hostSlot/4);
+    const start=curvePoint(host.start,host.end,host.dx*.1,attachment);
+    return {...module,attachment,start,end:{x:start.x+module.side*geometry.width*(.13+tier*.06),y:start.y-geometry.height*(.045+tier*.028)},width:module.width*.85};
   }).filter(Boolean);
   return {texture,roots,branches,leaves};
 }

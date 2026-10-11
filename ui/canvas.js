@@ -1,4 +1,4 @@
-import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-growth-v1';
+import { preparePaintedGrowth, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-growth-v2';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
