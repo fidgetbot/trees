@@ -23,6 +23,7 @@ const SEED_PALETTES = {
   Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
 };
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
+const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
@@ -53,6 +54,25 @@ const INSECT_ASSET_URLS=Object.freeze({
   'surface-crawlers':new URL(`../assets/insects/pest-surface-crawlers-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
   mites:new URL(`../assets/insects/pest-mites-v1.png?rev=${FAUNA_ASSET_REVISION}`,import.meta.url).href,
 });
+const TREE_STRUCTURE_SPECIES=Object.freeze(['Plum','Peach','Apricot','Pear','Cherry','Citrus']);
+const TREE_STRUCTURE_STAGE_KEYS=Object.freeze(['seed','rooted-seed','sprout','seedling','sapling','young-tree','mature-tree','ancient']);
+const TREE_STRUCTURE_GEOMETRY=Object.freeze({
+  seed:Object.freeze({width:24,height:31,groundRatio:.84}),
+  'rooted-seed':Object.freeze({width:26,height:58,groundRatio:.35}),
+  sprout:Object.freeze({width:34,height:58,groundRatio:.57}),
+  seedling:Object.freeze({width:45,height:64,groundRatio:.56}),
+  sapling:Object.freeze({width:66,height:82,groundRatio:.59}),
+  'young-tree':Object.freeze({width:94,height:105,groundRatio:.61}),
+  'mature-tree':Object.freeze({width:142,height:122,groundRatio:.63}),
+  ancient:Object.freeze({width:174,height:136,groundRatio:.65}),
+});
+const TREE_STRUCTURE_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_SPECIES.flatMap(species=>{
+  const slug=species.toLowerCase();
+  return TREE_STRUCTURE_STAGE_KEYS.map(stageKey=>[
+    `${species}:${stageKey}`,
+    new URL(`../assets/trees/${slug}-${stageKey}-v1.png?rev=${TREE_STRUCTURE_ASSET_REVISION}`,import.meta.url).href,
+  ]);
+})));
 const BOTANICAL_ASSET_URLS=Object.freeze({
   'Citrus:foliage':Object.freeze([
     new URL('../assets/botanical/citrus-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
@@ -153,6 +173,10 @@ const BOTANICAL_ASSET_URLS=Object.freeze({
 });
 const botanicalAssets=new Map();
 let botanicalAssetLoadPromise=null;
+const treeStructureAssets=new Map();
+const treeStructureRequests=new Map();
+const treeStructureFailures=new Set();
+let canvasAssetLoadListener=null;
 const surveyorAssets=new Map();
 let surveyorAssetLoadPromise=null;
 const loggerAssets=new Map();
@@ -224,7 +248,36 @@ export function loadInsectAssets(onAssetLoad){
 }
 
 export function loadCanvasAssets(onAssetLoad){
+  canvasAssetLoadListener=onAssetLoad||canvasAssetLoadListener;
   return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad)]).then(results=>results.some(Boolean));
+}
+
+export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
+  if(rootedSeed)return'rooted-seed';
+  return String(stage||'seed').toLowerCase().replaceAll(' ','-');
+}
+
+export function getTreeStructureAssetUrl(species,stageKey){
+  return TREE_STRUCTURE_ASSET_URLS[`${species}:${stageKey}`]||null;
+}
+
+export function getTreeStructureGeometry(stageKey,state={}){
+  const base=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
+  if(stageKey==='seed'||stageKey==='rooted-seed')return{...base};
+  const branchGrowth=Math.min(.18,Math.max(0,state.branches||0)*.012),canopyGrowth=Math.min(.22,Math.max(0,state.canopySpread||0)*.035),trunkGrowth=Math.min(.1,Math.max(0,state.trunk||0)*.008),heightGrowth=Math.min(.42,Math.max(0,state.heightGrowth||0)*.075);
+  return{...base,width:base.width*(1+branchGrowth+canopyGrowth+trunkGrowth),height:base.height*(1+heightGrowth)};
+}
+
+export function requestTreeStructureAsset(species,stageKey,onAssetLoad=null){
+  const key=`${species}:${stageKey}`,url=getTreeStructureAssetUrl(species,stageKey);
+  if(!url||typeof Image==='undefined'||treeStructureFailures.has(key))return null;
+  if(treeStructureAssets.has(key))return treeStructureAssets.get(key);
+  if(treeStructureRequests.has(key))return null;
+  const image=new Image();image.decoding='async';treeStructureRequests.set(key,image);
+  image.onload=()=>{treeStructureAssets.set(key,image);treeStructureRequests.delete(key);(onAssetLoad||canvasAssetLoadListener)?.({family:'trees:structure',species,stageKey,url})};
+  image.onerror=()=>{treeStructureRequests.delete(key);treeStructureFailures.add(key)};
+  image.src=url;
+  return null;
 }
 
 export function getSceneArtKinds(state){
@@ -544,6 +597,22 @@ function drawDirectionalCanopyShadows(ctx,trees,groundY){
   trees.filter(tree=>tree.neighbor?.shadingPlayer).forEach(tree=>drawCanopyShadow(ctx,tree,player,groundY,7900+tree.index));
 }
 
+function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false){
+  const geometry=getTreeStructureGeometry(stageKey,visualState),{width,height,groundRatio}=geometry;
+  ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(image,-width/2,-height*groundRatio,width,height);ctx.restore();
+}
+
+function drawPaintedSproutFoliage(ctx,species,seed,leafCount,season,shaded=false){
+  if(season==='Winter'||leafCount<=0)return;
+  const count=Math.max(1,Math.min(3,Math.ceil(leafCount/2))),filter=paintedFoliageFilter(season,shaded);
+  for(let index=0;index<count;index+=1){
+    const image=botanicalAsset(species,'foliage',seed,index);if(!image)continue;
+    const side=index%2?-1:1,rank=Math.floor(index/2),cluster={x:side*(3.2+rank*1.3),y:-30+rank*4,size:2.2+Math.min(1.2,leafCount*.12)};
+    drawBotanicalModule(ctx,image,cluster,seed+index*701+91,3.2,filter,shaded?.86:.94);
+  }
+}
+
 function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
@@ -554,20 +623,19 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     drawDeadTree(ctx,x,groundY,stage,branches,trunk,roots,heightGrowth,habit,camera,seed,neighbor.deathAge||0);
     return;
   }
-  if(stage!=='Seed'&&!rootedSeed)drawRoots(ctx,x,groundY,roots,taproot,scale,wood.bark,seed,isPlayer,wood.highlight);
-  if(stage==='Seed'||rootedSeed){
-    if(rootedSeed)drawSeedRadicle(ctx,x,groundY,camera.zoom,wood.bark,seed,roots);
-    drawSeed(ctx,x,groundY,species,camera.zoom,seed);
-  }
-  else if(stage==='Sprout')drawSprout(ctx,x,groundY,wood.bark,seed,camera.zoom,leaves,trunk);
-  else {
+  const structureStageKey=getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey),visualState={branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth};
+  if(structureImage){
+    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+    if(stage==='Seed'||rootedSeed){drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);ctx.restore();return}
+    if(stage==='Sprout'){
+      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawPaintedSproutFoliage(ctx,species,seed,leaves,season,shaded);ctx.restore();return;
+    }
     const tree=buildTree(seed,branches,leaves,habit,stage,trunk,isPlayer?(state.canopySpread||0):0,heightGrowth);
-    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.28,1,0,0);
-    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded,species);drawWood(ctx,tree,wood.bark,wood.highlight);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded,species);
+    drawFoliage(ctx,tree,season,seed,isPlayer,false,shaded,species);drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawFoliage(ctx,tree,season,seed,isPlayer,true,shaded,species);
     if(isPlayer&&(state.thornDefense>0||state.toxicLeaves>0))drawPlayerDefenses(ctx,tree,state,seed);
     if(isPlayer&&shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers,species);
     if(isPlayer&&season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
-    ctx.restore();
+    ctx.restore();return;
   }
 }
 
@@ -770,7 +838,6 @@ function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species){
 function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plum'){
   if(season==='Winter')return;
   const painted=botanicalAsset(species,'foliage',seed,0);if(painted){drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species);return}
-  const colors=getFoliagePalette(season,shaded),ordered=player?[...tree.clusters].map((cluster,index)=>({cluster,index,priority:hash(`${seed}:leaf:${index}`)})).sort((a,b)=>a.priority-b.priority).slice(0,Math.min(tree.clusters.length,tree.profile?.foliageClusters||0)):tree.clusters.map((cluster,index)=>({cluster,index}));ordered.forEach(({cluster:c,index:k})=>{if((c.z>.48)!==front)return;const r=rng(seed+k*701+91),density=player?(tree.profile?.foliageDensity||0):14;for(let i=0;i<density;i++){const a=r()*TAU,d=Math.sqrt(r()),x=c.x+Math.cos(a)*d*c.size,y=c.y+Math.sin(a)*d*c.size*.72;ctx.fillStyle=colors[Math.floor(r()*colors.length)];ctx.globalAlpha=(shaded ? .84 : .72)+r()*(shaded ? .13 : .25);ctx.beginPath();ctx.ellipse(x,y,2.1+r()*2.5,1.2+r()*1.5,r()*Math.PI,0,TAU);ctx.fill()}});ctx.globalAlpha=1
 }
 export function getFoliagePalette(season,shaded=false){if(shaded){if(season==='Spring')return['#587653','#476746','#39573d','#668059','#304b37'];if(season==='Autumn')return['#87662c','#744827','#63372c','#917332','#51352d'];return['#506d49','#405f41','#334f3a','#5d7650','#294333']}if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
 export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlight:'rgba(201,177,127,.28)'};const hex=bark.replace('#',''),parts=[0,2,4].map(offset=>Math.round(parseInt(hex.slice(offset,offset+2),16)*.56).toString(16).padStart(2,'0'));return{bark:`#${parts.join('')}`,highlight:'rgba(113,105,82,.18)'}}

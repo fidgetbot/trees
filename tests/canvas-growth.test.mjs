@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeLabelText, getWoodPalette, isTreeShaded, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -51,6 +51,45 @@ test('early stages keep painted foliage sparse enough to reveal their scaffold',
   assert.equal(getPaintedFoliageModuleCount('Young Tree',7,12),7);
   assert.equal(getPaintedFoliageModuleCount('Mature Tree',10,14),12);
   assert.equal(getPaintedFoliageModuleCount('Ancient',15,24),19);
+});
+
+test('every species and life stage resolves to a dedicated painted structure asset', () => {
+  const stages=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'];
+  for(const species of ['Plum','Peach','Apricot','Pear','Cherry','Citrus']){
+    for(const stage of stages){
+      const stageKey=getTreeStructureStageKey(stage);
+      assert.match(getTreeStructureAssetUrl(species,stageKey),new RegExp(`${species.toLowerCase()}-${stageKey}-v1\\.png`));
+    }
+    assert.match(getTreeStructureAssetUrl(species,getTreeStructureStageKey('Seed',{rootedSeed:true})),/rooted-seed-v1\.png/);
+  }
+});
+
+test('painted structure geometry still reflects structural growth within a stage', () => {
+  const base=getTreeStructureGeometry('sapling',{branches:0,trunk:0,canopySpread:0,heightGrowth:0});
+  const grown=getTreeStructureGeometry('sapling',{branches:5,trunk:4,canopySpread:3,heightGrowth:2});
+  assert.ok(grown.width>base.width);
+  assert.ok(grown.height>base.height);
+  assert.equal(getTreeStructureGeometry('seed',{branches:9,heightGrowth:9}).width,getTreeStructureGeometry('seed').width);
+});
+
+test('painted structure assets load independently and notify after success', async () => {
+  const originalImage=globalThis.Image;
+  class MockImage{
+    set src(value){queueMicrotask(()=>value.includes('pear-seedling-v1.png')?this.onerror():this.onload())}
+  }
+  globalThis.Image=MockImage;
+  try{
+    const isolated=await import(`../ui/canvas.js?tree-structure-load-test=${Date.now()}`),loaded=[];
+    isolated.requestTreeStructureAsset('Plum','seedling',asset=>loaded.push(asset));
+    isolated.requestTreeStructureAsset('Pear','seedling',asset=>loaded.push(asset));
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.deepEqual(loaded.map(asset=>[asset.species,asset.stageKey]),[['Plum','seedling']]);
+    assert.ok(isolated.requestTreeStructureAsset('Plum','seedling'));
+    assert.equal(isolated.requestTreeStructureAsset('Pear','seedling'),null);
+  }finally{
+    if(originalImage===undefined)delete globalThis.Image;
+    else globalThis.Image=originalImage;
+  }
 });
 
 test('connected limbs preserve most of the parent width before tapering', () => {
