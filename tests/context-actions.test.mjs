@@ -15,6 +15,14 @@ test('scene picking prefers the last drawn overlapping target', () => {
   assert.equal(pickSceneTarget(targets, 200, 200), null);
 });
 
+test('scene picking ignores offscreen trees retained for minimap navigation',()=>{
+  const targets=[
+    {id:'visible-seedling',sceneVisible:true,bounds:{x:0,y:0,width:80,height:100}},
+    {id:'offscreen-mature',sceneVisible:false,bounds:{x:-200,y:-100,width:320,height:300}},
+  ];
+  assert.equal(pickSceneTarget(targets,40,40)?.id,'visible-seedling');
+});
+
 test('a selected ally shows only actions concerning that exact tree', () => {
   const state = { neighbors: [{ relation: 75, health: 6, maxHealth: 10, slot: 1 }] };
   const target = { type: 'neighbor-tree', targetIndex: 0 };

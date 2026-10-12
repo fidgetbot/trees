@@ -373,6 +373,14 @@ export function getJoinedLimbWidth(parentWidth,role='continuation'){
   return width*(role==='continuation'?.94:.64);
 }
 
+export function getDrawableGroveTrees(trees,viewportWidth){
+  return trees.filter(tree=>Number.isFinite(tree.x)&&tree.x>=0&&tree.x<=viewportWidth);
+}
+
+export function getSceneArtworkScale(viewportWidth){
+  return Math.max(.78,Math.min(1.6,(Number(viewportWidth)||0)/780));
+}
+
 export function getPaintedFoliageModuleCount(stage,leafCount,clusterCount){
   if(leafCount<=0||clusterCount<=0)return 0;
   return Math.min(clusterCount,Math.max(1,Math.ceil(leafCount*getStageArtProfile(stage).foliageMultiplier)));
@@ -451,6 +459,10 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   // beyond the padded measuring bitmap and turn a clipped fragment into the
   // next camera estimate.
   const focusedTrees=measureTargetId?isolatedTrees.map(tree=>({...tree,x:w/2})):isolatedTrees;
+  // A crown can be much wider than its grove spacing. If its ground anchor is
+  // wholly offscreen, painting it can leave a disconnected branch fragment at
+  // the edge beside an unrelated visible tree.
+  const drawableTrees=measureTargetId?focusedTrees:getDrawableGroveTrees(focusedTrees,w);
   canvas.dataset.groundY=String(groundY);
   canvas.dataset.worldZoom=String(camera.zoom);
   ctx.clearRect(0,0,w,h);
@@ -459,21 +471,22 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
     ctx.fillStyle=soil;ctx.fillRect(0,groundY,w,h-groundY);ctx.strokeStyle='rgba(84,70,45,.3)';line(ctx,0,groundY,w,groundY);
     if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
-    drawDirectionalCanopyShadows(ctx,focusedTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
+    drawDirectionalCanopyShadows(ctx,drawableTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
   }
   const attachedTargets=[];
-  focusedTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
-  const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>treeHitTarget(tree,state,playerStageName,camera,groundY));
+  drawableTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
+  const drawableTreeSet=new Set(drawableTrees);
+  const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>({...treeHitTarget(tree,state,playerStageName,camera,groundY),sceneVisible:drawableTreeSet.has(tree)}));
   if(!measureTargetId){
     drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
-    hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
+    hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets,w);
     // Keep relationship geometry in grove coordinates even when specimen art
     // is isolated after focusing. The clipped dotted path then persists under
     // an ally or any tree between the player and that ally.
     if(cameraFor(state,playerStageName).rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   }
   const labelRows=[];
-  focusedTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+  drawableTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
   let measuredBounds=null;
   if(measureTargetId&&ctx.getImageData){
     const pixels=ctx.getImageData(0,0,physicalWidth,physicalHeight).data;
@@ -496,7 +509,9 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
 function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,viewportWidth){
   const kinds=getSceneArtKinds(state);
   if(!kinds.length)return;
-  const scale=Math.max(.62,Math.min(2.5,camera.zoom/.86));
+  // Fauna are readable scene markers. Size them for the viewport, not the
+  // focused tree's camera, so switching life stages cannot make them pulse.
+  const scale=getSceneArtworkScale(viewportWidth);
   const drawGrounded=(kind,centerX,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
     ({width:displayWidth,centerX}=clampGroundedArtwork(centerX,displayWidth,viewportWidth));
@@ -526,7 +541,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
       return;
     }
     if(kind==='beaver'){
-      drawGrounded(kind,x-112*scale,Math.min(82*scale,viewportWidth*.3),'Beaver');
+      drawGrounded(kind,x-112*scale,82*scale,'Beaver');
       return;
     }
     if(kind==='browsers'){
@@ -553,7 +568,7 @@ function stageForScore(score){
   if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Young Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
 }
 
-function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
+function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
   const cuts=state.cuttingProgress||0,encounter=state.pendingHumanEncounter;
   if((state.humanAttention||0)>0){
     const markScale=Math.max(.7,camera.zoom);ctx.save();ctx.fillStyle='rgba(223,109,63,.92)';ctx.beginPath();ctx.roundRect(x-5*markScale,groundY-15*markScale,10*markScale,3.2*markScale,1.4*markScale);ctx.fill();ctx.restore();
@@ -564,7 +579,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
     ctx.restore();
   }
   if(!encounter)return;
-  const count=Math.max(1,encounter.count||2),scale=Math.max(.62,Math.min(2.5,camera.zoom*.88));
+  const count=Math.max(1,encounter.count||2),scale=getSceneArtworkScale(viewportWidth);
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   let groupLeft=Infinity,groupTop=Infinity,groupRight=-Infinity;
   for(let i=0;i<count;i++){
@@ -572,7 +587,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
     if(encounter.phase==='survey'){
       const image=surveyorAssets.get(getSurveyorVariantIndex(i));
       if(image){
-        const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
+        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
         const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
         groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
@@ -582,7 +597,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets){
     if(encounter.phase==='cutting'){
       const image=loggerAssets.get(getLoggerVariantIndex(i));
       if(image){
-        const displayHeight=Math.max(36,Math.min(82,47*scale/.62)),displayWidth=displayHeight*2/3;
+        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
         const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
         groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);

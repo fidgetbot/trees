@@ -25,7 +25,7 @@ const TARGET_PRIORITIES = {
 };
 
 export function pickSceneTarget(targets, x, y) {
-  return [...(targets || [])].reverse().find(target => (
+  return [...(targets || [])].reverse().find(target => target.sceneVisible!==false&&(
     x >= target.bounds.x
     && x <= target.bounds.x + target.bounds.width
     && y >= target.bounds.y

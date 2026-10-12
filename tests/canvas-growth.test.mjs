@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement } from '../ui/fauna-art.js';
 
-import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -384,6 +384,18 @@ test('fungal links retain full-grove endpoints for stationary focused views',()=
   assert.deepEqual(getFungalNetworkSegments(trees,500,getRelationshipState),[
     {from:{x:360,y:530},to:{x:120,y:570}},
   ]);
+});
+
+test('trees with offscreen ground anchors cannot leak disconnected canopy fragments',()=>{
+  const trees=[{x:-180,id:'far-left'},{x:12,id:'left'},{x:640,id:'player'},{x:1268,id:'right'},{x:1460,id:'far-right'}];
+  assert.deepEqual(getDrawableGroveTrees(trees,1280).map(tree=>tree.id),['left','player','right']);
+});
+
+test('fauna and encounter artwork use a camera-independent responsive scale',()=>{
+  assert.equal(getSceneArtworkScale(390),.78);
+  assert.equal(getSceneArtworkScale(780),1);
+  assert.equal(getSceneArtworkScale(1280),1.6);
+  assert.equal(getSceneArtworkScale(1920),1.6);
 });
 
 test('map labels show health for allies without cluttering non-allies', () => {
