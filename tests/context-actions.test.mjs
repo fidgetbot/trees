@@ -119,4 +119,6 @@ test('dock distinguishes spendable moves from leftover action points', async () 
   assert.equal(getActionDockState(0, 3).canAct, false);
   assert.equal(getActionDockState(2, 3).status, '2 actions remaining');
   assert.equal(getActionDockState(2, 3).canAct, true);
+  assert.equal(getActionDockState(2, 3).catalogLabel, 'Future Actions');
+  assert.equal(getActionDockState(2, 3).catalogTitle, 'Future Actions');
 });

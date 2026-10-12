@@ -57,3 +57,11 @@ export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = 
     ${pendingResponses ? `<p class="encounter-queue-summary"><strong>${pendingResponses} ${pendingResponses === 1 ? 'encounter needs' : 'encounters need'} your response.</strong></p>` : ''}
   `;
 }
+
+export function renderIncidentOutcomeBody({ incidentId = '', warning = '', body = '', effects = [] } = {}) {
+  return `<section class="incident-followup" data-incident-id="${escapeHtml(incidentId)}">
+    ${warning ? `<div class="incident-followup-step incident-followup-warning"><strong>Earlier warning</strong><p>${escapeHtml(warning)}</p></div>` : ''}
+    <div class="incident-followup-connector" aria-hidden="true">↓</div>
+    <div class="incident-followup-step incident-followup-result"><strong>What happened</strong><p>${escapeHtml(body)}</p>${renderEffects(effects)}</div>
+  </section>`;
+}

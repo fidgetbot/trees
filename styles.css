@@ -1892,6 +1892,13 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 .incident-good .incident-effect { border-color: #5f81583a; color: #496a46; }
 .incident-bad .incident-effect,.incident-warning .incident-effect { border-color: #9b654b42; color: #8b563f; }
 .encounter-queue-summary { margin: 14px 0 0; color: #8b563f; font-size: 13px; }
+.incident-followup { display: grid; gap: 8px; }
+.incident-followup-step { padding: 13px 15px; border: 1px solid #7c87662e; border-radius: 12px; background: #f8f5eab8; }
+.incident-followup-step > strong { display: block; margin-bottom: 4px; color: #6e735f; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.incident-followup-step p { margin: 0; color: #56604f; line-height: 1.55; }
+.incident-followup-warning { border-left: 3px solid #a4875f; }
+.incident-followup-result { border-left: 3px solid #9b654b; background: #f7eee7c7; }
+.incident-followup-connector { height: 14px; color: #8c775e; font-size: 16px; line-height: 14px; text-align: center; }
 .modal[data-kind="night"] .event-major { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 13px; margin: 0; padding: 14px 0 16px; border: 0; border-top: 1px solid #7c87662e; border-radius: 0; background: none; }
 .modal[data-kind="night"] .event-major.event-quiet { display: block; padding-left: 0; }
 .modal[data-kind="night"] .event-major > .encounter-art { width: 72px; height: 68px; flex-basis: 72px; }

@@ -6,7 +6,7 @@ import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
 import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
 import { buildIncidentDecision, resolveIncidentDecision } from '../core/incident-responses.js';
-import { renderEventPhaseBody } from '../ui/events.js';
+import { renderEventPhaseBody, renderIncidentOutcomeBody } from '../ui/events.js';
 
 function state(overrides = {}) {
   return {
@@ -114,7 +114,7 @@ test('hungry browsers recognize permanent thorns and toxic leaves without anothe
 
 test('an unanswered chemical incident reports its final damaging conclusion once', () => {
   const s = state({ lifeStage: { name: 'Seedling' } });
-  const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => s.lifeStage, threat: 'aphids' });
+  const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => s.lifeStage, threat: 'surface-crawlers' });
   const incident = openChemicalIncident(s, decision, { awaiting: false });
   keepIncidentOngoing(s, incident.id);
   s.turnsElapsed = 1;
@@ -122,6 +122,13 @@ test('an unanswered chemical incident reports its final damaging conclusion once
   assert.match(conclusion.body, /danger has passed, though it left damage behind/i);
   assert.equal(incident.state, 'resolved');
   assert.equal(incident.meta.reportPending, true);
+  const body = renderIncidentOutcomeBody(conclusion);
+  assert.match(body, /data-incident-id="incident-1"/);
+  assert.match(body, /Earlier warning/);
+  assert.match(body, /Small insects swarm the soil surface/);
+  assert.match(body, /What happened/);
+  assert.match(body, /lose 1 root zone and 1 health/);
+  assert.match(body, /data-incident-id="incident-1"[\s\S]*Earlier warning[\s\S]*What happened/);
 });
 
 test('ally help clears an active aphid incident as well as restoring health', () => {

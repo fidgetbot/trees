@@ -80,9 +80,9 @@ import {
 } from './core/incidents.js?rev=incident-system-v1';
 import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=incident-system-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=action-carousel-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=action-carousel-v1';
-import { renderEventPhaseBody } from './ui/events.js?rev=incident-system-v1';
+import { renderActionPanels } from './ui/actions.js?rev=future-actions-label-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
+import { renderEventPhaseBody, renderIncidentOutcomeBody } from './ui/events.js?rev=incident-followup-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=incident-system-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
@@ -91,7 +91,7 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=incident-system-v1';
 import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=typed-focus-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=future-actions-label-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
 
 function computeCurrentLifeStage() {
@@ -790,16 +790,29 @@ function processIncidentResponses(onDone, progress = null) {
   );
 }
 
-function showResourcePhase({ quiet = false } = {}) {
+function showResourcePhase({ quiet = false, pendingChecked = false } = {}) {
   if (state.gameOver) return;
   setTurnEndBanner('');
-  const pendingStartOfTurn = resolvePendingStartOfTurnEffects(state);
+  const pendingStartOfTurn = pendingChecked ? [] : resolvePendingStartOfTurnEffects(state);
   if (pendingStartOfTurn.length) {
     pendingStartOfTurn.forEach(effect => addLog(`${effect.title}: ${effect.body}`));
-    showFeedback(pendingStartOfTurn[0].body, 'warning');
     updateScore();
     updateUI();
     render();
+    const effect = pendingStartOfTurn[0];
+    showModal(effect.title, renderIncidentOutcomeBody(effect), () => {
+      const incident = getIncident(state, effect.incidentId);
+      if (incident?.meta) incident.meta.reportPending = false;
+      if (state.health <= 0) return handleDeath();
+      showResourcePhase({ quiet, pendingChecked: true });
+    }, {
+      record: false,
+      kind: 'incident-outcome',
+      eyebrow: 'Incident outcome',
+      sceneArt: effect.sceneArt,
+      buttonLabel: 'Continue to gathering',
+    });
+    return;
   }
   if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
   if (quiet && (state.turnsElapsed || 0) === 0) {
@@ -1954,7 +1967,7 @@ function openDetailSheet(kind) {
   detailSheet.dataset.section = kind;
   document.getElementById('sheet-actions').hidden = kind !== 'actions';
   document.getElementById('sheet-info').hidden = kind !== 'info';
-  document.getElementById('sheet-title').textContent = kind === 'actions' ? document.getElementById('open-actions').dataset.sheetTitle || 'Actions and requirements' : 'Grove notebook';
+  document.getElementById('sheet-title').textContent = kind === 'actions' ? document.getElementById('open-actions').dataset.sheetTitle || 'Future Actions' : 'Grove notebook';
   if (!detailSheet.open) detailSheet.showModal();
   detailSheet.querySelector('.sheet-scroll').scrollTop = 0;
 }

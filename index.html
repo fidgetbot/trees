@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=incident-system-v1" />
+  <link rel="stylesheet" href="styles.css?rev=incident-followup-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=ominous-rumors-v1" />
 </head>
 <body class="theme-light-rounded">
@@ -48,7 +48,7 @@
         <div id="actions-list" class="actions-list"></div>
         <div class="dock-toolbar">
           <span id="actions-remaining" aria-live="polite"></span>
-          <button id="open-actions" type="button">Requirements</button>
+          <button id="open-actions" type="button">Future Actions</button>
           <button id="finish-turn" class="finish-turn-btn" type="button">End turn →</button>
         </div>
         <dialog id="detail-sheet" class="detail-sheet" aria-labelledby="sheet-title">
@@ -201,6 +201,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=incident-system-v1"></script>
+  <script type="module" src="main.js?rev=incident-followup-v1"></script>
 </body>
 </html>

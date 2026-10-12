@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=action-carousel-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
 export function renderActionPanels({
   els,
   categories,
@@ -113,7 +113,7 @@ export function renderActionPanels({
   const allActions = document.createElement('details');
   allActions.className = 'all-actions';
   allActions.open = true;
-  allActions.innerHTML = `<summary>Action requirements</summary>`;
+  allActions.innerHTML = `<summary>Future Actions</summary>`;
   const catalog = document.createElement('div');
   catalog.className = 'all-actions-catalog';
 

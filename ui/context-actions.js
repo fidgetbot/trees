@@ -154,8 +154,8 @@ export function getActionDockState(points, usableCount) {
   return {
     canAct,
     status: canAct ? `${points} action${points === 1 ? '' : 's'} remaining` : '',
-    catalogLabel: 'Requirements',
-    catalogTitle: 'Action requirements',
+    catalogLabel: 'Future Actions',
+    catalogTitle: 'Future Actions',
     endTitle: canAct ? 'End the turn with remaining actions unused' : 'End this turn to continue',
   };
 }
@@ -171,7 +171,7 @@ export function updateActionDockStatus(els, points, usableCount) {
   if (catalog) {
     catalog.textContent = status.catalogLabel;
     catalog.dataset.sheetTitle = status.catalogTitle;
-    catalog.setAttribute('aria-label', 'View unavailable actions and future requirements');
+    catalog.setAttribute('aria-label', 'View unavailable and future actions');
     catalog.classList.remove('hidden');
   }
   if (els.finishTurn) {

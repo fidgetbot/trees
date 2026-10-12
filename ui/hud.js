@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=action-carousel-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;
