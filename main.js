@@ -262,7 +262,14 @@ function maybeAnnounceProgressiveActionUnlocks(onContinue) {
     addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`);
   });
   const body = newlyUnlocked.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
-  showModal('New Growth Possibilities', body, onContinue);
+  showModal('New Growth Possibilities', body, () => {
+    onContinue?.();
+    // Unlocking ally actions rerenders and resizes the phone dock. Always
+    // finish that modal chain from a canonical camera for the still-active
+    // subject; otherwise a stale/interrupted view can leave the entire grove
+    // beyond the viewport while the dock correctly falls back to the player.
+    if (state.started) settleActiveSceneCamera();
+  });
   return true;
 }
 
@@ -556,6 +563,14 @@ function refitSceneCamera({animate=false}={}){
   cameraViewportSignature=sceneViewportSignature();
   if(animate)animateSceneCamera(to,expectedKey);
   else{sceneCamera=to;render()}
+}
+
+function settleActiveSceneCamera(){
+  cancelSceneCameraAnimation();
+  selectedSceneTarget=activeSceneTarget();
+  sceneCamera=sceneCameraForTarget(selectedSceneTarget);
+  cameraViewportSignature=sceneViewportSignature();
+  render();
 }
 
 function scheduleSceneCameraRefit(){
