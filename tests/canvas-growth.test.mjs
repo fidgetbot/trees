@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, loadTreeRemainsAsset, paintedCanopyEntries, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, loadTreeRemainsAsset, paintedCanopyEntries, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -65,6 +65,11 @@ test('every species and life stage resolves to a dedicated painted structure ass
     }
     assert.match(getTreeStructureAssetUrl(species,getTreeStructureStageKey('Seed',{rootedSeed:true})),/rooted-seed-v1\.png/);
   }
+});
+
+test('rooted seed retains the seed painting while its new structure decodes',()=>{
+  assert.deepEqual(getTreeStructureFallbackKeys('rooted-seed'),['rooted-seed','seed']);
+  assert.deepEqual(getTreeStructureFallbackKeys('sapling'),['sapling']);
 });
 
 test('dead trees retain their painted life-stage structure before becoming low painted stumps', () => {

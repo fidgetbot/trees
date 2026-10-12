@@ -303,6 +303,13 @@ export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
   return String(stage||'seed').toLowerCase().replaceAll(' ','-');
 }
 
+export function getTreeStructureFallbackKeys(stageKey){
+  // The first root changes the requested painting before the rooted-seed PNG
+  // is guaranteed to have decoded. Keep the already-visible seed in place
+  // during that handoff instead of briefly erasing the player from the grove.
+  return stageKey==='rooted-seed'?['rooted-seed','seed']:[stageKey];
+}
+
 export function getTreeStructureAssetUrl(species,stageKey){
   return TREE_STRUCTURE_ASSET_URLS[`${species}:${stageKey}`]||null;
 }
@@ -856,7 +863,10 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       ctx.restore();return targets;
     }
   }
-  const structureStageKey=juvenileKey?'rooted-seed':getTreeStructureStageKey(stage,{rootedSeed}),structureImage=requestTreeStructureAsset(species,structureStageKey);
+  const desiredStructureStageKey=juvenileKey?'rooted-seed':getTreeStructureStageKey(stage,{rootedSeed});
+  requestTreeStructureAsset(species,desiredStructureStageKey);
+  const structureStageKey=getTreeStructureFallbackKeys(desiredStructureStageKey).find(key=>treeStructureAssets.has(`${species}:${key}`))||desiredStructureStageKey;
+  const structureImage=requestTreeStructureAsset(species,structureStageKey);
   if(structureImage){
     ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
     if(isPlayer&&stage!=='Seed'){
