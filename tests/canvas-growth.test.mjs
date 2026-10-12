@@ -103,9 +103,9 @@ test('painted structure geometry still reflects structural growth within a stage
 
 test('painted structure assets load independently and notify after success', async () => {
   const originalImage=globalThis.Image;
-  let pearAttempts=0;
+  let pearAttempts=0;const pearSources=[];
   class MockImage{
-    set src(value){queueMicrotask(()=>value.includes('pear-seedling-v1.png')&&pearAttempts++===0?this.onerror():this.onload())}
+    set src(value){if(value.includes('pear-seedling-v1.png'))pearSources.push(value);queueMicrotask(()=>value.includes('pear-seedling-v1.png')&&pearAttempts++===0?this.onerror():this.onload())}
   }
   globalThis.Image=MockImage;
   try{
@@ -115,10 +115,11 @@ test('painted structure assets load independently and notify after success', asy
     await new Promise(resolve=>setTimeout(resolve,0));
     assert.deepEqual(loaded.map(asset=>[asset.species,asset.stageKey]),[['Plum','seedling']]);
     assert.ok(isolated.requestTreeStructureAsset('Plum','seedling'));
-    await new Promise(resolve=>setTimeout(resolve,160));
+    await new Promise(resolve=>setTimeout(resolve,220));
     assert.ok(isolated.requestTreeStructureAsset('Pear','seedling'));
     assert.deepEqual(loaded.map(asset=>[asset.species,asset.stageKey]),[['Plum','seedling'],['Pear','seedling']]);
     assert.equal(pearAttempts,2);
+    assert.match(pearSources[1],/[?&]tree-retry=1(?:&|$)/);
   }finally{
     if(originalImage===undefined)delete globalThis.Image;
     else globalThis.Image=originalImage;

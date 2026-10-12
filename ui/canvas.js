@@ -187,7 +187,7 @@ let botanicalAssetLoadPromise=null;
 const treeStructureAssets=new Map();
 const treeStructureRequests=new Map();
 const treeStructureFailures=new Map();
-const TREE_STRUCTURE_RETRY_DELAYS=Object.freeze([120,400,1200]);
+const TREE_STRUCTURE_RETRY_DELAYS=Object.freeze([180]);
 const treeGrowthAssets=new Map();
 const treeGrowthRequests=new Map();
 const treeGrowthFailures=new Set();
@@ -310,19 +310,21 @@ export function getTreeStructureGeometry(stageKey,state={}){
 
 export function requestTreeStructureAsset(species,stageKey,onAssetLoad=null){
   const key=`${species}:${stageKey}`,url=getTreeStructureAssetUrl(species,stageKey);
-  if(!url||typeof Image==='undefined'||(treeStructureFailures.get(key)||0)>TREE_STRUCTURE_RETRY_DELAYS.length)return null;
+  const failures=treeStructureFailures.get(key)||0;
+  if(!url||typeof Image==='undefined'||failures>TREE_STRUCTURE_RETRY_DELAYS.length)return null;
   if(treeStructureAssets.has(key))return treeStructureAssets.get(key);
   if(treeStructureRequests.has(key))return null;
   const image=new Image();image.decoding='async';treeStructureRequests.set(key,image);
   image.onload=()=>{treeStructureAssets.set(key,image);treeStructureRequests.delete(key);treeStructureFailures.delete(key);(onAssetLoad||canvasAssetLoadListener)?.({family:'trees:structure',species,stageKey,url})};
   image.onerror=()=>{
     treeStructureRequests.delete(key);
-    const failures=(treeStructureFailures.get(key)||0)+1;
-    treeStructureFailures.set(key,failures);
-    const delay=TREE_STRUCTURE_RETRY_DELAYS[failures-1];
+    const nextFailures=(treeStructureFailures.get(key)||0)+1;
+    treeStructureFailures.set(key,nextFailures);
+    const delay=TREE_STRUCTURE_RETRY_DELAYS[nextFailures-1];
     if(delay!==undefined)setTimeout(()=>requestTreeStructureAsset(species,stageKey,onAssetLoad),delay);
   };
-  image.src=url;
+  if(failures){const retryUrl=new URL(url);retryUrl.searchParams.set('tree-retry',String(failures));image.src=retryUrl.href}
+  else image.src=url;
   return null;
 }
 
