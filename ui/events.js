@@ -50,7 +50,7 @@ export function renderEventPhaseBody({ major, minors, consequences }) {
 
   return `
     <img class="night-specimen" src="assets/events/moonlit-night-branches-v1.png?rev=night-branches-v1" alt="" aria-hidden="true" />
-    <p class="night-prose">Darkness settles over the grove. What stirred beneath the leaves is gathered here.</p>
+    <p class="night-prose">Darkness settles over the grove.</p>
     ${majorHtml}
     ${minorHtml}
   `;

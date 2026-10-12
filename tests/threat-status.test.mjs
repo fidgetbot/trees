@@ -85,6 +85,7 @@ test('an unaffordable chemical threat becomes one compact shortage row', () => {
   assert.match(nightBody, /night-specimen/);
   assert.match(nightBody, /moonlit-night-branches-v1\.png/);
   assert.match(nightBody, /Darkness settles over the grove/);
+  assert.doesNotMatch(nightBody, /What stirred beneath the leaves/);
 });
 
 test('fungal chemical threats carry distinct painted identities through the shared flow', () => {
