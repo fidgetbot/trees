@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -315,6 +315,15 @@ test('winter ground painting loads independently',async()=>{
   }finally{if(originalImage===undefined)delete globalThis.Image;else globalThis.Image=originalImage;}
 });
 
+test('winter snow overlaps the soil horizon and spans both viewport edges before feathering',()=>{
+  const surface=getWinterSnowSurface(390,370);
+  assert.equal(surface.top[0].x,0);
+  assert.equal(surface.top.at(-1).x,390);
+  assert.ok(surface.top.every(point=>point.y<370));
+  assert.ok(surface.layerTop<Math.min(...surface.top.map(point=>point.y)));
+  assert.ok(surface.fadeBottom>surface.opaqueBottom);
+});
+
 test('shading creates a dramatic lean toward the adjacent rival', () => {
   const left = { slot: 1, dead: false, playerShading: true };
   const state = { neighbors: [left] };
@@ -399,6 +408,7 @@ test('fungal links retain full-grove endpoints for stationary focused views',()=
 test('trees with offscreen ground anchors cannot leak disconnected canopy fragments',()=>{
   const trees=[{x:-180,id:'far-left'},{x:12,id:'left'},{x:640,id:'player'},{x:1268,id:'right'},{x:1460,id:'far-right'}];
   assert.deepEqual(getDrawableGroveTrees(trees,1280).map(tree=>tree.id),['left','player','right']);
+  assert.equal(getDrawableGroveTrees([trees[0]],1280,{preserveFocused:true})[0],trees[0]);
 });
 
 test('fauna and encounter artwork use a camera-independent responsive scale',()=>{

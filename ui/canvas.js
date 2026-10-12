@@ -202,6 +202,7 @@ let insectAssetLoadPromise=null;
 let winterSnowAsset=null;
 let winterSnowAssetLoadPromise=null;
 let mirroredSnowTile=null;
+const winterSnowSurfaceLayers=new Map();
 
 export function loadBotanicalAssets(onAssetLoad){
   if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
@@ -269,7 +270,7 @@ export function loadWinterGroundAsset(onAssetLoad){
   if(typeof Image==='undefined')return Promise.resolve(false);
   winterSnowAssetLoadPromise=new Promise(resolve=>{
     const image=new Image();image.decoding='async';
-    image.onload=()=>{winterSnowAsset=image;mirroredSnowTile=null;onAssetLoad?.({family:'ground:winter',url:WINTER_SNOW_TILE_URL});resolve(true)};
+    image.onload=()=>{winterSnowAsset=image;mirroredSnowTile=null;winterSnowSurfaceLayers.clear();onAssetLoad?.({family:'ground:winter',url:WINTER_SNOW_TILE_URL});resolve(true)};
     image.onerror=()=>resolve(false);image.src=WINTER_SNOW_TILE_URL;
   });
   return winterSnowAssetLoadPromise;
@@ -373,8 +374,16 @@ export function getJoinedLimbWidth(parentWidth,role='continuation'){
   return width*(role==='continuation'?.94:.64);
 }
 
-export function getDrawableGroveTrees(trees,viewportWidth){
+export function getDrawableGroveTrees(trees,viewportWidth,{preserveFocused=false}={}){
+  if(preserveFocused)return trees;
   return trees.filter(tree=>Number.isFinite(tree.x)&&tree.x>=0&&tree.x<=viewportWidth);
+}
+
+export function getWinterSnowSurface(viewportWidth,groundY){
+  const width=Math.max(0,Number(viewportWidth)||0),top=[];
+  for(let x=0;x<width;x+=24)top.push({x,y:groundY-6+Math.sin(x*.035)*3+Math.sin(x*.091+1.7)});
+  top.push({x:width,y:groundY-6+Math.sin(width*.035)*3+Math.sin(width*.091+1.7)});
+  return{top,layerTop:groundY-12,opaqueBottom:groundY+42,fadeBottom:groundY+72};
 }
 
 export function getSceneArtworkScale(viewportWidth){
@@ -462,7 +471,10 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   // A crown can be much wider than its grove spacing. If its ground anchor is
   // wholly offscreen, painting it can leave a disconnected branch fragment at
   // the edge beside an unrelated visible tree.
-  const drawableTrees=measureTargetId?focusedTrees:getDrawableGroveTrees(focusedTrees,w);
+  // Once focus has isolated one specimen, never cull it by a stale grove
+  // anchor. Painting it is also what starts/retries its lazy asset request;
+  // culling here could otherwise make an empty focus self-sustaining.
+  const drawableTrees=measureTargetId?focusedTrees:getDrawableGroveTrees(focusedTrees,w,{preserveFocused:Boolean(isolate)});
   canvas.dataset.groundY=String(groundY);
   canvas.dataset.worldZoom=String(camera.zoom);
   ctx.clearRect(0,0,w,h);
@@ -667,14 +679,23 @@ function winterGroundTile(){
   mirroredSnowTile=tile;return tile;
 }
 
+function winterSnowSurfaceLayer(width){
+  const roundedWidth=Math.max(1,Math.ceil(width)),tile=winterGroundTile(),cacheKey=`${roundedWidth}:${tile?'painted':'fallback'}`;
+  if(winterSnowSurfaceLayers.has(cacheKey))return winterSnowSurfaceLayers.get(cacheKey);
+  const surface=getWinterSnowSurface(roundedWidth,0),layerHeight=Math.max(1,Math.ceil(surface.fadeBottom-surface.layerTop));
+  const layer=document.createElement('canvas');layer.width=roundedWidth;layer.height=layerHeight;
+  const paint=layer.getContext('2d'),localTop=surface.top.map(point=>({x:point.x,y:point.y-surface.layerTop}));
+  paint.beginPath();paint.moveTo(localTop[0].x,localTop[0].y);for(let i=1;i<localTop.length;i++)paint.lineTo(localTop[i].x,localTop[i].y);paint.lineTo(roundedWidth,layerHeight);paint.lineTo(0,layerHeight);paint.closePath();paint.clip();
+  const snow=paint.createLinearGradient(0,0,0,layerHeight);snow.addColorStop(0,'rgba(250,253,255,.98)');snow.addColorStop(.62,'rgba(230,239,245,.92)');snow.addColorStop(1,'rgba(206,220,230,.25)');paint.fillStyle=snow;paint.fillRect(0,0,roundedWidth,layerHeight);
+  if(tile){paint.globalAlpha=.86;paint.fillStyle=paint.createPattern(tile,'repeat');paint.fillRect(0,0,roundedWidth,layerHeight);paint.globalAlpha=1}
+  paint.globalCompositeOperation='destination-in';
+  const feather=paint.createLinearGradient(0,0,0,layerHeight);feather.addColorStop(0,'rgba(255,255,255,1)');feather.addColorStop(Math.max(0,Math.min(1,(surface.opaqueBottom-surface.layerTop)/layerHeight)),'rgba(255,255,255,1)');feather.addColorStop(1,'rgba(255,255,255,0)');paint.fillStyle=feather;paint.fillRect(0,0,roundedWidth,layerHeight);
+  winterSnowSurfaceLayers.set(cacheKey,layer);return layer;
+}
+
 function drawWinterWeather(ctx,w,h,groundY){
-  const r=rng(77213);ctx.save();
-  const tile=winterGroundTile(),snow=ctx.createLinearGradient(0,groundY-4,0,groundY+30);snow.addColorStop(0,'rgba(250,253,255,.96)');snow.addColorStop(1,'rgba(218,231,240,.78)');
-  ctx.beginPath();ctx.moveTo(0,groundY+13);
-  for(let x=0;x<=w;x+=24){ctx.lineTo(x,groundY+5+Math.sin(x*.035)*3+r()*2)}
-  ctx.lineTo(w,groundY+34);ctx.lineTo(0,groundY+34);ctx.closePath();
-  if(tile){ctx.save();ctx.clip();ctx.globalAlpha=.9;ctx.fillStyle=ctx.createPattern(tile,'repeat');ctx.translate(0,groundY-64);ctx.fillRect(0,0,w,110);ctx.restore()}
-  ctx.fillStyle=snow;ctx.globalAlpha=tile?.32:1;ctx.fill();ctx.globalAlpha=1;
+  const r=rng(77213),surface=getWinterSnowSurface(w,groundY);ctx.save();
+  ctx.drawImage(winterSnowSurfaceLayer(w),0,surface.layerTop);
   for(let i=0;i<46;i++){const x=r()*w,y=8+r()*Math.max(16,groundY-18),radius=.7+r()*1.7;ctx.fillStyle=`rgba(248,252,255,${.42+r()*.42})`;ctx.beginPath();ctx.arc(x,y,radius,0,TAU);ctx.fill()}
   ctx.restore();
 }
