@@ -245,7 +245,7 @@ Player death always ends the current run. The normal interface is replaced by a 
 
 Every ecological occurrence that affects the player is represented by one serializable **Incident** record. Major scheduling tiers remain internal for balance and stage progression, but do not create a separate player-facing presentation path. An incident has stable identity, subject, severity/priority, title, summary, artwork, effects, lifecycle state, response timing, deadline, data-only decision key, and outcome. Its lifecycle is `opened → awaiting response or ongoing → resolved or expired`.
 
-Night Falls presents one ordered **Night Journal**. Each incident appears exactly once with artwork, title, concise prose, effect chips, and—only when relevant—Needs response, Ongoing, or Resolved status. The former major-card/Forest Whispers split is removed. A high-impact incident may use the lead row, while ambient observations retain quieter typography without becoming a separate system. Warning and outcome update the same incident identity; woodpeckers, beavers, and other cause/outcome pairs therefore never duplicate their illustration or journal entry.
+Night Falls presents one ordered **Night Journal**. Each incident appears exactly once with artwork, title, concise prose, effect chips, and—only when relevant—Needs response, Ongoing, or Resolved status. The former major-card/Forest Whispers split is removed. Stat-free ambient flavor observations are not generated. When no player response is available, warning context and unavoidable stat outcome are combined immediately in one illustrated journal row; only incidents with a real response or action window retain a later resolution step. Warning and outcome update the same incident identity; woodpeckers, beavers, and other cause/outcome pairs therefore never duplicate their illustration or journal entry.
 
 When an action-window incident reaches its deadline, its delayed consequence is acknowledged before the next gathering sheet. The outcome surface reuses the incident's title and artwork, places the original warning directly above what happened, and remains until the player continues; it never relies on a timed toast that can be obscured by the next modal.
 
@@ -263,9 +263,9 @@ Current systems include:
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health
 - immediate chemical, hostile-tree, ally, offspring, human, and conservation decisions use the same serialized response queue and refresh affordability from current resources immediately before display, so preceding outcomes cannot leave stale choices on screen
-- action-window fruit and unaffordable chemical threats persist as ongoing incidents until their deadline; their grove artwork is derived from incident state and disappears automatically on resolution
+- action-window fruit threats and chemical threats deliberately left unresolved by the player persist as ongoing incidents until their deadline; their grove artwork is derived from incident state and disappears automatically on resolution
 - all incidents have artwork through a reusable visual vocabulary: existing fauna/human/pathology specimens, treated weather/ecology specimens, or a target tree portrait composed with a shared condition specimen. Warning, response, and outcome reuse the same visual identity
-- ambient flavor is selected from stage-specific pools so seed-only observations do not appear after germination
+- every Night Journal entry reports a real state change, actionable danger, ongoing threat, or resolved outcome; stat-free ambient flavor rolls are omitted
 - cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll
 
 ### Scoring, Victory, and Continuation

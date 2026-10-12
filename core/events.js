@@ -510,6 +510,39 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   };
 }
 
+export function resolveUnanswerableChemicalThreat(state, decision, deps = {}) {
+  if (decision?.kind !== 'chemical-defense') throw new Error('An automatic chemical outcome requires a chemical-defense decision');
+  const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+  if (hasResponse) throw new Error('Automatic chemical outcomes are only valid when the player has no response');
+  const { threat } = decision.meta;
+  const before = {
+    health: state.health || 0,
+    leafClusters: state.leafClusters || 0,
+    rootZones: state.rootZones || 0,
+    developing: state.developing || 0,
+  };
+  const consequence = threat.ignore();
+  if (consequence.damage) (deps.recordDamage || ((amount, cause) => { if (amount > 0) state.lastDamageCause = cause || 'decline'; }))(consequence.damage.amount, consequence.damage.cause);
+  const effects = [
+    before.health > state.health ? `−${before.health - state.health} health` : null,
+    before.leafClusters > state.leafClusters ? `−${before.leafClusters - state.leafClusters} leaf cluster${before.leafClusters - state.leafClusters === 1 ? '' : 's'}` : null,
+    before.rootZones > state.rootZones ? `−${before.rootZones - state.rootZones} root zone${before.rootZones - state.rootZones === 1 ? '' : 's'}` : null,
+    before.developing > state.developing ? `−${before.developing - state.developing} fruit` : null,
+  ].filter(Boolean);
+  return {
+    title: threat.title,
+    text: `${threat.warning} ${consequence.body} The danger has passed, though it left damage behind.`,
+    effects,
+    effect: consequence.damage ? 'damage' : 'good',
+    sceneArt: threat.sceneArt,
+    kind: 'chemical-threat',
+    state: 'resolved',
+    responseMode: 'none',
+    scenePersistent: false,
+    meta: { threatKey: threat.key, automaticOutcome: true },
+  };
+}
+
 export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
   const {
     getRelationshipState,
@@ -753,49 +786,6 @@ export function resolveSharedDecision(state, decision, choiceId, deps = {}) {
   throw new Error(`Unsupported shared decision kind: ${decision.kind}`);
 }
 
-export function getAmbientFlavorPool(stageName) {
-  if (stageName === 'Seed') {
-    return [
-      'A beetle trundles past your seed, unaware of the life within.',
-      'A gentle rain soaks the earth above your seed, promising moisture to come.',
-      'Ants march in lines across the soil surface above you.',
-      'The soil shifts slightly as a mole tunnels past, deep below.',
-    ];
-  }
-  if (stageName === 'Sprout' || stageName === 'Seedling') {
-    return [
-      'A ladybird climbs your tender stem before opening its wings.',
-      'Earthworms turn the soil beside your young roots.',
-      'A small spider anchors a strand of silk between your first leaves.',
-      'A gentle breeze trembles through your new leaves.',
-      'Ants explore the soil around your widening roots.',
-    ];
-  }
-  if (stageName === 'Sapling') {
-    return [
-      'A robin pauses on one of your young branches.',
-      'A fox rests briefly in the small patch of shade you cast.',
-      'Rain beads along your bark and gathers at your roots.',
-      'A gentle breeze moves through your growing crown.',
-    ];
-  }
-  if (stageName === 'Young Tree') {
-    return [
-      'Two crows inspect your branches as a possible nesting place.',
-      'A squirrel races along your bark and vanishes into the canopy.',
-      'A fox sleeps for an afternoon in your shade.',
-      'Robins tug worms from the damp soil near your roots.',
-    ];
-  }
-  return [
-    'Birdsong moves through the shelter of your broad canopy.',
-    'A squirrel crosses your oldest branches without touching the ground.',
-    'A fox sleeps for an afternoon in the deep shade you cast.',
-    'Robins tug worms from the rich soil among your roots.',
-    'Small lives shelter in the hollows and folds of your bark.',
-  ];
-}
-
 export const WINTER_PRECIPITATION = [
   { text: 'Soft snow settles around your roots, holding a little moisture for the thaw. (+1 water)', water: 1, effect: 'snow' },
   { text: 'Icicles form along your branches, then melt into the soil during a pale afternoon. (+1 water)', water: 1, effect: 'snow' },
@@ -924,11 +914,6 @@ export function rollMinorEvents(state, deps) {
   );
   if (adjacentContested.length > 0 && random() < 0.25) queueHostileTreeThreat(adjacentContested[Math.floor(random() * adjacentContested.length)], events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
-  if (Math.random() < 0.12) {
-    const currentStage = computeCurrentLifeStage().name;
-    const flavor = randomChoice(getAmbientFlavorPool(currentStage));
-    events.push({ text: flavor, effect: 'flavor' });
-  }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper', sceneArt: 'fruit-squirrel' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) {
     if (state.defense + state.trunk >= 3) {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildChemicalDefenseDecision, describeDecisionPrompt, processSeasonalReproduction, resolveChemicalDefenseChoice, resolvePendingStartOfTurnEffects } from '../core/events.js';
+import { buildChemicalDefenseDecision, describeDecisionPrompt, processSeasonalReproduction, resolveChemicalDefenseChoice, resolvePendingStartOfTurnEffects, resolveUnanswerableChemicalThreat } from '../core/events.js';
 import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
 import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
@@ -81,18 +81,25 @@ test('multiple immediate incidents share one ordered response queue', () => {
   assert.deepEqual(queuedResponseIncidents(s).map(incident => incident.id), [second.id]);
 });
 
-test('an unaffordable chemical threat renders as one ongoing journal row', () => {
+test('an unaffordable chemical threat resolves in its only journal row', () => {
   const s = state({ sunlight: 0, water: 1, nutrients: 2 });
-  const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat: 'aphids' });
-  const prompt = describeDecisionPrompt(decision);
-  const incident = openChemicalIncident(s, decision, { awaiting: false });
+  const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat: 'damp-rot' });
   assert.deepEqual(decision.options.map(option => option.id), ['conserve']);
-  assert.equal(prompt.status, 'Defense requires ☀️3 more.');
+  const event = resolveUnanswerableChemicalThreat(s, decision);
+  const incident = openEventIncident(s, event);
+  assert.equal(s.health, 3);
+  assert.deepEqual(event.effects, ['−2 health']);
+  assert.match(event.text, /soil around you stays too wet/i);
+  assert.match(event.text, /damp rot spreads/i);
+  assert.equal(incident.state, 'resolved');
+  assert.equal(incident.responseMode, 'none');
+  assert.deepEqual(s.responseQueue, []);
   const body = renderEventPhaseBody({ incidents: [incident], pendingResponses: 0 });
-  assert.equal((body.match(/Aphid Cluster/g) || []).length, 1);
+  assert.equal((body.match(/Damp Rot/g) || []).length, 1);
   assert.match(body, /journal-incident/);
-  assert.match(body, /Ongoing/);
-  assert.match(body, /data-scene-art="aphids"/);
+  assert.doesNotMatch(body, /Ongoing|Needs response|Earlier warning|What happened/);
+  assert.match(body, /data-scene-art="damp-rot"/);
+  assert.deepEqual(resolvePendingStartOfTurnEffects(s), []);
 });
 
 test('fungal chemical threats retain distinct artwork through the incident flow', () => {
@@ -112,7 +119,7 @@ test('hungry browsers recognize permanent thorns and toxic leaves without anothe
   assert.deepEqual({ sunlight: s.sunlight, water: s.water, nutrients: s.nutrients, leafClusters: s.leafClusters, developing: s.developing }, before);
 });
 
-test('an unanswered chemical incident reports its final damaging conclusion once', () => {
+test('a deliberately conserved chemical incident reports its later damaging conclusion once', () => {
   const s = state({ lifeStage: { name: 'Seedling' } });
   const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => s.lifeStage, threat: 'surface-crawlers' });
   const incident = openChemicalIncident(s, decision, { awaiting: false });
@@ -208,7 +215,6 @@ test('tree crises compose the target portrait with a shared condition specimen',
 test('every normalized incident receives artwork and renders exactly once', () => {
   const s = state();
   const incidents = [
-    openEventIncident(s, { text: 'A quiet scent passes through the grove.', effect: 'flavor' }),
     openEventIncident(s, { text: 'Rain gathers in your roots. (+2 water)', effect: 'rain' }),
     openEventIncident(s, { text: 'A woodpecker drums, then dislodges pests. (+1 nutrient)', effect: 'nutrients', sceneArt: 'woodpecker' }),
   ];

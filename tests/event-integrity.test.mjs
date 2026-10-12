@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { LIFE_STAGES, SEASONS, getNeighborStage, getRelationshipState } from '../core/constants.js';
+import { LIFE_STAGES, SEASONS, STAGE_BY_NAME, getNeighborStage, getRelationshipState } from '../core/constants.js';
 import {
   applyHeavySnow,
   buildChemicalDefenseDecision,
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
-  getAmbientFlavorPool,
   getHerbivoreDefense,
   getLivingNeighborsByDisposition,
   getPollinatorSceneArt,
   maybeEscalateCanopyHostility,
+  rollMinorEvents,
   resolveHostileEncroachmentChoice,
   WINTER_PRECIPITATION,
   createMajorEvents,
@@ -91,10 +91,24 @@ test('dead trees retain their relationship history and disappear from every targ
   assert.deepEqual(getLivingNeighborsByDisposition(state, getRelationshipState), { allied: [], contested: [] });
 });
 
-test('ambient prose is separated by life stage', () => {
-  assert.ok(getAmbientFlavorPool('Seed').some(line => /beetle.*seed/i.test(line)));
-  assert.ok(getAmbientFlavorPool('Seedling').every(line => !/your seed\b/i.test(line)));
-  assert.ok(getAmbientFlavorPool('Mature Tree').every(line => !/your seed\b|tender first stem/i.test(line)));
+test('minor events omit stat-free ambient flavor observations', () => {
+  const originalRandom=Math.random;
+  Math.random=()=>.11;
+  try{
+    const state={
+      flowers:0,pollinated:0,developing:0,seeds:0,nutrients:0,water:0,branches:0,
+      lifeStage:LIFE_STAGES[0],eventModifiers:{rainChain:0},neighbors:[],offspringTrees:0,
+    };
+    const events=rollMinorEvents(state,{
+      currentSeasonName:'Spring',getPollinatorChance:value=>value,species:{},recordDamage(){},STAGE_BY_NAME,
+      getRelationshipState,getNeighborStage,random:()=>.11,advanceAllyCrises(){},advanceOffspringCrises(){},
+      checkAllyBetrayal(){},queueHostileTreeThreat(){},queueChemicalDefenseThreat(){},
+      computeCurrentLifeStage:()=>LIFE_STAGES[0],
+    });
+    assert.ok(events.length>0);
+    assert.equal(events.some(event=>event.effect==='flavor'),false);
+    assert.ok(events.every(event=>event.effect!=='flavor'));
+  }finally{Math.random=originalRandom}
 });
 
 test('named wildlife and browser threats carry renderer scene metadata', () => {

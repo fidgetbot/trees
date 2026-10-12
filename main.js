@@ -38,8 +38,8 @@ import {
   buildChemicalDefenseDecision,
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
-  resolveSharedDecision,
-} from './core/events.js?rev=incident-system-v1';
+  resolveUnanswerableChemicalThreat,
+} from './core/events.js?rev=automatic-incident-outcomes-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -1678,22 +1678,22 @@ function queueChemicalDefenseThreat(events) {
   const decision = buildChemicalDefenseDecision(state, {
     computeCurrentLifeStage,
   });
-  const prompt = describeDecisionPrompt(decision);
   const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+  if (!hasResponse) {
+    events.push(resolveUnanswerableChemicalThreat(state, decision, { recordDamage }));
+    return;
+  }
+  const prompt = describeDecisionPrompt(decision);
   if (prompt) events.push({
     ...prompt,
     kind: 'chemical-threat',
-    state: hasResponse ? 'awaiting-response' : 'ongoing',
-    responseMode: hasResponse ? 'immediate' : 'action-window',
-    response: hasResponse ? { kind: 'chemical-defense', threatKey: decision.meta?.threatKey } : null,
+    state: 'awaiting-response',
+    responseMode: 'immediate',
+    response: { kind: 'chemical-defense', threatKey: decision.meta?.threatKey },
     deadlineTurn: (state.turnsElapsed || 0) + 1,
     scenePersistent: true,
     meta: { threatKey: decision.meta?.threatKey },
   });
-  if (!hasResponse) {
-    resolveSharedDecision(state, decision, 'conserve', { recordDamage });
-    return;
-  }
 }
 
 function rollMajorEvent() {

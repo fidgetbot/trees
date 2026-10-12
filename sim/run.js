@@ -6,7 +6,7 @@ import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTI
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability, getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
-import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveSharedDecision } from '../core/events.js';
+import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveUnanswerableChemicalThreat } from '../core/events.js';
 import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from '../core/growth.js';
@@ -405,10 +405,10 @@ function createHeadlessGame(seed, speciesName) {
         const decision = buildChemicalDefenseDecision(state, {
           computeCurrentLifeStage: () => computeCurrentLifeStage(state),
         });
-        const prompt = describeDecisionPrompt(decision);
         const hasResponse=decision.options.some(option=>option.id==='defend'||option.id==='use-permanent-defenses');
-        if (prompt) events.push({ ...prompt, kind:'chemical-threat', state:hasResponse?'awaiting-response':'ongoing', responseMode:hasResponse?'immediate':'action-window', response:hasResponse?{kind:'chemical-defense',threatKey:decision.meta?.threatKey}:null, deadlineTurn:(state.turnsElapsed||0)+1, scenePersistent:true, meta:{threatKey:decision.meta?.threatKey} });
-        if(!hasResponse)resolveSharedDecision(state,decision,'conserve',{recordDamage:(amount,cause)=>recordDamageForState(state,amount,cause)});
+        if(!hasResponse){events.push(resolveUnanswerableChemicalThreat(state,decision,{recordDamage:(amount,cause)=>recordDamageForState(state,amount,cause)}));return}
+        const prompt = describeDecisionPrompt(decision);
+        if (prompt) events.push({ ...prompt, kind:'chemical-threat', state:'awaiting-response', responseMode:'immediate', response:{kind:'chemical-defense',threatKey:decision.meta?.threatKey}, deadlineTurn:(state.turnsElapsed||0)+1, scenePersistent:true, meta:{threatKey:decision.meta?.threatKey} });
       },
       computeCurrentLifeStage: () => computeCurrentLifeStage(state),
     }),
