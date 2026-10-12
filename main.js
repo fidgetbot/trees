@@ -66,7 +66,7 @@ import {
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-handoff-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=stable-action-order-v1';
+import { renderActionPanels } from './ui/actions.js?rev=visible-action-descriptions-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=stable-action-order-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=night-branches-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=framed-trees-v1';
@@ -773,7 +773,7 @@ function showResourcePhase({ quiet = false } = {}) {
         return;
       }
       const nudge = updateResourceShortageNudges(state, gains);
-      showModal('You gather', renderResourcePhaseBody({ state, gains }), () => {
+      showModal('Resources', renderResourcePhaseBody({ state, gains }), () => {
         if (nudge) {
           addLog(nudge.log);
           showModal(nudge.title, `<p><em>${nudge.body}</em></p><p>${nudge.remedy}</p>`, enterActionPhase);

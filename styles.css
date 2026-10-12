@@ -1646,10 +1646,11 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
 .game-started .context-command-heading { padding: 0 2px; border: 0; background: none; }
 .context-command-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .context-stage { color: #777565; font-size: 12px; }
-.game-started .context-shortlist { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 7px; }
+.game-started .context-shortlist { grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 7px; }
 .game-started .context-action { min-height: 66px; padding: 9px; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-content: center; gap: 3px 6px; box-shadow: none; border: 1px solid #66826130; background: #dce7cd9c; }
 .context-action-icon { font-size: 16px; }
 .game-started .context-action > strong { font-size: 12px; }
+.game-started .context-action .action-description { grid-column: 1 / -1; margin: 1px 0 0; color: #5f6657; font-size: 10px; line-height: 1.25; text-align: left; }
 .game-started .context-action .action-costs { grid-column: 1 / -1; margin: 3px 0 0; }
 .game-started .context-action .cost { padding: 0 3px; background: none; }
 .game-started .context-empty { padding: 6px 0; background: none; }
@@ -1670,8 +1671,7 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
 .all-actions-catalog { padding: 0; }
 .game-started .tree-inspector { margin: 0; border: 0; background: none; }
 .tree-inspector-content { padding: 0; }
-.action-explanation { font-size: 12px; color: #65705c; margin: 8px 0; }
-.action-explanation summary { cursor: pointer; }
+.action-description { margin: 7px 0; color: #65705c; font-size: 12px; line-height: 1.4; }
 #selected-info { font-size: 14px; color: #526348; }
 @media (max-width: 560px) {
   .grove-time-pill { left: 10px; padding: 10px; min-height: 44px; display: flex; align-items: center; gap: 3px; }

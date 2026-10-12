@@ -63,7 +63,7 @@ export function renderActionPanels({
       button.type = 'button';
       button.className = 'context-action';
       button.dataset.actionKey = action.key;
-      button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong>${costsHtml}`;
+      button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong><span class="action-description">${action.help}</span>${costsHtml}`;
       button.title = action.help || action.name;
       button.onclick = () => onUseAction(action, scaledCost);
       shortlist.appendChild(button);
@@ -105,7 +105,7 @@ export function renderActionPanels({
           <h4 class="action-title">${action.name}</h4>
           <span class="action-icon">${action.icon}</span>
         </div>
-        <details class="action-explanation"><summary>What does this do?</summary><p>${action.help}</p></details>
+        <p class="action-description">${action.help}</p>
         ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}`;
 
@@ -132,7 +132,7 @@ export function renderActionPanels({
       row.className = 'unavailable-action';
       row.innerHTML = `
         <div class="unavailable-action-title"><strong>${action.name}</strong><span>${action.icon}</span></div>
-        <p>${action.help}</p>
+        <p class="action-description">${action.help}</p>
         ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}
         <p class="unavailable-reason">${reason}.</p>`;
@@ -157,7 +157,7 @@ export function renderActionPanels({
           <span class="action-icon">${action.icon}</span>
         </div>
         <span class="prereq-missing">Locked</span>
-        <details class="action-explanation"><summary>What does this do?</summary><p>${action.help}</p></details>
+        <p class="action-description">${action.help}</p>
         ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
         ${costsHtml}
         <p class="future-reason">${reason}</p>`;

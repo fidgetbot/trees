@@ -48,14 +48,43 @@ test('growth descriptions use player-facing language and name the height remedy'
   const height = actions.find(action => action.key === 'growTaller');
   assert.doesNotMatch(branch.help, /visible/i);
   assert.doesNotMatch(ACTION_UNLOCK_EXPLANATIONS.growBranch, /visible/i);
-  assert.match(height.help, /Fortify Bark/);
+  assert.match(height.help, /storm risk.*braced/i);
   assert.match(ACTION_UNLOCK_EXPLANATIONS.growTaller, /Fortify Bark/);
   assert.equal(actions.some(action => action.key === 'thicken'), false);
   const bark = actions.find(action => action.key === 'bark');
-  assert.match(bark.help, /Braces one level/);
+  assert.match(bark.help, /^Braces height/);
   assert.ok(bark.baseCost.sunlight > height.baseCost.sunlight);
   assert.ok(bark.baseCost.nutrients > height.baseCost.nutrients);
-  assert.match(actions.find(action => action.key === 'growThorns').help, /Repeatable.*every new layer/i);
-  assert.match(actions.find(action => action.key === 'toxicLeaves').help, /Repeatable.*every new layer/i);
-  assert.match(actions.find(action => action.key === 'rhizosphere').help, /Connected allies.*warmer/i);
+  assert.match(actions.find(action => action.key === 'growThorns').help, /^Adds lasting defense/i);
+  assert.match(actions.find(action => action.key === 'toxicLeaves').help, /^Adds lasting defense/i);
+  assert.match(actions.find(action => action.key === 'rhizosphere').help, /helps connected allies/i);
+});
+
+test('all action-card descriptions are compact, direct sentences', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {},
+    getRelationshipState: () => ({ name: 'Neutral' }),
+  });
+  assert.equal(actions.length, 22);
+  for (const action of actions) {
+    assert.ok(action.help.length <= 90, `${action.key} is too long: ${action.help.length}`);
+    assert.match(action.help, /^[A-Z]/, `${action.key} should begin directly`);
+    assert.match(action.help, /\.$/, `${action.key} should be a sentence`);
+    assert.doesNotMatch(action.help, /^(This lets you|Spend resources to|Choose and|Attempt |An immense )/);
+  }
+  assert.equal(actions.find(action => action.key === 'extendRoot').help, 'Improves water, nutrients, stability, and fungal reach.');
+});
+
+test('action descriptions are visible without hover or disclosure controls', () => {
+  const source = readFileSync(new URL('../ui/actions.js', import.meta.url), 'utf8');
+  assert.match(source, /context-action[^`]*action-description/s);
+  assert.doesNotMatch(source, /What does this do\?/);
+  assert.doesNotMatch(source, /class="action-explanation"/);
+});
+
+test('the seasonal gathering sheet is titled Resources', () => {
+  const source = readFileSync(new URL('../main.js', import.meta.url), 'utf8');
+  assert.match(source, /showModal\('Resources', renderResourcePhaseBody/);
+  assert.doesNotMatch(source, /showModal\('You gather'/);
 });
