@@ -467,7 +467,10 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   if(!measureTargetId){
     drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
     hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets);
-    if(camera.rank>=2)drawFungalNetwork(ctx,focusedTrees,groundY,getRelationshipState);
+    // Keep relationship geometry in grove coordinates even when specimen art
+    // is isolated after focusing. The clipped dotted path then persists under
+    // an ally or any tree between the player and that ally.
+    if(cameraFor(state,playerStageName).rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   }
   const labelRows=[];
   focusedTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
@@ -669,15 +672,21 @@ function cameraFor(state,stage){
 function background(ctx,season){const g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,season.top);g.addColorStop(1,season.bottom);return g}
 function line(ctx,x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 
-function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
+export function getFungalNetworkSegments(trees,groundY,getRelationshipState){
   const player=trees.find(tree=>tree.isPlayer),linked=trees.filter(tree=>{
     const neighbor=tree.neighbor;
     if(!neighbor||neighbor.dead)return false;
     return neighbor.offspring||neighbor.relationName==='Ally'||getRelationshipState(neighbor.relation).name==='Ally';
   });
-  if(!player||!linked.length)return;
+  if(!player)return[];
+  return linked.map(tree=>({from:{x:player.x,y:groundY+30},to:{x:tree.x,y:groundY+70+tree.index*5}}));
+}
+
+function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
+  const segments=getFungalNetworkSegments(trees,groundY,getRelationshipState);
+  if(!segments.length)return;
   ctx.strokeStyle='rgba(180,220,255,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
-  linked.forEach(tree=>{const x=tree.x,y=groundY+70+tree.index*5;ctx.beginPath();ctx.moveTo(player.x,groundY+30);ctx.bezierCurveTo(player.x-(player.x-x)*.3,groundY+70,x+(player.x-x)*.3,y-20,x,y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
+  segments.forEach(({from,to})=>{ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.bezierCurveTo(from.x-(from.x-to.x)*.3,groundY+70,to.x+(from.x-to.x)*.3,to.y-20,to.x,to.y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(to.x,to.y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
 export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){

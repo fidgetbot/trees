@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement } from '../ui/fauna-art.js';
 
-import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -373,6 +373,17 @@ test('a rooted seed shows a radicle before its first leaf', () => {
   assert.equal(shouldDrawSeedRadicle('Sprout', 1, 0), true);
   assert.equal(shouldDrawSeedRadicle('Seed', 1, 1), false);
   assert.equal(shouldDrawSeedRadicle('Sprout', 1, 1), false);
+});
+
+test('fungal links retain full-grove endpoints for stationary focused views',()=>{
+  const trees=[
+    {x:120,index:0,neighbor:{relation:80,relationName:'Ally'}},
+    {x:240,index:1,neighbor:{relation:0,relationName:'Neutral'}},
+    {x:360,index:2,isPlayer:true},
+  ];
+  assert.deepEqual(getFungalNetworkSegments(trees,500,getRelationshipState),[
+    {from:{x:360,y:530},to:{x:120,y:570}},
+  ]);
 });
 
 test('map labels show health for allies without cluttering non-allies', () => {
