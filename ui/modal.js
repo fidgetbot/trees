@@ -78,6 +78,7 @@ export function showStandardModal(els, title, body, onContinue, presentation = {
   const actionButton = presentation.kind === 'gathering'
     ? els.modalBody.querySelector('button.actions-earned') : null;
   const continueButton = actionButton || els.modalButton;
+  if (!actionButton) els.modalButton.textContent = presentation.buttonLabel || 'Continue';
   els.modalButton.style.display = actionButton ? 'none' : '';
   els.modalButton.onclick = null;
   let continued = false;

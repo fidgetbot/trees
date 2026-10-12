@@ -1,5 +1,5 @@
-import { clearSceneArt } from './scene-art.js?rev=feeding-pests-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
+import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=incident-system-v1';
 import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
 
 export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
@@ -123,6 +123,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
 }
 
 export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
+  migrateLegacyIncidentState(state);
   const {
     getRelationshipState,
     getAdjustedRelationshipDelta = (_state, delta) => delta,
@@ -161,12 +162,14 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
     state[requestKind] += amount;
   }
 
-  const clearedThreat = requestKind === 'health' && state.pendingChemicalThreat
-    ? { title: state.pendingChemicalThreat.title, warning: state.pendingChemicalThreat.warning }
+  const threatIncident = requestKind === 'health'
+    ? findActiveIncident(state, 'chemical-threat', incident => incident.state === 'ongoing')
+    : null;
+  const clearedThreat = threatIncident
+    ? { title: threatIncident.title, warning: threatIncident.summary }
     : null;
   if (clearedThreat) {
-    clearSceneArt(state, state.pendingChemicalThreat.sceneArt);
-    state.pendingChemicalThreat = null;
+    resolveIncident(state, threatIncident.id, { title: threatIncident.title, summary: 'Allied support clears the threat before it can spread.' });
   }
   neighbor.helpReceivedFromThem += 1;
   const oldState = getRelationshipState(neighbor.relation).name;

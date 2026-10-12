@@ -1,4 +1,4 @@
-import { clearSceneArt } from './scene-art.js?rev=feeding-pests-v1';
+import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=incident-system-v1';
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
@@ -158,10 +158,7 @@ export function createMajorEvents(deps) {
           effects.push(`The blight spreads to your allied ${target.species}. (${target.health}/${target.maxHealth} health remains)`);
           if (target.health <= 0) {
             effects.push(`The ${target.species} is overwhelmed by blight.`);
-            s.pendingInteractions.push((done) => {
-              updateNeighborAliveState(target, 'fungal blight');
-              done?.();
-            });
+            updateNeighborAliveState(target, 'fungal blight');
           }
           updateAlliesCount();
         }
@@ -228,9 +225,18 @@ export function rollMajorEvent(majorEvents, currentSeasonName = null, random = M
   return eligibleEvents[0];
 }
 
-export function resolveFruitThreats(state, events) { /* unchanged below */
-  if (!state.pendingFruitThreat) return;
-  const threat = state.pendingFruitThreat;
+const FRUIT_THREATS = Object.freeze({
+  human: { type:'human', sceneArt:'human-surveyor', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' },
+  bird: { type:'bird', sceneArt:'fruit-robin', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' },
+  chewer: { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' },
+});
+
+export function resolveFruitThreats(state, events) {
+  migrateLegacyIncidentState(state);
+  const incident = findActiveIncident(state, 'fruit-threat', candidate => candidate.state === 'ongoing');
+  if (!incident) return;
+  const threat = FRUIT_THREATS[incident.meta?.threatType];
+  if (!threat) return;
   const defensePower = state.defense + state.fruitDefense;
   let losses = 0;
   let saved = 0;
@@ -245,14 +251,17 @@ export function resolveFruitThreats(state, events) { /* unchanged below */
   }
   state.developing = Math.max(0, state.developing - losses);
   const conclusion = losses > 0 ? threat.outcome(losses, saved, defensePower > 0) : threat.safeText;
-  events.push({ text: `${conclusion} The danger to this season's fruit has passed.`, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe', sceneArt: threat.sceneArt });
-  state.pendingFruitThreat = null;
+  const summary = `${conclusion} The danger to this season's fruit has passed.`;
+  resolveIncident(state, incident.id, { title: incident.title, summary, effects: losses > 0 ? [`−${losses} fruit`] : ['Fruit safe'] });
+  incident.meta.reportPending = true;
+  events.push({ title: incident.title, text: summary, effect: losses > 0 ? 'fruit-loss' : 'fruit-safe', sceneArt: threat.sceneArt, existingIncidentId: incident.id });
   state.fruitDefense = Math.max(0, state.fruitDefense - 1);
 }
 
 export function processSeasonalReproduction(state, events, getCurrentSeasonName) { /* unchanged */
+  migrateLegacyIncidentState(state);
   const season = getCurrentSeasonName();
-  const pendingFruitThreatAtStart = Boolean(state.pendingFruitThreat);
+  const pendingFruitThreatAtStart = Boolean(findActiveIncident(state, 'fruit-threat', incident => incident.state === 'ongoing'));
   if (pendingFruitThreatAtStart) resolveFruitThreats(state, events);
   if (season === 'Summer' && state.pollinated > 0) {
     const ripened = state.pollinated;
@@ -261,10 +270,20 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
     if (ripened > 0) state.hasProducedFruit = true;
     events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
-  if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && !state.pendingFruitThreat && Math.random() < 0.45) {
-    const threats = [{ type:'human', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' }, { type:'bird', sceneArt:'fruit-robin', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' }, { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' }];
-    state.pendingFruitThreat = randomChoice(threats);
-    events.push({ text: `${state.pendingFruitThreat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`, effect: 'warning', sceneArt: state.pendingFruitThreat.sceneArt });
+  if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && Math.random() < 0.45) {
+    const threat = randomChoice(Object.values(FRUIT_THREATS));
+    events.push({
+      title: threat.type === 'human' ? 'Fruit Gatherers' : threat.type === 'bird' ? 'Fruit-Watching Birds' : 'Fruit Chewers',
+      text: `${threat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`,
+      effect: 'warning',
+      sceneArt: threat.sceneArt,
+      kind: 'fruit-threat',
+      state: 'ongoing',
+      responseMode: 'action-window',
+      deadlineTurn: (state.turnsElapsed || 0) + 1,
+      scenePersistent: true,
+      meta: { threatType: threat.type },
+    });
   }
   if (season === 'Autumn' && state.developing > 0) {
     const matured = state.developing;
@@ -279,42 +298,36 @@ import { createDecision } from './decisions.js';
 export function resolveSeedFate(seedCount) { const results=[]; let sprouted=0; for (let i=0;i<seedCount;i++){ const r=Math.random(); if (r<0.18) results.push('A seed was eaten outright before it could travel.'); else if (r<0.33) results.push('A seed landed in deep shade and failed to establish.'); else if (r<0.48) results.push('A bird carried one of your seeds away, but dropped it on poor ground.'); else if (r<0.78) { sprouted += 1; results.push('A seed reached promising soil and sprouted into offspring.'); } else { sprouted += 1; results.push('An animal carried a seed to open ground, where it sprouted successfully.'); } } return { sprouted, results }; }
 
 export function resolvePendingStartOfTurnEffects(state) {
+  migrateLegacyIncidentState(state);
   const resolved = [];
 
-  if (state.pendingChemicalThreat) {
-    const delayed = state.pendingChemicalThreat;
-    state.pendingChemicalThreat = null;
-    clearSceneArt(state, delayed.sceneArt);
+  const delayedIncident = findActiveIncident(state, 'chemical-threat', incident => incident.state === 'ongoing' && (incident.deadlineTurn == null || incident.deadlineTurn <= (state.turnsElapsed || 0)));
+  if (delayedIncident) {
+    const delayed = buildChemicalDefenseDecision(state, {
+      computeCurrentLifeStage: () => state.lifeStage,
+      threat: delayedIncident.meta?.threatKey,
+    }).meta.threat;
+    const consequence = delayed.ignore();
+    if (consequence.damage) state.lastDamageCause = consequence.damage.cause;
+    const body = `${consequence.body} The danger has passed, though it left damage behind.`;
+    resolveIncident(state, delayedIncident.id, { title: delayed.title, summary: body });
+    delayedIncident.meta.reportPending = true;
     resolved.push({
-      key: 'pendingChemicalThreat',
+      key: delayedIncident.id,
       title: delayed.title,
       warning: delayed.warning,
       sceneArt: delayed.sceneArt,
-      body: `${delayed.ignore()} The danger has passed, though it left damage behind.`,
+      body,
+      incidentId: delayedIncident.id,
     });
     return resolved;
-  }
-
-  if (state.pendingCanopyNotices?.length) {
-    const notice = state.pendingCanopyNotices.shift();
-    const titles = {
-      'escaped-crowding': 'You Reach the Light',
-      'hostile-crowding': 'A Taller Rival Crowds You',
-      reversed: 'The Canopy Contest Turns',
-      'lost-advantage': 'Canopy Advantage Lost',
-    };
-    resolved.push({
-      key: 'pendingCanopyNotice',
-      title: titles[notice.kind] || 'The Canopy Shifts',
-      warning: notice.message,
-      body: notice.message,
-    });
   }
 
   return resolved;
 }
 
 export function buildChemicalDefenseDecision(state, deps = {}) {
+  migrateLegacyIncidentState(state);
   const { computeCurrentLifeStage, threat: preservedThreat = null } = deps;
   const DEFENSE_COST = { sunlight: 3, water: 1, nutrients: 2 };
   const canAffordDefense = state.sunlight >= DEFENSE_COST.sunlight && state.water >= DEFENSE_COST.water && state.nutrients >= DEFENSE_COST.nutrients;
@@ -325,6 +338,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   if (currentStage === 'Seedling') {
     threats = [
       {
+        key: 'aphids',
         title: 'Aphid Cluster',
         sceneArt: 'aphids',
         warning: 'Tiny aphids gather on your tender stem, piercing and sucking at your sap.',
@@ -332,6 +346,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'The aphids feast unchecked, draining your strength. You lose 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
       },
       {
+        key: 'surface-crawlers',
         title: 'Surface Crawlers',
         sceneArt: 'surface-crawlers',
         warning: 'Small insects swarm the soil surface around your base, nibbling at your tender roots.',
@@ -339,6 +354,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         ignore: () => { state.rootZones = Math.max(0, state.rootZones - 1); state.health = Math.max(0, state.health - 1); return { body: 'The insects damage your shallow roots. You lose 1 root zone and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
       },
       {
+        key: 'damp-rot',
         title: 'Damp Rot',
         sceneArt: 'damp-rot',
         warning: 'The soil around you stays too wet. Mold creeps up your tender stem.',
@@ -349,6 +365,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
   } else {
     threats = [
       {
+        key: 'mites',
         title: 'Mite Surge',
         sceneArt: 'mites',
         warning: 'Tiny mites mass along your bark and tender leaves, itching and feeding in their thousands.',
@@ -356,6 +373,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         ignore: () => { state.leafClusters = Math.max(0, state.leafClusters - 1); state.health = Math.max(0, state.health - 1); return { body: 'You do nothing. The mites feast, costing you 1 leaf cluster and 1 health.', damage: { amount: 1, cause: 'insects' } }; }
       },
       {
+        key: 'browsers',
         kind: 'browsers',
         title: 'Hungry Browsers',
         sceneArt: 'browsers',
@@ -373,6 +391,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         }
       },
       {
+        key: 'airborne-spores',
         title: 'Spores on the Damp Air',
         sceneArt: 'airborne-spores',
         warning: 'Damp air clings too long. Spores settle into tender tissues and wounded places.',
@@ -382,7 +401,9 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
     ];
   }
 
-  const threat = preservedThreat || threats[Math.floor(Math.random() * threats.length)];
+  const threat = typeof preservedThreat === 'string'
+    ? threats.find(candidate => candidate.key === preservedThreat || candidate.title === preservedThreat) || threats[0]
+    : preservedThreat || threats[Math.floor(Math.random() * threats.length)];
   const permanentBrowserDefense = threat.kind === 'browsers' ? getHerbivoreDefense(state) : null;
   if (permanentBrowserDefense?.total > 0) {
     const defenseNames = [
@@ -399,7 +420,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         label: `Rely on your ${defenseText}`,
         affordable: true,
       }],
-      meta: { threat, cost: DEFENSE_COST, deficits: {}, permanentBrowserDefense },
+      meta: { threat, threatKey: threat.key, cost: DEFENSE_COST, deficits: {}, permanentBrowserDefense },
     });
   }
   const costText = `☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}`;
@@ -437,7 +458,7 @@ export function buildChemicalDefenseDecision(state, deps = {}) {
         affordable: true,
       }
     ],
-    meta: { threat, cost: DEFENSE_COST, deficits },
+    meta: { threat, threatKey: threat.key, cost: DEFENSE_COST, deficits },
   });
 }
 
@@ -447,7 +468,6 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   const costText = `☀️${cost.sunlight} 💧${cost.water} 🌱${cost.nutrients}`;
 
   if (choiceId === 'use-permanent-defenses' && threat.kind === 'browsers') {
-    clearSceneArt(state, threat.sceneArt);
     const defenses = getHerbivoreDefense(state);
     const defenseResult = defenses.thorns > 0 && defenses.toxins > 0
       ? 'Thorns bar the browsers from your lower growth, while toxic leaves make every reachable bite unpalatable.'
@@ -464,27 +484,17 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
   if (choiceId === 'defend') {
     const hasResourcesNow = state.sunlight >= cost.sunlight && state.water >= cost.water && state.nutrients >= cost.nutrients;
     if (!hasResourcesNow) {
-      state.pendingChemicalThreat = {
-        title: threat.title,
-        warning: threat.warning,
-        sceneArt: threat.sceneArt,
-        ignore: () => {
-          const result = threat.ignore();
-          if (result.damage) recordDamage(result.damage.amount, result.damage.cause);
-          return result.body;
-        }
-      };
       return {
         title: threat.title,
         body: '<p>Your reserves are no longer sufficient. The threat remains unresolved.</p>',
         threatStatus: 'growing',
+        threatKey: threat.key,
       };
     }
     state.sunlight -= cost.sunlight;
     state.water -= cost.water;
     state.nutrients -= cost.nutrients;
     const body = threat.defend();
-    clearSceneArt(state, threat.sceneArt);
     return {
       title: threat.title,
       body: `<p>${body}</p><p class="threat-status threat-solved">The danger has passed.</p><p><em>Spent: ${costText}</em></p>`,
@@ -492,20 +502,11 @@ export function resolveChemicalDefenseChoice(state, decision, choiceId, deps = {
     };
   }
 
-  state.pendingChemicalThreat = {
-    title: threat.title,
-    warning: threat.warning,
-    sceneArt: threat.sceneArt,
-    ignore: () => {
-      const result = threat.ignore();
-      if (result.damage) recordDamage(result.damage.amount, result.damage.cause);
-      return result.body;
-    }
-  };
   return {
     title: threat.title,
     body: '<p>You conserve your reserves. The threat remains unresolved.</p>',
     threatStatus: 'growing',
+    threatKey: threat.key,
   };
 }
 
@@ -929,7 +930,25 @@ export function rollMinorEvents(state, deps) {
     events.push({ text: flavor, effect: 'flavor' });
   }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper', sceneArt: 'fruit-squirrel' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) { events.push({ text: 'A woodpecker drums at your bark, probing for insects in weakened places.', effect: 'warning', sceneArt: 'woodpecker' }); if (state.defense + state.trunk >= 3) { events.push({ text: 'Your bark holds. The pecking dislodges pests before they can spread. (+1 nutrient)', effect: 'good', sceneArt: 'woodpecker' }); state.nutrients += 1; } else { state.health = Math.max(0, state.health - 1); recordDamage(1, 'insects'); events.push({ text: 'The pecking opens small wounds in your bark. (-1 health)', effect: 'damage', sceneArt: 'woodpecker' }); } }
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) { events.push({ text: 'Beavers work the nearby watercourse, changing the moisture around your roots.', effect: 'warning', sceneArt: 'beaver' }); if (state.trunk >= 3) { state.water += 2; events.push({ text: 'You are large enough to escape their teeth, and the altered watershed leaves you with wetter soil. (+2 water)', effect: 'good', sceneArt: 'beaver' }); } else { state.health = Math.max(0, state.health - 2); recordDamage(2, 'storm'); events.push({ text: 'The altered flow and gnawing pressure leave you stressed. (-2 health)', effect: 'damage', sceneArt: 'beaver' }); } }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) {
+    if (state.defense + state.trunk >= 3) {
+      state.nutrients += 1;
+      events.push({ title: 'Woodpecker', text: 'A woodpecker probes your bark for insects. Your bark holds, and the pecking dislodges pests before they spread.', effects: ['+1 nutrient'], effect: 'good', sceneArt: 'woodpecker' });
+    } else {
+      state.health = Math.max(0, state.health - 1);
+      recordDamage(1, 'insects');
+      events.push({ title: 'Woodpecker', text: 'A woodpecker probes weakened bark for insects, opening small wounds as it pecks.', effects: ['−1 health'], effect: 'damage', sceneArt: 'woodpecker' });
+    }
+  }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Young Tree'].rank && Math.random() < 0.08) {
+    if (state.trunk >= 3) {
+      state.water += 2;
+      events.push({ title: 'Beaver Activity', text: 'Beavers reshape the nearby watercourse. Your trunk escapes their teeth, and the altered watershed leaves wetter soil.', effects: ['+2 water'], effect: 'good', sceneArt: 'beaver' });
+    } else {
+      state.health = Math.max(0, state.health - 2);
+      recordDamage(2, 'storm');
+      events.push({ title: 'Beaver Activity', text: 'Beavers reshape the nearby watercourse. Gnawing pressure and altered flow leave you stressed.', effects: ['−2 health'], effect: 'damage', sceneArt: 'beaver' });
+    }
+  }
   return events;
 }

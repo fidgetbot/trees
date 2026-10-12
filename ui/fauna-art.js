@@ -30,6 +30,16 @@ export const EVENT_ASSET_URLS=Object.freeze({
   'event-mycorrhizal-bloom':new URL(`../assets/trees/plum-rooted-seed-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'damp-rot':new URL(`../assets/events/damp-rot-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'airborne-spores':new URL(`../assets/events/airborne-spores-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-rain':new URL(`../assets/events/moonlit-grove-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-snow':new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-growth':new URL(`../assets/botanical/plum-fruit-airy.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-nutrients':new URL(`../assets/trees/plum-rooted-seed-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-offspring':new URL(`../assets/trees/cherry-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-relationship':new URL(`../assets/trees/pear-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-ambient':new URL(`../assets/events/moonlit-night-branches-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-damage':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'human-surveyor':new URL(`../assets/humans/surveyor-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'human-logger':new URL(`../assets/humans/logger-v1-axe.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
 });
 
 export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
@@ -82,12 +92,28 @@ const LABELS = {
   'event-late-frost': 'Blossoms touched by late frost', 'event-fungal-blight': 'Fungal blight',
   'event-mycorrhizal-bloom': 'Flourishing roots and fungal network',
   'damp-rot': 'Damp rot on a young stem', 'airborne-spores': 'Spores settling on a wounded leaf',
+  'event-rain': 'Rain moving through the grove', 'event-snow': 'Snow settling over the soil',
+  'event-growth': 'Fruit and seeds developing', 'event-nutrients': 'Roots receiving forest nutrients',
+  'event-offspring': 'A young offspring tree', 'event-relationship': 'Neighboring trees in the grove',
+  'event-ambient': 'Moonlit branches', 'event-damage': 'A weathered tree',
+  'human-surveyor': 'A human surveyor', 'human-logger': 'A logger with cutting tools',
 };
+
+function treeArtwork(kind){
+  if(!String(kind).startsWith('tree:'))return null;
+  const [,rawSpecies='plum',rawStage='young-tree']=String(kind).split(':');
+  const species=rawSpecies.toLowerCase();
+  const stage=rawStage.toLowerCase().replaceAll(' ','-').replace('mature-tree','mature-tree');
+  return{
+    src:new URL(`../assets/trees/${species}-${stage}-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+    label:`${rawSpecies} ${rawStage}`,
+  };
+}
 
 // Use the event's explicit identity, never guesses from its title or prose.
 export function renderEncounterArt(sceneArt) {
   const kinds = [...new Set([sceneArt].flat().flatMap(kind => kind === 'browsers'
-    ? ['browser-deer', 'browser-rabbit'] : [kind]))].filter(kind => Object.hasOwn(LABELS, kind));
+    ? ['browser-deer', 'browser-rabbit'] : [kind]))].filter(kind => Object.hasOwn(LABELS, kind)||String(kind).startsWith('tree:'));
   if (!kinds.length) return '';
-  return `<span class="encounter-art">${kinds.map(kind => `<img data-scene-art="${kind}" src="${ANIMAL_ASSET_URLS[kind] || INSECT_ASSET_URLS[kind] || EVENT_ASSET_URLS[kind]}" alt="${LABELS[kind]}" width="96" height="88" />`).join('')}</span>`;
+  return `<span class="encounter-art">${kinds.map(kind => {const tree=treeArtwork(kind);return `<img data-scene-art="${kind}" src="${tree?.src||ANIMAL_ASSET_URLS[kind] || INSECT_ASSET_URLS[kind] || EVENT_ASSET_URLS[kind]}" alt="${tree?.label||LABELS[kind]}" width="96" height="88" />`}).join('')}</span>`;
 }

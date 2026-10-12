@@ -1,5 +1,6 @@
 import { createOffspringRecords } from './humans.js?rev=life-stage-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
+import { getActiveIncidents } from './incidents.js?rev=incident-system-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -136,7 +137,7 @@ export function createEngine(deps) {
     updateUI,
     render,
     showModal,
-    processPendingInteractions,
+    processIncidentResponses,
     maybeShowHealthWarning,
     deathFlavor,
     generateSuccessionChoices,
@@ -477,11 +478,11 @@ export function createEngine(deps) {
 
     const transaction = { commit, cancel, complete };
     const result = action.effect(state, { scaledCost, transaction, ...actionContext });
-    if (action.key === 'growTaller' && state.pendingCanopyNotices?.length) {
-      const notices = state.pendingCanopyNotices.splice(0);
-      notices.forEach(notice => addLog?.(notice.message));
-      const latest = notices[notices.length - 1];
-      showFeedback?.(latest.message, 'info');
+    if (action.key === 'growTaller') {
+      const notices = getActiveIncidents(state).filter(incident => incident.kind === 'canopy-notice' && incident.meta?.unannounced);
+      notices.forEach(incident => { incident.meta.unannounced = false; addLog?.(incident.summary); });
+      const latest = notices.at(-1);
+      if (latest) showFeedback?.(latest.summary, 'info');
     }
     if (result?.deferred) return true;
     complete();
@@ -490,20 +491,22 @@ export function createEngine(deps) {
 
   function continueAfterEvent(state, hooks = {}) {
     const {
-      processPendingInteractions: processPendingInteractionsHook,
+      processIncidentResponses: processIncidentResponsesHook = processIncidentResponses,
       maybeShowHealthWarning: maybeShowHealthWarningHook,
       advanceTurn: advanceTurnHook,
       showTaprootResilience,
     } = hooks;
 
     const continueFlow = () => {
-      processPendingInteractionsHook?.(() => {
+      processIncidentResponsesHook?.(() => {
         if (maybeShowHealthWarningHook?.(advanceTurnHook)) return;
         advanceTurnHook?.();
       });
     };
 
-    if (state.majorEvent?.key === 'Drought' && state.taprootDepth > 0) {
+    const droughtThisTurn = (state.incidents || []).some(incident =>
+      incident.kind === 'major:Drought' && incident.openedTurn === (state.turnsElapsed || 0));
+    if (droughtThisTurn && state.taprootDepth > 0) {
       showTaprootResilience?.(continueFlow);
       return true;
     }

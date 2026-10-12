@@ -65,7 +65,8 @@ test('a branch drop repels cutters but sacrifices structure', () => {
   assert.equal(outcome.repelled, true);
   assert.equal(s.branches, 4);
   assert.equal(s.leafClusters, 6);
-  assert.equal(s.pendingHumanEncounter, null);
+  assert.equal('pendingHumanEncounter' in s, false);
+  assert.equal(s.incidents.find(incident => incident.kind === 'human-encounter').state, 'resolved');
 });
 
 test('human encounters offer distinct botanical defenses instead of duplicate passive choices', () => {

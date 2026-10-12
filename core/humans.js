@@ -1,5 +1,6 @@
 import { createDecision, findDecisionOption } from './decisions.js';
 import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=offspring-shade-v1';
+import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=incident-system-v1';
 
 export const HUMAN_RUMORS = [
   {
@@ -46,6 +47,7 @@ export const HUMAN_RUMORS = [
 ];
 
 export function ensureHumanState(state) {
+  migrateLegacyIncidentState(state);
   state.offspringRecords ||= [];
   state.alliedNeighbors ??= 0;
   state.humanPressure ??= 0;
@@ -54,7 +56,6 @@ export function ensureHumanState(state) {
   state.cuttingProgress ??= 0;
   state.thornDefense ??= 0;
   state.toxicLeaves ??= 0;
-  state.pendingHumanEncounter ??= null;
   state.humanStoryTurns ??= 0;
   state.humanRumorIndex ??= 0;
   state.lastHumanRumorTurn ??= -99;
@@ -276,7 +277,7 @@ export function woodAttraction(state) {
   return Math.max(0, (rank - 3) * 2 + (state.trunk || 0) + Math.floor((state.branches || 0) / 2) + Math.floor((state.canopySpread || 0) / 2));
 }
 
-function buildConservationDecision(state, deps) {
+export function buildConservationDecision(state, deps) {
   const { companions } = updateProtectionProgress(state, deps);
   const names = companions.slice(0, 2).map(entry => entry.kind === 'offspring'
     ? `${entry.tree.species} offspring`
@@ -289,9 +290,18 @@ function buildConservationDecision(state, deps) {
   });
 }
 
-export function buildHumanEncounterDecision(state) {
+function getHumanEncounterIncident(state) {
+  return findActiveIncident(state, 'human-encounter', incident => ['awaiting-response', 'ongoing'].includes(incident.state));
+}
+
+function clearHumanEncounter(state, outcome = {}) {
+  const incident = getHumanEncounterIncident(state);
+  if (incident) resolveIncident(state, incident.id, outcome);
+}
+
+export function buildHumanEncounterDecision(state, suppliedEncounter = null) {
   ensureHumanState(state);
-  const encounter = state.pendingHumanEncounter;
+  const encounter = suppliedEncounter || getHumanEncounterIncident(state)?.meta?.encounter;
   if (!encounter) return null;
   const options = [];
   if (state.branches > 0) {
@@ -345,7 +355,7 @@ function failEncounter(state, encounter) {
   if (encounter.phase === 'survey') {
     state.humanAttention += 1;
     state.humanCooldown = 4;
-    state.pendingHumanEncounter = null;
+    clearHumanEncounter(state, { title: 'The Tree Is Marked', summary: 'The humans leave a bright mark and intend to return.' });
     return {
       title: 'The Tree Is Marked',
       body: '<p>The humans paint a bright mark low on your trunk. They leave for now, but the fungal network carries an uneasy certainty: they intend to return.</p><p class="threat-status threat-growing">The danger is drawing closer.</p>',
@@ -358,7 +368,7 @@ function failEncounter(state, encounter) {
   state.cuttingProgress += 1;
   state.humanAttention += 1;
   state.humanCooldown = 3;
-  state.pendingHumanEncounter = null;
+  clearHumanEncounter(state, { title: 'A Deep Cut', summary: `The humans cut deeply before leaving. Cutting damage: ${state.cuttingProgress}/3.` });
   if (state.cuttingProgress >= 3) {
     state.health = 0;
     state.lastDamageCause = 'logging';
@@ -383,7 +393,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     state.protectionDesignated = true;
     state.protectionEligible = true;
     state.victoryAchieved = true;
-    state.pendingHumanEncounter = null;
+    clearHumanEncounter(state, { title: 'A Protected Ecosystem', summary: 'The grove receives lasting protection.' });
     return {
       title: 'A Protected Ecosystem',
       body: '<p>The visitors recognize that this is not merely valuable timber, but a rare community of great trees supporting one another across generations.</p><p>Boundaries are drawn around the grove. Cutting is forbidden. Your ecosystem will be allowed to endure.</p><p class="threat-status threat-solved">The axes will not return.</p>',
@@ -391,7 +401,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     };
   }
 
-  const encounter = state.pendingHumanEncounter || decision.meta?.encounter;
+  const encounter = getHumanEncounterIncident(state)?.meta?.encounter || decision.meta?.encounter;
   if (!encounter) return { title: 'The Humans Have Gone', body: '<p>The grove is quiet again.</p>' };
 
   if (option.id === 'drop-branch' && state.branches > 0) {
@@ -399,7 +409,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     state.leafClusters = Math.max(0, state.leafClusters - 2);
     state.humanAttention = Math.max(0, state.humanAttention - 1);
     state.humanCooldown = 6;
-    state.pendingHumanEncounter = null;
+    clearHumanEncounter(state, { title: 'Branchfall', summary: 'The humans flee after a heavy branch crashes beside them.' });
     return {
       title: 'Branchfall',
       body: '<p>You release a heavy branch. It crashes into the ground beside the humans, who abandon their tools and flee.</p><p>You lose <strong>1 branch</strong> and up to <strong>2 leaf clusters</strong>.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
@@ -434,7 +444,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
   if (random() < successChance) {
     state.humanAttention = Math.max(0, state.humanAttention - 1);
     state.humanCooldown = 5;
-    state.pendingHumanEncounter = null;
+    clearHumanEncounter(state, { title: 'The Humans Retreat', summary: 'The humans abandon the grove.' });
     return {
       title: 'The Humans Retreat',
       body: option.id === 'call-network'
@@ -462,13 +472,20 @@ export function advanceHumanSystem(state, deps = {}) {
 
   if (state.protectionDesignated) return {};
 
-  if (state.pendingHumanEncounter) {
-    return { decision: buildHumanEncounterDecision(state) };
+  const activeHumanIncident = getHumanEncounterIncident(state);
+  if (activeHumanIncident) {
+    return { decision: buildHumanEncounterDecision(state, activeHumanIncident.meta?.encounter), incidentId: activeHumanIncident.id };
   }
 
   const protection = updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
   if (protection.eligible && !state.victoryAchieved) {
-    return { decision: buildConservationDecision(state, { getRelationshipState, getNeighborStage }) };
+    const incident = openIncident(state, {
+      kind: 'conservation-inspection', title: 'Visitors in the Grove',
+      summary: 'Human visitors arrive with notebooks and measuring tapes to study the living grove.',
+      artwork: 'human-surveyor', severity: 'good',
+      response: { kind: 'conservation-inspection' },
+    });
+    return { decision: buildConservationDecision(state, { getRelationshipState, getNeighborStage }), incidentId: incident.id, incident };
   }
 
   const nextRumor = HUMAN_RUMORS[state.humanRumorIndex];
@@ -492,16 +509,24 @@ export function advanceHumanSystem(state, deps = {}) {
   if (random() >= chance) return {};
 
   const phase = state.humanAttention > 0 || state.cuttingProgress > 0 ? 'cutting' : 'survey';
-  state.pendingHumanEncounter = {
+  const encounter = {
     phase,
     count: phase === 'survey' ? 2 : Math.min(5, 2 + Math.floor((state.humanPressure + state.humanAttention) / 3)),
   };
+  const incident = openIncident(state, {
+    kind: 'human-encounter',
+    title: phase === 'survey' ? 'Humans at Your Trunk' : 'The Cutters Return',
+    summary: phase === 'survey'
+      ? 'Humans have entered the grove and are measuring your trunk. Their interest is growing.'
+      : 'The marked humans have returned with cutting tools and wait beside your trunk.',
+    artwork: phase === 'survey' ? 'human-surveyor' : 'human-logger',
+    severity: 'warning',
+    response: { kind: 'human-encounter' },
+    meta: { encounter },
+  });
   return {
-    event: {
-      text: phase === 'survey'
-        ? 'Humans have entered the grove and are measuring your trunk. Their interest is growing.'
-        : 'The marked humans have returned with cutting tools. They wait beside your trunk for the next cut.',
-      effect: 'human-warning',
-    },
+    incident,
+    decision: buildHumanEncounterDecision(state, encounter),
+    incidentId: incident.id,
   };
 }

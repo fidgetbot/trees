@@ -1,57 +1,59 @@
-import { renderEncounterArt } from './fauna-art.js?rev=world-anchored-fauna-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=incident-system-v1';
 
-export function renderEventPhaseBody({ major, minors, consequences }) {
-  let majorHtml = '';
-  if (major) {
-    const majorClass = major.severity === 'critical'
-      ? 'event-critical'
-      : major.severity === 'bad'
-        ? 'event-bad'
-        : major.severity === 'neutral'
-          ? 'event-neutral'
-          : 'event-good';
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
 
-    majorHtml = `
-      <div class="event-major ${majorClass}">
-        ${renderEncounterArt(major.sceneArt) || `<div class="event-icon">${major.icon}</div>`}
-        <div class="event-content">
-          <h3>${major.name}</h3>
-          <p>${major.desc}</p>
-          ${consequences.length ? `
-            <div class="event-consequences">
-              <strong>Effects:</strong>
-              <ul>${consequences.map(c => `<li>${c}</li>`).join('')}</ul>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-  } else if (!minors.length) {
-    majorHtml = `
-      <div class="event-major event-good event-quiet">
-        <div class="event-content">
-          <h3>Quiet Night</h3>
-          <p>The forest is still. You rest.</p>
-        </div>
-      </div>
-    `;
-  }
+function statusLabel(incident) {
+  if (incident.state === 'awaiting-response') return 'Needs response';
+  if (incident.state === 'ongoing') return incident.responseMode === 'action-window' && incident.deadlineTurn != null
+    ? `Ongoing · respond by turn ${incident.deadlineTurn}`
+    : 'Ongoing';
+  if (incident.state === 'expired') return 'Expired';
+  return '';
+}
 
-  const minorHtml = minors.length
-    ? `<div class="minor-events"><h4>Forest Whispers</h4><ul>${minors.map(e => {
-      const art = renderEncounterArt(e.sceneArt);
-      const classes = [art ? 'illustrated-event' : '', e.compactThreat ? 'compact-threat-event' : ''].filter(Boolean).join(' ');
-      const copy = e.compactThreat
-        ? `<span class="compact-threat-copy"><strong>${e.title}</strong><span>${e.text}</span><small>${e.status}</small></span>`
-        : `<span>${e.text}</span>`;
-      return `<li class="${classes}">${art}${copy}</li>`;
-    }).join('')}</ul></div>`
-    : '';
+function renderEffects(effects = []) {
+  const visible = effects.filter(Boolean);
+  if (!visible.length) return '';
+  return `<span class="incident-effects">${visible.map(effect => `<span class="incident-effect">${escapeHtml(effect)}</span>`).join('')}</span>`;
+}
+
+function renderIncident(incident, { lead = false } = {}) {
+  const art = renderEncounterArt(incident.artwork || 'event-ambient');
+  const status = statusLabel(incident);
+  const classes = [
+    'journal-incident',
+    lead ? 'journal-incident-lead' : '',
+    incident.quiet ? 'journal-incident-quiet' : '',
+    `incident-${incident.severity || 'neutral'}`,
+  ].filter(Boolean).join(' ');
+  return `<article class="${classes}" data-incident-id="${escapeHtml(incident.id)}">
+    ${art}
+    <div class="journal-incident-copy">
+      <h3>${escapeHtml(incident.title)}</h3>
+      ${incident.summary ? `<p>${escapeHtml(incident.summary)}</p>` : ''}
+      ${renderEffects(incident.effects)}
+      ${status ? `<strong class="incident-status">${escapeHtml(status)}</strong>` : ''}
+    </div>
+  </article>`;
+}
+
+export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = {}) {
+  const ordered = [...incidents].sort((a, b) => (a.priority === 'lead' ? -1 : 0) - (b.priority === 'lead' ? -1 : 0));
+  const leadId = ordered.find(incident => incident.priority === 'lead')?.id;
+  const rows = ordered.length
+    ? ordered.map(incident => renderIncident(incident, { lead: incident.id === leadId })).join('')
+    : '<p class="quiet-night-summary"><strong>Quiet night.</strong> The forest is still. You rest.</p>';
 
   return `
     <img class="night-specimen" src="assets/events/moonlit-night-branches-v1.png?rev=night-branches-v1" alt="" aria-hidden="true" />
     <p class="night-prose">Darkness settles over the grove.</p>
-    ${majorHtml}
-    ${minorHtml}
+    <section class="night-journal" aria-label="Night journal">${rows}</section>
+    ${pendingResponses ? `<p class="encounter-queue-summary"><strong>${pendingResponses} ${pendingResponses === 1 ? 'encounter needs' : 'encounters need'} your response.</strong></p>` : ''}
   `;
 }

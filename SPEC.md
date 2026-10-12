@@ -242,7 +242,11 @@ Player death always ends the current run. The normal interface is replaced by a 
 
 ### Threats, Events, and Survival
 
-The game includes both major and minor events, along with delayed consequence chains.
+Every ecological occurrence that affects the player is represented by one serializable **Incident** record. Major scheduling tiers remain internal for balance and stage progression, but do not create a separate player-facing presentation path. An incident has stable identity, subject, severity/priority, title, summary, artwork, effects, lifecycle state, response timing, deadline, data-only decision key, and outcome. Its lifecycle is `opened → awaiting response or ongoing → resolved or expired`.
+
+Night Falls presents one ordered **Night Journal**. Each incident appears exactly once with artwork, title, concise prose, effect chips, and—only when relevant—Needs response, Ongoing, or Resolved status. The former major-card/Forest Whispers split is removed. A high-impact incident may use the lead row, while ambient observations retain quieter typography without becoming a separate system. Warning and outcome update the same incident identity; woodpeckers, beavers, and other cause/outcome pairs therefore never duplicate their illustration or journal entry.
+
+Incidents use one of three response modes: `none` resolves automatically, `immediate` enters the shared Encounter Queue after the journal, and `action-window` remains in the grove through the documented action phase and deadline. The Encounter Queue handles multiple decisions sequentially on one reusable surface, reports progress, refreshes affordability immediately before display, and replaces choices with the result in place. Runtime state contains incident IDs and data only—never callbacks or resolver functions.
 
 Current systems include:
 - seasonal minor events
@@ -255,7 +259,9 @@ Current systems include:
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health
-- queued chemical and hostile-tree defense decisions refresh their affordability from current resources immediately before display, so preceding event interactions cannot leave a stale “not enough resources” choice on screen
+- immediate chemical, hostile-tree, ally, offspring, human, and conservation decisions use the same serialized response queue and refresh affordability from current resources immediately before display, so preceding outcomes cannot leave stale choices on screen
+- action-window fruit and unaffordable chemical threats persist as ongoing incidents until their deadline; their grove artwork is derived from incident state and disappears automatically on resolution
+- all incidents have artwork through a reusable visual vocabulary: existing fauna/human/pathology specimens, treated weather/ecology specimens, or a target tree portrait composed with a shared condition specimen. Warning, response, and outcome reuse the same visual identity
 - ambient flavor is selected from stage-specific pools so seed-only observations do not appear after germination
 - cumulative cutting wounds; logging normally requires three unresolved deep cuts rather than a single unlucky instant-death roll
 
@@ -338,7 +344,7 @@ Current responsibilities include:
 - stage progression logic
 - seedable randomness helpers
 - action catalog and availability rules
-- event rolling and event resolution helpers, including shared start-of-turn pending-consequence resolution, shared hostile-encroachment decision/resolution flow, shared chemical-defense threat decision/resolution flow, and shared decision-runner dispatch for interactive event choices
+- the serializable Incident registry, legacy-state migration, event normalization, stable response queues, derived scene-art selection, and shared event/decision resolvers
 - shared human-pressure and conservation rules, including fungal-rumor sequencing, offspring records, encounter decisions, cutting resolution, and protected-grove qualification
 - diplomacy and survival helpers, including shared relationship-resolution plus normalized decision-object builders for connection, ally aid, ally help, and aggression, alongside the corresponding shared resolution logic and shared diplomacy-decision dispatch
 - shared engine turn/state flow
@@ -348,7 +354,7 @@ Browser-only rendering, modal presentation, HUD updates, and browser setup helpe
 
 Current responsibilities include:
 - action panel rendering
-- resource/event/outcome modal bodies
+- resource, Night Journal, Encounter Queue, and outcome bodies
 - species selection UI
 - a visible build number on both the opening species screen and the in-game map
 - explicit source bounds for all six Seed and rooted-Seed sprites exclude neighboring sprite-sheet fragments without altering the painted masters; seed aspect ratios and connected radicles are preserved in both the Canvas scene and chapter portraits
@@ -456,14 +462,14 @@ The current high-level goals are:
 
 ### Illustrated encounter messages and gathering continuation
 
-- Creature encounter choices and their immediate/delayed outcomes show compact portraits from the same approved fauna library used in the grove, keyed by explicit event identity. Nightly major/minor event entries illustrate their own visitors, including pests, browsers, birds, beavers, woodpeckers and pollinators. Unmapped events stay text-only; reused dialogs clear old art and preserve focus, animation timing, and choices.
-- Night Falls uses the same field-journal hierarchy as gathering: season/year eyebrow, large title, a simple high-contrast moon-and-dark-branches specimen in the upper-right, quiet introductory prose, and one separated row per event instead of stacked cards. Every named major event has an explicit painted visual identity; animal events reuse their approved fauna, fungal events use dedicated botanical-pathology specimens, and weather/ecology events use deliberately treated approved botanical specimens. Actionable threats share one rule across insects, browsers, damp rot, and airborne spores: the night row introduces the threat once, unaffordable responses return directly to play, and an affordable response uses one focused sheet whose result replaces its choices in place. Ambient forest whispers remain lightweight lines rather than opening additional surfaces.
+- Every Incident carries artwork. Fauna and human encounters reuse the same approved specimens used in the grove; pathology uses the pest/fungal family; weather, resource, reproduction, relationship, and ambient incidents use shared treated specimens. Neighbor and offspring incidents reuse the exact target tree portrait and may compose it with one condition specimen for drought, aphids, mites, blight, rot, or branch damage. The same artwork identity persists through warning, response, and resolution.
+- Night Falls uses one field-journal hierarchy: season/year eyebrow, large title, moon-and-dark-branches specimen, quiet introductory prose, and one separated row per Incident. Lead priority preserves the drama of major threats; quiet styling preserves atmospheric observations. There is no Forest Whispers category and no major/minor rendering split. If decisions are queued, one “Respond to N encounters” continuation opens the shared Encounter Queue.
 - The gathering sheet’s actions-available panel is its single continuation button. Its headline shows the base allowance, with earned high-yield actions listed separately as a bonus; its accessible label states the resulting total. The separate Continue button is hidden only on gathering; mouse, touch and keyboard activate the existing continuation exactly once without re-awarding resources.
 
 ### Feeding pests attached to tissue
 
 - Surface crawlers feed against the painted root collar and shallow root/seed tissue, aphids attach to the stem, and mites attach to actual leaf paint (bark when leafless or dormant). Individual specimens are isolated in memory from the approved cluster images, with their feeding ends anchored to opaque tissue. They inherit the plant’s species geometry, scale, shade lean, pan and zoom; no detached pest-cluster billboard is drawn. Pests remain selectable, and no extra damage or action cost is invented by the illustration.
-- Successful chemical or permanent defense, delayed threat resolution, and healing aid remove the resolved encounter’s scene artwork without removing unrelated wildlife. Conserved or unaffordable threats keep their insects until resolved.
+- Grove encounter artwork is derived exclusively from unresolved, scene-persistent Incidents. Successful defense, delayed resolution, aid, expiry, or target loss removes only that incident’s artwork; conserved or unaffordable threats remain visible until resolved, and unrelated wildlife is untouched.
 
 - The action dock distinguishes the remaining action budget from usable moves. While moves are available, it reports “N actions remaining”; Requirements remains available to explain locked and unaffordable actions. If no action is currently legal or affordable, End turn becomes the prominent next step and the explanatory sentence above it gives the reason. Empty object-specific lists instead direct the player to the player tree's available moves. Zero-action states still allow End turn.
 

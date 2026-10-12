@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=resource-balance-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=incident-system-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveSharedDecision,
-} from './core/events.js?rev=simplified-event-flow-v1';
+} from './core/events.js?rev=incident-system-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -51,34 +51,48 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=friendly-connection-hint-v1';
+} from './core/diplomacy.js?rev=incident-system-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
   advanceOffspringCrises,
+  buildConservationDecision,
+  buildHumanEncounterDecision,
   describeOffspring,
   growOffspringRecords,
   nurtureOffspring,
-  resolveOffspringCrisisAid,
-  resolveHumanDecision,
   updateProtectionProgress,
-} from './core/humans.js?rev=ominous-rumors-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-request-help-cancel-v1';
+} from './core/humans.js?rev=incident-system-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=incident-system-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
+import {
+  ensureIncidentState,
+  awaitIncidentResponse,
+  findActiveIncident,
+  getIncident,
+  incidentSceneArtKinds,
+  keepIncidentOngoing,
+  openEventIncident,
+  openIncident,
+  openMajorIncident,
+  queuedResponseIncidents,
+  resolveIncident,
+} from './core/incidents.js?rev=incident-system-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=incident-system-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=action-carousel-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=action-carousel-v1';
-import { renderEventPhaseBody } from './ui/events.js?rev=night-summary-copy-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=winter-surface-stem-v1';
+import { renderEventPhaseBody } from './ui/events.js?rev=incident-system-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=incident-system-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=painted-canopy-botanicals-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=incident-system-v1';
 import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=typed-focus-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -728,10 +742,52 @@ function showGameOverScreen(summary) {
   document.getElementById('try-again')?.addEventListener('click', () => window.location.reload());
 }
 
-function processPendingInteractions(onDone) {
-  if (!state.pendingInteractions.length) return onDone?.();
-  const interaction = state.pendingInteractions.shift();
-  interaction(() => processPendingInteractions(onDone));
+function buildIncidentDecision(incident) {
+  return buildSharedIncidentDecision(state, incident, { computeCurrentLifeStage, getRelationshipState, compareConflictPower, getNeighborStage });
+}
+
+function resolveIncidentDecision(incident, decision, optionId) {
+  return resolveSharedIncidentDecision(state, incident, decision, optionId, {
+    getRelationshipState, compareConflictPower, applyRelationshipDelta, getNeighborStage, recordDamage, random: Math.random,
+  });
+}
+function processIncidentResponses(onDone, progress = null) {
+  const queueProgress = progress || { total: queuedResponseIncidents(state).length, completed: 0 };
+  const [incident] = queuedResponseIncidents(state);
+  if (!incident) return onDone?.();
+  const decision = buildIncidentDecision(incident);
+  if (!decision) {
+    resolveIncident(state, incident.id, { title: incident.title, summary: 'The encounter ended before a response was needed.' });
+    return processIncidentResponses(onDone, { ...queueProgress, completed: queueProgress.completed + 1 });
+  }
+  const queueIndex = Math.min(queueProgress.total, queueProgress.completed + 1);
+  showChoiceModal(
+    decision.title,
+    decision.body,
+    decision.options.map(option => ({
+      label: option.label,
+      description: option.description || option.preview || null,
+      disabled: option.affordable === false || option.disabled === true,
+      onChoose: () => {
+        const outcome = resolveIncidentDecision(incident, decision, option.id);
+        refreshMainView();
+        return {
+          title: outcome.title || decision.title,
+          body: outcome.body || `<p>${outcome.summary || ''}</p>`,
+          onContinue: () => {
+            if (outcome.fatal || state.health <= 0) return handleDeath();
+            processIncidentResponses(onDone, { ...queueProgress, completed: queueProgress.completed + 1 });
+          },
+        };
+      },
+    })),
+    {
+      kind: 'encounter-queue',
+      eyebrow: `Encounter ${queueIndex} of ${Math.max(queueProgress.total, queueIndex)}`,
+      sceneArt: incident.artwork,
+      resolveInPlace: true,
+    },
+  );
 }
 
 function showResourcePhase({ quiet = false } = {}) {
@@ -739,17 +795,11 @@ function showResourcePhase({ quiet = false } = {}) {
   setTurnEndBanner('');
   const pendingStartOfTurn = resolvePendingStartOfTurnEffects(state);
   if (pendingStartOfTurn.length) {
-    const first = pendingStartOfTurn[0];
+    pendingStartOfTurn.forEach(effect => addLog(`${effect.title}: ${effect.body}`));
+    showFeedback(pendingStartOfTurn[0].body, 'warning');
     updateScore();
     updateUI();
     render();
-    showModal(first.title, `<p>${first.body}</p>`, () => {
-      updateScore();
-      updateUI();
-      render();
-      showResourcePhase();
-    }, { sceneArt: first.sceneArt });
-    return;
   }
   if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
   if (quiet && (state.turnsElapsed || 0) === 0) {
@@ -832,16 +882,23 @@ function growNeighbors() {
     const baseGrowth = 20 + Math.floor(Math.random() * 35);
       n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
     const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
-    if (heightChange) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), heightChange];
+    if (heightChange) openIncident(state, {
+      kind: 'canopy-notice', title: 'The Canopy Shifts', summary: heightChange.message,
+      artwork: `tree:${n.species}:${getNeighborStage(n).name}`, severity: 'neutral',
+      subject: { type: 'neighbor', species: n.species, slot: n.slot, stageName: getNeighborStage(n).name },
+      meta: { kind: heightChange.kind, neighborSlot: n.slot, reportPending: true },
+    });
     if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && Math.random() < 0.25) {
       const newlyCrowding = !n.shadingPlayer;
       n.shadingPlayer = true;
       n.playerShading = false;
-      if (newlyCrowding) state.pendingCanopyNotices = [...(state.pendingCanopyNotices || []), {
-        kind: 'hostile-crowding',
-        neighbor: n,
-        message: `The hostile ${n.species} has grown tall enough to lean over you. Its crown begins stealing your light. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`,
-      }];
+      if (newlyCrowding) openIncident(state, {
+        kind: 'canopy-notice', title: 'A Taller Rival Crowds You',
+        summary: `The hostile ${n.species} has grown tall enough to lean over you. Its crown begins stealing your light. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`,
+        artwork: `tree:${n.species}:${getNeighborStage(n).name}`, severity: 'warning',
+        subject: { type: 'neighbor', species: n.species, slot: n.slot, stageName: getNeighborStage(n).name },
+        meta: { kind: 'hostile-crowding', neighborSlot: n.slot, reportPending: true },
+      });
     }
   });
   growOffspringRecords(state);
@@ -954,11 +1011,18 @@ function updateNeighborAliveState(neighbor, cause = 'hardship') {
   updateAlliesCount();
   neighbor.deathAge = 0;
   neighbor.deathStageScore = neighbor.stageScore;
-  state.pendingInteractions.push(done => showModal(
-    death.relationship === 'Ally' ? 'Ally Tree Dies' : 'Neighbor Tree Dies',
-    `<p><em>The ${neighbor.species} falls silent in the grove.</em></p><p>Its health reached zero, and its roots no longer answer yours.</p><p><strong>Relationship at death:</strong> ${death.relationship}</p><p><strong>Cause:</strong> ${cause}</p>`,
-    done,
-  ));
+  state.incidents
+    .filter(incident => incident.state !== 'resolved' && incident.state !== 'expired' && incident.subject?.type === 'neighbor' && incident.subject?.slot === neighbor.slot)
+    .forEach(incident => resolveIncident(state, incident.id, { title: incident.title, summary: `The ${neighbor.species} dies, ending this incident.` }));
+  openIncident(state, {
+    kind: 'neighbor-death',
+    title: death.relationship === 'Ally' ? 'Ally Tree Dies' : 'Neighbor Tree Dies',
+    summary: `The ${neighbor.species} falls silent in the grove. Its roots no longer answer yours.`,
+    artwork: `tree:${neighbor.species}:${getNeighborStage(neighbor).name}`,
+    severity: 'bad',
+    effects: [`Relationship at death: ${death.relationship}`, `Cause: ${cause}`],
+    subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+  });
   return true;
 }
 
@@ -1006,7 +1070,20 @@ function advanceAllyCrises(events) {
     if (neighbor.activeCrises.length === 0 && Math.random() < (state.alliedNeighbors === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
     for (const crisis of [...neighbor.activeCrises]) {
       const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
-      events.push({ text: `${flavor} The crisis is deepening.`, effect: 'warning' });
+      const event = {
+        kind: 'ally-aid',
+        title: `${neighbor.species}: ${crisis.title}`,
+        text: `${flavor} The crisis is deepening.`,
+        effect: 'warning',
+        subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+        response: { kind: 'ally-aid', neighborSlot: neighbor.slot, crisisId: crisis.id },
+      };
+      const existing = findActiveIncident(state, 'ally-aid', incident => incident.response?.neighborSlot === neighbor.slot && incident.response?.crisisId === crisis.id);
+      if (existing) {
+        awaitIncidentResponse(state, existing.id, event);
+        event.existingIncidentId = existing.id;
+      }
+      events.push(event);
       crisis.stage += 1;
       neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
       if (neighbor.health <= 0) {
@@ -1014,7 +1091,6 @@ function advanceAllyCrises(events) {
         updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
         continue;
       }
-      state.pendingInteractions.push((done) => showAllyAidRequest(neighbor, crisis, done));
     }
   }
 }
@@ -1025,113 +1101,26 @@ function advanceChildCrises(events) {
     const { child, crisis, flavor, died } = outcome;
     if (died) {
       state.offspringPool = Math.max(0, state.offspringPool - 1);
+      const existing = findActiveIncident(state, 'offspring-aid', incident => incident.response?.childId === child.id && incident.response?.crisisId === crisis.id);
+      if (existing) resolveIncident(state, existing.id, { title: 'Offspring Lost', summary: `${flavor} The offspring dies before more help can reach it.` });
       events.push({ text: `${flavor} The ${child.species} offspring dies before more help can reach it.`, effect: 'offspring-loss' });
       continue;
     }
-    events.push({ text: `${flavor} The crisis is deepening.`, effect: 'warning' });
-    state.pendingInteractions.push(done => showOffspringAidRequest(child, crisis, done));
-  }
-}
-
-function showOffspringAidRequest(child, crisis, done) {
-  if (!child || child.dead) return done?.();
-  const resIcon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
-  showChoiceModal(
-    `${child.species} offspring asks for help`,
-    `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p>
-     <p class="threat-status threat-growing">The crisis is deepening.</p>
-     <p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p>
-     <p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>
-     <p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`,
-    [
-      {
-        label: 'Give what you can',
-        onChoose: () => {
-          const outcome = resolveOffspringCrisisAid(state, child.id, crisis.id);
-          if (!outcome) return done?.();
-          const body = outcome.resolved
-            ? `You meet the full request with ${outcome.given} ${crisis.kind}. Your offspring steadies, and the crisis passes.`
-            : outcome.given > 0
-              ? `You send ${outcome.given} ${crisis.kind}. It helps, but your offspring will need more support before the crisis passes.`
-              : `You have none of the needed ${crisis.kind} to send. The crisis worsens.`;
-          showModal('Aid Given to Offspring', `<p>${body}</p><p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`, () => {
-            refreshMainView();
-            done?.();
-          });
-        },
-      },
-      {
-        label: 'Withhold your resources',
-        onChoose: () => {
-          resolveOffspringCrisisAid(state, child.id, crisis.id, { withhold: true });
-          showModal('Aid Withheld from Offspring', `<p>You keep your reserves. Your ${child.species} offspring remains in danger, and its need grows.</p><p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`, () => {
-            refreshMainView();
-            done?.();
-          });
-        },
-      },
-    ],
-  );
-}
-
-function showAllyAidRequest(neighbor, crisis, done) {
-  if (!neighbor || neighbor.dead) {
-    done?.();
-    return;
-  }
-  const resIcon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
-  const oldState = getRelationshipState(neighbor.relation).name;
-  const available = state[crisis.kind];
-  const title = `${neighbor.species} asks for help`;
-  showChoiceModal(title, `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p class="threat-status threat-growing">The crisis is deepening.</p><p>It needs <strong>${crisis.amount} ${resIcon} ${crisis.kind}</strong>.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p><p><em>Your current reserves: ☀️${state.sunlight} · 💧${state.water} · 🌱${state.nutrients}</em></p>`, [
-    {
-      label: 'Give what you can',
-      onChoose: () => {
-        const given = Math.min(crisis.amount, available);
-        state[crisis.kind] -= given;
-        let relationDelta = 0;
-        let body = '';
-        if (given >= crisis.amount) {
-          relationDelta = 12;
-          neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + crisis.healthLoss + 2);
-          neighbor.activeCrises = (neighbor.activeCrises || []).filter(c => c.id !== crisis.id);
-          body = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity. The crisis has passed.`;
-        } else if (given > 0) {
-          relationDelta = 2;
-          neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + 1);
-          crisis.amount = Math.max(1, crisis.amount - given);
-          body = `You send ${given} ${crisis.kind}. It helps: the crisis eases, but has not yet passed.`;
-        } else {
-          relationDelta = -8;
-          crisis.amount += 2;
-          body = `You cannot send any of what it needs. The ${neighbor.species} feels the failure sharply, and the crisis worsens.`;
-        }
-        neighbor.helpGivenToThem += given > 0 ? 1 : 0;
-        neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
-        neighbor.lastAidMemory = given > 0 ? 'you-helped' : 'you-refused';
-        applyRelationshipDelta(neighbor, relationDelta);
-        const newState = getRelationshipState(neighbor.relation).name;
-        showModal('Aid Given', `<p>${body}</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
-          refreshMainView();
-          continueWithRelationshipChange(neighbor.species, oldState, newState, done);
-        });
-      }
-    },
-    {
-      label: 'Withhold your resources',
-      onChoose: () => {
-        neighbor.helpRefusedToThem += 1;
-        neighbor.lastAidMemory = 'you-refused';
-        crisis.amount += 2;
-        neighbor.relation = Math.max(-100, neighbor.relation - 12);
-        const newState = getRelationshipState(neighbor.relation).name;
-        showModal('Aid Withheld', `<p>You keep your reserves. The ${neighbor.species} weakens and remembers the silence.</p><p>The crisis worsens.</p><p><strong>${neighbor.species} health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`, () => {
-          refreshMainView();
-          continueWithRelationshipChange(neighbor.species, oldState, newState, done);
-        });
-      }
+    const event = {
+      kind: 'offspring-aid',
+      title: `${child.species} offspring: ${crisis.title}`,
+      text: `${flavor} The crisis is deepening.`,
+      effect: 'warning',
+      subject: { type: 'offspring', id: child.id, species: child.species, stageName: describeOffspring(state, LIFE_STAGES).find(entry => entry.id === child.id)?.stageName || 'Seedling' },
+      response: { kind: 'offspring-aid', childId: child.id, crisisId: crisis.id },
+    };
+    const existing = findActiveIncident(state, 'offspring-aid', incident => incident.response?.childId === child.id && incident.response?.crisisId === crisis.id);
+    if (existing) {
+      awaitIncidentResponse(state, existing.id, event);
+      event.existingIncidentId = existing.id;
     }
-  ]);
+    events.push(event);
+  }
 }
 
 function checkAllyBetrayal(events) {
@@ -1142,11 +1131,6 @@ function checkAllyBetrayal(events) {
     getNeighborStage,
     random: Math.random,
     recordDamage,
-    onRelationshipShift: (neighbor, oldState, newState) => {
-      state.pendingInteractions.push((done) => {
-        continueWithRelationshipChange(neighbor.species, oldState, newState, done);
-      });
-    },
   });
 }
 
@@ -1613,7 +1597,7 @@ engine = createEngine({
   updateUI,
   render,
   showModal,
-  processPendingInteractions,
+  processIncidentResponses,
   maybeShowHealthWarning,
   deathFlavor,
   generateSuccessionChoices,
@@ -1645,79 +1629,6 @@ function compareConflictPower(neighbor) {
   return compareConflictPowerForState(state, neighbor, getNeighborStage);
 }
 
-function queueSharedDecisionInteraction(decision, done) {
-  let currentDecision = decision;
-  if (decision.kind === 'chemical-defense') {
-    currentDecision = buildChemicalDefenseDecision(state, {
-      computeCurrentLifeStage,
-      threat: decision.meta?.threat,
-    });
-    const hasResponse = currentDecision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
-    if (!hasResponse) {
-      resolveSharedDecision(state, currentDecision, 'conserve', { recordDamage });
-      showFeedback(`${currentDecision.title} remains unresolved — reserves are no longer sufficient.`, 'warning');
-      refreshMainView();
-      done?.();
-      return;
-    }
-  } else if (decision.kind === 'hostile-encroachment') {
-    const neighbor = decision.meta?.neighbor;
-    if (!neighbor || neighbor.dead) {
-      addLog(`The hostile encounter ends because the ${neighbor?.species || 'neighboring tree'} is dead.`);
-      done?.();
-      return;
-    }
-    currentDecision = buildHostileEncroachmentDecision(state, neighbor, {
-      getRelationshipState,
-      compareConflictPower,
-      getNeighborStage,
-    });
-  }
-  showChoiceModal(
-    currentDecision.title,
-    currentDecision.body,
-    currentDecision.options.map(option => ({
-      label: option.label,
-      disabled: option.affordable === false,
-      onChoose: () => {
-        const outcome = resolveSharedDecision(state, currentDecision, option.id, {
-          getRelationshipState,
-          compareConflictPower,
-          applyRelationshipDelta,
-          getNeighborStage,
-          recordDamage,
-          random: Math.random,
-        });
-        if (currentDecision.kind === 'chemical-defense') {
-          recordPopup(outcome.title, outcome.body);
-          refreshMainView();
-          return {
-            title: outcome.title,
-            body: outcome.body,
-            onContinue: () => {
-              refreshMainView();
-              done?.();
-            },
-          };
-        }
-        showModal(outcome.title, outcome.body, () => {
-          refreshMainView();
-          const neighborName = currentDecision.meta?.neighbor?.species;
-          if (neighborName && outcome.oldState && outcome.newState) {
-            continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, done);
-            return;
-          }
-          done?.();
-        });
-      },
-    })),
-    {
-      sceneArt: currentDecision.meta?.threat?.sceneArt,
-      resolveInPlace: currentDecision.kind === 'chemical-defense',
-    }
-  );
-}
-
 function queueHostileTreeThreat(neighbor, events) {
   if (!neighbor || neighbor.dead) return;
   const decision = buildHostileEncroachmentDecision(state, neighbor, {
@@ -1727,8 +1638,12 @@ function queueHostileTreeThreat(neighbor, events) {
   });
 
   const prompt = describeDecisionPrompt(decision);
-  if (prompt) events.push(prompt);
-  state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
+  if (prompt) events.push({
+    ...prompt,
+    title: decision.title,
+    subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+    response: { kind: 'hostile-encroachment', neighborSlot: neighbor.slot },
+  });
 }
 
 function queueChemicalDefenseThreat(events) {
@@ -1736,13 +1651,21 @@ function queueChemicalDefenseThreat(events) {
     computeCurrentLifeStage,
   });
   const prompt = describeDecisionPrompt(decision);
-  if (prompt) events.push(prompt);
   const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+  if (prompt) events.push({
+    ...prompt,
+    kind: 'chemical-threat',
+    state: hasResponse ? 'awaiting-response' : 'ongoing',
+    responseMode: hasResponse ? 'immediate' : 'action-window',
+    response: hasResponse ? { kind: 'chemical-defense', threatKey: decision.meta?.threatKey } : null,
+    deadlineTurn: (state.turnsElapsed || 0) + 1,
+    scenePersistent: true,
+    meta: { threatKey: decision.meta?.threatKey },
+  });
   if (!hasResponse) {
     resolveSharedDecision(state, decision, 'conserve', { recordDamage });
     return;
   }
-  state.pendingInteractions.push((done) => queueSharedDecisionInteraction(decision, done));
 }
 
 function rollMajorEvent() {
@@ -1803,71 +1726,75 @@ function applyEventEffects(major, minors) {
 
 function showEventPhase() {
   setTurnEndBanner('');
+  ensureIncidentState(state);
+  const incidentCountBefore = state.incidents.length;
   const { major, minors, consequences } = engine.showEventPhase(state);
   const humanUpdate = state.health > 0 ? advanceHumanSystem(state, {
     getRelationshipState,
     getNeighborStage,
     random: Math.random,
   }) : {};
-  if (humanUpdate.event) minors.push(humanUpdate.event);
   if (humanUpdate.rumor) {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
-    state.pendingInteractions.push(done => showModal(
-      humanUpdate.rumor.title,
-      `<p><em>${humanUpdate.rumor.body}</em></p>`,
-      done,
-      { kind: humanUpdate.rumor.presentation || '' },
-    ));
+    openIncident(state, {
+      kind: 'fungal-rumor', title: humanUpdate.rumor.title, summary: humanUpdate.rumor.body,
+      artwork: 'event-ambient', severity: humanUpdate.rumor.presentation === 'ominous' ? 'warning' : 'neutral',
+      quiet: true,
+    });
   }
-  if (humanUpdate.decision) state.pendingInteractions.push(done => queueHumanDecision(humanUpdate.decision, done));
-  state.activeSceneArt = [...new Set([
-    major?.sceneArt,
-    ...minors.flatMap(event => Array.isArray(event?.sceneArt) ? event.sceneArt : [event?.sceneArt]),
-  ].filter(Boolean))];
-  if (major?.title) addLog(`Major event: ${major.title}.`);
+  const majorIncident = openMajorIncident(state, major, consequences);
+  const minorIncidents = minors.map(event => {
+    if (event.existingIncidentId) {
+      const existing = getIncident(state, event.existingIncidentId);
+      if (existing) {
+        existing.summary = event.text || existing.outcome?.summary || existing.summary;
+        existing.effects = event.effects || existing.outcome?.effects || existing.effects;
+        existing.meta.reportPending = false;
+      }
+      return existing;
+    }
+    return openEventIncident(state, event, {
+      kind: event.kind,
+      subject: event.subject,
+      response: event.response,
+      responseMode: event.responseMode,
+      state: event.state,
+      deadlineTurn: event.deadlineTurn,
+      scenePersistent: event.scenePersistent,
+    });
+  }).filter(Boolean);
+  if (major?.name) addLog(`Major event: ${major.name}.`);
   minors.forEach(event => event?.text && addLog(event.text));
   consequences.forEach(text => text && addLog(text));
+  const directIncidents = state.incidents.slice(incidentCountBefore).filter(incident => incident !== majorIncident && !minorIncidents.includes(incident));
+  const reportedIncidents = state.incidents.filter(incident => incident.meta?.reportPending);
+  reportedIncidents.forEach(incident => { incident.meta.reportPending = false; });
+  const journalIncidents = [...new Map([
+    majorIncident,
+    ...minorIncidents,
+    ...directIncidents,
+    ...reportedIncidents,
+  ].filter(Boolean).map(incident => [incident.id, incident])).values()];
+  const pendingResponses = queuedResponseIncidents(state).length;
   updateScore();
   updateUI();
   render();
 
-  showModal('Night Falls', renderEventPhaseBody({ major, minors, consequences }), () => {
+  showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents, pendingResponses }), () => {
     engine.continueAfterEvent(state, {
-      processPendingInteractions,
+      processIncidentResponses,
       maybeShowHealthWarning,
       advanceTurn,
       showTaprootResilience: (onContinue) => {
         showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
       },
     });
-  }, { record: false, kind: 'night', eyebrow: `${currentSeason().name} · Year ${state.year}` });
-}
-
-function queueHumanDecision(decision, done) {
-  const choices = decision.options
-    .filter(option => option.affordable !== false)
-    .map(option => ({
-      label: option.label,
-      onChoose: () => {
-        const outcome = resolveHumanDecision(state, decision, option.id, { random: Math.random });
-        const logBody = outcome.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        addLog(`${outcome.title}: ${logBody}`);
-        updateAlliesCount();
-        updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
-        updateScore();
-        updateUI();
-        render();
-        const body = outcome.victory ? renderVictoryBody({ score: state.score }) : outcome.body;
-        showModal(outcome.title, body, () => {
-          if (outcome.fatal || state.health <= 0) {
-            handleDeath();
-            return;
-          }
-          done?.();
-        });
-      },
-    }));
-  showChoiceModal(decision.title, decision.body, choices);
+  }, {
+    record: false,
+    kind: 'night',
+    eyebrow: `${currentSeason().name} · Year ${state.year}`,
+    buttonLabel: pendingResponses ? `Respond to ${pendingResponses} ${pendingResponses === 1 ? 'encounter' : 'encounters'} →` : 'Continue',
+  });
 }
 
 function handleSpringViability(onContinue) {

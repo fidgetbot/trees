@@ -1,9 +1,10 @@
 import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-root-reveal-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=world-anchored-fauna-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=incident-system-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=winter-surface-stem-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
+import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=incident-system-v1';
 
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Young Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
@@ -356,7 +357,7 @@ export function requestTreeGrowthAsset(species,assetKey,onAssetLoad=null){
 }
 
 export function getSceneArtKinds(state){
-  const kinds=Array.isArray(state?.activeSceneArt)?state.activeSceneArt:[];
+  const kinds=incidentSceneArtKinds(state);
   return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)||Object.hasOwn(INSECT_ASSET_URLS,kind)))];
 }
 
@@ -622,7 +623,7 @@ function stageForScore(score){
 }
 
 function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
-  const cuts=state.cuttingProgress||0,encounter=state.pendingHumanEncounter;
+  const cuts=state.cuttingProgress||0,encounter=findActiveIncident(state,'human-encounter',incident=>['awaiting-response','ongoing'].includes(incident.state))?.meta?.encounter;
   if((state.humanAttention||0)>0){
     const markScale=Math.max(.7,camera.zoom);ctx.save();ctx.fillStyle='rgba(223,109,63,.92)';ctx.beginPath();ctx.roundRect(x-5*markScale,groundY-15*markScale,10*markScale,3.2*markScale,1.4*markScale);ctx.fill();ctx.restore();
   }

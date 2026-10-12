@@ -321,7 +321,9 @@ test('insect assets load independently so one failure does not suppress other vi
 
 test('scene art keeps named wildlife and expands browser groups without duplicate markers', () => {
   assert.deepEqual(
-    getSceneArtKinds({ activeSceneArt: ['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids', 'woodpecker', 'unknown'] }),
+    getSceneArtKinds({ incidents: [
+      ...['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids', 'woodpecker', 'unknown'].map((artwork, index) => ({ id: `incident-${index}`, state: 'ongoing', scenePersistent: true, artwork })),
+    ], responseQueue: [] }),
     ['woodpecker', 'browsers', 'fruit-robin', 'pollinator-hoverfly', 'aphids'],
   );
   assert.deepEqual(getSceneArtKinds({}), []);
