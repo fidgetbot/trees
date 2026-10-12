@@ -85,9 +85,15 @@ export function renderActionPanels({
       else if (event.key === 'ArrowRight') nextIndex = Math.min(cards.length - 1, Math.max(0, activeIndex + 1));
       else nextIndex = activeIndex < 0 ? cards.length - 1 : Math.max(0, activeIndex - 1);
       event.preventDefault();
-      cards[nextIndex].focus({ preventScroll: true });
-      cards[nextIndex].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-      requestAnimationFrame(() => onCarouselScroll?.(shortlist.scrollLeft));
+      const nextCard = cards[nextIndex];
+      nextCard.focus({ preventScroll: true });
+      const desiredLeft = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? shortlist.scrollWidth - shortlist.clientWidth
+          : nextCard.offsetLeft - (shortlist.clientWidth - nextCard.offsetWidth) / 2;
+      shortlist.scrollLeft = Math.max(0, Math.min(shortlist.scrollWidth - shortlist.clientWidth, desiredLeft));
+      onCarouselScroll?.(shortlist.scrollLeft);
     });
     shortlist.addEventListener('scroll', () => onCarouselScroll?.(shortlist.scrollLeft), { passive: true });
     requestAnimationFrame(() => {
