@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isValidSceneCamera, sceneSafeViewport, smootherSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
+import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, smootherSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
+
+test('only tree selections enter the framing camera',()=>{
+  assert.equal(isTreeSceneTarget({type:'player-tree'}),true);
+  assert.equal(isTreeSceneTarget({type:'neighbor-tree'}),true);
+  assert.equal(isTreeSceneTarget({type:'offspring-tree'}),true);
+  assert.equal(isTreeSceneTarget({type:'wildlife',kind:'woodpecker'}),false);
+  assert.equal(isTreeSceneTarget({type:'human',kind:'logger'}),false);
+});
 
 test('off-center tree anchors approach their final screen position without crossing or reversing',()=>{
   for(const worldX of [-240,-120,0,120,240])for(const [startZoom,endZoom] of [[18,1.8],[1.8,18],[5,5]]){

@@ -493,7 +493,10 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   });
   const trees=[...residentTrees,...childTrees];
   const focusId=measureTargetId||selectedTargetId;
-  const isolate=measureTargetId||(isolateFocusedSubject&&immersive&&focusId&&focusId!=='player');
+  const treeFocus=focusId==='player'||focusId?.startsWith('neighbor-')||focusId?.startsWith('offspring-');
+  // Only tree targets may isolate the grove. Wildlife and people remain
+  // contextual overlays; treating their IDs as tree IDs removes every tree.
+  const isolate=Boolean(treeFocus&&(measureTargetId||(isolateFocusedSubject&&immersive&&focusId!=='player')));
   const isolatedTrees=isolate?trees.filter(tree=>{
     if(focusId==='player')return tree.isPlayer;
     if(focusId.startsWith('neighbor-'))return `neighbor-${tree.neighbor?.targetIndex}`===focusId;
@@ -865,8 +868,8 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       if(!rootedSeed){
         const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);
         if(state.thornDefense>0||state.toxicLeaves>0)drawPlayerDefenses(ctx,tree,state,seed);
-        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,tree,seed,state.flowers,species);
-        if(season==='Summer'&&state.developing>0)drawFruit(ctx,tree,seed,state.developing,species);
+        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,growth,seed,state.flowers,species);
+        if(season==='Summer'&&state.developing>0)drawFruit(ctx,growth,seed,state.developing,species);
       }
       const targets=attachPests(structureImage,getTreeStructureSourceRect(species,structureStageKey),geometry,growth);
       ctx.restore();return targets;
@@ -1080,6 +1083,19 @@ function botanicalEntries(tree,seed,kind,count){
   const spread=entries.sort((a,b)=>a.cluster.x-b.cluster.x),step=spread.length/limit;
   return Array.from({length:limit},(_,index)=>spread[Math.min(spread.length-1,Math.floor((index+.5)*step))]);
 }
+export function paintedCanopyEntries(growth,seed,kind,count){
+  const candidates=(growth?.leaves||[]).map((leaf,index)=>({
+    leaf,index,
+    cluster:{x:leaf.end.x,y:leaf.end.y,size:leaf.width/4.8},
+  }));
+  const limit=getBotanicalModuleCount(kind,count,candidates.length);
+  if(!limit)return[];
+  const spread=candidates
+    .map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)}))
+    .sort((a,b)=>a.cluster.x-b.cluster.x||a.priority-b.priority);
+  const step=spread.length/limit;
+  return Array.from({length:limit},(_,index)=>spread[Math.min(spread.length-1,Math.floor((index+.5)*step))]);
+}
 function drawBotanicalModule(ctx,image,cluster,seed,widthFactor,filter='none',alpha=1,verticalAnchor=0){
   const random=rng(seed),width=cluster.size*widthFactor,height=width*2/3,mirror=random()<.5?-1:1;
   ctx.save();ctx.translate(cluster.x,cluster.y);ctx.rotate((random()-.5)*.48);ctx.scale(mirror,1);ctx.globalAlpha=alpha;ctx.filter=filter;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,-width/2,-height/2+height*verticalAnchor,width,height);ctx.restore();
@@ -1099,14 +1115,14 @@ function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plu
 export function getFoliagePalette(season,shaded=false){if(shaded){if(season==='Spring')return['#587653','#476746','#39573d','#668059','#304b37'];if(season==='Autumn')return['#87662c','#744827','#63372c','#917332','#51352d'];return['#506d49','#405f41','#334f3a','#5d7650','#294333']}if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
 export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlight:'rgba(201,177,127,.28)'};const hex=bark.replace('#',''),parts=[0,2,4].map(offset=>Math.round(parseInt(hex.slice(offset,offset+2),16)*.56).toString(16).padStart(2,'0'));return{bark:`#${parts.join('')}`,highlight:'rgba(113,105,82,.18)'}}
 
-function drawBlossoms(ctx,tree,seed,count,species){
-  if(count<=0||!tree.clusters.length)return;
+function drawBlossoms(ctx,growth,seed,count,species){
+  if(count<=0||!growth?.leaves?.length)return;
   const painted=botanicalAsset(species,'blossoms',seed,0);if(!painted)return;
-  botanicalEntries(tree,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));
+  paintedCanopyEntries(growth,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));
 }
-function drawFruit(ctx,tree,seed,count,species){
+function drawFruit(ctx,growth,seed,count,species){
   const painted=botanicalAsset(species,'fruit',seed,0);if(!painted)return;
-  botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));
+  paintedCanopyEntries(growth,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));
 }
 
 export function getTreeLabelText(isPlayer,neighbor,state,stage,getRelationshipState){

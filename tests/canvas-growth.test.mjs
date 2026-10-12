@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, loadTreeRemainsAsset, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, loadTreeRemainsAsset, paintedCanopyEntries, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -173,6 +173,25 @@ test('painted botanical module counts remain sparse and follow game state', () =
   assert.equal(getBotanicalModuleCount('fruit', 1, 20), 1);
   assert.equal(getBotanicalModuleCount('fruit', 9, 20), 3);
   assert.equal(getBotanicalModuleCount('fruit', 100, 4), 4);
+});
+
+test('blossoms and fruit reuse the exact painted foliage attachment map',()=>{
+  const growth={leaves:[
+    {end:{x:-30,y:-42},width:40},
+    {end:{x:-8,y:-58},width:48},
+    {end:{x:16,y:-51},width:44},
+    {end:{x:38,y:-39},width:36},
+  ]};
+  for(const kind of ['blossoms','fruit']){
+    const entries=paintedCanopyEntries(growth,7319,kind,5);
+    assert.equal(entries.length,getBotanicalModuleCount(kind,5,growth.leaves.length));
+    for(const entry of entries){
+      assert.ok(growth.leaves.includes(entry.leaf));
+      assert.deepEqual({x:entry.cluster.x,y:entry.cluster.y},entry.leaf.end);
+      assert.equal(entry.cluster.size,entry.leaf.width/4.8);
+    }
+    assert.ok(entries[0].cluster.x<entries.at(-1).cluster.x,'modules remain spread across the painted canopy');
+  }
 });
 
 test('every fruiting species exposes its approved botanical family', () => {

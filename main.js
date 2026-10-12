@@ -74,8 +74,8 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=painted-tree-remains-v1';
-import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=anchored-comparison-camera-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=painted-canopy-botanicals-v1';
+import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=typed-focus-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=fruit-minimap-v1';
@@ -365,11 +365,18 @@ function selectSceneTarget(target) {
   const nextTarget=target||playerSceneTarget();
   if(previousTarget?.id===nextTarget?.id){
     if(comparisonCameraView)return;
-    selectedSceneTarget=nextTarget;renderActions();refitSceneCamera();return;
+    selectedSceneTarget=nextTarget;renderActions();
+    if(isTreeSceneTarget(nextTarget))refitSceneCamera();
+    else render();
+    return;
   }
   cancelSceneCameraAnimation();
   selectedSceneTarget = nextTarget;
   renderActions();
+  // Wildlife and people are contextual selections inside the current grove
+  // view. They must never enter the tree-only measure/isolation camera path:
+  // doing so filters every tree while leaving the selected visitor floating.
+  if(!isTreeSceneTarget(nextTarget)){render();return;}
   const plan=sceneCameraPlanForTarget(selectedSceneTarget);
   cameraViewportSignature=sceneViewportSignature();
   animateSceneTargetComparison(fromView,plan,selectedSceneTarget,cameraStateKey(selectedSceneTarget));

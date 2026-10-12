@@ -15,6 +15,10 @@ export const COMPARISON_CAMERA_TIMING=Object.freeze({
   zoomOutStart:.42,
 });
 
+export function isTreeSceneTarget(target){
+  return ['player-tree','neighbor-tree','offspring-tree'].includes(target?.type);
+}
+
 export function stageSceneOccupancy(stageName){
   return STAGE_SCENE_OCCUPANCY[stageName]??STAGE_SCENE_OCCUPANCY.Sapling;
 }
