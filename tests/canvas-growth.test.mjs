@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, loadTreeRemainsAsset, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -64,6 +64,31 @@ test('every species and life stage resolves to a dedicated painted structure ass
       assert.match(getTreeStructureAssetUrl(species,stageKey),new RegExp(`${species.toLowerCase()}-${stageKey}-v1\\.png`));
     }
     assert.match(getTreeStructureAssetUrl(species,getTreeStructureStageKey('Seed',{rootedSeed:true})),/rooted-seed-v1\.png/);
+  }
+});
+
+test('dead trees retain their painted life-stage structure before becoming low painted stumps', () => {
+  assert.deepEqual(getDeadTreePresentation('Young Tree',3,{rootZones:5,leafClusters:8}),{kind:'snag',stageKey:'young-tree'});
+  const stump=getDeadTreePresentation('Young Tree',4,{rootZones:5,leafClusters:8});
+  assert.equal(stump.kind,'stump');
+  assert.equal(stump.stageKey,'young-tree');
+  assert.ok(stump.width>stump.height);
+  assert.ok(stump.height<60);
+  assert.ok(existsSync(new URL('../assets/trees/remains/dead-fruit-tree-stump-v1.png',import.meta.url)));
+});
+
+test('painted stump asset loads as part of the canvas art family', async () => {
+  const originalImage=globalThis.Image;
+  class MockImage{set src(value){queueMicrotask(()=>this.onload())}}
+  globalThis.Image=MockImage;
+  try{
+    const isolated=await import(`../ui/canvas.js?tree-remains-load-test=${Date.now()}`),loaded=[];
+    assert.equal(await isolated.loadTreeRemainsAsset(asset=>loaded.push(asset)),true);
+    assert.equal(loaded[0].family,'trees:remains');
+    assert.match(loaded[0].url,/dead-fruit-tree-stump-v1\.png/);
+  }finally{
+    if(originalImage===undefined)delete globalThis.Image;
+    else globalThis.Image=originalImage;
   }
 });
 

@@ -1,0 +1,11 @@
+{
+  "generator": "built-in image_gen",
+  "reference": "../plum-young-tree-v1.png",
+  "assets": [
+    {
+      "runtime": "dead-fruit-tree-stump-v1.png",
+      "master": "source/dead-fruit-tree-stump-v1-master.png",
+      "prompt": "Use case: scientific-educational. Asset type: transparent botanical game sprite for the Trees browser game. Create one weathered dead fruit-tree stump with a low irregular trunk, visible cut surface and subtle growth rings, broad root flare, and a few fine roots. Match the approved tree painting's tactile bark, organic tapering edges, natural asymmetry, and realistic root flare. Center the full connected specimen with generous transparent margin. Use muted weathered brown, umber, gray-brown deadwood, and a pale tan cut surface. No leaves, shoots, fruit, flowers, soil, snow, pot, ground shadow, background, text, border, or watermark. Avoid cylinders, geometric ellipses, flat vector shapes, black silhouettes, clip art, and tall pole-like trunks."
+    }
+  ]
+}

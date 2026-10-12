@@ -31,7 +31,9 @@ const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
 const GROUND_ASSET_REVISION='painted-snow-v1';
+const TREE_REMAINS_ASSET_REVISION='painted-tree-remains-v1';
 const WINTER_SNOW_TILE_URL=new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${GROUND_ASSET_REVISION}`,import.meta.url).href;
+const DEAD_TREE_STUMP_URL=new URL(`../assets/trees/remains/dead-fruit-tree-stump-v1.png?rev=${TREE_REMAINS_ASSET_REVISION}`,import.meta.url).href;
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
   new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
@@ -202,6 +204,8 @@ const insectAssets=new Map();
 let insectAssetLoadPromise=null;
 let winterSnowAsset=null;
 let winterSnowAssetLoadPromise=null;
+let deadTreeStumpAsset=null;
+let deadTreeStumpAssetLoadPromise=null;
 let mirroredSnowTile=null;
 const winterSnowSurfaceLayers=new Map();
 
@@ -277,9 +281,20 @@ export function loadWinterGroundAsset(onAssetLoad){
   return winterSnowAssetLoadPromise;
 }
 
+export function loadTreeRemainsAsset(onAssetLoad){
+  if(deadTreeStumpAssetLoadPromise)return deadTreeStumpAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  deadTreeStumpAssetLoadPromise=new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{deadTreeStumpAsset=image;onAssetLoad?.({family:'trees:remains',url:DEAD_TREE_STUMP_URL});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=DEAD_TREE_STUMP_URL;
+  });
+  return deadTreeStumpAssetLoadPromise;
+}
+
 export function loadCanvasAssets(onAssetLoad){
   canvasAssetLoadListener=onAssetLoad||canvasAssetLoadListener;
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad),loadTreeRemainsAsset(onAssetLoad)]).then(results=>results.some(Boolean));
 }
 
 export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
@@ -406,6 +421,15 @@ export function getSceneArtworkScale(viewportWidth){
 export function getPaintedFoliageModuleCount(stage,leafCount,clusterCount){
   if(leafCount<=0||clusterCount<=0)return 0;
   return Math.min(clusterCount,Math.max(1,Math.ceil(leafCount*getStageArtProfile(stage).foliageMultiplier)));
+}
+
+export function getDeadTreePresentation(stage,deathAge=0,{rootZones=0,leafClusters=0}={}){
+  const rootedSeed=shouldDrawSeedRadicle(stage,rootZones,leafClusters);
+  const stageKey=getTreeStructureStageKey(stage,{rootedSeed});
+  if(deathAge<4)return{kind:'snag',stageKey};
+  const geometry=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
+  const width=Math.max(24,Math.min(84,geometry.width*.68));
+  return{kind:'stump',stageKey,width,height:width*2/3};
 }
 
 function treeHitTarget(tree,state,playerStageName,camera,groundY){
@@ -609,7 +633,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   let groupLeft=Infinity,groupTop=Infinity,groupRight=-Infinity;
   for(let i=0;i<count;i++){
-    const side=i%2?1:-1,rank=Math.floor(i/2),px=x+side*(22+rank*13)*scale,py=groundY;
+    const side=i%2?1:-1,rank=Math.floor(i/2);
     if(encounter.phase==='survey'){
       const image=surveyorAssets.get(getSurveyorVariantIndex(i));
       if(image){
@@ -630,18 +654,9 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
         continue;
       }
     }
-    ctx.strokeStyle='#493a31';ctx.lineWidth=2.1*scale;
-    ctx.beginPath();ctx.moveTo(px,py-17*scale);ctx.lineTo(px,py-7*scale);ctx.moveTo(px,py-8*scale);ctx.lineTo(px-4*scale,py);ctx.moveTo(px,py-8*scale);ctx.lineTo(px+4*scale,py);ctx.stroke();
-    ctx.fillStyle=i%3===0?'#b46d45':i%3===1?'#657a58':'#6b6680';ctx.beginPath();ctx.roundRect(px-4.2*scale,py-17*scale,8.4*scale,10*scale,2*scale);ctx.fill();
-    ctx.fillStyle='#c99470';ctx.beginPath();ctx.arc(px,py-21*scale,3.6*scale,0,TAU);ctx.fill();
-    ctx.fillStyle='#72543b';ctx.beginPath();ctx.arc(px,py-22*scale,3.8*scale,Math.PI,TAU);ctx.fill();
-    ctx.strokeStyle='#7c6b55';ctx.lineWidth=1.5*scale;
-    if(encounter.phase==='survey'){
-      ctx.beginPath();ctx.moveTo(px+3*side*scale,py-14*scale);ctx.lineTo(x+side*7*scale,py-10*scale);ctx.stroke();
-    }else{
-      ctx.beginPath();ctx.moveTo(px+2*side*scale,py-14*scale);ctx.lineTo(px+10*side*scale,py-7*scale);ctx.stroke();
-      ctx.strokeStyle='#adb4b0';ctx.lineWidth=2*scale;ctx.beginPath();ctx.moveTo(px+8*side*scale,py-9*scale);ctx.lineTo(px+13*side*scale,py-4*scale);ctx.stroke();
-    }
+    // Painted encounter figures redraw as their assets arrive. Do not flash
+    // the obsolete stick-figure placeholder while an image is still loading.
+    continue;
   }
   if(Number.isFinite(groupLeft))hitTargets.push({id:`human-${encounter.phase}`,type:'human-encounter',kind:encounter.phase==='cutting'?'loggers':'surveyors',title:encounter.phase==='cutting'?'Logging crew':'Surveyors',bounds:{x:groupLeft-10,y:groupTop-10,width:groupRight-groupLeft+20,height:groundY-groupTop+20}});
   if(encounter.phase==='survey'&&(state.humanAttention||0)===0){
@@ -803,11 +818,11 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     reveal:growthReveal,scale,toScreen:p=>({x:x+(p.x-canopyLean*.16*p.y)*scale,y:groundY+p.y*scale}),
   }):[];
   const rootedSeed=shouldDrawSeedRadicle(stage,roots,leaves);
+  const visualState={selectedSpecies:species,presentationStage:stage,branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth,visualGrowth:isPlayer?state.visualGrowth:null};
   if(!isPlayer&&neighbor?.dead){
-    drawDeadTree(ctx,x,groundY,stage,branches,trunk,roots,heightGrowth,habit,camera,seed,neighbor.deathAge||0);
+    drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,neighbor.deathAge||0);
     return;
   }
-  const visualState={selectedSpecies:species,presentationStage:stage,branches,leafClusters:leaves,trunk,rootZones:roots,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth,visualGrowth:isPlayer?state.visualGrowth:null};
   const growthSprites={
     getRootImage:part=>requestTreeGrowthAsset(species,`root-${part.spriteVariant||'fan'}`),
     getBranchImage:()=>requestTreeGrowthAsset(species,'shoot'),
@@ -876,19 +891,24 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   }
 }
 
-function drawDeadTree(ctx,x,groundY,stage,branches,trunk,roots,heightGrowth,habit,camera,seed,deathAge){
+function drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,deathAge){
   const scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
-  ctx.save();ctx.strokeStyle='#34383a';ctx.fillStyle='#34383a';ctx.lineCap='round';ctx.lineJoin='round';
-  if(deathAge>=4){
-    const width=Math.max(3,7*scale),height=Math.max(5,18*scale);
-    ctx.fillRect(x-width/2,groundY-height,width,height);
-    ctx.fillStyle='#1f2325';ctx.beginPath();ctx.ellipse(x,groundY-height,width*.55,width*.2,0,0,TAU);ctx.fill();
-  }else if(stage==='Seed'){
-    ctx.beginPath();ctx.ellipse(x,groundY-1.2*camera.zoom,2.1*camera.zoom,1.25*camera.zoom,-.12,0,TAU);ctx.fill();
+  const presentation=getDeadTreePresentation(stage,deathAge,visualState);
+  ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  if(presentation.kind==='stump'){
+    if(deadTreeStumpAsset){
+      ctx.filter='saturate(.72) brightness(.78) contrast(1.04)';
+      ctx.drawImage(deadTreeStumpAsset,-presentation.width/2,-presentation.height*.86,presentation.width,presentation.height);
+    }
   }else{
-    drawRoots(ctx,x,groundY,roots,0,scale,'#34383a',seed,false,'#4a4f52');
-    const tree=buildTree(seed,branches,0,habit,stage,trunk,0,heightGrowth);
-    ctx.translate(x,groundY);ctx.scale(scale,scale);drawWood(ctx,tree,'#34383a','#4a4f52');
+    const image=requestTreeStructureAsset(visualState.selectedSpecies,presentation.stageKey);
+    if(image){
+      const geometry=getTreeStructureGeometry(presentation.stageKey,visualState);
+      const source=getTreeStructureSourceRect(visualState.selectedSpecies,presentation.stageKey);
+      ctx.globalAlpha=.94;ctx.filter='grayscale(.74) sepia(.18) saturate(.38) brightness(.68) contrast(1.14)';
+      drawRootGrowth(ctx,image,source,geometry,visualState);
+    }
   }
   ctx.restore();
 }
@@ -1081,12 +1101,12 @@ export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlig
 
 function drawBlossoms(ctx,tree,seed,count,species){
   if(count<=0||!tree.clusters.length)return;
-  const painted=botanicalAsset(species,'blossoms',seed,0);if(painted){botanicalEntries(tree,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));return}
-  const r=rng(seed+1907),total=Math.min(78,7+count*12);for(let i=0;i<total;i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],a=r()*TAU,d=Math.sqrt(r())*c.size*.72,x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d*.65,size=1.8+r()*2.1,open=.3+r()*.7;ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU);ctx.scale(1,open);ctx.shadowColor='rgba(255,236,224,.92)';ctx.shadowBlur=2.2;if(open<.4){ctx.fillStyle='#cf718b';ctx.beginPath();ctx.ellipse(0,0,size*.7,size*1.25,0,0,TAU);ctx.fill()}else{for(let p=0;p<5;p++){const pa=p*TAU/5;ctx.fillStyle=p%2?'#fffaf0':'#e99aac';ctx.beginPath();ctx.ellipse(Math.cos(pa)*size*.75,Math.sin(pa)*size*.75,size*.72,size*.5,pa,0,TAU);ctx.fill()}ctx.fillStyle='#9d6227';ctx.beginPath();ctx.arc(0,0,size*.36,0,TAU);ctx.fill()}ctx.restore()}
+  const painted=botanicalAsset(species,'blossoms',seed,0);if(!painted)return;
+  botanicalEntries(tree,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));
 }
 function drawFruit(ctx,tree,seed,count,species){
-  const painted=botanicalAsset(species,'fruit',seed,0);if(painted){botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));return}
-  const r=rng(seed+2701),colors={Plum:['#704a78','#573c67'],Peach:['#df8054','#ca664c'],Apricot:['#e39a48','#cf7d39'],Pear:['#a9aa4d','#879345'],Citrus:['#e0a62f','#cf8325'],Cherry:['#a93f45','#792f3b']}[species]||['#704a78','#573c67'];for(let i=0;i<Math.min(42,7+count*5);i++){const c=tree.clusters[Math.floor(r()*tree.clusters.length)],x=c.x+(r()-.5)*c.size*1.15,y=c.y+(r()-.15)*c.size*.72,size=1.5+r()*1.8;ctx.strokeStyle='#66583e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x,y-size*1.5);ctx.quadraticCurveTo(x+1,y-size,x,y-size*.65);ctx.stroke();const g=ctx.createRadialGradient(x-size*.35,y-size*.35,.1,x,y,size*1.2);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,size*.8,size,(r()-.5)*.35,0,TAU);ctx.fill()}
+  const painted=botanicalAsset(species,'fruit',seed,0);if(!painted)return;
+  botanicalEntries(tree,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));
 }
 
 export function getTreeLabelText(isPlayer,neighbor,state,stage,getRelationshipState){
