@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, projectSceneWorldX, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -287,6 +287,7 @@ test('animal artwork uses pose-appropriate scene anchors', () => {
   for (const kind of ['fruit-robin', 'fruit-squirrel', 'beaver', 'browser-deer', 'browser-rabbit']) {
     assert.equal(getAnimalScenePlacement(kind).anchor, 'ground', `${kind} should stand on the ground`);
     assert.ok(getAnimalScenePlacement(kind).contactY > 0.85, `${kind} feet should meet the ground`);
+    assert.ok(Number.isFinite(getAnimalScenePlacement(kind).worldOffset), `${kind} should retain a stable grove coordinate`);
   }
   assert.equal(getAnimalScenePlacement('woodpecker').anchor, 'trunk');
   assert.equal(getAnimalScenePlacement('pollinator-butterfly').anchor, 'air');
@@ -302,10 +303,12 @@ test('fauna baselines preserve a plausible size hierarchy',()=>{
   assert.ok(getFaunaSceneSize('browser-deer').width/getFaunaSceneSize('browser-rabbit').width>2);
 });
 
-test('large grounded wildlife remains inside the visible scene margin',()=>{
-  assert.deepEqual(clampGroundedArtwork(-40,205,390),{width:205,centerX:114.5});
-  assert.deepEqual(clampGroundedArtwork(430,205,390),{width:205,centerX:275.5});
-  assert.deepEqual(clampGroundedArtwork(195,500,390),{width:366,centerX:195});
+test('grounded wildlife keeps its projected world position instead of sticking to viewport edges',()=>{
+  assert.equal(projectSceneWorldX(195,-60,2),75);
+  assert.equal(projectSceneWorldX(75,-60,1),15);
+  assert.deepEqual(fitGroundedArtwork(-40,205,390),{width:205,centerX:-40});
+  assert.deepEqual(fitGroundedArtwork(430,205,390),{width:205,centerX:430});
+  assert.deepEqual(fitGroundedArtwork(195,500,390),{width:366,centerX:195});
 });
 
 test('winter ground painting loads independently',async()=>{

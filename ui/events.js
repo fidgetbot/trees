@@ -1,4 +1,4 @@
-import { renderEncounterArt } from './fauna-art.js?rev=night-field-journal-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=world-anchored-fauna-v1';
 
 export function renderEventPhaseBody({ major, minors, consequences }) {
   let majorHtml = '';

@@ -34,11 +34,14 @@ export const EVENT_ASSET_URLS=Object.freeze({
 
 export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
   woodpecker:Object.freeze({anchor:'trunk',contactX:.27}),
-  beaver:Object.freeze({anchor:'ground',contactY:.93}),
-  'browser-deer':Object.freeze({anchor:'ground',contactY:.94}),
-  'browser-rabbit':Object.freeze({anchor:'ground',contactY:.94}),
-  'fruit-robin':Object.freeze({anchor:'ground',contactY:.89}),
-  'fruit-squirrel':Object.freeze({anchor:'ground',contactY:.92}),
+  // Ground visitors occupy stable grove coordinates. Their painted size stays
+  // screen-readable, but camera pan/zoom must not drag their ground contact
+  // to a new world location or pin them to a viewport edge.
+  beaver:Object.freeze({anchor:'ground',contactY:.93,worldOffset:-60}),
+  'browser-deer':Object.freeze({anchor:'ground',contactY:.94,worldOffset:-55}),
+  'browser-rabbit':Object.freeze({anchor:'ground',contactY:.94,worldOffset:44}),
+  'fruit-robin':Object.freeze({anchor:'ground',contactY:.89,worldOffset:42}),
+  'fruit-squirrel':Object.freeze({anchor:'ground',contactY:.92,worldOffset:-42}),
 });
 
 // Baseline CSS-pixel sizes at the neutral viewport scale. These are tuned as

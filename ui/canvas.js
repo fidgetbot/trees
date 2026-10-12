@@ -1,6 +1,6 @@
 import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-root-reveal-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=proportional-fauna-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=world-anchored-fauna-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=winter-surface-stem-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
@@ -345,9 +345,13 @@ export function getSceneArtKinds(state){
   return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)||Object.hasOwn(INSECT_ASSET_URLS,kind)))];
 }
 
-export function clampGroundedArtwork(centerX,displayWidth,viewportWidth,margin=12){
+export function fitGroundedArtwork(centerX,displayWidth,viewportWidth,margin=12){
   const width=Math.min(displayWidth,Math.max(24,viewportWidth-margin*2));
-  return{width,centerX:Math.max(width/2+margin,Math.min(viewportWidth-width/2-margin,centerX))};
+  return{width,centerX};
+}
+
+export function projectSceneWorldX(playerX,worldOffset,worldZoom){
+  return playerX+(Number(worldOffset)||0)*(Number(worldZoom)||1);
 }
 
 export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
@@ -533,9 +537,10 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
   // Fauna are readable scene markers. Size them for the viewport, not the
   // focused tree's camera, so switching life stages cannot make them pulse.
   const scale=getSceneArtworkScale(viewportWidth);
-  const drawGrounded=(kind,centerX,displayWidth,title)=>{
+  const drawGrounded=(kind,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
-    ({width:displayWidth,centerX}=clampGroundedArtwork(centerX,displayWidth,viewportWidth));
+    let centerX=projectSceneWorldX(x,getAnimalScenePlacement(kind).worldOffset,camera.zoom);
+    ({width:displayWidth,centerX}=fitGroundedArtwork(centerX,displayWidth,viewportWidth));
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
     const contactY=getAnimalScenePlacement(kind).contactY??.94;
     const top=groundY-displayHeight*contactY;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
@@ -562,16 +567,16 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
       return;
     }
     if(kind==='beaver'){
-      drawGrounded(kind,x-112*scale,getFaunaSceneSize(kind).width*scale,'Beaver');
+      drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Beaver');
       return;
     }
     if(kind==='browsers'){
-      drawGrounded('browser-deer',x-112*scale,getFaunaSceneSize('browser-deer').width*scale,'Browsing deer');
-      drawGrounded('browser-rabbit',x+78*scale,getFaunaSceneSize('browser-rabbit').width*scale,'Browsing rabbit');
+      drawGrounded('browser-deer',getFaunaSceneSize('browser-deer').width*scale,'Browsing deer');
+      drawGrounded('browser-rabbit',getFaunaSceneSize('browser-rabbit').width*scale,'Browsing rabbit');
       return;
     }
-    if(kind==='fruit-robin'){drawGrounded(kind,x+82*scale,getFaunaSceneSize(kind).width*scale,'Fruit-visiting robin');return}
-    if(kind==='fruit-squirrel'){drawGrounded(kind,x-74*scale,getFaunaSceneSize(kind).width*scale,'Fruit-visiting squirrel');return}
+    if(kind==='fruit-robin'){drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Fruit-visiting robin');return}
+    if(kind==='fruit-squirrel'){drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Fruit-visiting squirrel');return}
     const treeHeight=playerHeight(state,playerStageName,camera);
     const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
     if(kind.startsWith('pollinator-')){
