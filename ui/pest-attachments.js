@@ -1,6 +1,6 @@
 // Anchor feeding mouths to opaque painted tissue, in the tree's own coordinates.
 // The masters remain untouched; individual insects are isolated in memory.
-import { getJuvenileLayers } from './juvenile-growth.js?rev=stem-attached-leaves-v1';
+import { getJuvenileLayers } from './juvenile-growth.js?rev=mobile-juvenile-layers-v1';
 import { leafReveal } from './painted-growth.js?rev=painted-foliage-attachments-v1';
 const pixels = new WeakMap(), specimens = new WeakMap();
 export const PEST_KINDS = ['surface-crawlers', 'aphids', 'mites'];

@@ -36,11 +36,16 @@ function canvas(width, height) {
   return result;
 }
 
+export function getJuvenileLayerResolution(width,height,maxHeight=384) {
+  const scale=Math.min(1,maxHeight/Math.max(1,height));
+  return{width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};
+}
+
 export function getJuvenileLayers(image, geometry) {
   if (layers.has(image)) return layers.get(image);
-  const w=image.naturalWidth, h=image.naturalHeight;
+  const {width:w,height:h}=getJuvenileLayerResolution(image.naturalWidth,image.naturalHeight);
   const source=canvas(w,h), context=source.getContext('2d',{willReadFrequently:true});
-  context.drawImage(image,0,0);
+  context.drawImage(image,0,0,w,h);
   const full=context.getImageData(0,0,w,h), bare=context.getImageData(0,0,w,h);
   const leaf=context.getImageData(0,0,w,h);
   // Follow the central connected shoot upward. Cap wide rows at leaf nodes,
