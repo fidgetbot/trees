@@ -1,6 +1,6 @@
 import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-root-reveal-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement } from './fauna-art.js?rev=animal-anchors-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=proportional-fauna-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
 import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=continuous-roots-v2';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
@@ -532,7 +532,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
   kinds.filter(kind=>!PEST_KINDS.includes(kind)).forEach(kind=>{
     if(kind==='woodpecker'){
       const image=animalAssets.get(kind);if(!image)return;
-      const displayHeight=64*scale,displayWidth=displayHeight*2/3;
+      const displayHeight=getFaunaSceneSize(kind).height*scale,displayWidth=displayHeight*2/3;
       const treeHeight=playerHeight(state,playerStageName,camera);
       const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
       const contactX=getAnimalScenePlacement(kind).contactX??.27;
@@ -541,16 +541,16 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
       return;
     }
     if(kind==='beaver'){
-      drawGrounded(kind,x-112*scale,82*scale,'Beaver');
+      drawGrounded(kind,x-112*scale,getFaunaSceneSize(kind).width*scale,'Beaver');
       return;
     }
     if(kind==='browsers'){
-      drawGrounded('browser-deer',x-88*scale,88*scale,'Browsing deer');
-      drawGrounded('browser-rabbit',x+70*scale,46*scale,'Browsing rabbit');
+      drawGrounded('browser-deer',x-112*scale,getFaunaSceneSize('browser-deer').width*scale,'Browsing deer');
+      drawGrounded('browser-rabbit',x+78*scale,getFaunaSceneSize('browser-rabbit').width*scale,'Browsing rabbit');
       return;
     }
-    if(kind==='fruit-robin'){drawGrounded(kind,x+76*scale,72*scale,'Fruit-visiting robin');return}
-    if(kind==='fruit-squirrel'){drawGrounded(kind,x-68*scale,58*scale,'Fruit-visiting squirrel');return}
+    if(kind==='fruit-robin'){drawGrounded(kind,x+82*scale,getFaunaSceneSize(kind).width*scale,'Fruit-visiting robin');return}
+    if(kind==='fruit-squirrel'){drawGrounded(kind,x-74*scale,getFaunaSceneSize(kind).width*scale,'Fruit-visiting squirrel');return}
     const treeHeight=playerHeight(state,playerStageName,camera);
     const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
     if(kind.startsWith('pollinator-')){
@@ -558,7 +558,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
         'pollinator-bumblebee':'Bumblebee','pollinator-honeybee':'Honeybee','pollinator-mason-bee':'Mason bee',
         'pollinator-hoverfly':'Hoverfly','pollinator-butterfly':'Butterfly','pollinator-beetle':'Pollinating beetle',
       };
-      drawFloating(kind,x+48*scale,canopyY,kind==='pollinator-butterfly'?44*scale:38*scale,titles[kind]||'Pollinator');
+      drawFloating(kind,x+48*scale,canopyY,getFaunaSceneSize(kind).width*scale,titles[kind]||'Pollinator');
     }
   });
   ctx.restore();

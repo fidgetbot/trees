@@ -60,3 +60,10 @@ test('early growth chapters use the same juvenile asset as the scene',()=>{
   assert.match(renderGrowthChapter(stage,'Cherry',[stage],'',{leafClusters:2}),/juvenile\/cherry-unfurling-v1\.png/);
   assert.match(renderGrowthChapter({...stage,name:'Sprout'},'Cherry',[stage],'',{rootedSeed:true}),/cherry-rooted-seed-v1\.png/);
 });
+
+test('growth chapter unlock cards begin directly with the unlocked action',()=>{
+  const stage={name:'Seedling'};
+  const html=renderGrowthChapter(stage,'Cherry',[stage],'<p class="action-unlock"><strong>Seek Root Connection is now available!</strong></p>');
+  assert.doesNotMatch(html,/New possibilities/);
+  assert.match(html,/<div class="growth-unlocks"><p class="action-unlock">/);
+});

@@ -67,7 +67,7 @@ export function renderGrowthChapter(stage, speciesName, stages, unlockHtml, { ro
     : `<img src="${source}" alt="" />`;
   return `<div class="growth-portrait" aria-hidden="true">${portrait}</div>
     <p class="growth-prose">${stage.popup}</p>
-    ${unlockHtml ? `<div class="growth-unlocks"><p class="botanical-kicker">New possibilities</p>${unlockHtml}</div>` : ''}
+    ${unlockHtml ? `<div class="growth-unlocks">${unlockHtml}</div>` : ''}
     <ol class="growth-path" aria-label="Life stages">${stages.map(item => `<li class="${item.rank < stage.rank ? 'complete' : ''}" ${item.rank === stage.rank ? 'aria-current="step"' : ''} title="${item.name}"><span class="sr-only">${item.name}</span></li>`).join('')}</ol>`;
 }
 

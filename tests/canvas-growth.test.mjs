@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync } from 'node:fs';
 
-import { getAnimalScenePlacement } from '../ui/fauna-art.js';
+import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
 import { clampGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureGeometry, getTreeStructureStageKey, getWoodPalette, isTreeShaded, requestTreeGrowthAsset, requestTreeStructureAsset, RESIDENT_WORLD_POSITIONS, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
@@ -285,6 +285,16 @@ test('animal artwork uses pose-appropriate scene anchors', () => {
   }
   assert.equal(getAnimalScenePlacement('woodpecker').anchor, 'trunk');
   assert.equal(getAnimalScenePlacement('pollinator-butterfly').anchor, 'air');
+});
+
+test('fauna baselines preserve a plausible size hierarchy',()=>{
+  assert.equal(getFaunaSceneSize('browser-deer').width,132);
+  assert.equal(getFaunaSceneSize('browser-rabbit').width,58);
+  assert.ok(getFaunaSceneSize('browser-deer').width>getFaunaSceneSize('beaver').width);
+  assert.ok(getFaunaSceneSize('beaver').width>getFaunaSceneSize('fruit-squirrel').width);
+  assert.ok(getFaunaSceneSize('fruit-squirrel').width>getFaunaSceneSize('browser-rabbit').width);
+  assert.ok(getFaunaSceneSize('browser-rabbit').width>getFaunaSceneSize('pollinator-butterfly').width);
+  assert.ok(getFaunaSceneSize('browser-deer').width/getFaunaSceneSize('browser-rabbit').width>2);
 });
 
 test('large grounded wildlife remains inside the visible scene margin',()=>{

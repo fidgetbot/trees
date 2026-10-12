@@ -69,12 +69,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=visible-action-descriptions-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=visible-scene-picking-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=night-branches-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=framed-trees-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=concise-growth-unlocks-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=anchored-grove-culling-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=proportional-fauna-v1';
 import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=anchored-comparison-camera-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=quiet-action-dock-v1';

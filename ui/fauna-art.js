@@ -41,6 +41,28 @@ export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
   'fruit-squirrel':Object.freeze({anchor:'ground',contactY:.92}),
 });
 
+// Baseline CSS-pixel sizes at the neutral viewport scale. These are tuned as
+// one family so large mammals remain convincingly larger than small mammals,
+// birds, and insects while camera focus changes independently.
+export const FAUNA_SCENE_SIZES=Object.freeze({
+  woodpecker:Object.freeze({height:72}),
+  beaver:Object.freeze({width:104}),
+  'browser-deer':Object.freeze({width:132}),
+  'browser-rabbit':Object.freeze({width:58}),
+  'fruit-robin':Object.freeze({width:76}),
+  'fruit-squirrel':Object.freeze({width:66}),
+  'pollinator-bumblebee':Object.freeze({width:42}),
+  'pollinator-honeybee':Object.freeze({width:42}),
+  'pollinator-mason-bee':Object.freeze({width:42}),
+  'pollinator-hoverfly':Object.freeze({width:42}),
+  'pollinator-butterfly':Object.freeze({width:48}),
+  'pollinator-beetle':Object.freeze({width:42}),
+});
+
+export function getFaunaSceneSize(kind){
+  return FAUNA_SCENE_SIZES[kind]||Object.freeze({width:42});
+}
+
 export function getAnimalScenePlacement(kind){
   return ANIMAL_SCENE_PLACEMENT[kind]||Object.freeze({anchor:'air'});
 }
