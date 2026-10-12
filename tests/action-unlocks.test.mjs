@@ -79,7 +79,9 @@ test('all action-card descriptions are compact, direct sentences', () => {
 test('action descriptions are visible without hover or disclosure controls', () => {
   const source = readFileSync(new URL('../ui/actions.js', import.meta.url), 'utf8');
   assert.match(source, /context-action[^`]*action-description/s);
+  assert.match(source, /action-carousel/);
   assert.doesNotMatch(source, /What does this do\?/);
+  assert.doesNotMatch(source, /More actions/);
   assert.doesNotMatch(source, /class="action-explanation"/);
 });
 

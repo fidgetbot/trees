@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=stable-action-order-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=action-carousel-v1';
 export function renderActionPanels({
   els,
   categories,
@@ -7,11 +7,12 @@ export function renderActionPanels({
   contextPresentation = null,
   unavailableActions = [],
   futureActions,
-  categoryNames,
   onUseAction,
   onFinishTurn,
   onSelectPlayer,
   actionPoints = 0,
+  carouselScrollLeft = 0,
+  onCarouselScroll = null,
 }) {
   const allUsableCount = Object.values(categories).reduce((sum, actions) => sum + actions.length, 0);
   const dock = updateActionDockStatus(els, actionPoints, allUsableCount);
@@ -58,6 +59,11 @@ export function renderActionPanels({
     effects.innerHTML = `<span>Current effects</span><ul>${(contextPresentation?.effects || ['No current effects']).map(effect => `<li>${effect}</li>`).join('')}</ul>`;
     shortlist.append(status, effects);
   } else if (contextualActions.length) {
+    shortlist.classList.add('action-carousel');
+    shortlist.tabIndex = 0;
+    shortlist.setAttribute('role', 'group');
+    shortlist.setAttribute('aria-roledescription', 'carousel');
+    shortlist.setAttribute('aria-label', `${contextualActions.length} available actions. Scroll horizontally to browse.`);
     contextualActions.forEach(({ action, scaledCost, costsHtml }) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -68,11 +74,30 @@ export function renderActionPanels({
       button.onclick = () => onUseAction(action, scaledCost);
       shortlist.appendChild(button);
     });
+    shortlist.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const cards = [...shortlist.querySelectorAll('.context-action')];
+      if (!cards.length) return;
+      const activeIndex = cards.indexOf(document.activeElement);
+      let nextIndex = activeIndex;
+      if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = cards.length - 1;
+      else if (event.key === 'ArrowRight') nextIndex = Math.min(cards.length - 1, Math.max(0, activeIndex + 1));
+      else nextIndex = activeIndex < 0 ? cards.length - 1 : Math.max(0, activeIndex - 1);
+      event.preventDefault();
+      cards[nextIndex].focus({ preventScroll: true });
+      cards[nextIndex].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+      requestAnimationFrame(() => onCarouselScroll?.(shortlist.scrollLeft));
+    });
+    shortlist.addEventListener('scroll', () => onCarouselScroll?.(shortlist.scrollLeft), { passive: true });
+    requestAnimationFrame(() => {
+      shortlist.scrollLeft = Math.max(0, Number(carouselScrollLeft) || 0);
+    });
   } else {
     const empty = document.createElement('p');
     empty.className = 'context-empty';
     empty.textContent = dock.canAct
-      ? 'No actions for this selection. Choose your tree or More actions for available moves.'
+      ? 'No actions for this selection. Choose your tree for its available moves.'
       : actionPoints <= 0 ? 'Your action points are used up. End turn to continue.' : 'You cannot take any actions with your current resources and conditions. End turn to continue.';
     shortlist.appendChild(empty);
   }
@@ -82,43 +107,9 @@ export function renderActionPanels({
   const allActions = document.createElement('details');
   allActions.className = 'all-actions';
   allActions.open = true;
-  allActions.innerHTML = `<summary>More actions <span>${allUsableCount} available</span></summary>`;
+  allActions.innerHTML = `<summary>Action requirements</summary>`;
   const catalog = document.createElement('div');
   catalog.className = 'all-actions-catalog';
-
-  Object.entries(categories).forEach(([catKey, catActions]) => {
-    if (catActions.length === 0) return;
-
-    const details = document.createElement('details');
-    details.className = 'action-category';
-    details.open = true;
-    details.innerHTML = `<summary class="category-header">${categoryNames[catKey]} (${catActions.length})</summary>`;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'category-actions';
-
-    catActions.forEach(({ action, scaledCost, costsHtml, statusText }) => {
-      const card = document.createElement('div');
-      card.className = 'action-card';
-      card.innerHTML = `
-        <div class="action-header">
-          <h4 class="action-title">${action.name}</h4>
-          <span class="action-icon">${action.icon}</span>
-        </div>
-        <p class="action-description">${action.help}</p>
-        ${statusText ? `<p class="action-state">${statusText}</p>` : ''}
-        ${costsHtml}`;
-
-      const btn = document.createElement('button');
-      btn.textContent = 'Use Action';
-      btn.onclick = () => { document.getElementById('detail-sheet')?.close(); onUseAction(action, scaledCost); };
-      card.appendChild(btn);
-      wrap.appendChild(card);
-    });
-
-    details.appendChild(wrap);
-    catalog.appendChild(details);
-  });
 
   if (unavailableActions.length > 0) {
     const section = document.createElement('section');
@@ -165,6 +156,13 @@ export function renderActionPanels({
     });
     details.appendChild(wrap);
     catalog.appendChild(details);
+  }
+
+  if (!unavailableActions.length && !futureActions.length) {
+    const empty = document.createElement('p');
+    empty.className = 'requirements-empty';
+    empty.textContent = 'Every unlocked action is currently available in the carousel.';
+    catalog.appendChild(empty);
   }
 
   allActions.appendChild(catalog);

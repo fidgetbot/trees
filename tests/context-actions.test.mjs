@@ -78,6 +78,16 @@ test('player tree priorities begin with unmet foundational growth', () => {
   );
 });
 
+test('the player carousel can include every usable action without truncation', () => {
+  const state = { firstRootActionTaken: true, rootZones: 2, leafClusters: 2, health: 10, maxHealth: 10 };
+  const target = { type: 'player-tree' };
+  const usableActions = ['extendRoot', 'growLeaves', 'growBranch', 'bark', 'taproot'].map(key => entry(key));
+  assert.deepEqual(
+    getContextualActions({ target, usableActions, state, limit: Number.POSITIVE_INFINITY }).map(item => item.action.key),
+    ['extendRoot', 'growLeaves', 'growBranch', 'bark', 'taproot'],
+  );
+});
+
 test('repeated contextual choices retain their established button order when priorities change', () => {
   const target = { type: 'player-tree' };
   const usableActions = ['growLeaves', 'extendRoot'].map(key => entry(key));

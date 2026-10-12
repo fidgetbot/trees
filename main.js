@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=life-stage-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { CATEGORY_NAMES, createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=resource-balance-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=resource-balance-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -66,8 +66,8 @@ import {
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-request-help-cancel-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=visible-action-descriptions-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=visible-scene-picking-v1';
+import { renderActionPanels } from './ui/actions.js?rev=action-carousel-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=action-carousel-v1';
 import { renderEventPhaseBody } from './ui/events.js?rev=night-summary-copy-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=winter-surface-stem-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
@@ -305,6 +305,7 @@ const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
 const contextualActionOrderByTarget = new Map();
+const contextualActionScrollByTarget = new Map();
 let sceneCamera = { x: 0, y: 0, zoom: 1 }, comparisonCameraView=null, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
 let cameraLayoutFrame=null;
 let lastRenderStage = null;
@@ -557,6 +558,7 @@ function initSpeciesSelect() {
 function startGame() {
   const spec = SPECIES[state.selectedSpecies];
   contextualActionOrderByTarget.clear();
+  contextualActionScrollByTarget.clear();
   return startBrowserGame({
     state,
     initPanelCollapse: () => initPanelCollapseUI(els),
@@ -1520,6 +1522,7 @@ function renderActions() {
     usableActions: Object.values(categories).flat(),
     state: { ...state, currentSeasonName: currentSeason().name },
     getRelationshipState,
+    limit: contextTarget?.type === 'player-tree' ? Number.POSITIVE_INFINITY : 3,
     stableKeys,
   });
   const visibleKeys = contextualActions.map(({ action }) => action.key);
@@ -1536,8 +1539,9 @@ function renderActions() {
     contextPresentation: getTargetActionContext(contextTarget, state, getRelationshipState),
     unavailableActions,
     futureActions,
-    categoryNames: CATEGORY_NAMES,
     actionPoints: state.actions,
+    carouselScrollLeft: contextualActionScrollByTarget.get(contextOrderKey) || 0,
+    onCarouselScroll: scrollLeft => contextualActionScrollByTarget.set(contextOrderKey, scrollLeft),
     onUseAction: (action, scaledCost) => {
       engine.executeAction(state, action, scaledCost, {
         spend,

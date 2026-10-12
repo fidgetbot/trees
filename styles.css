@@ -1647,6 +1647,27 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
 .context-command-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .context-stage { color: #777565; font-size: 12px; }
 .game-started .context-shortlist { grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 7px; }
+.game-started .context-shortlist.action-carousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(142px, 42%, 178px);
+  grid-template-columns: none;
+  gap: 7px;
+  max-width: 100%;
+  padding: 1px 2px 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #71806766 transparent;
+  touch-action: pan-x;
+}
+.game-started .context-shortlist.action-carousel:focus-visible { outline: 2px solid #8c713e; outline-offset: 3px; border-radius: 12px; }
+.game-started .action-carousel .context-action { width: 100%; scroll-snap-align: start; }
+.game-started .action-carousel::-webkit-scrollbar { height: 5px; }
+.game-started .action-carousel::-webkit-scrollbar-thumb { border-radius: 999px; background: #71806766; }
 .game-started .context-action { min-height: 66px; padding: 9px; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-content: center; gap: 3px 6px; box-shadow: none; border: 1px solid #66826130; background: #dce7cd9c; }
 .context-action-icon { font-size: 16px; }
 .game-started .context-action > strong { font-size: 12px; }
@@ -1680,6 +1701,7 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
   .grove-score { display: none; }
   .game-started #hud-panel { inset-inline: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: calc(100% - 16px); padding: 12px; border-radius: 18px; }
   .dock-toolbar button { padding-inline: 8px; }
+  .game-started .context-shortlist.action-carousel { grid-auto-columns: minmax(142px, 46%); }
 }
 @media (max-height: 500px) and (min-width: 600px) {
   .game-started #hud-panel { left: auto; right: 10px; width: 360px; }
