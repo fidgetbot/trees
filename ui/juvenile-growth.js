@@ -41,6 +41,12 @@ export function getJuvenileLayerResolution(width,height,maxHeight=384) {
   return{width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};
 }
 
+export function getDormantShootMaxWidthRatio(y,height) {
+  // Preserve the terminal bud, but trim the wider leaf-petiole bases from the
+  // dormant shoot. At game scale those reddish bases read as detached shards.
+  return y<height*.17?.085:.035;
+}
+
 export function getJuvenileLayers(image, geometry) {
   if (layers.has(image)) return layers.get(image);
   const {width:w,height:h}=getJuvenileLayerResolution(image.naturalWidth,image.naturalHeight);
@@ -52,6 +58,7 @@ export function getJuvenileLayers(image, geometry) {
   // but preserve the natural outline of the narrow stem and terminal bud.
   let center=geometry.anchorX*w;
   const collar=Math.floor(geometry.leafBottom*h);
+  const centerline=[];
   for(let y=collar;y>=0;y--) {
     const runs=[];let start=-1;
     for(let x=0;x<=w;x++) {
@@ -62,11 +69,12 @@ export function getJuvenileLayers(image, geometry) {
     const run=runs.sort((a,b)=>Math.abs(Math.max(a[0],Math.min(a[1],center))-center)-Math.abs(Math.max(b[0],Math.min(b[1],center))-center))[0];
     let left=center,right=center;
     if(run&&Math.max(run[0]-center,center-run[1])<w*.09) {
-      const maxWidth=w*(y<h*.17?.085:.055);
+      const maxWidth=w*getDormantShootMaxWidthRatio(y,h);
       if(run[1]-run[0]<maxWidth)center=(run[0]+run[1])/2;
       left=Math.max(run[0]-1,center-maxWidth/2);
       right=Math.min(run[1]+1,center+maxWidth/2);
     }
+    centerline[y]=center;
     for(let x=0;x<w;x++)if(x<left||x>right)bare.data[(y*w+x)*4+3]=0;
   }
   // Foliage is exactly the portion removed from the bare layer. This also
@@ -77,8 +85,22 @@ export function getJuvenileLayers(image, geometry) {
     leaf.data[i+3]=y<collar&&bare.data[i+3]===0?full.data[i+3]:0;
     if(x<w*.48&&leaf.data[i+3]>40){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
   }
-  const dormant=canvas(w,h),foliage=canvas(w,h);
-  dormant.getContext('2d').putImageData(bare,0,0);
+  const dormant=canvas(w,h),foliage=canvas(w,h),dormantPaint=dormant.getContext('2d');
+  dormantPaint.putImageData(bare,0,0);
+  // Restore only the original painted pixels beneath a slender tracked
+  // centerline. This closes diagonal/low-alpha gaps made by leaf removal
+  // without inventing a synthetic stem or bringing the foliage back.
+  const bridge=canvas(w,h),bridgePaint=bridge.getContext('2d');
+  bridgePaint.lineWidth=3;bridgePaint.lineCap='round';bridgePaint.lineJoin='round';bridgePaint.strokeStyle='#fff';bridgePaint.beginPath();
+  let beganBridge=false;
+  for(let y=0;y<=collar;y++){const x=centerline[y];if(!Number.isFinite(x))continue;if(beganBridge)bridgePaint.lineTo(x,y);else{bridgePaint.moveTo(x,y);beganBridge=true}}
+  bridgePaint.stroke();bridgePaint.globalCompositeOperation='source-in';bridgePaint.drawImage(source,0,0);
+  dormantPaint.globalCompositeOperation='destination-over';dormantPaint.drawImage(bridge,0,0);dormantPaint.globalCompositeOperation='source-over';
+  // A few masters have a short fully transparent seam where foliage crosses
+  // the leader. Fill only those still-empty centerline pixels behind the art.
+  dormantPaint.globalCompositeOperation='destination-over';dormantPaint.lineWidth=2;dormantPaint.lineCap='round';dormantPaint.lineJoin='round';dormantPaint.strokeStyle='rgba(111,145,35,.88)';dormantPaint.beginPath();beganBridge=false;
+  for(let y=0;y<=collar;y++){const x=centerline[y];if(!Number.isFinite(x))continue;if(beganBridge)dormantPaint.lineTo(x,y);else{dormantPaint.moveTo(x,y);beganBridge=true}}
+  dormantPaint.stroke();dormantPaint.globalCompositeOperation='source-over';
   foliage.getContext('2d').putImageData(leaf,0,0);
   dormant.juvenileSource=foliage.juvenileSource=image.src;
   let singleLeaf=null;

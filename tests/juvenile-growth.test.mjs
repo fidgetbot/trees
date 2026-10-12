@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayerResolution } from '../ui/juvenile-growth.js';
+import { getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayerResolution, getDormantShootMaxWidthRatio } from '../ui/juvenile-growth.js';
 import { getTreeStructureAssetUrl } from '../ui/canvas.js';
 import { getPaintedGrowthPlan, syncGrowthAttachments } from '../ui/painted-growth.js';
 import { renderGrowthChapter } from '../ui/modal.js';
@@ -18,6 +18,11 @@ test('first leaf actions select infant plants independently of root count',()=>{
 test('juvenile layer extraction stays within the phone-safe working surface',()=>{
   assert.deepEqual(getJuvenileLayerResolution(512,768),{width:256,height:384});
   assert.deepEqual(getJuvenileLayerResolution(180,270),{width:180,height:270});
+});
+
+test('winter juvenile shoots retain the terminal bud without wide petiole shards',()=>{
+  assert.equal(getDormantShootMaxWidthRatio(20,384),.085);
+  assert.equal(getDormantShootMaxWidthRatio(100,384),.035);
 });
 
 test('all juvenile states resolve to existing species assets and grow above a collar',()=>{

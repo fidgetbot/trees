@@ -2,7 +2,7 @@ import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-r
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=proportional-fauna-v1';
 import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
-import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=mobile-juvenile-layers-v1';
+import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=winter-surface-stem-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 
 const TAU = Math.PI * 2;
@@ -390,9 +390,9 @@ export function getDrawableGroveTrees(trees,viewportWidth,{preserveFocused=false
 
 export function getWinterSnowSurface(viewportWidth,groundY){
   const width=Math.max(0,Number(viewportWidth)||0),top=[];
-  for(let x=0;x<width;x+=24)top.push({x,y:groundY-6+Math.sin(x*.035)*3+Math.sin(x*.091+1.7)});
-  top.push({x:width,y:groundY-6+Math.sin(width*.035)*3+Math.sin(width*.091+1.7)});
-  return{top,layerTop:groundY-12,opaqueBottom:groundY+42,fadeBottom:groundY+72};
+  for(let x=0;x<width;x+=24)top.push({x,y:groundY-8+Math.sin(x*.035)*2+Math.sin(x*.091+1.7)*.7});
+  top.push({x:width,y:groundY-8+Math.sin(width*.035)*2+Math.sin(width*.091+1.7)*.7});
+  return{top,layerTop:groundY-14,opaqueBottom:groundY+5,fadeBottom:groundY+18};
 }
 
 export function getSceneArtworkScale(viewportWidth){

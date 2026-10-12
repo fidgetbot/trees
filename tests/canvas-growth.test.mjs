@@ -327,6 +327,8 @@ test('winter snow overlaps the soil horizon and spans both viewport edges before
   assert.ok(surface.top.every(point=>point.y<370));
   assert.ok(surface.layerTop<Math.min(...surface.top.map(point=>point.y)));
   assert.ok(surface.fadeBottom>surface.opaqueBottom);
+  assert.ok(surface.opaqueBottom-370<=5);
+  assert.ok(surface.fadeBottom-surface.layerTop<=32);
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {
