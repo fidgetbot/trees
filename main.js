@@ -63,7 +63,7 @@ import {
   resolveHumanDecision,
   updateProtectionProgress,
 } from './core/humans.js?rev=ominous-rumors-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=bonus-action-handoff-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=quiet-request-help-cancel-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=visible-action-descriptions-v1';
@@ -1343,7 +1343,7 @@ function requestHelpFromAllies(s, context = {}) {
     { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
-    { label: 'Back', onChoose: () => context.transaction?.cancel() },
+    { label: 'Back', onChoose: () => context.transaction?.cancel({ silent: true }) },
   ]);
   return { deferred: true };
 }

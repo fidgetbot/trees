@@ -432,10 +432,10 @@ export function createEngine(deps) {
       return true;
     };
 
-    const cancel = () => {
+    const cancel = ({ silent = false } = {}) => {
       if (status !== 'pending') return false;
       status = 'cancelled';
-      showFeedback?.(`${action.name} cancelled — nothing spent.`, 'info');
+      if (!silent) showFeedback?.(`${action.name} cancelled — nothing spent.`, 'info');
       updateUI();
       render();
       renderActions?.();

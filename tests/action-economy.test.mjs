@@ -85,6 +85,32 @@ test('cancelling a deferred action spends no resources or action', () => {
   assert.match(feedback.at(-1).message, /nothing spent/i);
 });
 
+test('a quiet deferred cancellation spends nothing and emits no feedback', () => {
+  const state = actionState();
+  const before = { ...state };
+  let transaction;
+  const feedback = [];
+
+  actionEngine().executeAction(state, {
+    key: 'requestHelp',
+    name: 'Request Help from Allies',
+    effect(_state, context) {
+      transaction = context.transaction;
+      return { deferred: true };
+    },
+  }, { sunlight: 0, water: 0, nutrients: 1 }, {
+    spend: spendFrom(state),
+    showFeedback: (message, type) => feedback.push({ message, type }),
+  });
+
+  assert.equal(transaction.cancel({ silent: true }), true);
+  assert.deepEqual(
+    { actions: state.actions, sunlight: state.sunlight, water: state.water, nutrients: state.nutrients },
+    { actions: before.actions, sunlight: before.sunlight, water: before.water, nutrients: before.nutrients },
+  );
+  assert.deepEqual(feedback, []);
+});
+
 test('confirming a deferred action commits its cost exactly once', () => {
   const state = actionState();
   let transaction;
