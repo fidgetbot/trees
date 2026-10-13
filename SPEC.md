@@ -440,6 +440,12 @@ When an interactive decision has been built, browser and simulation code should 
 ### Transitional wrappers should be removed once decision builders are adopted
 When browser/sim callers have moved to shared decision builders plus shared dispatchers, one-off list-wrapper helpers or stale adapter glue that only existed to support older call sites should be removed instead of preserved indefinitely. The target state is a smaller surface area built around decision construction, shared execution, and thin rendering adapters.
 
+### Test scope
+
+The Node suite protects rule outcomes, incident identity/response lifecycles, action transactions, selection/camera geometry, persistent growth attachments, and asset availability/loading recovery. Repeated loader cases share a small serial Image fixture with fresh module caches and guaranteed cleanup. Tests should assert behavior or data integrity, not source-code substrings, editorial wording, or copied configuration tables. Overlapping scenarios belong in one owning test where their distinct assertions can be preserved.
+
+Node geometry and HTML-output checks do not establish browser layout, Canvas visibility, or dialog/camera handoff correctness. Those need focused browser checks when affected; balance simulations are a separate tool, not a compulsory gate for test-only or copy-only edits. See `tests/README.md` for commands and coverage boundaries.
+
 ### Simulation informs balance, but does not replace playtesting
 Automated simulation is a balancing and analysis tool. Manual browser playtests remain necessary for feel, pacing, readability, and player experience.
 

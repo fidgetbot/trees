@@ -220,15 +220,6 @@ test('growing taller creates spindly height that fortified bark can brace', () =
   assert.equal(state.health, 11);
 });
 
-test('single-leaf growth is named in the singular', () => {
-  const growLeaf = createActions({
-    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
-    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
-  }).find(action => action.key === 'growLeaves');
-  assert.equal(growLeaf.name, 'Grow Leaf');
-  assert.match(growLeaf.help, /one leaf/i);
-});
-
 test('three unbraced height levels require fortified bark before further bolting', () => {
   const growTaller = createActions({
     resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
@@ -333,30 +324,6 @@ test('canopy arrangements visibly move and lean the participating trees', () => 
   assert.ok(getCanopyArrangement(state, 1, false, shaded).worldOffset < 0);
   assert.ok(getCanopyArrangement(state, 3, false, crowding).worldOffset < 0);
   assert.ok(getCanopyArrangement(state, 3, false, crowding).canopyLean < 0);
-});
-
-test('gathering summary reports the actual number of bonus actions', () => {
-  const state = gatheringState({ actions: 5 });
-  const gains = {
-    season: { name: 'Summer', factorSun: 1.2, factorWater: 1 },
-    exposure: 1,
-    sunlightGain: 5,
-    waterGain: 4,
-    nutrientGain: 3,
-    neutralGains: { sunlight: 5, water: 4, nutrients: 3 },
-    relationDeltas: { sunlight: 0, water: 0, nutrients: 0 },
-    relations: { shadedNeighbors: 0, crowdingNeighbors: 0, connectedAllies: 0 },
-    canopyBonus: 0,
-    taprootBonus: 0,
-    rootNutrients: 2.8,
-    taprootNutrients: 0,
-    allyNutrients: 0,
-    allyWater: 0,
-    soilBonus: 0,
-    maintenanceCost: 0,
-  };
-  const summary = renderResourcePhaseBody({ state, gains });
-  assert.match(summary, /\+2 bonus actions from high resource yield/);
 });
 
 test('high gathering adds bonus actions to both state and the displayed tally', () => {

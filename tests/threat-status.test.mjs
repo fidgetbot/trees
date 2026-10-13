@@ -44,22 +44,12 @@ test('chemical defense is one serializable incident from warning through resolut
   assert.equal(incident.title, 'Aphid Cluster');
   assert.equal(s.responseQueue.length, 1);
   assert.equal(assertSerializableIncidentState(s), true);
-  const outcome = resolveChemicalDefenseChoice(s, decision, 'defend');
-  resolveIncident(s, incident.id, { title: outcome.title, summary: outcome.body });
+  const refreshed = buildIncidentDecision(s, incident, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
+  const outcome = resolveIncidentDecision(s, incident, refreshed, 'defend', { recordDamage() {} });
   assert.equal(outcome.threatStatus, 'solved');
   assert.equal(incident.state, 'resolved');
   assert.deepEqual(s.responseQueue, []);
   assert.deepEqual(incidentSceneArtKinds(s), []);
-});
-
-test('the shared response resolver is used by serial incident decisions', () => {
-  const s = state();
-  const original = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat: 'aphids' });
-  const incident = openChemicalIncident(s, original);
-  const decision = buildIncidentDecision(s, incident, { computeCurrentLifeStage: () => ({ name: 'Seedling' }) });
-  const outcome = resolveIncidentDecision(s, incident, decision, 'defend', { recordDamage: () => {} });
-  assert.equal(outcome.threatStatus, 'solved');
-  assert.equal(incident.state, 'resolved');
 });
 
 test('incident serialization rejects callback state', () => {
@@ -158,22 +148,26 @@ test('ally help clears an active aphid incident as well as restoring health', ()
 
 test('a fruit threat persists as one incident until a later event phase', () => {
   const originalRandom = Math.random;
-  Math.random = () => 0;
   try {
-    const s = state({ developing: 2, selectedSpecies: 'Plum' });
-    const warningEvents = [];
-    processSeasonalReproduction(s, warningEvents, () => 'Summer');
-    const incident = openEventIncident(s, warningEvents[0]);
-    assert.equal(incident.kind, 'fruit-threat');
-    assert.equal(incident.state, 'ongoing');
-    assert.equal(s.developing, 2);
-    s.defense = 2;
-    Math.random = () => 0.99;
-    const resolutionEvents = [];
-    processSeasonalReproduction(s, resolutionEvents, () => 'Autumn');
-    assert.equal(incident.state, 'resolved');
-    assert.equal(resolutionEvents[0].existingIncidentId, incident.id);
-    assert.match(resolutionEvents[0].text, /danger to this season's fruit has passed/i);
+    for (const [roll, artwork] of [[0, 'human-surveyor'], [0.4, 'fruit-robin']]) {
+      Math.random = () => roll;
+      const s = state({ developing: 2, selectedSpecies: 'Plum' });
+      const warningEvents = [];
+      processSeasonalReproduction(s, warningEvents, () => 'Summer');
+      const incident = openEventIncident(s, warningEvents[0]);
+      assert.equal(incident.kind, 'fruit-threat');
+      assert.equal(incident.artwork, artwork);
+      assert.equal(incident.state, 'ongoing');
+      assert.equal(s.developing, 2);
+      s.defense = 2;
+      Math.random = () => 0.99;
+      const resolutionEvents = [];
+      processSeasonalReproduction(s, resolutionEvents, () => 'Autumn');
+      assert.equal(incident.state, 'resolved');
+      assert.equal(resolutionEvents[0].existingIncidentId, incident.id);
+      assert.equal(resolutionEvents[0].sceneArt, incident.artwork);
+      assert.match(resolutionEvents[0].text, /danger to this season's fruit has passed/i);
+    }
   } finally { Math.random = originalRandom; }
 });
 
@@ -187,23 +181,6 @@ test('resolving a fruit incident does not replace it in the same summer phase', 
     processSeasonalReproduction(s, events, () => 'Summer');
     assert.equal(events.length, 1);
     assert.equal(findActiveIncident(s, 'fruit-threat'), null);
-  } finally { Math.random = originalRandom; }
-});
-
-test('fruit warning and resolution retain artwork and incident identity', () => {
-  const originalRandom = Math.random;
-  Math.random = () => 0.4;
-  try {
-    const s = state({ developing: 2, selectedSpecies: 'Plum' });
-    const warnings = [];
-    processSeasonalReproduction(s, warnings, () => 'Summer');
-    const incident = openEventIncident(s, warnings[0]);
-    assert.equal(incident.artwork, 'fruit-robin');
-    Math.random = () => 0.99;
-    const resolution = [];
-    processSeasonalReproduction(s, resolution, () => 'Autumn');
-    assert.equal(resolution[0].sceneArt, incident.artwork);
-    assert.equal(resolution[0].existingIncidentId, incident.id);
   } finally { Math.random = originalRandom; }
 });
 

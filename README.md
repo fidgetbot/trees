@@ -99,7 +99,7 @@ Run a deterministic headless balance simulation:
 node sim/run.js --turns 96 --games 8 --seed 20 --species Plum
 ```
 
-See [sim/README.md](sim/README.md) for the simulation output and available flags.
+See [tests/README.md](tests/README.md) for test scope and pruning guidance, and [sim/README.md](sim/README.md) for simulation output and flags.
 
 ## Project map
 

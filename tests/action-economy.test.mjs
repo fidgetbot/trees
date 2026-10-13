@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -45,14 +44,6 @@ function spendFrom(state) {
     state.actions -= 1;
   };
 }
-
-test('end turn stays outside the scrollable full-action sheet', () => {
-  const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  const css = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.ok(html.indexOf('id="finish-turn"') < html.indexOf('id="detail-sheet"'));
-  assert.ok(html.indexOf('id="sheet-actions"') > html.indexOf('id="detail-sheet"'));
-  assert.match(css, /\.game-started #hud-panel\s*\{[^}]*position:\s*fixed/);
-});
 
 test('cancelling a deferred action spends no resources or action', () => {
   const state = actionState();
@@ -140,20 +131,6 @@ test('confirming a deferred action commits its cost exactly once', () => {
   assert.equal(transaction.complete(), false);
   assert.deepEqual(logs, ['Action: Test Choice.']);
   assert.equal(eventPhases, 0);
-});
-
-test('root connection relies on its result dialog instead of a second success toast', () => {
-  const state = actionState();
-  const feedback = [];
-  actionEngine().executeAction(state, {
-    key: 'connect',
-    name: 'Seek Root Connection',
-    effect() {},
-  }, { sunlight: 0, water: 0, nutrients: 0 }, {
-    spend: spendFrom(state),
-    showFeedback: (message, type) => feedback.push({ message, type }),
-  });
-  assert.deepEqual(feedback, []);
 });
 
 test('completed actions rely on their animation and do not emit generic success toasts', () => {

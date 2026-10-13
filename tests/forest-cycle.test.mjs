@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { LIFE_STAGES, getRelationshipState } from '../core/constants.js';
-import { createActions } from '../core/actions.js';
 import { buildAidDecision, buildConnectionDecision, buildHelpRequestDecision, getConnectionAgeBand, resolveAidToAlly, resolveConnectionAttempt, resolveDiplomacyDecision, resolveHelpRequestFromAlly, SAME_SPECIES_CONNECTION_BONUS, updateAlliesCount } from '../core/diplomacy.js';
 import { shouldSkipGathering, updateResourceShortageNudges } from '../core/engine.js';
 import { advanceNeighborDeathCycle } from '../core/neighbors.js';

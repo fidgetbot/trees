@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS } from '../core/constants.js';
-import { getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
+import { LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, SEASONAL_ACTIONS } from '../core/constants.js';
+import { ACTION_UNLOCK_EXPLANATIONS, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from '../core/actions.js';
 import { currentStageRequirements, formatTurnProgress } from '../core/stages.js';
 
 const sapling = LIFE_STAGES.find(stage => stage.name === 'Sapling');
@@ -69,4 +69,16 @@ test('fractional stage progress is rounded for display without changing completi
   const requirements = currentStageRequirements({ lifeStage: sapling, turnsInStage: 10.799999999999999, branches: 0 });
   assert.match(requirements[0].label, /10\.8\/24 turns/);
   assert.equal(requirements[0].met, false);
+});
+
+// Missing catalog entries are a data-integrity failure; punctuation and phrasing are not.
+test('every stage unlock has an explanation', () => {
+  for (const key of LIFE_STAGES.flatMap(stage => stage.unlocks).filter(key => key !== 'defense')) {
+    assert.ok(ACTION_UNLOCK_EXPLANATIONS[key]?.trim(), `missing explanation for ${key}`);
+  }
+});
+
+test('seasonal unlocks are announced only when usable', () => {
+  assert.equal(isActionAnnounceableInSeason('massFlower', 'Winter', SEASONAL_ACTIONS), false);
+  assert.equal(isActionAnnounceableInSeason('massFlower', 'Spring', SEASONAL_ACTIONS), true);
 });

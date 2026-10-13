@@ -107,7 +107,6 @@ test('minor events omit stat-free ambient flavor observations', () => {
     });
     assert.ok(events.length>0);
     assert.equal(events.some(event=>event.effect==='flavor'),false);
-    assert.ok(events.every(event=>event.effect!=='flavor'));
   }finally{Math.random=originalRandom}
 });
 
@@ -120,9 +119,6 @@ test('named wildlife and browser threats carry renderer scene metadata', () => {
     updateNeighborAliveState: () => {},
     updateAlliesCount: () => {},
   });
-  assert.equal(majorEvents.find(event => event.key === 'Beaver').sceneArt, 'beaver');
-  assert.equal(majorEvents.find(event => event.key === 'Herbivores').sceneArt, 'browsers');
-  assert.equal(majorEvents.find(event => event.key === 'BirdDispersal').sceneArt, 'fruit-robin');
   assert.deepEqual(
     majorEvents.map(event => [event.key, event.sceneArt]),
     [
@@ -170,18 +166,6 @@ test('winter includes snow, icicles, rain, and rare branch-breaking accumulation
   assert.equal(applyHeavySnow(state, events, Object.fromEntries(LIFE_STAGES.map(stage => [stage.name, stage])), () => 0), true);
   assert.equal(state.branches, 2);
   assert.match(events[0].text, /Heavy snow/);
-});
-
-test('seasonal gathering factors expose the real light and water difficulty', () => {
-  assert.deepEqual(
-    SEASONS.map(season => [season.name, season.factorSun, season.factorWater]),
-    [
-    ['Spring', 1, 1],
-      ['Summer', 1.2, 0.6],
-      ['Autumn', 0.6, 0.8],
-      ['Winter', 0.2, 0.4],
-    ],
-  );
 });
 
 test('a storm never reports that zero branches snapped', () => {
