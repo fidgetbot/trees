@@ -1999,6 +1999,14 @@ document.getElementById('open-actions').onclick = () => openDetailSheet('actions
 document.getElementById('open-info').onclick = () => openDetailSheet('info');
 document.getElementById('resource-info').onclick = () => openDetailSheet('info');
 document.getElementById('close-sheet').onclick = () => detailSheet.close();
+detailSheet.addEventListener('close', () => {
+  // Native dialog dismissal can change the mobile viewport or invalidate the
+  // composited canvas without changing the dock dimensions. Always restore
+  // the selected subject after the dialog has left the browser's top layer.
+  requestAnimationFrame(() => {
+    if (!detailSheet.open && state.started) settleActiveSceneCamera();
+  });
+});
 detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
 new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()}).observe(els.hudPanel);
 window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
