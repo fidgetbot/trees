@@ -59,7 +59,7 @@ export function applyGatheringActionAward(state, gains) {
 }
 
 export function shouldSkipGathering(state) {
-  return (state.rootZones || 0) === 0;
+  return state.lifeStage?.name === 'Seed' && !state.firstRootActionTaken && (state.rootZones || 0) === 0;
 }
 
 export function updateResourceShortageNudges(state, gains) {
@@ -351,10 +351,7 @@ export function createEngine(deps) {
   }
 
   function afterSpringAdvance(state, hooks = {}) {
-    const {
-      onAfterSpringViability,
-      onAfterAdvance,
-    } = hooks;
+    const { onAfterAdvance } = hooks;
 
     growNeighbors();
     updateAlliesCount();
@@ -362,9 +359,8 @@ export function createEngine(deps) {
     updateUI();
     render();
     if (tryAdvanceLifeStage(() => { updateScoreState(state); updateUI(); render(); showResourcePhase(); })) return true;
-    if (maybeShowGrowthNudge()) return true;
-    if (maybeShowAllyWarning()) return true;
-    onAfterSpringViability?.();
+    if (maybeShowGrowthNudge(showResourcePhase)) return true;
+    if (maybeShowAllyWarning(showResourcePhase)) return true;
     onAfterAdvance?.();
     showResourcePhase();
     return true;

@@ -63,7 +63,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=incident-system-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=incident-system-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=turn-recovery-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -110,7 +110,7 @@ function resetStageProgressCounters() {
   resetStageProgressCountersForState(state);
 }
 
-function maybeShowGrowthNudge() {
+function maybeShowGrowthNudge(onContinue = showResourcePhase) {
   const reqs = currentStageRequirements();
   if (reqs.length !== 3) return false;
   const met = reqs.filter(r => r.met);
@@ -147,8 +147,7 @@ function maybeShowGrowthNudge() {
   showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
     updateUI();
     render();
-    if (state.phase === 'event') showResourcePhase();
-    else resumeTurnFlow();
+    onContinue();
   });
   return true;
 }
@@ -164,7 +163,7 @@ function resumeTurnFlow() {
 }
 
 // Ally warning system - warns players they need to invest in diplomacy
-function maybeShowAllyWarning() {
+function maybeShowAllyWarning(onContinue = showResourcePhase) {
   const stage = computeCurrentLifeStage().name;
   
   // Only warn in stages where allies will be needed
@@ -212,8 +211,7 @@ function maybeShowAllyWarning() {
   showModal(titles[urgency], `<p><em>${message}</em></p><p><strong>Current allies:</strong> ${state.allies}/1 needed for Ancient</p>`, () => {
     updateUI();
     render();
-    if (state.phase === 'event') showResourcePhase();
-    else resumeTurnFlow();
+    onContinue();
   });
   return true;
 }

@@ -440,6 +440,10 @@ When an interactive decision has been built, browser and simulation code should 
 ### Transitional wrappers should be removed once decision builders are adopted
 When browser/sim callers have moved to shared decision builders plus shared dispatchers, one-off list-wrapper helpers or stale adapter glue that only existed to support older call sites should be removed instead of preserved indefinitely. The target state is a smaller surface area built around decision construction, shared execution, and thin rendering adapters.
 
+### Turn handoff and recovery
+
+Spring seed settlement reports its result once before advancing into gathering. Post-advance growth and ally warnings receive an explicit gathering continuation; dismissing them must never reroll Night Falls or retain the previous turn's action award. Only an unopened, unrooted Seed skips gathering. Established trees that lose all roots continue through normal gathering so surviving foliage can fund root recovery.
+
 ### Test scope
 
 The Node suite protects rule outcomes, incident identity/response lifecycles, action transactions, selection/camera geometry, persistent growth attachments, and asset availability/loading recovery. Repeated loader cases share a small serial Image fixture with fresh module caches and guaranteed cleanup. Tests should assert behavior or data integrity, not source-code substrings, editorial wording, or copied configuration tables. Overlapping scenarios belong in one owning test where their distinct assertions can be preserved.

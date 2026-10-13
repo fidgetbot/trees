@@ -9,8 +9,8 @@ import { getSpeciesAdjustedCost } from '../core/species.js';
 import { renderFullGameOverBody } from '../ui/outcomes.js';
 
 test('a seed with no root gathers nothing and is directed toward growth', () => {
-  assert.equal(shouldSkipGathering({ rootZones: 0 }), true);
-  assert.equal(shouldSkipGathering({ rootZones: 1 }), false);
+  assert.equal(shouldSkipGathering({ lifeStage: LIFE_STAGES[0], rootZones: 0 }), true);
+  assert.equal(shouldSkipGathering({ lifeStage: LIFE_STAGES[0], rootZones: 1 }), false);
 });
 
 test('resource shortage guidance escalates after three and six weak turns', () => {
