@@ -56,6 +56,28 @@ export function targetSceneZoom(bounds, viewport, { currentZoom = 1, margin = 12
   return Math.max(.04,Math.min(3.2,currentZoom*adjustment));
 }
 
+// Stage occupancy establishes a baseline. Growth may use the remaining space
+// without being normalized back down to that occupancy after every action.
+export function containmentSceneZoom(bounds, viewport, currentZoom, margin = 12) {
+  const width = Math.max(40, viewport.width - (viewport.leftInset || 0) - (viewport.rightInset || 0) - margin * 2);
+  const height = Math.max(40, viewport.height - viewport.topInset - viewport.bottomInset - margin * 2);
+  if (!Number.isFinite(bounds?.width) || !Number.isFinite(bounds?.height) || bounds.width <= 0 || bounds.height <= 0) return currentZoom;
+  return Math.max(.04, currentZoom * Math.min(1, width / bounds.width, height / bounds.height));
+}
+
+export function containmentSceneOffset(bounds, viewport, offset, margin = 12) {
+  const left = (viewport.leftInset || 0) + margin;
+  const right = viewport.width - (viewport.rightInset || 0) - margin;
+  const top = viewport.topInset + margin;
+  const bottom = viewport.height - viewport.bottomInset - margin;
+  const correct = (position, minimum, maximum) => minimum <= maximum
+    ? Math.max(minimum, Math.min(maximum, position)) : (minimum + maximum) / 2;
+  return {
+    x: correct(offset.x, left - bounds.x, right - bounds.x - bounds.width),
+    y: correct(offset.y, top - bounds.y, bottom - bounds.y - bounds.height),
+  };
+}
+
 export function isValidSceneCamera(camera){
   return Boolean(camera&&Number.isFinite(camera.x)&&Number.isFinite(camera.y)&&Number.isFinite(camera.zoom)&&camera.zoom>=.04&&camera.zoom<=3.2);
 }

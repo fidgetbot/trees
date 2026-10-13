@@ -88,8 +88,8 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=rooted-seed-handoff-v1';
-import { centeredSceneOffset, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=typed-focus-camera-v1';
+import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=growth-containment-v1';
+import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=growth-containment-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=future-actions-label-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
@@ -351,9 +351,7 @@ function scheduleGrowthCameraRefit(){
   growthCameraRefitFrame=requestAnimationFrame(()=>{
     growthCameraRefitFrame=null;
     if(!state.started||activeSceneTarget()?.id!=='player')return;
-    // Measure the completed specimen, then ease from the camera currently on
-    // screen. This lets new tissue reveal while the view smoothly makes room
-    // for its final painted bounds.
+    // Preserve baseline scale; make room only for genuine viewport overflow.
     refitSceneCamera({animate:true});
   });
 }
@@ -434,7 +432,7 @@ function cameraStateKey(target=activeSceneTarget()){
   return`${target?.id||'player'}:${target?.stageName||computeCurrentLifeStage().name}:${target?.title||state.selectedSpecies||''}:${sceneViewportSignature()}`;
 }
 
-function measureSceneTarget(targetId, zoom) {
+function measureSceneTarget(targetId, zoom, { baseline = false } = {}) {
   const viewport = sceneViewport();
   const canvas = document.createElement('canvas');
   // Measure on a generously padded bitmap while retaining the live canvas's
@@ -454,7 +452,13 @@ function measureSceneTarget(targetId, zoom) {
     ctx: canvas.getContext('2d'), canvas: logicalCanvas,
     immersive: true, frameSelectedSubject: true,
     viewOffset: { x: 0, y: 0 }, zoomMultiplier: zoom,
-    state, currentSeason: currentSeason(), playerStageName: computeCurrentLifeStage().name,
+    state: baseline && targetId === 'player' ? {
+      ...state, rootZones: computeCurrentLifeStage().name === 'Seed' ? 0 : 1,
+      leafClusters: computeCurrentLifeStage().name === 'Seed' ? 0 : 2,
+      taprootDepth: 0, branches: 0, trunk: 1, canopySpread: 0, heightGrowth: 0,
+      visualGrowth: null, thornDefense: 0, toxicLeaves: 0,
+    } : state,
+    currentSeason: currentSeason(), playerStageName: computeCurrentLifeStage().name,
     getNeighborTree, getRelationshipState, topInset: viewport.topInset,
     selectedTargetId: targetId,measureTargetId:targetId,
   });
@@ -469,17 +473,30 @@ function sceneCameraPlanForTarget(target) {
   const viewport = sceneViewport();
   if (!target) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
   const stageName=target.stageName||computeCurrentLifeStage().name;
-  const baseMetrics = measureSceneTarget(target.id, 1);
+  const baseline = target.id === 'player';
+  const baseMetrics = measureSceneTarget(target.id, 1, { baseline });
   if (!baseMetrics.bounds) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
   let zoom=1,fittedMetrics=baseMetrics;
   // Raster bounds and stage artwork are not perfectly linear at tiny sizes,
   // so converge the measured limiting extent instead of assuming one pass.
   for(let pass=0;pass<3;pass+=1){
     zoom=targetSceneZoom(fittedMetrics.bounds,viewport,{currentZoom:zoom,stageName});
-    const measured=measureSceneTarget(target.id,zoom);
+    const measured=measureSceneTarget(target.id,zoom,{baseline});
     if(measured.bounds)fittedMetrics=measured;
   }
-  const camera={...centeredSceneOffset(fittedMetrics.bounds,viewport),zoom};
+  const baselineOffset=centeredSceneOffset(fittedMetrics.bounds,viewport);
+  // Full tissue bounds are a safety check, not the input to stage scale.
+  // Hold the baseline collar/soil position until real viewport overflow.
+  let actualMetrics=measureSceneTarget(target.id,zoom);
+  for(let pass=0;pass<3&&actualMetrics.bounds;pass+=1){
+    const safeZoom=containmentSceneZoom(actualMetrics.bounds,viewport,zoom);
+    if(Math.abs(safeZoom-zoom)<.0001)break;
+    zoom=safeZoom;
+    actualMetrics=measureSceneTarget(target.id,zoom);
+  }
+  fittedMetrics=actualMetrics.bounds?actualMetrics:fittedMetrics;
+  const offset=containmentSceneOffset(fittedMetrics.bounds,viewport,baselineOffset);
+  const camera={...offset,zoom};
   const validCamera=isValidSceneCamera(camera)?camera:{x:0,y:0,zoom:1};
   return{
     camera:validCamera,

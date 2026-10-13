@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { centeredSceneOffset, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, smootherSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
+import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, smootherSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
 
@@ -128,4 +128,18 @@ test('comparison zoom is multiplicatively symmetric in both directions',()=>{
   const inward=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:16},panX:-100,to:{x:-20,groundY:450,worldZoom:1},elapsed:500,timing});
   assert.equal(out.worldZoom,4);
   assert.equal(inward.worldZoom,4);
+});
+
+test('growth beyond stage occupancy keeps scale until the usable region is full', () => {
+  const camera = { x: 0, y: 0, zoom: 1 };
+  const grown = { x: 80, y: 160, width: 230, height: 330 };
+  assert.equal(containmentSceneZoom(grown, viewport, camera.zoom), 1);
+  assert.deepEqual(containmentSceneOffset(grown, viewport, camera), { x: 0, y: 0 });
+  assert.ok(targetSceneZoom(grown, viewport, { stageName: 'Seedling' }) < 1, 'old occupancy fitting would shrink this growth');
+});
+
+test('containment moves a fitting tree minimally and shrinks oversized bounds only', () => {
+  assert.deepEqual(containmentSceneOffset({ x: 80, y: 130, width: 230, height: 330 }, viewport, { x: 0, y: 0 }), { x: 0, y: 8 });
+  assert.equal(containmentSceneZoom({ width: 732, height: 200 }, viewport, 2), 1);
+  assert.equal(containmentSceneZoom({ width: 200, height: 760 }, viewport, 2), 1);
 });

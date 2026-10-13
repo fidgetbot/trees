@@ -481,8 +481,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   }
   // Frame by stage, not current root/leaf totals: spending on growth must not
   // shrink the camera by an equal amount and erase the visible result.
-  const infantHasShoot=!!getJuvenileStageKey(subjectState,subjectStage);
-  const framingState={...subjectState,rootZones:1,leafClusters:!infantHasShoot&&shouldDrawSeedRadicle(subjectStage,subjectState.rootZones||0,subjectState.leafClusters||0)?0:2,branches:0,trunk:1,canopySpread:0,heightGrowth:0};
+  const framingState={...subjectState,rootZones:1,leafClusters:subjectStage==='Seed'?0:2,branches:0,trunk:1,canopySpread:0,heightGrowth:0};
   const camera=cameraFor(framingState,subjectStage);
   if(immersive){
     // Sprout uses one camera scale before and after its first leaf.
