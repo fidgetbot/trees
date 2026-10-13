@@ -58,6 +58,13 @@ export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = 
   `;
 }
 
+export function renderFungalRumorBody({ body = '', presentation = '' } = {}) {
+  const tone = presentation === 'ominous' ? ' fungal-rumor-ominous' : '';
+  return `<section class="fungal-rumor${tone}">
+    <p class="fungal-rumor-message">${escapeHtml(body)}</p>
+  </section>`;
+}
+
 export function renderIncidentOutcomeBody({ incidentId = '', warning = '', body = '', effects = [] } = {}) {
   return `<section class="incident-followup" data-incident-id="${escapeHtml(incidentId)}">
     ${warning ? `<div class="incident-followup-step incident-followup-warning"><strong>Earlier warning</strong><p>${escapeHtml(warning)}</p></div>` : ''}

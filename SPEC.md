@@ -258,7 +258,7 @@ Current systems include:
 - chemical-defense threat chains that resolve after an unanswered warning; the warning says only that the threat was not contained, and the subsequent consequence supplies the logical damage conclusion without redundantly forecasting an immediately following message
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
-- a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer; its felling chapters use a distinctly dark, ominous card treatment, while the final protected-grove coda returns to the normal presentation
+- a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer; every chapter is presented on its own card before the ordinary Night Journal, its felling chapters use a distinctly dark, ominous treatment, and the final protected-grove coda returns to the normal presentation
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health

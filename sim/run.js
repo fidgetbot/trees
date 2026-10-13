@@ -571,10 +571,6 @@ function createHeadlessGame(seed, speciesName) {
       }
       if (humanUpdate.rumor) {
         addLog(state, `Fungal rumor: ${humanUpdate.rumor.body}`);
-        openIncident(state, {
-          kind: 'fungal-rumor', title: humanUpdate.rumor.title, summary: humanUpdate.rumor.body,
-          artwork: 'event-ambient', severity: humanUpdate.rumor.presentation === 'ominous' ? 'warning' : 'neutral', quiet: true,
-        });
       }
       updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
 

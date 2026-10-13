@@ -82,7 +82,7 @@ import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDe
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=future-actions-label-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
-import { renderEventPhaseBody, renderIncidentOutcomeBody } from './ui/events.js?rev=incident-followup-v1';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=ominous-story-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=incident-system-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
@@ -1764,11 +1764,6 @@ function showEventPhase() {
   }) : {};
   if (humanUpdate.rumor) {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
-    openIncident(state, {
-      kind: 'fungal-rumor', title: humanUpdate.rumor.title, summary: humanUpdate.rumor.body,
-      artwork: 'event-ambient', severity: humanUpdate.rumor.presentation === 'ominous' ? 'warning' : 'neutral',
-      quiet: true,
-    });
   }
   const majorIncident = openMajorIncident(state, major, consequences);
   const minorIncidents = minors.map(event => {
@@ -1808,21 +1803,35 @@ function showEventPhase() {
   updateUI();
   render();
 
-  showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents, pendingResponses }), () => {
-    engine.continueAfterEvent(state, {
-      processIncidentResponses,
-      maybeShowHealthWarning,
-      advanceTurn,
-      showTaprootResilience: (onContinue) => {
-        showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
-      },
+  const showNightJournal = () => {
+    showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents, pendingResponses }), () => {
+      engine.continueAfterEvent(state, {
+        processIncidentResponses,
+        maybeShowHealthWarning,
+        advanceTurn,
+        showTaprootResilience: (onContinue) => {
+          showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+        },
+      });
+    }, {
+      record: false,
+      kind: 'night',
+      eyebrow: `${currentSeason().name} · Year ${state.year}`,
+      buttonLabel: pendingResponses ? `Respond to ${pendingResponses} ${pendingResponses === 1 ? 'encounter' : 'encounters'} →` : 'Continue',
     });
-  }, {
-    record: false,
-    kind: 'night',
-    eyebrow: `${currentSeason().name} · Year ${state.year}`,
-    buttonLabel: pendingResponses ? `Respond to ${pendingResponses} ${pendingResponses === 1 ? 'encounter' : 'encounters'} →` : 'Continue',
-  });
+  };
+
+  if (humanUpdate.rumor) {
+    const ominous = humanUpdate.rumor.presentation === 'ominous';
+    showModal(humanUpdate.rumor.title, renderFungalRumorBody(humanUpdate.rumor), showNightJournal, {
+      record: false,
+      kind: ominous ? 'ominous' : '',
+      eyebrow: 'A Distant Tremor · Fungal network',
+      buttonLabel: 'Continue to Night Falls →',
+    });
+    return;
+  }
+  showNightJournal();
 }
 
 function handleSpringViability(onContinue) {

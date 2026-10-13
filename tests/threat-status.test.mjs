@@ -6,7 +6,7 @@ import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
 import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
 import { buildIncidentDecision, resolveIncidentDecision } from '../core/incident-responses.js';
-import { renderEventPhaseBody, renderIncidentOutcomeBody } from '../ui/events.js';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from '../ui/events.js';
 
 function state(overrides = {}) {
   return {
@@ -19,6 +19,13 @@ function state(overrides = {}) {
 function ally() {
   return { species: 'Citrus', relation: 70, stageScore: 3500, helpGivenToThem: 2, helpRefusedToThem: 0, timesAskedThemForHelp: 0, helpReceivedFromThem: 0 };
 }
+
+test('fungal plotline chapters have dedicated escaped narrative markup', () => {
+  const body = renderFungalRumorBody({ body: 'A signal <fades> beyond the roots.', presentation: 'ominous' });
+  assert.match(body, /fungal-rumor-ominous/);
+  assert.match(body, /A signal &lt;fades&gt; beyond the roots\./);
+  assert.doesNotMatch(body, /journal-incident/);
+});
 
 function openChemicalIncident(s, decision, { awaiting = true } = {}) {
   const prompt = describeDecisionPrompt(decision);
