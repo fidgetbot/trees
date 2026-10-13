@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rootGrowthAmount,rootRevealEffect,drawRootGrowth} from '../ui/root-growth.js';
+import {rootGrowthAmount,rootRevealEffect,drawRootGrowth,resetRootGrowthCache} from '../ui/root-growth.js';
 test('juvenile root investments persist across leaf and stage changes',()=>{
  const s={lifeStage:{name:'Sprout'},rootZones:4,visualGrowth:{structuralBase:{roots:4,taproots:0}}};
  assert.equal(rootGrowthAmount(s),3);
@@ -35,5 +35,12 @@ test('root deformation preserves the collar and increases depth without separate
   assert.ok(rows.slice(1).every(r=>Number.isInteger(r[6])&&r[8]===1),'raster rows are contiguous, integral and gap-free');
   assert.ok(calls[0][4]>60,'root depth grows');
   assert.ok(calls[0][3]>40,'root spread grows');
+  const firstMesh=calls[0][0],extent=calls[0].slice(1);
+  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
+  assert.equal(calls[1][0],firstMesh,'ordinary redraw reuses the mesh');
+  resetRootGrowthCache();
+  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
+  assert.notEqual(calls[2][0],firstMesh,'recovery rebuilds a discarded backing surface');
+  assert.deepEqual(calls[2].slice(1),extent,'recovery preserves visible growth dimensions');
  }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original;}
 });

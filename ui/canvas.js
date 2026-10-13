@@ -1,10 +1,18 @@
-import {drawRootGrowth,rootGrowthAmount} from './root-growth.js?rev=emphasized-root-reveal-v1';
-import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=painted-foliage-attachments-v1';
+import {drawRootGrowth,rootGrowthAmount,resetRootGrowthCache} from './root-growth.js?rev=artwork-recovery-v1';
+import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=incident-system-v1';
-import { preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=continuous-roots-v2';
-import { JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=winter-surface-stem-v1';
+import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=artwork-recovery-v1';
+import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=incident-system-v1';
+
+// Decoded PNGs remain authoritative. Canvas-derived layers can be discarded
+// independently by the browser; a camera refit alone cannot repair them.
+export function resetTreeRenderCaches() {
+  resetJuvenileLayers();
+  resetRootGrowthCache();
+  resetPaintedGrowthCaches();
+}
 
 const TAU = Math.PI * 2;
 const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Young Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };

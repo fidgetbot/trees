@@ -88,7 +88,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene } from './ui/canvas.js?rev=growth-containment-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=artwork-recovery-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=growth-containment-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=future-actions-label-v1';
@@ -380,6 +380,7 @@ function selectSceneTarget(target) {
   const previousTarget=activeSceneTarget();
   const fromView=currentAbsoluteCameraView();
   const nextTarget=target||playerSceneTarget();
+  if(isTreeSceneTarget(nextTarget))resetTreeRenderCaches();
   if(previousTarget?.id===nextTarget?.id){
     if(comparisonCameraView)return;
     selectedSceneTarget=nextTarget;renderActions();
@@ -2001,6 +2002,12 @@ function initSceneInteraction() {
   });
 }
 
+function recoverSceneArtwork() {
+  if (!els.canvas.isConnected || !state.started) return;
+  resetTreeRenderCaches();
+  settleActiveSceneCamera();
+}
+
 const detailSheet = document.getElementById('detail-sheet');
 function openDetailSheet(kind) {
   detailSheet.dataset.section = kind;
@@ -2019,10 +2026,14 @@ detailSheet.addEventListener('close', () => {
   // composited canvas without changing the dock dimensions. Always restore
   // the selected subject after the dialog has left the browser's top layer.
   requestAnimationFrame(() => {
-    if (!detailSheet.open && state.started) settleActiveSceneCamera();
+    if (!detailSheet.open) recoverSceneArtwork();
   });
 });
 detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
+els.canvas.addEventListener('contextrestored', () => requestAnimationFrame(recoverSceneArtwork));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestAnimationFrame(recoverSceneArtwork);
+});
 new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()}).observe(els.hudPanel);
 window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
 

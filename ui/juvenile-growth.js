@@ -1,6 +1,6 @@
 // Dedicated infant plants. Generated masters stay intact; seasonal layers are
 // derived in memory so the living tip and seed survive leaf loss and winter.
-import {drawRootGrowth} from './root-growth.js?rev=continuous-roots-v2';
+import {drawRootGrowth} from './root-growth.js?rev=artwork-recovery-v1';
 export const JUVENILE_KEYS = ['first-leaves', 'unfurling', 'juvenile'];
 const anchors = {
   Cherry: [[.56,.51],[.55,.545],[.55,.59]],
@@ -10,7 +10,11 @@ const anchors = {
   Pear: [[.55,.505],[.55,.52],[.55,.56]],
   Plum: [[.55,.50],[.55,.50],[.54,.53]],
 };
-const layers = new WeakMap();
+let layers = new WeakMap();
+
+export function resetJuvenileLayers() {
+  layers = new WeakMap();
+}
 
 export function getJuvenileStageKey(state, stage) {
   if (stage !== 'Sprout' && stage !== 'Seedling') return null;

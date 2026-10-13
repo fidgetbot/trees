@@ -57,7 +57,10 @@ function drawRootRevealEffect(ctx,mesh,drawX,drawY,state,reveal,geometry){
   }
 }
 
-const rootMeshes=new WeakMap();
+let rootMeshes=new WeakMap();
+export function resetRootGrowthCache() {
+  rootMeshes = new WeakMap();
+}
 export function drawRootGrowth(ctx,image,source,geometry,state={},reveal=null) {
   const sw=source?.width||image.naturalWidth||image.width,sh=source?.height||image.naturalHeight||image.height;
   const sx=source?.x||0,sy=source?.y||0;

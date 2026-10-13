@@ -259,7 +259,7 @@ Current systems include:
 - damage tracking and death flavoring
 - health warning thresholds as the tree approaches collapse
 - a staged fungal-rumor narrative in which distant forests fall silent and logging pressure moves closer; every chapter is presented on its own card before the ordinary Night Journal, its felling chapters use a distinctly dark, ominous treatment, and the final protected-grove coda returns to the normal presentation
-- closing Future Actions or the Grove notebook through any native-dialog dismissal path refits the active subject and redraws the map after dismissal, including when the viewport dimensions have not changed
+- closing Future Actions or the Grove notebook through any native-dialog dismissal path rebuilds canvas-derived tree layers from the retained decoded PNGs, refits the active subject, and redraws the map after dismissal, including when the viewport dimensions have not changed. Reselecting a tree, returning to a visible tab, and main-canvas context restoration also rebuild discarded layers; species-shared juvenile layers and deformed root/wood caches must not make a blank specimen self-sustaining. Gameplay state and growth attachments are preserved.
 - human survey and cutting encounters whose probability rises with tree size, trunk/branch mass, repeated attention, and regional pressure
 - delayed human threats that remain on the map for an action phase before resolution, giving time to invest in thorns, toxic foliage, or other defenses
 - persistent threat messages use natural in-world conclusions that clearly say whether danger is gathering, easing, passed, or left damage behind; allied help clears an active chemical threat such as aphids in addition to restoring health

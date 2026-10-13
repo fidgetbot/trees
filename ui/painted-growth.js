@@ -1,8 +1,13 @@
 // Action-sized growth assembled around the approved painted stage specimens.
 // Only presentation state lives here; the resource/action rules remain in core/.
-const imagePixels = new WeakMap();
-const textures = new WeakMap();
+let imagePixels = new WeakMap();
+let textures = new WeakMap();
 const spriteMetrics = new WeakMap();
+export function resetPaintedGrowthCaches() {
+  imagePixels = new WeakMap();
+  textures = new WeakMap();
+}
+
 const count = value => Math.max(0, Math.floor(Number(value) || 0));
 
 export function growthRevealDuration(current,previous){
