@@ -1693,53 +1693,27 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
   .game-started .context-shortlist.action-carousel { grid-auto-columns: minmax(142px, 46%); }
 }
 @media (min-width: 700px) and (min-height: 560px) {
-  .game-started #hud-panel {
-    width: min(clamp(720px, 68vw, 920px), calc(100% - 48px));
-    padding: clamp(17px, 1.55vw, 22px);
-    border-radius: clamp(22px, 1.9vw, 28px);
-  }
-  .game-started .context-command { gap: clamp(14px, 1.15vw, 18px); }
   .game-started .context-command-heading strong {
-    font-size: clamp(18px, 1.35vw, 21px);
+    font-size: 20px;
   }
   .game-started .context-stage {
-    font-size: clamp(13px, .95vw, 15px);
-  }
-  .game-started .context-shortlist.action-carousel {
-    grid-auto-columns: clamp(190px, 29%, 240px);
-    gap: clamp(9px, .8vw, 12px);
-    padding-bottom: 9px;
-  }
-  .game-started .context-action {
-    min-height: clamp(88px, 7.5vw, 108px);
-    padding: clamp(12px, 1vw, 15px);
-    gap: 5px 9px;
-    border-radius: 15px;
-  }
-  .game-started .context-action-icon {
-    font-size: clamp(20px, 1.55vw, 24px);
+    font-size: 16px;
   }
   .game-started .context-action > strong {
-    font-size: clamp(14px, 1.05vw, 16px);
+    font-size: 18px;
     line-height: 1.25;
   }
   .game-started .context-action .action-description {
-    font-size: clamp(12px, .9vw, 14px);
-    line-height: 1.35;
+    font-size: 16px;
+    line-height: 1.4;
   }
-  .game-started .context-action .action-costs { gap: 5px; margin-top: 5px; }
-  .game-started .context-action .cost { padding-inline: 5px; }
-  .game-started .context-action .cost-icon { font-size: 13px; }
-  .game-started .context-action .cost-number strong { font-size: 12px; }
-  .game-started .dock-toolbar { gap: 8px; margin-top: 13px; }
+  .game-started .context-action .cost-icon,
+  .game-started .context-action .cost-number strong { font-size: 16px; }
   .game-started .dock-toolbar > span {
-    font-size: clamp(13px, .95vw, 15px);
+    font-size: 16px;
   }
   .game-started .dock-toolbar button {
-    min-height: 48px;
-    padding: 10px clamp(13px, 1.2vw, 18px);
-    border-radius: 12px;
-    font-size: clamp(14px, 1vw, 16px);
+    font-size: 16px;
   }
 }
 @media (max-height: 500px) and (min-width: 600px) {
@@ -2160,4 +2134,63 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .minimap-fruit { width: 32px; min-width: 32px; height: 32px; min-height: 32px; font-size: 16px; }
   .minimap-fruit > img { width: 25px; height: 25px; }
   .minimap-fruit.player { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+}
+
+/* Option C: larger reading type on tablet/desktop without enlarging the interface geometry. */
+@media (min-width: 700px) and (min-height: 560px) {
+  .game-started .grove-time-pill,
+  .game-started .grove-resource,
+  .scene-tools button,
+  .focus-picker { font-size: 16px; }
+
+  #modal-kicker,
+  .growth-unlocks .botanical-kicker { font-size: 16px; }
+  #modal-body { font-size: 20px; }
+  #modal-button { font-size: 20px; }
+  .growth-unlocks .action-unlock strong { font-size: 21px; }
+
+  .gather-storage,
+  #modal-body .gather-overflow,
+  .gather-details summary,
+  .gather-details .resource-factor,
+  .gather-details .grove-effect,
+  .actions-earned small,
+  .incident-effect,
+  .incident-status,
+  .incident-followup-step > strong,
+  .modal[data-kind="night"] .event-consequences,
+  .modal[data-kind="night"] .minor-events h4 { font-size: 16px; }
+  .modal[data-kind="gathering"] .actions-earned,
+  .journal-incident p,
+  .encounter-queue-summary,
+  .modal[data-kind="night"] .event-content > p { font-size: 18px; }
+
+  .detail-sheet { font-size: 18px; }
+  .detail-sheet .action-description,
+  .detail-sheet .growth-hint,
+  .detail-sheet .stat-name,
+  .detail-sheet .stat-value,
+  .detail-sheet .log,
+  .detail-sheet .unavailable-action-title,
+  .notebook-specimen-copy p { font-size: 18px; }
+  .notebook-specimen .notebook-nature,
+  #sheet-info .notebook-score { font-size: 17px; }
+  .detail-sheet .stat-max,
+  .detail-sheet .season-guide,
+  .detail-sheet .offspring-stats,
+  .detail-sheet .future-reason,
+  .detail-sheet .action-state,
+  .detail-sheet .prereq-missing,
+  .detail-sheet .unavailable-actions > h4,
+  .detail-sheet .unavailable-action p,
+  #sheet-info :is(#season-guide-summary, #offspring-stats-summary) { font-size: 16px; }
+
+  .game-started .context-command-heading small,
+  .game-started .context-kicker,
+  .game-started .context-reset,
+  .game-started .context-empty,
+  .neighbor-status span,
+  .neighbor-effects > span,
+  .neighbor-effects ul,
+  .game-started .feedback { font-size: 16px; }
 }
