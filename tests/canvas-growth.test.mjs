@@ -223,6 +223,9 @@ test('seasonal hedge keeps world scale so seed zoom reads much larger than matur
   assert.equal(mature.tileSize,55.04);
   assert.ok(seed.top<20,'seed view should be almost entirely backed by hedge');
   assert.ok(mature.top>310,'mature view should leave only a low hedge band');
+  assert.ok(Math.abs(seed.top+seed.drawHeight-(370+seed.groundOverlap))<1e-9,'hedge artwork should overlap the soil instead of ending above it');
+  assert.ok(Math.abs(mature.top+mature.drawHeight-(370+mature.groundOverlap))<1e-9,'ground overlap should remain proportional at mature-tree zoom');
+  assert.ok(seed.groundOverlap>mature.groundOverlap,'the contact correction should stay in shared world scale');
   assert.ok(seed.firstIndex<seed.lastIndex);
   assert.ok(mature.firstIndex<mature.lastIndex);
 });

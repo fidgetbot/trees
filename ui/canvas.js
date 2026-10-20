@@ -449,6 +449,7 @@ export function getWinterSnowSurface(viewportWidth,groundY){
 }
 
 const HEDGE_WORLD_TILE_SIZE=64;
+const HEDGE_GROUND_OVERLAP_RATIO=.06;
 export function getSeasonalHedgeLayout(viewportWidth,groundY,worldZoom,viewOffsetX=0){
   const width=Math.max(0,Number(viewportWidth)||0),zoom=Math.max(.04,Number(worldZoom)||0),tileSize=HEDGE_WORLD_TILE_SIZE*zoom;
   // Center the player inside a tile, not on a mirrored join. The shift is
@@ -457,6 +458,8 @@ export function getSeasonalHedgeLayout(viewportWidth,groundY,worldZoom,viewOffse
   return{
     tileSize,
     top:(Number(groundY)||0)-tileSize,
+    drawHeight:tileSize*(1+HEDGE_GROUND_OVERLAP_RATIO),
+    groundOverlap:tileSize*HEDGE_GROUND_OVERLAP_RATIO,
     anchor,
     firstIndex:Math.floor((0-anchor)/tileSize)-1,
     lastIndex:Math.ceil((width-anchor)/tileSize)+1,
@@ -755,8 +758,8 @@ function drawSeasonalHedge(ctx,w,groundY,worldZoom,viewOffsetX,season){
   ctx.save();ctx.globalAlpha=opacity;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
     const x=layout.anchor+index*layout.tileSize;
-    if(Math.abs(index)%2){ctx.save();ctx.translate(x+layout.tileSize,layout.top);ctx.scale(-1,1);ctx.drawImage(image,0,0,layout.tileSize,layout.tileSize);ctx.restore()}
-    else ctx.drawImage(image,x,layout.top,layout.tileSize,layout.tileSize);
+    if(Math.abs(index)%2){ctx.save();ctx.translate(x+layout.tileSize,layout.top);ctx.scale(-1,1);ctx.drawImage(image,0,0,layout.tileSize,layout.drawHeight);ctx.restore()}
+    else ctx.drawImage(image,x,layout.top,layout.tileSize,layout.drawHeight);
   }
   ctx.restore();
 }
