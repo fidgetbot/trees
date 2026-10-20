@@ -1931,7 +1931,6 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 .modal[data-kind="night"] .encounter-art img[data-scene-art="event-winter-gale"] { filter: grayscale(.35) saturate(.55) hue-rotate(150deg) brightness(.96); }
 .modal[data-kind="night"] .encounter-art img[data-scene-art="event-wildfire"] { filter: sepia(.75) saturate(1.55) hue-rotate(328deg) brightness(.82); }
 .modal[data-kind="night"] .encounter-art img[data-scene-art="event-late-frost"] { filter: saturate(.48) hue-rotate(147deg) brightness(1.08); }
-.modal[data-kind="night"] .encounter-art img[data-scene-art="event-mycorrhizal-bloom"] { filter: saturate(.78) hue-rotate(25deg) brightness(1.04); }
 @media (max-width: 380px) {
   .modal[data-kind="night"] #modal-title { padding-right: 88px; font-size: 36px; }
   .modal[data-kind="night"] #modal-kicker { padding-right: 88px; }

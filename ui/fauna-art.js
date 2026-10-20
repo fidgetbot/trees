@@ -1,6 +1,6 @@
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
-const EVENT_ASSET_REVISION='night-field-journal-v1';
+const EVENT_ASSET_REVISION='night-field-journal-v2';
 export const ANIMAL_ASSET_URLS=Object.freeze({
   woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
@@ -27,13 +27,13 @@ export const EVENT_ASSET_URLS=Object.freeze({
   'event-wildfire':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-late-frost':new URL(`../assets/botanical/plum-blossoms-airy.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-fungal-blight':new URL(`../assets/events/fungal-blight-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
-  'event-mycorrhizal-bloom':new URL(`../assets/trees/plum-rooted-seed-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-mycorrhizal-bloom':new URL(`../assets/events/mycorrhizal-bloom-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'damp-rot':new URL(`../assets/events/damp-rot-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'airborne-spores':new URL(`../assets/events/airborne-spores-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-rain':new URL(`../assets/events/moonlit-grove-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-snow':new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-growth':new URL(`../assets/botanical/plum-fruit-airy.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
-  'event-nutrients':new URL(`../assets/trees/plum-rooted-seed-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-nutrients':new URL(`../assets/events/forest-gift-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-offspring':new URL(`../assets/trees/cherry-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-relationship':new URL(`../assets/trees/pear-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-ambient':new URL(`../assets/events/moonlit-night-branches-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
@@ -93,7 +93,7 @@ const LABELS = {
   'event-mycorrhizal-bloom': 'Flourishing roots and fungal network',
   'damp-rot': 'Damp rot on a young stem', 'airborne-spores': 'Spores settling on a wounded leaf',
   'event-rain': 'Rain moving through the grove', 'event-snow': 'Snow settling over the soil',
-  'event-growth': 'Fruit and seeds developing', 'event-nutrients': 'Roots receiving forest nutrients',
+  'event-growth': 'Fruit and seeds developing', 'event-nutrients': 'Rabbit droppings returning nutrients to the soil',
   'event-offspring': 'A young offspring tree', 'event-relationship': 'Neighboring trees in the grove',
   'event-ambient': 'Moonlit branches', 'event-damage': 'A weathered tree',
   'human-surveyor': 'A human surveyor', 'human-logger': 'A logger with cutting tools',

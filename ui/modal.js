@@ -1,4 +1,4 @@
-import { renderEncounterArt } from './fauna-art.js?rev=world-anchored-fauna-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=event-portraits-v1';
 import { getTreeStructureSourceRect } from './canvas.js?rev=framed-trees-v1';
 import { getJuvenileStageKey } from './juvenile-growth.js?rev=winter-surface-stem-v1';
 

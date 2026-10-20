@@ -1,6 +1,6 @@
 import {drawRootGrowth,rootGrowthAmount,resetRootGrowthCache} from './root-growth.js?rev=artwork-recovery-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=incident-system-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
 import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=artwork-recovery-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';

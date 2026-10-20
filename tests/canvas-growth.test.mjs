@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync } from 'node:fs';
 
-import { getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
+import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
 import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
@@ -20,6 +20,18 @@ function state(overrides = {}) {
     ...overrides,
   };
 }
+
+test('Forest Gift and Mycorrhizal Bloom use dedicated event artwork', () => {
+  const forestGift = new URL(EVENT_ASSET_URLS['event-nutrients']);
+  const fungalBloom = new URL(EVENT_ASSET_URLS['event-mycorrhizal-bloom']);
+  forestGift.search = '';
+  fungalBloom.search = '';
+  assert.ok(existsSync(forestGift));
+  assert.ok(existsSync(fungalBloom));
+  assert.match(forestGift.pathname, /\/assets\/events\/forest-gift-v1\.png$/);
+  assert.match(fungalBloom.pathname, /\/assets\/events\/mycorrhizal-bloom-v1\.png$/);
+  assert.notEqual(forestGift.href, fungalBloom.href);
+});
 
 test('every structural growth stat changes its corresponding visual profile', () => {
   const baseState = state();

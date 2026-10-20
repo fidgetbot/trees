@@ -1,4 +1,4 @@
-import { renderEncounterArt } from './fauna-art.js?rev=incident-system-v1';
+import { renderEncounterArt } from './fauna-art.js?rev=event-portraits-v1';
 
 function escapeHtml(value = '') {
   return String(value)
