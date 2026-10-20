@@ -40,12 +40,12 @@ const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
 const GROUND_ASSET_REVISION='painted-snow-v1';
-const HEDGE_ASSET_REVISION='seasonal-hedges-v1';
+const HEDGE_ASSET_REVISION='seasonal-hedges-v2';
 const TREE_REMAINS_ASSET_REVISION='painted-tree-remains-v1';
 const WINTER_SNOW_TILE_URL=new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${GROUND_ASSET_REVISION}`,import.meta.url).href;
 const HEDGE_ASSET_URLS=Object.freeze(Object.fromEntries(['Spring','Summer','Autumn','Winter'].map(season=>[
   season,
-  new URL(`../assets/hedges/${season.toLowerCase()}-hedge-tile-v1.png?rev=${HEDGE_ASSET_REVISION}`,import.meta.url).href,
+  new URL(`../assets/hedges/${season.toLowerCase()}-hedge-tile-v2.png?rev=${HEDGE_ASSET_REVISION}`,import.meta.url).href,
 ])));
 const DEAD_TREE_STUMP_URL=new URL(`../assets/trees/remains/dead-fruit-tree-stump-v1.png?rev=${TREE_REMAINS_ASSET_REVISION}`,import.meta.url).href;
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
@@ -752,7 +752,7 @@ function drawSeasonalHedge(ctx,w,groundY,worldZoom,viewOffsetX,season){
   const image=hedgeAssets.get(season);if(!image)return;
   const layout=getSeasonalHedgeLayout(w,groundY,worldZoom,viewOffsetX);
   const opacity=season==='Winter'?.52:season==='Autumn'?.42:.38;
-  ctx.save();ctx.globalAlpha=opacity;ctx.filter='saturate(.68) contrast(.88) brightness(.98)';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.save();ctx.globalAlpha=opacity;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
     const x=layout.anchor+index*layout.tileSize;
     if(Math.abs(index)%2){ctx.save();ctx.translate(x+layout.tileSize,layout.top);ctx.scale(-1,1);ctx.drawImage(image,0,0,layout.tileSize,layout.tileSize);ctx.restore()}

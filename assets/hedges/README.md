@@ -3,17 +3,23 @@
 The Canvas uses four transparent 512 × 512 hedge tiles behind the grove at the
 soil horizon:
 
-- `spring-hedge-tile-v1.png`
-- `summer-hedge-tile-v1.png`
-- `autumn-hedge-tile-v1.png`
-- `winter-hedge-tile-v1.png`
+- `spring-hedge-tile-v2.png`
+- `summer-hedge-tile-v2.png`
+- `autumn-hedge-tile-v2.png`
+- `winter-hedge-tile-v2.png`
 
-They are exact quadrant crops, resized with Lanczos filtering, from the
+The preserved v1 files are exact quadrant crops, resized with Lanczos filtering, from the
 preserved 1254 × 1254 generated sheet at
-`source/four-season-hedges-master-v1.png`. Runtime alternates each tile with a
-horizontal mirror, making every repeated edge meet its matching edge. The
-hedge is drawn in world scale rather than screen scale so it fills the close
-Seed view but remains a low horizon band behind a mature tree.
+`source/four-season-hedges-master-v1.png`. The v2 runtime files retain the
+exact v1 alpha and geometry while mapping every RGB channel with
+`166 + 0.35 × source`, mixing the painting 65% toward white. The nominal
+source floor is therefore `#A6A6A6`, about 35% gray; browser-decoded painted
+pixels above a practical alpha threshold remain `#999999` (40% gray) or
+lighter. Runtime
+alternates each tile with a horizontal mirror, making every repeated edge meet
+its matching edge. The hedge is drawn in world scale rather than screen scale
+so it fills the close Seed view but remains a low horizon band behind a mature
+tree.
 
 Generated with the built-in image-generation tool on 2026-10-19, using the
 existing Plum foliage and winter snow assets as style-only references.
@@ -33,7 +39,7 @@ animals, text, labels, dividers, borders, shadows, UI, and watermarks.”
 SHA-256:
 
 - Master: `00cc37745ba84e9d2bcaf3a31eca9146bdb66e5f499deab8eaed19e723785a34`
-- Spring: `91e12da7d0de4360f5d2905953c5f56b9e8dbc2ede3c77f238c66bcb9e0faa39`
-- Summer: `2758c5c99b51a6227d16cd270e09f15b1bf989dc483bb906762a9889a649cc5e`
-- Autumn: `ee15c80c58f9fcca181011c33b71f00cec090d4045c82147deffcdc75acf566c`
-- Winter: `04cc7082541622ed70f3b45ca792ee125e0e2f30440feeb5042436b8b5659792`
+- Spring v2: `6fad2d2eae95780999f1ac1d3405eb5e68c82c2761b7d0035852ead9aba0bbcc`
+- Summer v2: `611b6ca8bbf691ad6086c940e75beedef8444197f891b29fecc9b6907f916246`
+- Autumn v2: `6b705927932bdcd73fb1831d16f4f5230131802c5bb4664a61f6b4b6cbfc6ce1`
+- Winter v2: `d3a37104670167cfaa5852fc1f92b4e695b098fdeba92e02d64c97186387d6fd`
