@@ -63,7 +63,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=incident-system-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=turn-recovery-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=season-cards-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -83,15 +83,16 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=future-actions-label-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=night-branches-v3';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=event-portraits-v1';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=framed-trees-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=season-cards-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=seasonal-hedges-v3';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=growth-containment-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=future-actions-label-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=season-cards-v1';
+import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=season-cards-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
 
 function computeCurrentLifeStage() {
@@ -646,6 +647,21 @@ function recordPopup(title, body) {
 function showModal(title, body, onContinue, { record = true, ...presentation } = {}) {
   if (record) recordPopup(title, body);
   return afterGrowthAnimation(() => showStandardModal(els, title, body, onContinue, presentation));
+}
+
+function presentSeasonChange({ season, year }, onContinue) {
+  const presentation = seasonChangePresentation(season.name, year);
+  showModal(
+    presentation.title,
+    renderSeasonChangeBody(presentation),
+    onContinue,
+    {
+      kind: 'season-change',
+      eyebrow: presentation.eyebrow,
+      sceneArt: presentation.sceneArt,
+      buttonLabel: presentation.buttonLabel,
+    },
+  );
 }
 
 const POST_GROWTH_DIALOG_PAUSE_MS = 1000;
@@ -1641,6 +1657,7 @@ engine = createEngine({
   updateUI,
   render,
   showModal,
+  presentSeasonChange,
   processIncidentResponses,
   maybeShowHealthWarning,
   deathFlavor,

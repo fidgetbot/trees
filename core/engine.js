@@ -137,6 +137,7 @@ export function createEngine(deps) {
     updateUI,
     render,
     showModal,
+    presentSeasonChange,
     processIncidentResponses,
     maybeShowHealthWarning,
     deathFlavor,
@@ -374,27 +375,40 @@ export function createEngine(deps) {
     state.turnsInStage += getStageProgressIncrement();
     if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
 
+    let seasonChanged = false;
     if (state.turnInSeason < 3) {
       state.turnInSeason += 1;
     } else {
       state.turnInSeason = 1;
       state.seasonIndex += 1;
+      seasonChanged = true;
       if (state.seasonIndex > 3) {
         state.seasonIndex = 0;
         state.year += 1;
       }
-      if (currentSeason(state).name === 'Spring') {
+    }
+
+    const continueAdvancedTurn = () => {
+      if (currentSeason(state).name === 'Spring' && seasonChanged) {
         updateScoreState(state); updateUI(); render();
         if (handleSpringViability(state, (fate, prevSeeds) => {
           onAfterSpringViability?.(fate, prevSeeds);
           afterSpringAdvance(state, hooks);
         })) return true;
       }
+
+      return afterSpringAdvance(state, {
+        onAfterAdvance,
+      });
+    };
+
+    if (seasonChanged && presentSeasonChange) {
+      updateScoreState(state); updateUI(); render();
+      presentSeasonChange({ season: currentSeason(state), year: state.year }, continueAdvancedTurn);
+      return true;
     }
 
-    return afterSpringAdvance(state, {
-      onAfterAdvance,
-    });
+    return continueAdvancedTurn();
   }
 
   function showEventPhase(state) {

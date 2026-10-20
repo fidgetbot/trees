@@ -1,0 +1,15 @@
+{
+  "generator": "built-in image_gen",
+  "generated": "2026-10-20",
+  "master": {
+    "path": "source/four-season-card-art-master-v1.png",
+    "sha256": "d405bc5c71519ad68fec0b4729a6809adf6801a1030760473cf65841ef1ab2e3"
+  },
+  "prompt": "Create a coherent four-season botanical asset sheet for small season-change cards in Trees: a transparent 2×2 grid of similarly angled orchard twigs. Spring has tender leaves and blush blossoms; Summer has mature deep-green leaves and one subtle unripe fruit; Autumn has muted ochre, amber, russet, and faded-red leaves; Winter is a bare budded twig with restrained snow and one tiny icicle. Use soft hand-painted natural-history watercolor and colored-pencil texture, restrained saturation, generous transparent margins, and no text, labels, cards, borders, backgrounds, or watermark.",
+  "assets": {
+    "spring-card-art-v1.png": { "quadrant": "top-left", "sha256": "e077844f61ef6dba464ca6e1dd06c9b6b643879467885221f9cbc231532ea543" },
+    "summer-card-art-v1.png": { "quadrant": "top-right", "sha256": "577137862a8684febf83f1173c70ddddfd3bad30ba72eaafb7e83e45c7620700" },
+    "autumn-card-art-v1.png": { "quadrant": "bottom-left", "sha256": "f73172c5e4345ddf4cacdb925f2cd399b0c0dcd1a08557fcb1d99893528a49be" },
+    "winter-card-art-v1.png": { "quadrant": "bottom-right", "sha256": "7d0d3d49c6d26f6003861f76a8dc065bc25940c3a56a866d1d90826a67e72c3c" }
+  }
+}

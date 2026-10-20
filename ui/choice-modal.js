@@ -1,5 +1,5 @@
 import { MINIMAP_FRUIT_ASSETS } from './grove-minimap.js?rev=fruit-minimap-v3';
-import { openModalSurface } from './modal.js?rev=framed-trees-v1';
+import { openModalSurface } from './modal.js?rev=season-cards-v1';
 
 export function showChoiceModalUI(els, title, body, choices, presentation = {}) {
   els.modalTitle.textContent = title;

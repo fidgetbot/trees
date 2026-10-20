@@ -47,6 +47,23 @@ test('spring settlement reports once and resumes gathering only after acknowledg
   assert.equal(state.seasonIndex, 0);
 });
 
+test('season change pauses the advanced turn until its card is acknowledged', () => {
+  const state = turnState({ seasonIndex: 1, turnInSeason: 3 });
+  let acknowledge, gatherings = 0, notice = null;
+  const engine = turnEngine({
+    presentSeasonChange(context, onContinue) { notice = context; acknowledge = onContinue; },
+    showResourcePhase() { gatherings++; },
+  });
+  engine.advanceTurn(state);
+  assert.equal(state.seasonIndex, 2);
+  assert.equal(state.turnInSeason, 1);
+  assert.equal(gatherings, 0);
+  assert.equal(notice.season.name, 'Autumn');
+  assert.equal(notice.year, 2);
+  acknowledge();
+  assert.equal(gatherings, 1);
+});
+
 for (const warning of ['maybeShowGrowthNudge', 'maybeShowAllyWarning']) {
   test(`${warning} resumes the advanced turn through gathering`, () => {
     for (const actions of [0, 2]) {

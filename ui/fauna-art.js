@@ -1,6 +1,7 @@
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
 const EVENT_ASSET_REVISION='night-field-journal-v4';
+const SEASON_ASSET_REVISION='season-cards-v1';
 export const ANIMAL_ASSET_URLS=Object.freeze({
   woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
@@ -40,6 +41,10 @@ export const EVENT_ASSET_URLS=Object.freeze({
   'event-damage':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'human-surveyor':new URL(`../assets/humans/surveyor-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'human-logger':new URL(`../assets/humans/logger-v1-axe.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'season-spring':new URL(`../assets/seasons/spring-card-art-v1.png?rev=${SEASON_ASSET_REVISION}`,import.meta.url).href,
+  'season-summer':new URL(`../assets/seasons/summer-card-art-v1.png?rev=${SEASON_ASSET_REVISION}`,import.meta.url).href,
+  'season-autumn':new URL(`../assets/seasons/autumn-card-art-v1.png?rev=${SEASON_ASSET_REVISION}`,import.meta.url).href,
+  'season-winter':new URL(`../assets/seasons/winter-card-art-v1.png?rev=${SEASON_ASSET_REVISION}`,import.meta.url).href,
 });
 
 export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
@@ -97,6 +102,8 @@ const LABELS = {
   'event-offspring': 'A young offspring tree', 'event-relationship': 'Neighboring trees in the grove',
   'event-ambient': 'Moonlit branches', 'event-damage': 'A weathered tree',
   'human-surveyor': 'A human surveyor', 'human-logger': 'A logger with cutting tools',
+  'season-spring': 'A flowering spring branch', 'season-summer': 'A leafy summer branch',
+  'season-autumn': 'A branch with autumn leaves', 'season-winter': 'A snow-covered winter branch',
 };
 
 function treeArtwork(kind){

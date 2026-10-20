@@ -1,4 +1,5 @@
 import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
+import { seasonProgress } from './seasons.js?rev=season-cards-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;
@@ -76,6 +77,16 @@ export function updateHudUI({
   if (notebookScore) notebookScore.textContent = state.score;
   document.getElementById('year').textContent = state.year;
   document.getElementById('season').textContent = currentSeasonName;
+  const timePill = document.querySelector('.grove-time-pill');
+  const seasonProgressPie = document.getElementById('season-progress-pie');
+  const seasonProgressDetail = document.getElementById('season-progress-detail');
+  const progress = seasonProgress(state.turnInSeason);
+  if (seasonProgressPie) {
+    seasonProgressPie.style.setProperty('--season-progress', `${progress.degrees}deg`);
+    seasonProgressPie.dataset.season = currentSeasonName.toLowerCase();
+  }
+  if (seasonProgressDetail) seasonProgressDetail.textContent = progress.label;
+  if (timePill) timePill.setAttribute('aria-label', `Year ${state.year}, ${currentSeasonName}, ${progress.label.toLowerCase()}`);
 
   const stageEl = document.getElementById('life-stage');
   if (stageEl) {
