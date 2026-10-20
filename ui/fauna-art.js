@@ -1,6 +1,6 @@
 const ANIMAL_ASSET_REVISION='wildlife-browser-sprites-v1';
 const FAUNA_ASSET_REVISION='final-fauna-rollout-v1';
-const EVENT_ASSET_REVISION='night-field-journal-v3';
+const EVENT_ASSET_REVISION='night-field-journal-v4';
 export const ANIMAL_ASSET_URLS=Object.freeze({
   woodpecker:new URL(`../assets/animals/woodpecker-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
   beaver:new URL(`../assets/animals/beaver-v1.png?rev=${ANIMAL_ASSET_REVISION}`,import.meta.url).href,
@@ -36,7 +36,7 @@ export const EVENT_ASSET_URLS=Object.freeze({
   'event-nutrients':new URL(`../assets/events/forest-gift-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-offspring':new URL(`../assets/trees/cherry-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-relationship':new URL(`../assets/trees/pear-young-tree-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
-  'event-ambient':new URL(`../assets/events/moonlit-night-branches-v2.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
+  'event-ambient':new URL(`../assets/events/moonlit-night-branches-v3.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'event-damage':new URL(`../assets/trees/plum-ancient-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'human-surveyor':new URL(`../assets/humans/surveyor-v1.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,
   'human-logger':new URL(`../assets/humans/logger-v1-axe.png?rev=${EVENT_ASSET_REVISION}`,import.meta.url).href,

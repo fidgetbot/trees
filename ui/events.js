@@ -1,4 +1,4 @@
-import { renderEncounterArt } from './fauna-art.js?rev=night-branches-v2';
+import { renderEncounterArt } from './fauna-art.js?rev=night-branches-v3';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -51,7 +51,7 @@ export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = 
     : '<p class="quiet-night-summary"><strong>Quiet night.</strong> The forest is still. You rest.</p>';
 
   return `
-    <img class="night-specimen" src="assets/events/moonlit-night-branches-v2.png?rev=night-branches-v2" alt="" aria-hidden="true" />
+    <img class="night-specimen" src="assets/events/moonlit-night-branches-v3.png?rev=night-branches-v3" alt="" aria-hidden="true" />
     <p class="night-prose">Darkness settles over the grove.</p>
     <section class="night-journal" aria-label="Night journal">${rows}</section>
     ${pendingResponses ? `<p class="encounter-queue-summary"><strong>${pendingResponses} ${pendingResponses === 1 ? 'encounter needs' : 'encounters need'} your response.</strong></p>` : ''}
