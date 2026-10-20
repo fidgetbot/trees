@@ -40,8 +40,13 @@ const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
 const GROUND_ASSET_REVISION='painted-snow-v1';
+const HEDGE_ASSET_REVISION='seasonal-hedges-v1';
 const TREE_REMAINS_ASSET_REVISION='painted-tree-remains-v1';
 const WINTER_SNOW_TILE_URL=new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${GROUND_ASSET_REVISION}`,import.meta.url).href;
+const HEDGE_ASSET_URLS=Object.freeze(Object.fromEntries(['Spring','Summer','Autumn','Winter'].map(season=>[
+  season,
+  new URL(`../assets/hedges/${season.toLowerCase()}-hedge-tile-v1.png?rev=${HEDGE_ASSET_REVISION}`,import.meta.url).href,
+])));
 const DEAD_TREE_STUMP_URL=new URL(`../assets/trees/remains/dead-fruit-tree-stump-v1.png?rev=${TREE_REMAINS_ASSET_REVISION}`,import.meta.url).href;
 const HUMAN_ASSET_REVISION='logger-sprites-v1';
 const SURVEYOR_ASSET_URLS=Object.freeze([
@@ -213,6 +218,8 @@ const insectAssets=new Map();
 let insectAssetLoadPromise=null;
 let winterSnowAsset=null;
 let winterSnowAssetLoadPromise=null;
+const hedgeAssets=new Map();
+let hedgeAssetLoadPromise=null;
 let deadTreeStumpAsset=null;
 let deadTreeStumpAssetLoadPromise=null;
 let mirroredSnowTile=null;
@@ -290,6 +297,17 @@ export function loadWinterGroundAsset(onAssetLoad){
   return winterSnowAssetLoadPromise;
 }
 
+export function loadHedgeAssets(onAssetLoad){
+  if(hedgeAssetLoadPromise)return hedgeAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  hedgeAssetLoadPromise=Promise.all(Object.entries(HEDGE_ASSET_URLS).map(([season,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{hedgeAssets.set(season,image);onAssetLoad?.({family:'ground:hedges',season,url});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return hedgeAssetLoadPromise;
+}
+
 export function loadTreeRemainsAsset(onAssetLoad){
   if(deadTreeStumpAssetLoadPromise)return deadTreeStumpAssetLoadPromise;
   if(typeof Image==='undefined')return Promise.resolve(false);
@@ -303,7 +321,7 @@ export function loadTreeRemainsAsset(onAssetLoad){
 
 export function loadCanvasAssets(onAssetLoad){
   canvasAssetLoadListener=onAssetLoad||canvasAssetLoadListener;
-  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad),loadTreeRemainsAsset(onAssetLoad)]).then(results=>results.some(Boolean));
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad),loadHedgeAssets(onAssetLoad),loadTreeRemainsAsset(onAssetLoad)]).then(results=>results.some(Boolean));
 }
 
 export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
@@ -430,6 +448,21 @@ export function getWinterSnowSurface(viewportWidth,groundY){
   return{top,layerTop:groundY-14,opaqueBottom:groundY+5,fadeBottom:groundY+18};
 }
 
+const HEDGE_WORLD_TILE_SIZE=64;
+export function getSeasonalHedgeLayout(viewportWidth,groundY,worldZoom,viewOffsetX=0){
+  const width=Math.max(0,Number(viewportWidth)||0),zoom=Math.max(.04,Number(worldZoom)||0),tileSize=HEDGE_WORLD_TILE_SIZE*zoom;
+  // Center the player inside a tile, not on a mirrored join. The shift is
+  // especially important at Seed zoom, where one hedge tile fills the view.
+  const anchor=width/2+(Number(viewOffsetX)||0)-tileSize/2;
+  return{
+    tileSize,
+    top:(Number(groundY)||0)-tileSize,
+    anchor,
+    firstIndex:Math.floor((0-anchor)/tileSize)-1,
+    lastIndex:Math.ceil((width-anchor)/tileSize)+1,
+  };
+}
+
 export function getSceneArtworkScale(viewportWidth){
   return Math.max(.78,Math.min(1.6,(Number(viewportWidth)||0)/780));
 }
@@ -537,6 +570,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     ctx.fillStyle=background(ctx,currentSeason);ctx.fillRect(0,0,w,groundY);
     const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
     ctx.fillStyle=soil;ctx.fillRect(0,groundY,w,h-groundY);ctx.strokeStyle='rgba(84,70,45,.3)';line(ctx,0,groundY,w,groundY);
+    drawSeasonalHedge(ctx,w,groundY,camera.zoom,viewOffset.x,currentSeason.name);
     if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
     drawDirectionalCanopyShadows(ctx,drawableTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
   }
@@ -711,6 +745,19 @@ function drawNearGround(ctx,w,h,groundY,rank){
     }
   }
   for(let i=0;i<(rank===0?16:8);i++){ctx.fillStyle=i%2?'rgba(151,132,105,.48)':'rgba(43,35,30,.40)';ctx.beginPath();ctx.arc(10+r()*(w-20),groundY+12+r()*depth*.9,.3+r()*.48,0,TAU);ctx.fill()}
+  ctx.restore();
+}
+
+function drawSeasonalHedge(ctx,w,groundY,worldZoom,viewOffsetX,season){
+  const image=hedgeAssets.get(season);if(!image)return;
+  const layout=getSeasonalHedgeLayout(w,groundY,worldZoom,viewOffsetX);
+  const opacity=season==='Winter'?.52:season==='Autumn'?.42:.38;
+  ctx.save();ctx.globalAlpha=opacity;ctx.filter='saturate(.68) contrast(.88) brightness(.98)';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
+    const x=layout.anchor+index*layout.tileSize;
+    if(Math.abs(index)%2){ctx.save();ctx.translate(x+layout.tileSize,layout.top);ctx.scale(-1,1);ctx.drawImage(image,0,0,layout.tileSize,layout.tileSize);ctx.restore()}
+    else ctx.drawImage(image,x,layout.top,layout.tileSize,layout.tileSize);
+  }
   ctx.restore();
 }
 

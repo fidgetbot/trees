@@ -32,6 +32,7 @@ for (const [loader, brokenFile, family] of [
   ['loadAnimalAssets', 'browser-rabbit-v1.png', 'animals'],
   ['loadInsectAssets', 'pollinator-hoverfly-v1.png', 'insects'],
   ['loadWinterGroundAsset', null, 'ground:winter'],
+  ['loadHedgeAssets', 'summer-hedge-tile-v1.png', 'ground:hedges'],
   ['loadTreeRemainsAsset', null, 'trees:remains'],
 ]) {
   test(`${loader}: successful assets notify once; failures do not suppress siblings`, async t => {

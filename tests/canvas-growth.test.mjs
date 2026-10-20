@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -214,6 +214,17 @@ test('winter snow overlaps the soil horizon and spans both viewport edges before
   assert.ok(surface.fadeBottom>surface.opaqueBottom);
   assert.ok(surface.opaqueBottom-370<=5);
   assert.ok(surface.fadeBottom-surface.layerTop<=32);
+});
+
+test('seasonal hedge keeps world scale so seed zoom reads much larger than mature-tree zoom',()=>{
+  const seed=getSeasonalHedgeLayout(390,370,10);
+  const mature=getSeasonalHedgeLayout(390,370,.86);
+  assert.equal(seed.tileSize,640);
+  assert.equal(mature.tileSize,55.04);
+  assert.ok(seed.top<20,'seed view should be almost entirely backed by hedge');
+  assert.ok(mature.top>310,'mature view should leave only a low hedge band');
+  assert.ok(seed.firstIndex<seed.lastIndex);
+  assert.ok(mature.firstIndex<mature.lastIndex);
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {
