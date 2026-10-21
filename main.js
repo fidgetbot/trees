@@ -80,7 +80,7 @@ import {
 } from './core/incidents.js?rev=incident-system-v1';
 import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=incident-system-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=future-actions-label-v1';
+import { renderActionPanels } from './ui/actions.js?rev=drag-carousel-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=single-response-cue-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=season-cards-v1';

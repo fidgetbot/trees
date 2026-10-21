@@ -1676,24 +1676,26 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
 .game-started .context-shortlist.action-carousel {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: clamp(142px, 42%, 178px);
+  grid-auto-columns: 42%;
   grid-template-columns: none;
   gap: 7px;
   max-width: 100%;
-  padding: 1px 2px 7px;
+  padding: 1px 2px 4px;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
   scroll-padding-inline: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: #71806766 transparent;
+  scrollbar-width: none;
   touch-action: pan-x;
 }
 .game-started .context-shortlist.action-carousel:focus-visible { outline: 2px solid #8c713e; outline-offset: 3px; border-radius: 12px; }
 .game-started .action-carousel .context-action { width: 100%; scroll-snap-align: start; }
-.game-started .action-carousel::-webkit-scrollbar { height: 5px; }
-.game-started .action-carousel::-webkit-scrollbar-thumb { border-radius: 999px; background: #71806766; }
+.game-started .action-carousel::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.carousel-scrollbar { position: relative; height: 7px; margin: -8px 3px 0; overflow: hidden; border-radius: 999px; background: #dfe3d3; cursor: pointer; touch-action: none; }
+.carousel-scrollbar.hidden { display: none; }
+.carousel-scrollbar-thumb { position: absolute; inset: 0 auto 0 0; display: block; border-radius: inherit; background: #66765d; will-change: transform; }
+.carousel-scrollbar.dragging .carousel-scrollbar-thumb { background: #526348; }
 .game-started .context-action { min-height: 66px; padding: 9px; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-content: center; gap: 3px 6px; box-shadow: none; border: 1px solid #66826130; background: #dce7cd9c; }
 .context-action-icon { font-size: 16px; }
 .game-started .context-action > strong { font-size: var(--ui-font-floor); }
@@ -1744,6 +1746,7 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
     font-size: 16px;
     line-height: 1.4;
   }
+  .game-started .action-carousel .context-action { min-height: 122px; }
   .game-started .context-action .cost-icon,
   .game-started .context-action .cost-number strong { font-size: 16px; }
   .game-started .dock-toolbar > span {
@@ -1752,6 +1755,12 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
   .game-started .dock-toolbar button {
     font-size: 16px;
   }
+}
+@media (hover: hover) and (pointer: fine) {
+  .game-started .action-carousel,
+  .game-started .action-carousel .context-action { cursor: grab; }
+  .game-started .action-carousel.dragging,
+  .game-started .action-carousel.dragging .context-action { cursor: grabbing; user-select: none; }
 }
 @media (max-height: 500px) and (min-width: 600px) {
   .game-started #hud-panel { left: auto; right: 10px; width: 360px; }

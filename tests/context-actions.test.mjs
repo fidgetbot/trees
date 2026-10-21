@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { describeNeighborEffects, getContextualActions, isActionRelevantToTarget, pickSceneTarget, stabilizeContextualActionOrder } from '../ui/context-actions.js';
+import { carouselScrollbarMetrics } from '../ui/actions.js';
 
 const entry = (key, category = 'growth') => ({ action: { key, category, name: key } });
 const relationship = value => ({ name: value >= 60 ? 'Ally' : value < 0 ? 'Rival' : 'Neutral' });
@@ -86,6 +87,16 @@ test('the player carousel can include every usable action without truncation', (
     getContextualActions({ target, usableActions, state, limit: Number.POSITIVE_INFINITY }).map(item => item.action.key),
     ['extendRoot', 'growLeaves', 'growBranch', 'bark', 'taproot'],
   );
+});
+
+test('carousel scrollbar geometry tracks overflow and clamps restored positions', () => {
+  assert.deepEqual(carouselScrollbarMetrics({ clientWidth: 600, scrollWidth: 1200, scrollLeft: 300 }), {
+    overflow: true, maxScroll: 600, thumbWidth: 300, thumbLeft: 150,
+  });
+  assert.deepEqual(carouselScrollbarMetrics({ clientWidth: 600, scrollWidth: 500, scrollLeft: 999 }), {
+    overflow: false, maxScroll: 0, thumbWidth: 600, thumbLeft: 0,
+  });
+  assert.equal(carouselScrollbarMetrics({ clientWidth: 200, scrollWidth: 2000, scrollLeft: 9999 }).thumbLeft, 152);
 });
 
 test('repeated contextual choices retain their established button order when priorities change', () => {

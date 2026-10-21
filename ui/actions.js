@@ -1,4 +1,61 @@
 import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
+
+export function carouselScrollbarMetrics({ clientWidth = 0, scrollWidth = 0, scrollLeft = 0, minThumbWidth = 48 } = {}) {
+  const viewport = Math.max(0, Number(clientWidth) || 0);
+  const content = Math.max(viewport, Number(scrollWidth) || 0);
+  const maxScroll = Math.max(0, content - viewport);
+  const thumbWidth = maxScroll > 0
+    ? Math.min(viewport, Math.max(minThumbWidth, viewport * (viewport / content)))
+    : viewport;
+  const thumbTravel = Math.max(0, viewport - thumbWidth);
+  const clampedScroll = Math.max(0, Math.min(maxScroll, Number(scrollLeft) || 0));
+  return {
+    overflow: maxScroll > 1,
+    maxScroll,
+    thumbWidth,
+    thumbLeft: maxScroll > 0 ? thumbTravel * (clampedScroll / maxScroll) : 0,
+  };
+}
+
+function attachCarouselPointerDrag(shortlist, onScroll) {
+  let drag = null;
+  let suppressNextClick = false;
+  const finish = (event, { cancelled = false } = {}) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const moved = drag.moved && !cancelled;
+    drag = null;
+    shortlist.classList.remove('dragging');
+    if (shortlist.hasPointerCapture?.(event.pointerId)) shortlist.releasePointerCapture(event.pointerId);
+    if (moved) {
+      suppressNextClick = true;
+      setTimeout(() => { suppressNextClick = false; }, 0);
+      onScroll?.();
+    }
+  };
+  shortlist.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    drag = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: shortlist.scrollLeft, moved: false };
+  });
+  shortlist.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const delta = event.clientX - drag.startX;
+    if (!drag.moved && Math.abs(delta) < 5) return;
+    drag.moved = true;
+    shortlist.setPointerCapture?.(event.pointerId);
+    shortlist.classList.add('dragging');
+    event.preventDefault();
+    shortlist.scrollLeft = drag.startScrollLeft - delta;
+  });
+  shortlist.addEventListener('pointerup', event => finish(event));
+  shortlist.addEventListener('pointercancel', event => finish(event, { cancelled: true }));
+  shortlist.addEventListener('click', event => {
+    if (!suppressNextClick) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    suppressNextClick = false;
+  }, true);
+}
+
 export function renderActionPanels({
   els,
   categories,
@@ -20,6 +77,7 @@ export function renderActionPanels({
   const isNeighborOverview = contextTarget?.type === 'neighbor-tree';
   dockToolbar?.classList.toggle('hidden', isNeighborOverview);
   dockToolbar?.setAttribute('aria-hidden', String(isNeighborOverview));
+  els.actionsList.querySelector('.action-carousel')?._carouselResizeObserver?.disconnect();
   els.actionsList.innerHTML = '';
   const sheetActions = document.getElementById('sheet-actions');
   if (sheetActions) sheetActions.innerHTML = '';
@@ -74,6 +132,52 @@ export function renderActionPanels({
       button.onclick = () => onUseAction(action, scaledCost);
       shortlist.appendChild(button);
     });
+    const scrollbar = document.createElement('div');
+    scrollbar.className = 'carousel-scrollbar';
+    scrollbar.setAttribute('aria-hidden', 'true');
+    const scrollbarThumb = document.createElement('span');
+    scrollbarThumb.className = 'carousel-scrollbar-thumb';
+    scrollbar.appendChild(scrollbarThumb);
+    const updateScrollbar = () => {
+      const metrics = carouselScrollbarMetrics(shortlist);
+      scrollbar.classList.toggle('hidden', !metrics.overflow);
+      scrollbarThumb.style.width = `${metrics.thumbWidth}px`;
+      scrollbarThumb.style.transform = `translateX(${metrics.thumbLeft}px)`;
+    };
+    let scrollbarDrag = null;
+    const scrollFromPointer = clientX => {
+      const track = scrollbar.getBoundingClientRect();
+      const metrics = carouselScrollbarMetrics(shortlist);
+      const travel = Math.max(1, track.width - metrics.thumbWidth);
+      const thumbLeft = Math.max(0, Math.min(travel, clientX - track.left - scrollbarDrag.pointerOffset));
+      shortlist.scrollLeft = metrics.maxScroll * (thumbLeft / travel);
+    };
+    scrollbar.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const thumbRect = scrollbarThumb.getBoundingClientRect();
+      scrollbarDrag = {
+        pointerId: event.pointerId,
+        pointerOffset: event.target === scrollbarThumb ? event.clientX - thumbRect.left : thumbRect.width / 2,
+      };
+      scrollbar.setPointerCapture?.(event.pointerId);
+      scrollbar.classList.add('dragging');
+      event.preventDefault();
+      scrollFromPointer(event.clientX);
+    });
+    scrollbar.addEventListener('pointermove', event => {
+      if (!scrollbarDrag || event.pointerId !== scrollbarDrag.pointerId) return;
+      event.preventDefault();
+      scrollFromPointer(event.clientX);
+    });
+    const finishScrollbarDrag = event => {
+      if (!scrollbarDrag || event.pointerId !== scrollbarDrag.pointerId) return;
+      scrollbarDrag = null;
+      scrollbar.classList.remove('dragging');
+      if (scrollbar.hasPointerCapture?.(event.pointerId)) scrollbar.releasePointerCapture(event.pointerId);
+    };
+    scrollbar.addEventListener('pointerup', finishScrollbarDrag);
+    scrollbar.addEventListener('pointercancel', finishScrollbarDrag);
+    attachCarouselPointerDrag(shortlist, updateScrollbar);
     shortlist.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       const cards = [...shortlist.querySelectorAll('.context-action')];
@@ -95,10 +199,19 @@ export function renderActionPanels({
       shortlist.scrollLeft = Math.max(0, Math.min(shortlist.scrollWidth - shortlist.clientWidth, desiredLeft));
       onCarouselScroll?.(shortlist.scrollLeft);
     });
-    shortlist.addEventListener('scroll', () => onCarouselScroll?.(shortlist.scrollLeft), { passive: true });
+    shortlist.addEventListener('scroll', () => {
+      onCarouselScroll?.(shortlist.scrollLeft);
+      updateScrollbar();
+    }, { passive: true });
+    if (typeof ResizeObserver !== 'undefined') {
+      shortlist._carouselResizeObserver = new ResizeObserver(updateScrollbar);
+      shortlist._carouselResizeObserver.observe(shortlist);
+    }
     requestAnimationFrame(() => {
       shortlist.scrollLeft = Math.max(0, Number(carouselScrollLeft) || 0);
+      updateScrollbar();
     });
+    context.append(shortlist, scrollbar);
   } else {
     const empty = document.createElement('p');
     empty.className = 'context-empty';
@@ -107,7 +220,7 @@ export function renderActionPanels({
       : actionPoints <= 0 ? 'Your action points are used up. End turn to continue.' : 'You cannot take any actions with your current resources and conditions. End turn to continue.';
     shortlist.appendChild(empty);
   }
-  context.appendChild(shortlist);
+  if (shortlist.parentNode !== context) context.appendChild(shortlist);
   els.actionsList.appendChild(context);
 
   const allActions = document.createElement('details');
