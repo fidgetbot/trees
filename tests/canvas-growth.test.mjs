@@ -4,7 +4,8 @@ import { existsSync } from 'node:fs';
 
 import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { getJuvenileGeometry } from '../ui/juvenile-growth.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -83,6 +84,15 @@ test('every species and life stage resolves to a dedicated painted structure ass
 test('rooted seed retains the seed painting while its new structure decodes',()=>{
   assert.deepEqual(getTreeStructureFallbackKeys('rooted-seed'),['rooted-seed','seed']);
   assert.deepEqual(getTreeStructureFallbackKeys('sapling'),['sapling']);
+});
+
+test('leafless Sprouts use a species-normalized size between Seed and established Sprout framing',()=>{
+  const species=['Plum','Peach','Apricot','Pear','Cherry','Citrus'];
+  for(const name of species){
+    const leafless=getTreeStructureGeometry('rooted-seed',{selectedSpecies:name,presentationStage:'Sprout'});
+    const established=getJuvenileGeometry(name,'unfurling');
+    assert.ok(Math.abs(leafless.height/established.height-LEAFLESS_SPROUT_OCCUPANCY_RATIO)<1e-12,name);
+  }
 });
 
 test('dead trees retain their painted life-stage structure before becoming low painted stumps', () => {

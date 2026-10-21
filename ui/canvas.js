@@ -81,6 +81,7 @@ const ROOTED_SEED_SOURCE_BOUNDS=Object.freeze({
   Citrus:{width:256,height:322,imageHeight:434}, Peach:{width:226,height:387,imageHeight:454},
   Pear:{width:118,height:359,imageHeight:499}, Plum:{width:336,height:293,imageHeight:428},
 });
+export const LEAFLESS_SPROUT_OCCUPANCY_RATIO=26/34;
 export function getTreeStructureSourceRect(species,stageKey){
   const bounds=stageKey==='seed'?SEED_SOURCE_BOUNDS[species]:stageKey==='rooted-seed'?ROOTED_SEED_SOURCE_BOUNDS[species]:null;
   return bounds?{x:0,y:0,...bounds}:null;
@@ -349,7 +350,14 @@ export function getTreeStructureGeometry(stageKey,state={}){
   const base=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
   const seedBounds=getTreeStructureSourceRect(state.selectedSpecies,stageKey);
   if(seedBounds){
-    const scale=stageKey==='rooted-seed'&&state.presentationStage==='Sprout'?.33:1;
+    const unscaledHeight=base.width*seedBounds.height/seedBounds.width;
+    const sproutReference=stageKey==='rooted-seed'&&state.presentationStage==='Sprout'
+      ?getJuvenileGeometry(state.selectedSpecies,'unfurling',state)
+      :null;
+    // Rooted-seed paintings vary widely in their intrinsic proportions. Fit
+    // the leafless Sprout to one shared fraction of that species' established
+    // Sprout specimen instead of shrinking every species by the same amount.
+    const scale=sproutReference?sproutReference.height*LEAFLESS_SPROUT_OCCUPANCY_RATIO/unscaledHeight:1;
     return{...base,width:base.width*scale,height:base.width*scale*seedBounds.height/seedBounds.width,groundRatio:stageKey==='seed'?.92:base.groundRatio*seedBounds.imageHeight/seedBounds.height};
   }
   if(stageKey==='seed'||stageKey==='rooted-seed')return{...base};
