@@ -1699,7 +1699,7 @@ body.game-started { min-height: 0; height: 100dvh; overflow: hidden; background:
 .game-started .context-action { min-height: 66px; padding: 9px; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-content: center; gap: 3px 6px; box-shadow: none; border: 1px solid #66826130; background: #dce7cd9c; }
 .context-action-icon { font-size: 16px; }
 .game-started .context-action > strong { font-size: var(--ui-font-floor); }
-.game-started .context-action .action-description { grid-column: 1 / -1; margin: 1px 0 0; color: #5f6657; font-size: var(--ui-font-floor); line-height: 1.25; text-align: left; }
+.game-started .context-action .action-description { grid-column: 1 / -1; margin: 1px 0 0; color: #5f6657; font-size: var(--ui-font-floor); font-weight: 400; line-height: 1.25; text-align: left; }
 .game-started .context-action .action-costs { grid-column: 1 / -1; margin: 3px 0 0; }
 .game-started .context-action .cost { padding: 0 3px; background: none; }
 .game-started .context-empty { padding: 6px 0; background: none; }

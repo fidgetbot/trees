@@ -496,6 +496,6 @@ The current high-level goals are:
 - Encounter dialogs omit the generic “Life in the grove” kicker; chapter and gathering dialogs may retain a specific contextual kicker. Completed actions rely on their visible animation, specific outcome dialog, and history entry rather than a generic “Action succeeded” toast.
 
 - Info is a restrained botanical notebook: the painted species specimen and exact species description/bonus lead the sheet, followed by score, growth requirements, statistics, seasons, offspring and log. Redundant selection/“Your tree” labels and inspector/group toggle headings are removed. All Info sections are always open, with one internal sheet scrollbar; the action catalog keeps its separate behavior.
-- Every action card writes its concise verb-first effect beneath the action name; the phone dock, available catalog, temporarily unavailable list, and future-action list all use the same authoritative description without hover or disclosure controls.
+- Every action card writes its concise verb-first effect beneath the action name; carousel descriptions use regular weight beneath the heavier action title, while the phone dock, available catalog, temporarily unavailable list, and future-action list all use the same authoritative description without hover or disclosure controls.
 
 - The notebook is opened by a book-icon button between the year/season and resource bar (or by tapping the resource bar), not from the action/End turn dock. Top controls shrink within narrow viewports without hiding the notebook.
