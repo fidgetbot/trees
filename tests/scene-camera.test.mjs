@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, smootherSceneCamera, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
+import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, COMPARISON_CAMERA_TIMING, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, stageSceneOccupancy, STAGE_SCENE_OCCUPANCY, targetSceneZoom } from '../ui/scene-camera.js';
 
 const viewport = { width: 390, height: 720, topInset: 126, bottomInset: 190 };
 
@@ -73,61 +73,40 @@ test('camera interpolation reaches both exact endpoints', () => {
   assert.deepEqual(interpolateSceneCamera(from, to, 1), to);
 });
 
-test('tree comparison preserves shared scale before blending pan and logarithmic zoom',()=>{
+test('tree comparison interpolates pan, scale, and soil line through one eased motion',()=>{
   const from={x:40,groundY:520,worldZoom:18};
   const to={x:-120,groundY:470,worldZoom:1.8};
   const panX=-300;
-  const midPan=comparisonCameraFrame({from,panX,to,elapsed:400});
-  assert.equal(midPan.phase,'pan');
-  assert.equal(midPan.worldZoom,from.worldZoom);
-  assert.equal(midPan.groundY,from.groundY);
-  assert.ok(midPan.x<from.x&&midPan.x>panX);
-  const approach=comparisonCameraFrame({from,panX,to,elapsed:700});
-  assert.equal(approach.phase,'approach');
-  assert.ok(approach.worldZoom<from.worldZoom&&approach.worldZoom>to.worldZoom);
-  assert.ok(approach.groundY<from.groundY&&approach.groundY>to.groundY);
-  const done=comparisonCameraFrame({from,panX,to,elapsed:Infinity});
+  const middle=comparisonCameraFrame({from,panX,to,elapsed:400,duration:800});
+  assert.equal(middle.phase,'transition');
+  assert.equal(middle.worldZoom,(from.worldZoom+to.worldZoom)/2);
+  assert.equal(middle.groundY,(from.groundY+to.groundY)/2);
+  const early=comparisonCameraFrame({from,panX,to,elapsed:80,duration:800});
+  assert.ok(early.worldZoom<from.worldZoom&&early.worldZoom>to.worldZoom);
+  assert.ok(early.groundY<from.groundY&&early.groundY>to.groundY);
+  const done=comparisonCameraFrame({from,panX,to,elapsed:Infinity,duration:800});
   assert.deepEqual(done,{phase:'done',done:true,...to});
 });
 
-test('zooming out begins earlier and spreads a large scale change across the approach',()=>{
-  const from={x:0,groundY:500,worldZoom:18};
-  const to={x:-100,groundY:450,worldZoom:1.8};
-  const before=comparisonCameraFrame({from,panX:-300,to,elapsed:400});
-  const earlyApproach=comparisonCameraFrame({from,panX:-300,to,elapsed:500});
-  const middleApproach=comparisonCameraFrame({from,panX:-300,to,elapsed:700});
-  assert.equal(before.phase,'pan');
-  assert.equal(before.worldZoom,from.worldZoom);
-  assert.equal(earlyApproach.phase,'approach');
-  assert.ok(earlyApproach.worldZoom<17.5&&earlyApproach.worldZoom>16.5);
-  assert.ok(middleApproach.worldZoom<6&&middleApproach.worldZoom>4);
-  assert.deepEqual(comparisonCameraFrame({from,panX:-300,to,elapsed:COMPARISON_CAMERA_TIMING.zoomOutDuration}),{phase:'done',done:true,...to});
+test('comparison duration grows with grove travel while scale changes get a bounded allowance',()=>{
+  const sameScale={worldZoom:4};
+  const adjacent=comparisonCameraDuration({from:sameScale,to:sameScale,travelFraction:.25});
+  const centerToEdge=comparisonCameraDuration({from:sameScale,to:sameScale,travelFraction:.5});
+  const edgeToEdge=comparisonCameraDuration({from:sameScale,to:sameScale,travelFraction:1});
+  assert.equal(adjacent,563);
+  assert.equal(centerToEdge,675);
+  assert.equal(edgeToEdge,900);
+  assert.ok(adjacent<centerToEdge&&centerToEdge<edgeToEdge);
+  assert.equal(comparisonCameraDuration({from:{worldZoom:20},to:{worldZoom:1},travelFraction:0}),593);
+  assert.ok(adjacent>=COMPARISON_CAMERA_TIMING.minimumDuration);
+  assert.ok(edgeToEdge<=COMPARISON_CAMERA_TIMING.maximumDuration);
 });
 
-test('comparison zoom begins at 65 percent of traveled distance without a velocity seam',()=>{
-  const from={x:40,groundY:520,worldZoom:1.8};
-  const to={x:-120,groundY:470,worldZoom:18};
-  const panX=-300;
-  let boundaryTime=0;
-  for(let step=0;step<=10000;step+=1){
-    const progress=step/10000;
-    if(smootherSceneCamera(progress)>=COMPARISON_CAMERA_TIMING.zoomStart){boundaryTime=progress*COMPARISON_CAMERA_TIMING.duration;break}
-  }
-  const before=comparisonCameraFrame({from,panX,to,elapsed:boundaryTime-.01});
-  const boundary=comparisonCameraFrame({from,panX,to,elapsed:boundaryTime});
-  const after=comparisonCameraFrame({from,panX,to,elapsed:boundaryTime+.01});
-  assert.ok(Math.abs(before.worldZoom-from.worldZoom)<1e-8);
-  assert.ok(Math.abs(boundary.worldZoom-from.worldZoom)<1e-8);
-  assert.ok(after.worldZoom>=from.worldZoom);
-  assert.ok(after.worldZoom-from.worldZoom<1e-8);
-});
-
-test('comparison zoom is multiplicatively symmetric in both directions',()=>{
-  const timing={duration:1000,zoomStart:0,zoomOutDuration:1000,zoomOutStart:0};
-  const out=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:1},panX:-100,to:{x:-20,groundY:450,worldZoom:16},elapsed:500,timing});
-  const inward=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:16},panX:-100,to:{x:-20,groundY:450,worldZoom:1},elapsed:500,timing});
-  assert.equal(out.worldZoom,4);
-  assert.equal(inward.worldZoom,4);
+test('comparison scale follows the same reversible linear path in both directions',()=>{
+  const out=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:1},panX:-100,to:{x:-20,groundY:450,worldZoom:16},elapsed:500,duration:1000});
+  const inward=comparisonCameraFrame({from:{x:0,groundY:500,worldZoom:16},panX:-100,to:{x:-20,groundY:450,worldZoom:1},elapsed:500,duration:1000});
+  assert.equal(out.worldZoom,8.5);
+  assert.equal(inward.worldZoom,8.5);
 });
 
 test('growth beyond stage occupancy keeps scale until the usable region is full', () => {

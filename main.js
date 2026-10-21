@@ -89,7 +89,7 @@ import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-c
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=seasonal-hedges-v4';
-import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=growth-containment-v1';
+import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=four-turn-seasons-v1';
@@ -398,7 +398,15 @@ function selectSceneTarget(target) {
   if(!isTreeSceneTarget(nextTarget)){render();return;}
   const plan=sceneCameraPlanForTarget(selectedSceneTarget);
   cameraViewportSignature=sceneViewportSignature();
-  animateSceneTargetComparison(fromView,plan,selectedSceneTarget,cameraStateKey(selectedSceneTarget));
+  animateSceneTargetComparison(fromView,plan,selectedSceneTarget,cameraStateKey(selectedSceneTarget),sceneTargetTravelFraction(previousTarget,selectedSceneTarget));
+}
+
+function sceneTargetTravelFraction(fromTarget,toTarget){
+  const positions=sceneHitTargets.filter(isTreeSceneTarget).map(target=>Number(target.mapPosition)).filter(Number.isFinite);
+  const fromPosition=Number(fromTarget?.mapPosition)||0,toPosition=Number(toTarget?.mapPosition)||0;
+  positions.push(fromPosition,toPosition);
+  const span=Math.max(...positions)-Math.min(...positions);
+  return span>0?Math.min(1,Math.abs(toPosition-fromPosition)/span):0;
 }
 
 function cancelSceneCameraAnimation(){
@@ -509,7 +517,7 @@ function sceneCameraPlanForTarget(target) {
 
 function sceneCameraForTarget(target){return sceneCameraPlanForTarget(target).camera}
 
-function animateSceneTargetComparison(from,plan,target,expectedStateKey){
+function animateSceneTargetComparison(from,plan,target,expectedStateKey,travelFraction=0){
   const to=plan.camera;
   if(!isValidSceneCamera(to)||!Number.isFinite(from?.x)||!Number.isFinite(from?.groundY)||!Number.isFinite(from?.worldZoom)||from.worldZoom<=0){
     comparisonCameraView=null;sceneCamera=isValidSceneCamera(to)?to:{x:0,y:0,zoom:1};render();return;
@@ -520,10 +528,20 @@ function animateSceneTargetComparison(from,plan,target,expectedStateKey){
   const revision=++cameraRevision,startedAt=performance.now();
   const panX=-(Number(target?.mapPosition)||0)*from.worldZoom;
   const destination={x:to.x,groundY:plan.groundY,worldZoom:plan.worldZoom};
+  const duration=comparisonCameraDuration({from,to:destination,travelFraction});
+  // Establish the transition before the first animation frame. Layout and
+  // artwork callbacks may refit immediately after the player's larger dock
+  // returns; without this state they can mistake the transition for idle and
+  // snap straight to the final camera.
+  comparisonCameraView={phase:'transition',done:false,...from};
   const tick=now=>{
     if(revision!==cameraRevision)return;
-    if(expectedStateKey!==cameraStateKey()){cameraAnimationFrame=null;comparisonCameraView=null;return}
-    const frame=comparisonCameraFrame({from,panX,to:destination,elapsed:now-startedAt});
+    if(expectedStateKey!==cameraStateKey()){
+      cameraAnimationFrame=null;
+      restartSceneTargetComparison();
+      return;
+    }
+    const frame=comparisonCameraFrame({from,panX,to:destination,elapsed:now-startedAt,duration});
     comparisonCameraView=frame;
     render();
     if(!frame.done)cameraAnimationFrame=requestAnimationFrame(tick);
@@ -1961,7 +1979,7 @@ function render() {
     canvas: { width, height: viewport.renderHeight, dataset: els.canvas.dataset },
     immersive: true,
     frameSelectedSubject: true,
-    isolateFocusedSubject:!comparisonCameraView||!['pan','pause'].includes(comparisonCameraView.phase),
+    isolateFocusedSubject:!comparisonCameraView,
     viewOffset: { x: comparisonCameraView?.x??sceneCamera.x, y: comparisonCameraView?0:sceneCamera.y },
     zoomMultiplier: sceneCamera.zoom,
     worldZoomOverride:comparisonCameraView?.worldZoom??null,

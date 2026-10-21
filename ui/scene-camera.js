@@ -9,10 +9,10 @@ export const STAGE_SCENE_OCCUPANCY=Object.freeze({
 });
 
 export const COMPARISON_CAMERA_TIMING=Object.freeze({
-  duration:820,
-  zoomStart:.65,
-  zoomOutDuration:940,
-  zoomOutStart:.42,
+  minimumDuration:450,
+  maximumDuration:950,
+  fullGroveDuration:900,
+  maximumScaleDuration:600,
 });
 
 export function isTreeSceneTarget(target){
@@ -105,18 +105,6 @@ export function smootherSceneCamera(progress) {
   return t*t*t*(t*(t*6-15)+10);
 }
 
-function inverseSmootherSceneCamera(value){
-  const target=Math.max(0,Math.min(1,value));
-  if(target===0||target===1)return target;
-  let low=0,high=1;
-  for(let pass=0;pass<24;pass+=1){
-    const middle=(low+high)/2;
-    if(smootherSceneCamera(middle)<target)low=middle;
-    else high=middle;
-  }
-  return(low+high)/2;
-}
-
 export function interpolateSceneCamera(from, to, progress) {
   const t = easeSceneCamera(progress);
   return {
@@ -126,30 +114,34 @@ export function interpolateSceneCamera(from, to, progress) {
   };
 }
 
-export function comparisonCameraFrame({from,panX,to,elapsed,timing=COMPARISON_CAMERA_TIMING}){
-  const zoomingOut=to.worldZoom<from.worldZoom;
-  const duration=Math.max(1,zoomingOut?(timing.zoomOutDuration??timing.duration):timing.duration);
-  const zoomStart=Math.max(0,Math.min(.99,zoomingOut?(timing.zoomOutStart??timing.zoomStart):timing.zoomStart));
-  const progress=Math.max(0,Math.min(1,elapsed/duration));
+export function comparisonCameraDuration({from,to,travelFraction=0,timing=COMPARISON_CAMERA_TIMING}){
+  const minimum=Math.max(1,timing.minimumDuration??450);
+  const maximum=Math.max(minimum,timing.maximumDuration??950);
+  const distance=Math.max(0,Math.min(1,Number(travelFraction)||0));
+  const scaleDifference=Math.abs(to.worldZoom-from.worldZoom)/Math.max(to.worldZoom,from.worldZoom);
+  const panDuration=minimum+distance*((timing.fullGroveDuration??900)-minimum);
+  const scaleDuration=minimum+scaleDifference*((timing.maximumScaleDuration??600)-minimum);
+  return Math.max(minimum,Math.min(maximum,Math.round(Math.max(panDuration,scaleDuration))));
+}
+
+export function comparisonCameraFrame({from,panX,to,elapsed,duration}){
+  const motionDuration=Math.max(1,Number(duration)||COMPARISON_CAMERA_TIMING.minimumDuration);
+  const progress=Math.max(0,Math.min(1,elapsed/motionDuration));
   if(progress>=1)return{phase:'done',done:true,...to};
-  const panProgress=smootherSceneCamera(progress);
-  const zoomStartProgress=zoomingOut?inverseSmootherSceneCamera(zoomStart):0;
-  const zoomProgress=zoomingOut
-    ?smootherSceneCamera((progress-zoomStartProgress)/(1-zoomStartProgress))
-    :smootherSceneCamera((panProgress-zoomStart)/(1-zoomStart));
-  const worldZoom=from.worldZoom*Math.pow(to.worldZoom/from.worldZoom,zoomProgress);
+  const motionProgress=smootherSceneCamera(progress);
+  const worldZoom=from.worldZoom+(to.worldZoom-from.worldZoom)*motionProgress;
   // Offsets cannot be blended independently of zoom: the renderer projects
   // a tree at worldX * worldZoom + x. Interpolate that screen-space anchor,
   // then solve for x at this frame's scale so the target cannot overshoot.
   const targetWorldX=-panX/from.worldZoom;
   const startAnchor=from.x+targetWorldX*from.worldZoom;
   const endAnchor=to.x+targetWorldX*to.worldZoom;
-  const anchor=startAnchor+(endAnchor-startAnchor)*panProgress;
+  const anchor=startAnchor+(endAnchor-startAnchor)*motionProgress;
   return{
-    phase:zoomProgress>0?'approach':'pan',
+    phase:'transition',
     done:false,
     x:anchor-targetWorldX*worldZoom,
-    groundY:from.groundY+(to.groundY-from.groundY)*zoomProgress,
+    groundY:from.groundY+(to.groundY-from.groundY)*motionProgress,
     worldZoom,
   };
 }
