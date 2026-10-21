@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
 
@@ -223,11 +223,22 @@ test('seasonal hedge keeps world scale so seed zoom reads much larger than matur
   assert.equal(mature.tileSize,55.04);
   assert.ok(seed.top<20,'seed view should be almost entirely backed by hedge');
   assert.ok(mature.top>310,'mature view should leave only a low hedge band');
-  assert.ok(Math.abs(seed.top+seed.drawHeight-(370+seed.groundOverlap))<1e-9,'hedge artwork should overlap the soil instead of ending above it');
-  assert.ok(Math.abs(mature.top+mature.drawHeight-(370+mature.groundOverlap))<1e-9,'ground overlap should remain proportional at mature-tree zoom');
-  assert.ok(seed.groundOverlap>mature.groundOverlap,'the contact correction should stay in shared world scale');
+  assert.ok(Math.abs(seed.top+seed.drawHeight-(370+seed.groundBleed))<1e-9,'hedge baseline should extend behind the soil mask');
+  assert.ok(Math.abs(mature.top+mature.drawHeight-(370+mature.groundBleed))<1e-9,'small hedge baseline should extend behind the soil mask');
+  assert.ok(seed.drawHeight<seed.tileSize,'trimmed hedge should preserve its source aspect ratio without downward stretching');
+  assert.deepEqual(seed.sourceRect,{x:2,y:0,width:508,height:500});
   assert.ok(seed.firstIndex<seed.lastIndex);
   assert.ok(mature.firstIndex<mature.lastIndex);
+});
+
+test('seasonal hedge tile rasterization has no fractional gaps at repeated joins',()=>{
+  for(const zoom of [29.12683355939567,10,.86]){
+    const layout=getSeasonalHedgeLayout(390,370,zoom,13.25),tiles=getSeasonalHedgeTileDraws(layout);
+    assert.ok(tiles[0].left<=0);
+    assert.ok(tiles.at(-1).right>=390);
+    for(let index=1;index<tiles.length;index++)assert.equal(tiles[index-1].right,tiles[index].left);
+    assert.ok(tiles.every(tile=>tile.width>0));
+  }
 });
 
 test('shading creates a dramatic lean toward the adjacent rival', () => {

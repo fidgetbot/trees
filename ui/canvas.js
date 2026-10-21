@@ -449,21 +449,35 @@ export function getWinterSnowSurface(viewportWidth,groundY){
 }
 
 const HEDGE_WORLD_TILE_SIZE=64;
-const HEDGE_GROUND_OVERLAP_RATIO=.06;
+const HEDGE_SOURCE_INSET_X=2;
+const HEDGE_SOURCE_BOTTOM=500;
+const HEDGE_SOURCE_WIDTH=512-HEDGE_SOURCE_INSET_X*2;
+const HEDGE_GROUND_BLEED_WORLD=.5;
 export function getSeasonalHedgeLayout(viewportWidth,groundY,worldZoom,viewOffsetX=0){
   const width=Math.max(0,Number(viewportWidth)||0),zoom=Math.max(.04,Number(worldZoom)||0),tileSize=HEDGE_WORLD_TILE_SIZE*zoom;
   // Center the player inside a tile, not on a mirrored join. The shift is
   // especially important at Seed zoom, where one hedge tile fills the view.
   const anchor=width/2+(Number(viewOffsetX)||0)-tileSize/2;
+  const groundBleed=Math.max(2,HEDGE_GROUND_BLEED_WORLD*zoom),drawHeight=tileSize*(HEDGE_SOURCE_BOTTOM/HEDGE_SOURCE_WIDTH);
   return{
     tileSize,
-    top:(Number(groundY)||0)-tileSize,
-    drawHeight:tileSize*(1+HEDGE_GROUND_OVERLAP_RATIO),
-    groundOverlap:tileSize*HEDGE_GROUND_OVERLAP_RATIO,
+    top:(Number(groundY)||0)+groundBleed-drawHeight,
+    drawHeight,
+    groundBleed,
+    sourceRect:{x:HEDGE_SOURCE_INSET_X,y:0,width:HEDGE_SOURCE_WIDTH,height:HEDGE_SOURCE_BOTTOM},
     anchor,
     firstIndex:Math.floor((0-anchor)/tileSize)-1,
     lastIndex:Math.ceil((width-anchor)/tileSize)+1,
   };
+}
+
+export function getSeasonalHedgeTileDraws(layout){
+  const draws=[];
+  for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
+    const left=Math.round(layout.anchor+index*layout.tileSize),right=Math.round(layout.anchor+(index+1)*layout.tileSize);
+    draws.push({index,left,right,width:right-left,mirrored:Math.abs(index)%2===1});
+  }
+  return draws;
 }
 
 export function getSceneArtworkScale(viewportWidth){
@@ -571,9 +585,9 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   ctx.clearRect(0,0,w,h);
   if(!measureTargetId){
     ctx.fillStyle=background(ctx,currentSeason);ctx.fillRect(0,0,w,groundY);
+    drawSeasonalHedge(ctx,w,groundY,camera.zoom,viewOffset.x,currentSeason.name);
     const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
     ctx.fillStyle=soil;ctx.fillRect(0,groundY,w,h-groundY);ctx.strokeStyle='rgba(84,70,45,.3)';line(ctx,0,groundY,w,groundY);
-    drawSeasonalHedge(ctx,w,groundY,camera.zoom,viewOffset.x,currentSeason.name);
     if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
     drawDirectionalCanopyShadows(ctx,drawableTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
   }
@@ -756,10 +770,10 @@ function drawSeasonalHedge(ctx,w,groundY,worldZoom,viewOffsetX,season){
   const layout=getSeasonalHedgeLayout(w,groundY,worldZoom,viewOffsetX);
   const opacity=season==='Winter'?.52:season==='Autumn'?.42:.38;
   ctx.save();ctx.globalAlpha=opacity;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
-    const x=layout.anchor+index*layout.tileSize;
-    if(Math.abs(index)%2){ctx.save();ctx.translate(x+layout.tileSize,layout.top);ctx.scale(-1,1);ctx.drawImage(image,0,0,layout.tileSize,layout.drawHeight);ctx.restore()}
-    else ctx.drawImage(image,x,layout.top,layout.tileSize,layout.drawHeight);
+  const source=layout.sourceRect;
+  for(const tile of getSeasonalHedgeTileDraws(layout)){
+    if(tile.mirrored){ctx.save();ctx.translate(tile.right,layout.top);ctx.scale(-1,1);ctx.drawImage(image,source.x,source.y,source.width,source.height,0,0,tile.width,layout.drawHeight);ctx.restore()}
+    else ctx.drawImage(image,source.x,source.y,source.width,source.height,tile.left,layout.top,tile.width,layout.drawHeight);
   }
   ctx.restore();
 }
