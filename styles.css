@@ -1975,7 +1975,6 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 .incident-status { display: block; margin-top: 6px; color: #9b654b; font-size: var(--ui-font-floor); letter-spacing: .02em; }
 .incident-good .incident-effect { border-color: #5f81583a; color: #496a46; }
 .incident-bad .incident-effect,.incident-warning .incident-effect { border-color: #9b654b42; color: #8b563f; }
-.encounter-queue-summary { margin: 14px 0 0; color: #8b563f; font-size: var(--ui-font-floor); }
 .incident-followup { display: grid; gap: 8px; }
 .incident-followup-step { padding: 13px 15px; border: 1px solid #7c87662e; border-radius: 12px; background: #f8f5eab8; }
 .incident-followup-step > strong { display: block; margin-bottom: 4px; color: #6e735f; font-size: var(--ui-font-floor); letter-spacing: .08em; text-transform: uppercase; }
@@ -2213,7 +2212,6 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .modal[data-kind="night"] .minor-events h4 { font-size: 16px; }
   .modal[data-kind="gathering"] .actions-earned,
   .journal-incident p,
-  .encounter-queue-summary,
   .modal[data-kind="night"] .event-content > p { font-size: 18px; }
 
   .detail-sheet { font-size: 18px; }

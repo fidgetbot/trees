@@ -9,7 +9,6 @@ function escapeHtml(value = '') {
 }
 
 function statusLabel(incident) {
-  if (incident.state === 'awaiting-response') return 'Needs response';
   if (incident.state === 'ongoing') return incident.responseMode === 'action-window' && incident.deadlineTurn != null
     ? `Ongoing · respond by turn ${incident.deadlineTurn}`
     : 'Ongoing';
@@ -26,6 +25,10 @@ function renderEffects(effects = []) {
 function renderIncident(incident, { lead = false } = {}) {
   const art = renderEncounterArt(incident.artwork || 'event-ambient');
   const status = statusLabel(incident);
+  const effects = [...(incident.effects || [])];
+  if (incident.state === 'awaiting-response' && !effects.includes('A response is available.')) {
+    effects.push('A response is available.');
+  }
   const classes = [
     'journal-incident',
     lead ? 'journal-incident-lead' : '',
@@ -37,13 +40,13 @@ function renderIncident(incident, { lead = false } = {}) {
     <div class="journal-incident-copy">
       <h3>${escapeHtml(incident.title)}</h3>
       ${incident.summary ? `<p>${escapeHtml(incident.summary)}</p>` : ''}
-      ${renderEffects(incident.effects)}
+      ${renderEffects(effects)}
       ${status ? `<strong class="incident-status">${escapeHtml(status)}</strong>` : ''}
     </div>
   </article>`;
 }
 
-export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = {}) {
+export function renderEventPhaseBody({ incidents = [] } = {}) {
   const ordered = [...incidents].sort((a, b) => (a.priority === 'lead' ? -1 : 0) - (b.priority === 'lead' ? -1 : 0));
   const leadId = ordered.find(incident => incident.priority === 'lead')?.id;
   const rows = ordered.length
@@ -54,7 +57,6 @@ export function renderEventPhaseBody({ incidents = [], pendingResponses = 0 } = 
     <img class="night-specimen" src="assets/events/moonlit-night-branches-v3.png?rev=night-branches-v3" alt="" aria-hidden="true" />
     <p class="night-prose">Darkness settles over the grove.</p>
     <section class="night-journal" aria-label="Night journal">${rows}</section>
-    ${pendingResponses ? `<p class="encounter-queue-summary"><strong>${pendingResponses} ${pendingResponses === 1 ? 'encounter needs' : 'encounters need'} your response.</strong></p>` : ''}
   `;
 }
 

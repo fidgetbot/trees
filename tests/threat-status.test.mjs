@@ -78,6 +78,22 @@ test('multiple immediate incidents share one ordered response queue', () => {
   assert.deepEqual(queuedResponseIncidents(s).map(incident => incident.id), [second.id]);
 });
 
+test('the night journal gives each immediate encounter one response pill and no redundant response notices', () => {
+  const s = state();
+  const aphids = openIncident(s, {
+    kind: 'chemical-threat', title: 'Aphid Cluster', summary: 'Tiny aphids gather on your tender stem.',
+    effects: ['A response is available.'], response: { kind: 'chemical-defense', threatKey: 'aphids' },
+  });
+  const dryRoots = openIncident(s, {
+    kind: 'offspring-aid', title: 'Dry roots', summary: 'A young tree asks for water.',
+    response: { kind: 'offspring-aid', childId: 1, crisisId: 'dry-1' },
+  });
+  const body = renderEventPhaseBody({ incidents: [aphids, dryRoots], pendingResponses: 2 });
+  assert.equal((body.match(/A response is available\./g) || []).length, 2);
+  assert.doesNotMatch(body, /Needs response|encounters? needs? your response/);
+  assert.equal((body.match(/class="incident-effect"/g) || []).length, 2);
+});
+
 test('an unaffordable chemical threat resolves in its only journal row', () => {
   const s = state({ sunlight: 0, water: 1, nutrients: 2 });
   const decision = buildChemicalDefenseDecision(s, { computeCurrentLifeStage: () => ({ name: 'Seedling' }), threat: 'damp-rot' });
