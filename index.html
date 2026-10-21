@@ -12,10 +12,9 @@
   <div id="app">
     <main class="layout">
       <section class="left-panel panel" id="species-panel">
-        <header class="intro-masthead"><span class="intro-wordmark">Trees</span><span class="botanical-kicker">A life in the grove</span></header>
+        <header class="intro-masthead"><span class="intro-wordmark">Trees</span><span class="botanical-kicker">Put down roots.</span></header>
         <div id="species-list" class="species-list"></div>
         <button id="start-game" disabled>Start Game</button>
-        <p class="intro-footnote">Put down roots.</p>
         <div class="start-build">Trees v<span data-build-version>…</span></div>
       </section>
 
@@ -23,10 +22,10 @@
         <div id="map-content" class="panel-content">
           <div class="map-frame">
             <div class="map-status" aria-label="Current game status">
-              <div class="grove-time-pill" aria-label="Year 1, Spring, turn 1 of 3">
+              <div class="grove-time-pill" aria-label="Year 1, Spring, turn 1 of 4">
                 <span id="season-progress-pie" class="season-progress-pie" data-season="spring" aria-hidden="true"></span>
                 <strong class="season-progress-title">Year <span id="year">1</span><span aria-hidden="true"> · </span><span id="season">Spring</span></strong>
-                <span id="season-progress-detail" class="season-progress-detail">Turn 1 of 3</span>
+                <span id="season-progress-detail" class="season-progress-detail">Turn 1 of 4</span>
               </div>
               <button id="open-info" class="grove-notebook-button" type="button" aria-label="Open botanical notebook" title="Notebook"><span aria-hidden="true">📖</span></button>
               <button type="button" id="resource-info" class="grove-resource-pill" aria-label="Resources and health — tap for details">
@@ -205,6 +204,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=season-cards-v1"></script>
+  <script type="module" src="main.js?rev=four-turn-seasons-v1"></script>
 </body>
 </html>

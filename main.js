@@ -8,7 +8,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=forest-cycle-v1';
+} from './core/constants.js?rev=four-turn-seasons-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -24,7 +24,7 @@ import {
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js?rev=life-stage-v1';
+} from './core/stages.js?rev=four-turn-seasons-v1';
 import { randomChoice, randomInt } from './core/random.js';
 import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=incident-system-v1';
 import {
@@ -63,7 +63,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=incident-system-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=season-cards-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=four-turn-seasons-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -91,8 +91,8 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=seasonal-hedges-v3';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=growth-containment-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=season-cards-v1';
-import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=season-cards-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
+import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=four-turn-seasons-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
 
 function computeCurrentLifeStage() {

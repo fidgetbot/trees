@@ -1,5 +1,5 @@
 import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
-import { seasonProgress } from './seasons.js?rev=season-cards-v1';
+import { seasonProgress } from './seasons.js?rev=four-turn-seasons-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;

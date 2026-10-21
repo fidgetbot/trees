@@ -1,11 +1,11 @@
-import { LIFE_STAGES } from './constants.js?rev=life-stage-v1';
+import { LIFE_STAGES, TURNS_PER_SEASON, TURNS_PER_YEAR } from './constants.js?rev=four-turn-seasons-v1';
 
 export function computeCurrentLifeStage(state) {
   return state.lifeStage || LIFE_STAGES[0];
 }
 
 export function turnsForYears(years) {
-  return years * 12;
+  return years * TURNS_PER_YEAR;
 }
 
 export function formatTurnProgress(turns) {
@@ -32,13 +32,13 @@ export function currentStageRequirements(state) {
       ];
     case 'Sprout':
       return [
-        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= 3 },
+        { key: 'time', label: 'Live through 1 season', met: state.turnsInStage >= TURNS_PER_SEASON },
         { key: 'roots', label: 'Reach 2 root zones', met: state.rootZones >= 2 },
         { key: 'leaves', label: 'Grow 2 leaf clusters', met: state.leafClusters >= 2 },
       ];
     case 'Seedling':
       return [
-        { key: 'time', label: 'Live through 4 seasons', met: state.turnsInStage >= 12 },
+        { key: 'time', label: 'Live through 4 seasons', met: state.turnsInStage >= TURNS_PER_YEAR },
         { key: 'major', label: 'Survive 1 major event', met: state.majorEventsSurvivedInStage >= 1 },
       ];
     case 'Sapling':

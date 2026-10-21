@@ -1,4 +1,6 @@
-export const TURNS_PER_SEASON = 3;
+import { TURNS_PER_SEASON } from '../core/constants.js?rev=four-turn-seasons-v1';
+
+export { TURNS_PER_SEASON };
 
 const SEASON_PRESENTATIONS = Object.freeze({
   Spring: Object.freeze({

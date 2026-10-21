@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SEASONS, LIFE_STAGES } from '../core/constants.js';
+import { SEASONS, LIFE_STAGES, TURNS_PER_SEASON } from '../core/constants.js';
 import { createEngine, shouldSkipGathering } from '../core/engine.js';
 import { createInitialBrowserState } from '../ui/browser-app.js';
 import { buildChemicalDefenseDecision, resolveUnanswerableChemicalThreat } from '../core/events.js';
@@ -25,7 +25,7 @@ function turnEngine(overrides = {}) {
 }
 
 test('spring settlement reports once and resumes gathering only after acknowledgement', () => {
-  const state = turnState({ seasonIndex: 3, turnInSeason: 3, seeds: 2 });
+  const state = turnState({ seasonIndex: 3, turnInSeason: TURNS_PER_SEASON, seeds: 2 });
   let acknowledge, reports = 0, gatherings = 0;
   const engine = turnEngine({
     resolveSeedFate: () => ({ sprouted: 1, results: [] }),
@@ -48,7 +48,7 @@ test('spring settlement reports once and resumes gathering only after acknowledg
 });
 
 test('season change pauses the advanced turn until its card is acknowledged', () => {
-  const state = turnState({ seasonIndex: 1, turnInSeason: 3 });
+  const state = turnState({ seasonIndex: 1, turnInSeason: TURNS_PER_SEASON });
   let acknowledge, gatherings = 0, notice = null;
   const engine = turnEngine({
     presentSeasonChange(context, onContinue) { notice = context; acknowledge = onContinue; },
@@ -62,6 +62,33 @@ test('season change pauses the advanced turn until its card is acknowledged', ()
   assert.equal(notice.year, 2);
   acknowledge();
   assert.equal(gatherings, 1);
+});
+
+test('the third turn advances to turn four without changing season', () => {
+  const state = turnState({ seasonIndex: 1, turnInSeason: TURNS_PER_SEASON - 1 });
+  let seasonCards = 0;
+  const engine = turnEngine({
+    presentSeasonChange() { seasonCards++; },
+  });
+  engine.advanceTurn(state);
+  assert.equal(state.seasonIndex, 1);
+  assert.equal(state.turnInSeason, TURNS_PER_SEASON);
+  assert.equal(seasonCards, 0);
+});
+
+test('major events occur on the fourth and final turn of a season', () => {
+  let majorRolls = 0;
+  const engine = turnEngine({
+    rollMajorEvent() {
+      majorRolls++;
+      return { apply: () => [] };
+    },
+    rollMinorEvents: () => [],
+  });
+  engine.showEventPhase(turnState({ turnInSeason: TURNS_PER_SEASON - 1 }));
+  assert.equal(majorRolls, 0);
+  engine.showEventPhase(turnState({ turnInSeason: TURNS_PER_SEASON }));
+  assert.equal(majorRolls, 1);
 });
 
 for (const warning of ['maybeShowGrowthNudge', 'maybeShowAllyWarning']) {

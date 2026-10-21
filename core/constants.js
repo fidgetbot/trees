@@ -1,9 +1,13 @@
+export const TURNS_PER_SEASON = 4;
+
 export const SEASONS = [
   { name: 'Spring', factorSun: 1.0, factorWater: 1.0, top: '#FFE4E1', bottom: '#E6F3FF' },
   { name: 'Summer', factorSun: 1.2, factorWater: 0.6, top: '#FFD700', bottom: '#90EE90' },
   { name: 'Autumn', factorSun: 0.6, factorWater: 0.8, top: '#FF8C00', bottom: '#8B4513' },
   { name: 'Winter', factorSun: 0.2, factorWater: 0.4, top: '#D3D3D3', bottom: '#F0F8FF' },
 ];
+
+export const TURNS_PER_YEAR = TURNS_PER_SEASON * SEASONS.length;
 
 export const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
@@ -30,15 +34,15 @@ export const SEASONAL_ACTIONS = {
 export const PROGRESSIVE_ACTION_UNLOCKS = {
   growTaller: { stage: 'Seedling', turnsInStage: 0, label: 'upon reaching Seedling' },
   shadeRival: { stage: 'Seedling', turnsInStage: 0, label: 'upon reaching Seedling' },
-  bark: { stage: 'Seedling', turnsInStage: 3, label: 'after 1 season as a Seedling' },
+  bark: { stage: 'Seedling', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Seedling' },
   taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
-  canopy: { stage: 'Sapling', turnsInStage: 3, label: 'after 1 season as a Sapling' },
-  rhizosphere: { stage: 'Sapling', turnsInStage: 15, label: 'after 5 seasons as a Sapling' },
-  growThorns: { stage: 'Young Tree', turnsInStage: 3, label: 'after 1 season as a Young Tree' },
-  toxicLeaves: { stage: 'Young Tree', turnsInStage: 6, label: 'after 2 seasons as a Young Tree' },
-  nurtureOffspring: { stage: 'Mature Tree', turnsInStage: 3, label: 'after 1 season as a Mature Tree' },
-  shelterGrove: { stage: 'Mature Tree', turnsInStage: 6, label: 'after 2 seasons as a Mature Tree' },
-  rootDominion: { stage: 'Mature Tree', turnsInStage: 9, label: 'after 3 seasons as a Mature Tree' },
+  canopy: { stage: 'Sapling', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Sapling' },
+  rhizosphere: { stage: 'Sapling', turnsInStage: TURNS_PER_SEASON * 5, label: 'after 5 seasons as a Sapling' },
+  growThorns: { stage: 'Young Tree', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Young Tree' },
+  toxicLeaves: { stage: 'Young Tree', turnsInStage: TURNS_PER_SEASON * 2, label: 'after 2 seasons as a Young Tree' },
+  nurtureOffspring: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Mature Tree' },
+  shelterGrove: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON * 2, label: 'after 2 seasons as a Mature Tree' },
+  rootDominion: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON * 3, label: 'after 3 seasons as a Mature Tree' },
 };
 
 export const RELATIONSHIP_STATES = {

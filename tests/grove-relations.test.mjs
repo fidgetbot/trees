@@ -447,5 +447,5 @@ test('stage-time growth requirements name the current stage and show exact progr
   });
   assert.equal(requirements[0].met, false);
   assert.match(requirements[0].label, /Young Tree/);
-  assert.match(requirements[0].label, /24\/36 turns/);
+  assert.match(requirements[0].label, /24\/48 turns/);
 });

@@ -1,6 +1,7 @@
 import { createOffspringRecords } from './humans.js?rev=life-stage-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
 import { getActiveIncidents } from './incidents.js?rev=incident-system-v1';
+import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -376,7 +377,7 @@ export function createEngine(deps) {
     if (state.growthNudgeCooldown > 0) state.growthNudgeCooldown -= 1;
 
     let seasonChanged = false;
-    if (state.turnInSeason < 3) {
+    if (state.turnInSeason < TURNS_PER_SEASON) {
       state.turnInSeason += 1;
     } else {
       state.turnInSeason = 1;
@@ -412,7 +413,7 @@ export function createEngine(deps) {
   }
 
   function showEventPhase(state) {
-    const major = state.turnInSeason === 3 ? rollMajorEvent() : null;
+    const major = state.turnInSeason === TURNS_PER_SEASON ? rollMajorEvent() : null;
     const minors = rollMinorEvents();
     const consequences = applyEventEffects(state, major, minors);
     updateScoreState(state);
