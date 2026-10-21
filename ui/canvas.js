@@ -1211,8 +1211,8 @@ function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,ro
         phoneScale=Math.max(1,Math.min(2.2,ctx.canvas.width/Math.max(1,displayWidth))),
         primary=label.primary,
         secondary=label.secondary,
-        primarySize=(isPlayer?13:12.5)*phoneScale,secondarySize=11*phoneScale,padX=7*phoneScale,
-        boxHeight=35*phoneScale,rowStep=40*phoneScale,gap=5*phoneScale;
+        primarySize=14*phoneScale,secondarySize=14*phoneScale,padX=7*phoneScale,
+        boxHeight=40*phoneScale,rowStep=45*phoneScale,gap=5*phoneScale;
   ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font=`600 ${primarySize}px sans-serif`;const primaryWidth=ctx.measureText(primary).width;
   ctx.font=`${secondarySize}px sans-serif`;const secondaryWidth=ctx.measureText(secondary).width;
@@ -1224,10 +1224,10 @@ function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,ro
   ctx.fillStyle=isPlayer?'rgba(30,25,20,.78)':'rgba(30,25,20,.58)';
   ctx.strokeStyle=isPlayer?'rgba(255,255,255,.34)':'rgba(255,255,255,.18)';ctx.lineWidth=Math.max(1,phoneScale*.65);
   ctx.beginPath();ctx.roundRect(centerX-boxWidth/2,top,boxWidth,boxHeight,6*phoneScale);ctx.fill();ctx.stroke();
-  ctx.font=`600 ${primarySize}px sans-serif`;ctx.fillStyle=isPlayer?'rgba(255,255,255,.98)':'rgba(255,255,255,.88)';ctx.fillText(primary,centerX,top+11*phoneScale);
+  ctx.font=`600 ${primarySize}px sans-serif`;ctx.fillStyle=isPlayer?'rgba(255,255,255,.98)':'rgba(255,255,255,.88)';ctx.fillText(primary,centerX,top+12*phoneScale);
   ctx.font=`${secondarySize}px sans-serif`;
   ctx.fillStyle=label.allied?'rgba(187,247,208,.95)':'rgba(255,255,255,.7)';
-  ctx.fillText(secondary,centerX,top+25.5*phoneScale);
+  ctx.fillText(secondary,centerX,top+29*phoneScale);
   ctx.restore();
 }
 function hash(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
