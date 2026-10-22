@@ -31,6 +31,14 @@ test('Deepen Roots advances the central axes more than the spreading axes',()=>{
  assert.ok(after.deepClock-before.deepClock>after.outwardClock-before.outwardClock);
  assert.ok(after.nodes.find(node=>node.id==='root-3').progress>=before.nodes.find(node=>node.id==='root-3').progress);
 });
+test('the first Sapling root investment visibly advances the approved lifetime scaffold',()=>{
+ const before=buildBotanicalRootGraph({rootZones:2,taprootDepth:0});
+ const after=buildBotanicalRootGraph({rootZones:3,taprootDepth:0});
+ assert.ok(after.outwardClock>before.outwardClock);
+ for(const id of ['root-1','root-2','root-4','root-5']){
+  assert.ok(after.nodes.find(node=>node.id===id).progress>before.nodes.find(node=>node.id===id).progress,`${id} extends`);
+ }
+});
 test('root emphasis follows only new bounds and disappears at the endpoint',()=>{
  const state={presentationStage:'Seedling',rootZones:3};
  const geometry={width:40,height:60,groundRatio:.5,rootStart:.7};

@@ -1,4 +1,4 @@
-import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v1';
+import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v2';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
 import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
@@ -891,7 +891,10 @@ function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false,re
   const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
   const family=rootExtensionFamily(visualState.presentationStage);
   const extension=family==='juvenile'?requestTreeGrowthAsset(visualState.selectedSpecies,'root-extension-juvenile'):null;
-  drawRootGrowth(ctx,image,source,geometry,visualState,reveal,extension);
+  const materialImage=family==='botanical'?requestTreeStructureAsset(visualState.selectedSpecies,'ancient'):null;
+  const materialSource=materialImage?getTreeStructureSourceRect(visualState.selectedSpecies,'ancient'):null;
+  const materialGroundRatio=TREE_STRUCTURE_GEOMETRY.ancient.groundRatio;
+  drawRootGrowth(ctx,image,source,geometry,visualState,reveal,extension,materialImage,materialSource,materialGroundRatio);
   ctx.restore();
 }
 
