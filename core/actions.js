@@ -1,5 +1,5 @@
 import { reconcileCanopyHeight } from './growth.js?rev=directional-shade-v1';
-import { openIncident } from './incidents.js?rev=incident-system-v1';
+import { openIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 export const CATEGORY_NAMES = {
   growth: '🌱 Growth',

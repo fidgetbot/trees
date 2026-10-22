@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
-import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=incident-system-v1';
+import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
 
 export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
@@ -673,14 +673,16 @@ export function checkAllyBetrayal(state, events, deps) {
     }
 
     if (state.year >= 8 && Math.random() < 0.08) {
-      events.push({
-        text: `Blight travels the fungal network from your ally ${neighbor.species}. Your shared connection becomes a channel for disease.`,
-        effect: 'warning'
-      });
       state.eventModifiers.disease = 0.7;
       state.health -= 2;
       recordDamage(2, 'blight');
-      events.push({ text: 'Health -2 from network blight. Resource collection reduced.', effect: 'damage' });
+      events.push({
+        title: 'Network Blight',
+        text: `Blight travels the fungal network from your ally ${neighbor.species}. The shared connection carries disease into your tissues and weakens resource collection.`,
+        effects: ['Health −2', 'Resource collection reduced'],
+        effect: 'damage',
+        sceneArt: 'event-fungal-blight',
+      });
       allyThreatTriggered = true;
     }
   }

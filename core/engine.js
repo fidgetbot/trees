@@ -1,6 +1,6 @@
-import { createOffspringRecords } from './humans.js?rev=life-stage-v1';
+import { createOffspringRecords } from './humans.js?rev=structured-event-outcomes-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
-import { getActiveIncidents } from './incidents.js?rev=incident-system-v1';
+import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
@@ -322,11 +322,13 @@ export function createEngine(deps) {
     state.eventModifiers.disease = 1;
     state.eventModifiers.shelter = Math.max(0, (state.eventModifiers.shelter || 0) - 0.25);
 
-    const consequences = [];
+    let majorOutcome = null;
 
     if (major) {
-      const majorEffects = major.apply(state);
-      consequences.push(...majorEffects);
+      const result = major.apply(state);
+      majorOutcome = Array.isArray(result)
+        ? { summary: '', effects: result, factors: [] }
+        : result;
       if (state.health > 0) state.majorEventsSurvivedInStage += 1;
     }
 
@@ -335,7 +337,7 @@ export function createEngine(deps) {
     });
 
     state.health = Math.min(state.maxHealth, Math.max(0, state.health));
-    return consequences;
+    return majorOutcome;
   }
 
   function handleSpringViability(state, onContinue) {
@@ -415,11 +417,11 @@ export function createEngine(deps) {
   function showEventPhase(state) {
     const major = state.turnInSeason === TURNS_PER_SEASON ? rollMajorEvent() : null;
     const minors = rollMinorEvents();
-    const consequences = applyEventEffects(state, major, minors);
+    const majorOutcome = applyEventEffects(state, major, minors);
     updateScoreState(state);
     updateUI();
     render();
-    return { major, minors, consequences };
+    return { major, minors, majorOutcome };
   }
 
   function executeAction(state, action, scaledCost, hooks = {}) {

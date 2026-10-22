@@ -1,4 +1,4 @@
-import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=incident-system-v1';
+import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
@@ -20,6 +20,14 @@ export function getPollinatorSceneArt(visitor = '') {
   return null;
 }
 
+function eventOutcome(summary, effects = [], factors = []) {
+  return {
+    summary,
+    effects: effects.filter(Boolean),
+    factors: factors.filter(Boolean),
+  };
+}
+
 export function createMajorEvents(deps) {
   const {
     getThreatMultiplier,
@@ -37,21 +45,37 @@ export function createMajorEvents(deps) {
     s.health -= damage;
     recordDamage(damage, 'storm');
     const effects = [];
+    let structuralSummary = '';
     if (s.branches > 0) {
       const prevBranches = s.branches;
       s.branches = Math.max(1, s.branches - 1);
       const lost = prevBranches - s.branches;
-      effects.push(lost > 0 ? '1 branch snapped by wind' : 'Your only branch bent low, but held fast');
+      structuralSummary = lost > 0
+        ? 'The wind snaps one branch from your crown.'
+        : 'Your only branch bends low but holds fast.';
+      effects.push(lost > 0 ? '−1 branch' : 'No branches lost');
     } else if (s.leafClusters > 0) {
       s.leafClusters = Math.max(0, s.leafClusters - 1);
-      effects.push(winter ? 'Icy wind strips your tender top growth' : 'Wind shreds your tender top growth before any true branch can form');
+      structuralSummary = winter
+        ? 'Icy wind strips away tender top growth.'
+        : 'The wind shreds tender top growth before a true branch can form.';
+      effects.push('−1 leaf cluster');
     } else {
-      effects.push(winter ? 'The winter gale bends your young stem and scours the frozen soil' : 'The storm bends your young stem and scours the soil around your base');
+      structuralSummary = winter
+        ? 'The gale bends your young stem and scours the frozen soil.'
+        : 'The storm bends your young stem and scours the soil around your base.';
     }
-    if (damage > 0) effects.push(`Health -${damage} (roots and trunk were not strong enough)`);
-    else effects.push('Deep roots and a strong trunk resisted damage');
-    if (spindlyPenalty > 0) effects.push(`Spindly height growth added ${spindlyPenalty} wind damage`);
-    return effects;
+    const healthSummary = damage > 0
+      ? 'The remaining force damages living tissue.'
+      : 'Your combined structural strength prevents health damage.';
+    effects.push(damage > 0 ? `Health −${damage}` : 'No health lost');
+    if (spindlyPenalty > 0) effects.push(`Spindly growth +${spindlyPenalty} wind pressure`);
+    return eventOutcome(`${structuralSummary} ${healthSummary}`, effects, [
+      { kind: 'trunk', amount: s.trunk || 0 },
+      { kind: 'root-zones', amount: Math.floor((s.rootZones || 0) / 2) },
+      { kind: 'shelter', amount: Math.floor(s.eventModifiers.shelter || 0) },
+      { kind: 'spindly-growth', amount: spindlyPenalty },
+    ]);
   };
 
   return [
@@ -71,10 +95,19 @@ export function createMajorEvents(deps) {
         const thirst = Math.max(1, Math.ceil(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.45)));
         s.health -= thirst;
         recordDamage(thirst, 'drought');
-        const effects = ['Water collection reduced sharply', `Health -${thirst} from thirst and water stress`];
-        if (droughtResist >= 0.4) effects.push(`Your species' natural drought tolerance helps you hold on to moisture.`);
-        if (s.taprootDepth > 0) effects.push(`Your deep taproot finds lower moisture and softens the drought's bite.`);
-        return effects;
+        const protections = [
+          droughtResist >= 0.4 ? `your species' drought tolerance` : null,
+          s.taprootDepth > 0 ? 'your deep taproot' : null,
+        ].filter(Boolean);
+        const summary = protections.length
+          ? `${protections.join(' and ')} help you hold onto moisture, but the dry season still takes its toll.`
+          : 'With little protection from the dry season, thirst and water stress take their toll.';
+        return eventOutcome(summary, ['Water collection reduced', `Health −${thirst}`], [
+          { kind: 'species-drought-tolerance', amount: droughtResist },
+          { kind: 'trunk', amount: s.trunk || 0 },
+          { kind: 'taproot', amount: Math.floor((s.taprootDepth || 0) / 2) },
+          { kind: 'shelter', amount: Math.floor(s.eventModifiers.shelter || 0) },
+        ]);
       }
     },
     {
@@ -88,19 +121,36 @@ export function createMajorEvents(deps) {
         const leafFloor = Math.min(1, prevLeaves);
         s.leafClusters = Math.max(leafFloor, s.leafClusters - damage);
         const lost = prevLeaves - s.leafClusters;
-        const effects = [];
-        if (defenses.thorns > 0) effects.push('Your thorns block browsing mouths from reaching tender growth');
-        if (defenses.toxins > 0) effects.push('Your toxic leaves make each reachable bite unpalatable');
-        if (lost > 0) effects.push(`${lost} leaf cluster${lost !== 1 ? 's' : ''} eaten by herbivores`);
-        else effects.push('Your established defenses turn the browsers away before they strip any foliage');
+        const defenseNames = [defenses.thorns > 0 ? 'thorns' : null, defenses.toxins > 0 ? 'toxic foliage' : null].filter(Boolean);
+        let summary = '';
+        if (damage === 0) {
+          summary = `Your ${defenseNames.join(' and ')} turn the browsers away before they can feed.`;
+        } else if (lost > 0) {
+          summary = defenseNames.length
+            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still tear into reachable foliage.`
+            : 'With no thorns or toxic foliage to deter them, the browsers tear into your leaves.';
+        } else if (prevLeaves === 1) {
+          summary = defenseNames.length
+            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still graze your final leaf cluster. It survives, though tender tissue is damaged.`
+            : 'No thorns or toxic foliage deter them. The browsers graze your final leaf cluster; it survives, but the feeding damages tender tissue.';
+        } else {
+          summary = defenseNames.length
+            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still gnaw exposed buds and tender stems.`
+            : 'With no foliage available, the browsers gnaw exposed buds and tender stems instead.';
+        }
+        const effects = [lost > 0 ? `−${lost} leaf cluster${lost === 1 ? '' : 's'}` : 'No leaf clusters lost'];
         if (damage > 0) {
           s.health -= 1;
           recordDamage(1, 'herbivores');
-          effects.push('Health -1 from browsing stress');
+          effects.push('Health −1');
         }
-        if (defenses.total === 0) effects.push('You have no thorns or toxic foliage to deter them');
-        else if (prevented < feedingPressure) effects.push(`Your defenses prevented ${prevented} additional level${prevented === 1 ? '' : 's'} of browsing damage`);
-        return effects;
+        if (prevented > 0) effects.push(`Defenses blocked ${prevented} browsing pressure`);
+        return eventOutcome(summary, effects, [
+          { kind: 'feeding-pressure', amount: feedingPressure },
+          { kind: 'thorns', amount: defenses.thorns },
+          { kind: 'toxic-foliage', amount: defenses.toxins },
+          { kind: 'leaf-floor', amount: lost === 0 && damage > 0 && prevLeaves === 1 ? 1 : 0 },
+        ]);
       }
     },
     {
@@ -112,71 +162,88 @@ export function createMajorEvents(deps) {
       apply: (s) => applyWindStorm(s, true),
     },
     {
-      key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and fire adaptation are your only hope.', severity: 'critical', sceneArt: 'event-wildfire',
+      key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and stored protection can blunt the heat.', severity: 'critical', sceneArt: 'event-wildfire',
       apply: (s) => {
         const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
-        const damage = Math.max(0, 2 - barkProtection - Math.floor(s.eventModifiers.shelter || 0));
+        const shelterProtection = Math.floor(s.eventModifiers.shelter || 0);
+        const damage = Math.max(0, 2 - barkProtection - shelterProtection);
         s.health -= damage;
-        const effects = [];
         if (damage > 0) recordDamage(damage, 'fire');
-        if (damage === 0) effects.push('Thick bark completely protected you!');
-        else effects.push(`Health -${damage} from fire damage`);
-        if (barkProtection > 0) effects.push('Thicker trunk reduced some fire damage');
-        return effects;
+        const protectionNames = [barkProtection > 0 ? 'thick bark' : null, shelterProtection > 0 ? 'stored protection' : null].filter(Boolean);
+        const summary = damage === 0
+          ? `${protectionNames.join(' and ')} hold back the flames before they damage living tissue.`
+          : protectionNames.length
+            ? `${protectionNames.join(' and ')} blunt the heat, but the fire still reaches living tissue.`
+            : 'With no effective barrier, the fire reaches living tissue.';
+        return eventOutcome(summary, [damage > 0 ? `Health −${damage}` : 'No health lost'], [
+          { kind: 'bark', amount: barkProtection },
+          { kind: 'shelter', amount: shelterProtection },
+        ]);
       }
     },
     {
       key: 'LateFrost', name: 'Late Frost', seasons: ['Spring'], icon: '❄️', desc: 'An unexpected freeze damages new growth and tender flowers.', severity: 'bad', sceneArt: 'event-late-frost',
       apply: (s) => {
         const effects = [];
+        const losses = [];
         if (s.flowers > 0) {
           const lost = Math.min(s.flowers, 1);
           s.flowers -= lost;
-          effects.push(`${lost} flower${lost !== 1 ? 's' : ''} killed by frost`);
+          effects.push(`−${lost} flower${lost !== 1 ? 's' : ''}`);
+          losses.push('flowers');
         }
         if (s.leafClusters > 3) {
           s.leafClusters -= 1;
-          effects.push('1 leaf cluster damaged by frost');
+          effects.push('−1 leaf cluster');
+          losses.push('foliage');
         }
         const frostDamage = s.lifeStage?.rank >= 5 ? 3 : s.lifeStage?.rank >= 4 ? 2 : 1;
         s.health -= frostDamage;
         recordDamage(frostDamage, 'frost');
-        effects.push(`Health -${frostDamage} from cold stress`);
-        return effects;
+        effects.push(`Health −${frostDamage}`);
+        const summary = losses.length
+          ? `The sudden freeze kills tender ${losses.join(' and ')} and chills the tissues beneath.`
+          : 'The sudden freeze chills exposed tissue even though no flowers or dense foliage are lost.';
+        return eventOutcome(summary, effects, [{ kind: 'cold-stress', amount: frostDamage }]);
       }
     },
     {
-      key: 'FungalBlight', name: 'Fungal Blight', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🍄', desc: 'A pathogen spreads through the fungal network, affecting connected trees.', severity: 'bad', sceneArt: 'event-fungal-blight',
+      key: 'FungalBlight', name: 'Fungal Blight', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🍄', desc: 'A pathogen spreads through damp soil and vulnerable living tissue.', severity: 'bad', sceneArt: 'event-fungal-blight',
       apply: (s) => {
         s.eventModifiers.disease = 0.5;
-        const effects = ['Resource collection reduced by 40%', 'Fungal allies may be affected'];
+        const effects = ['Resource collection −50%'];
+        let summary = 'The infection settles into your tissues, sharply reducing resource collection.';
+        const factors = [{ kind: 'disease-collection-multiplier', amount: 0.5 }];
         const alliedNeighbors = s.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
         if (alliedNeighbors.length > 0) {
           const target = randomChoice(alliedNeighbors);
           const blightDamage = 5;
+          const previousHealth = target.health;
           target.health = Math.max(0, target.health - blightDamage);
-          effects.push(`The blight spreads to your allied ${target.species}. (${target.health}/${target.maxHealth} health remains)`);
+          const lostHealth = previousHealth - target.health;
+          summary += ` It also travels through the fungal connection to your allied ${target.species}.`;
+          effects.push(`Allied ${target.species} health −${lostHealth}`);
+          factors.push({ kind: 'allied-tree-hit', amount: lostHealth, target: target.species });
           if (target.health <= 0) {
-            effects.push(`The ${target.species} is overwhelmed by blight.`);
+            summary += ` The ${target.species} is overwhelmed by the blight.`;
+            effects.push(`Allied ${target.species} lost`);
             updateNeighborAliveState(target, 'fungal blight');
           }
           updateAlliesCount();
         }
-        return effects;
+        return eventOutcome(summary, effects, factors);
       }
     },
     {
       key: 'Beaver', name: 'Beaver Activity', seasons: ['Spring', 'Summer', 'Autumn'], icon: '🦫', desc: 'A beaver colony has moved into the watershed, changing water patterns.', severity: 'neutral', sceneArt: 'beaver',
       apply: (s) => {
-        const effects = [];
         if (Math.random() < 0.5) {
           s.water += 3;
-          effects.push('Dam raised water table: +3 water');
+          return eventOutcome('A new dam raises the nearby water table and moistens the soil around your roots.', ['Water +3']);
         } else {
           s.water = Math.max(0, s.water - 2);
-          effects.push('Dam diverted water: -2 water');
+          return eventOutcome('The altered channel diverts water away from your roots.', ['Water −2']);
         }
-        return effects;
       }
     },
     {
@@ -188,9 +255,9 @@ export function createMajorEvents(deps) {
         s.nutrients += 3;
         if (connectedAllies > 0) {
           s.nutrients += connectedAllies;
-          return [`+${3 + connectedAllies} nutrients from fungal bloom`, 'Connected allies strengthened the bloom!'];
+          return eventOutcome('Connected allies strengthen the fungal bloom, sending a richer pulse through the shared soil.', [`Nutrients +${3 + connectedAllies}`], [{ kind: 'connected-allies', amount: connectedAllies }]);
         }
-        return ['+3 nutrients from fungal bloom'];
+        return eventOutcome('The flourishing fungal network releases a fresh pulse of nutrients around your roots.', ['Nutrients +3']);
       }
     },
     {
@@ -201,9 +268,9 @@ export function createMajorEvents(deps) {
           const pollinated = Math.min(s.flowers, randomInt(2) + 1);
           s.pollinated += pollinated;
           s.flowers -= pollinated;
-          return ['+2 nutrients from bird droppings', `${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated by visiting birds`];
+          return eventOutcome('The visiting birds enrich the soil and carry pollen between your blossoms.', ['Nutrients +2', `${pollinated} flower${pollinated !== 1 ? 's' : ''} pollinated`]);
         }
-        return ['+2 nutrients from bird droppings'];
+        return eventOutcome('The visiting birds leave nutrient-rich droppings beneath your canopy.', ['Nutrients +2']);
       }
     },
   ];
@@ -226,9 +293,9 @@ export function rollMajorEvent(majorEvents, currentSeasonName = null, random = M
 }
 
 const FRUIT_THREATS = Object.freeze({
-  human: { type:'human', sceneArt:'human-surveyor', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your bitter chemistry saved some fruit, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' },
+  human: { type:'human', sceneArt:'human-surveyor', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your established defenses reduced the risk, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' },
   bird: { type:'bird', sceneArt:'fruit-robin', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' },
-  chewer: { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your bitter compounds protected part of the crop. ${losses} fruit lost, ${saved} saved.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' },
+  chewer: { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your established defenses reduced the risk. ${losses} fruit lost, ${saved} remained.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' },
 });
 
 export function resolveFruitThreats(state, events) {
@@ -888,11 +955,18 @@ export function rollMinorEvents(state, deps) {
     } else {
       state.water += 2;
       state.eventModifiers.rainChain += 1;
-      events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
       if (state.eventModifiers.rainChain >= 3) {
         state.health -= 1;
         recordDamage(1, 'blight');
-        events.push({ text: 'Too much rain caused mild root rot. (-1 health)', effect: 'damage' });
+        events.push({
+          title: 'Rain and Root Rot',
+          text: 'A passing shower refreshes the soil, but repeated saturation causes mild root rot.',
+          effects: ['Water +2', 'Health −1'],
+          effect: 'damage',
+          sceneArt: 'event-rain',
+        });
+      } else {
+        events.push({ text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
       }
     }
   } else state.eventModifiers.rainChain = 0;
@@ -914,11 +988,22 @@ export function rollMinorEvents(state, deps) {
   );
   if (adjacentContested.length > 0 && random() < 0.25) queueHostileTreeThreat(adjacentContested[Math.floor(random() * adjacentContested.length)], events);
   if (state.lifeStage.rank >= STAGE_BY_NAME['Seedling'].rank && Math.random() < 0.18) queueChemicalDefenseThreat(events);
-  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) { events.push({ text: 'Squirrels dart through your canopy. If you already carry seed, some may be buried in lucky ground.', effect: 'helper', sceneArt: 'fruit-squirrel' }); if (state.seeds > 0 && Math.random() < 0.5) state.seeds += 1; }
+  if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.12) {
+    const buriedSeed = state.seeds > 0 && Math.random() < 0.5;
+    if (buriedSeed) state.seeds += 1;
+    events.push({
+      text: buriedSeed
+        ? 'Squirrels carry seed through your canopy and bury one in lucky ground.'
+        : 'Squirrels dart through your canopy, searching for seed to carry and bury.',
+      effects: buriedSeed ? ['Seed +1'] : [],
+      effect: 'helper',
+      sceneArt: 'fruit-squirrel',
+    });
+  }
   if (state.lifeStage.rank >= STAGE_BY_NAME['Sapling'].rank && Math.random() < 0.1) {
     if (state.defense + state.trunk >= 3) {
       state.nutrients += 1;
-      events.push({ title: 'Woodpecker', text: 'A woodpecker probes your bark for insects. Your bark holds, and the pecking dislodges pests before they spread.', effects: ['+1 nutrient'], effect: 'good', sceneArt: 'woodpecker' });
+      events.push({ title: 'Woodpecker', text: 'A woodpecker probes for insects. Your established defenses withstand the pecking, which dislodges pests before they spread.', effects: ['Nutrients +1'], effect: 'good', sceneArt: 'woodpecker' });
     } else {
       state.health = Math.max(0, state.health - 1);
       recordDamage(1, 'insects');

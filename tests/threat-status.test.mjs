@@ -4,7 +4,7 @@ import test from 'node:test';
 import { buildChemicalDefenseDecision, describeDecisionPrompt, processSeasonalReproduction, resolveChemicalDefenseChoice, resolvePendingStartOfTurnEffects, resolveUnanswerableChemicalThreat } from '../core/events.js';
 import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
-import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
+import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, openMajorIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
 import { buildIncidentDecision, resolveIncidentDecision } from '../core/incident-responses.js';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from '../ui/events.js';
 
@@ -92,6 +92,34 @@ test('the night journal gives each immediate encounter one response pill and no 
   assert.equal((body.match(/A response is available\./g) || []).length, 2);
   assert.doesNotMatch(body, /Needs response|encounters? needs? your response/);
   assert.equal((body.match(/class="incident-effect"/g) || []).length, 2);
+});
+
+test('major outcomes render narrative as prose and only atomic results as pills', () => {
+  const s = state();
+  const incident = openMajorIncident(s, {
+    key: 'Herbivores', name: 'Herbivore Surge', desc: 'Hungry mouths descend on your foliage.',
+    sceneArt: 'browsers', severity: 'bad',
+  }, {
+    summary: 'The browsers graze your final leaf cluster; it survives, but tender tissue is damaged.',
+    effects: ['No leaf clusters lost', 'Health −1'],
+    factors: [{ kind: 'leaf-floor', amount: 1 }],
+  });
+  const body = renderEventPhaseBody({ incidents: [incident] });
+  assert.match(body, /Hungry mouths descend on your foliage/);
+  assert.match(body, /incident-outcome-summary[^>]*>The browsers graze your final leaf cluster/);
+  assert.equal((body.match(/class="incident-effect"/g) || []).length, 2);
+  assert.doesNotMatch(body, /incident-effect">The browsers graze/);
+  assert.deepEqual(incident.outcome.factors, [{ kind: 'leaf-floor', amount: 1 }]);
+  assert.equal(assertSerializableIncidentState(s), true);
+});
+
+test('minor-event parenthetical deltas appear once as effects instead of duplicated prose', () => {
+  const s = state();
+  const incident = openEventIncident(s, { text: 'A passing rain shower refreshed the soil. (+2 water)', effect: 'rain' });
+  assert.equal(incident.summary, 'A passing rain shower refreshed the soil.');
+  assert.deepEqual(incident.effects, ['+2 water']);
+  const body = renderEventPhaseBody({ incidents: [incident] });
+  assert.equal((body.match(/\+2 water/g) || []).length, 1);
 });
 
 test('an unaffordable chemical threat resolves in its only journal row', () => {

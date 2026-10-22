@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=four-turn-seasons-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=incident-system-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=structured-event-outcomes-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=automatic-incident-outcomes-v1';
+} from './core/events.js?rev=structured-event-outcomes-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -51,7 +51,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=incident-system-v1';
+} from './core/diplomacy.js?rev=structured-event-outcomes-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -62,8 +62,8 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=incident-system-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=four-turn-seasons-v1';
+} from './core/humans.js?rev=structured-event-outcomes-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=structured-event-outcomes-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -77,18 +77,18 @@ import {
   openMajorIncident,
   queuedResponseIncidents,
   resolveIncident,
-} from './core/incidents.js?rev=incident-system-v1';
-import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=incident-system-v1';
+} from './core/incidents.js?rev=structured-event-outcomes-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=structured-event-outcomes-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
 import { renderActionPanels } from './ui/actions.js?rev=drag-carousel-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
-import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=single-response-cue-v1';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=season-cards-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=stage-matched-roots-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=structured-event-outcomes-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
@@ -1807,7 +1807,7 @@ function showEventPhase() {
   setTurnEndBanner('');
   ensureIncidentState(state);
   const incidentCountBefore = state.incidents.length;
-  const { major, minors, consequences } = engine.showEventPhase(state);
+  const { major, minors, majorOutcome } = engine.showEventPhase(state);
   const humanUpdate = state.health > 0 ? advanceHumanSystem(state, {
     getRelationshipState,
     getNeighborStage,
@@ -1816,7 +1816,7 @@ function showEventPhase() {
   if (humanUpdate.rumor) {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
   }
-  const majorIncident = openMajorIncident(state, major, consequences);
+  const majorIncident = openMajorIncident(state, major, majorOutcome);
   const minorIncidents = minors.map(event => {
     if (event.existingIncidentId) {
       const existing = getIncident(state, event.existingIncidentId);
@@ -1839,7 +1839,8 @@ function showEventPhase() {
   }).filter(Boolean);
   if (major?.name) addLog(`Major event: ${major.name}.`);
   minors.forEach(event => event?.text && addLog(event.text));
-  consequences.forEach(text => text && addLog(text));
+  if (majorOutcome?.summary) addLog(majorOutcome.summary);
+  majorOutcome?.effects?.forEach(text => text && addLog(text));
   const directIncidents = state.incidents.slice(incidentCountBefore).filter(incident => incident !== majorIncident && !minorIncidents.includes(incident));
   const reportedIncidents = state.incidents.filter(incident => incident.meta?.reportPending);
   reportedIncidents.forEach(incident => { incident.meta.reportPending = false; });

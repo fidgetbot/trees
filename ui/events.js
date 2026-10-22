@@ -25,7 +25,10 @@ function renderEffects(effects = []) {
 function renderIncident(incident, { lead = false } = {}) {
   const art = renderEncounterArt(incident.artwork || 'event-ambient');
   const status = statusLabel(incident);
-  const effects = [...(incident.effects || [])];
+  const outcomeSummary = incident.outcome?.summary && incident.outcome.summary !== incident.summary
+    ? incident.outcome.summary
+    : '';
+  const effects = [...(incident.outcome ? incident.outcome.effects || [] : incident.effects || [])];
   if (incident.state === 'awaiting-response' && !effects.includes('A response is available.')) {
     effects.push('A response is available.');
   }
@@ -40,6 +43,7 @@ function renderIncident(incident, { lead = false } = {}) {
     <div class="journal-incident-copy">
       <h3>${escapeHtml(incident.title)}</h3>
       ${incident.summary ? `<p>${escapeHtml(incident.summary)}</p>` : ''}
+      ${outcomeSummary ? `<p class="incident-outcome-summary">${escapeHtml(outcomeSummary)}</p>` : ''}
       ${renderEffects(effects)}
       ${status ? `<strong class="incident-status">${escapeHtml(status)}</strong>` : ''}
     </div>

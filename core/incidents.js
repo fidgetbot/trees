@@ -130,12 +130,28 @@ function titleFromEvent(event = {}) {
   return 'Grove Event';
 }
 
-function effectChips(event = {}) {
-  if (Array.isArray(event.effects)) return event.effects.filter(Boolean);
+function eventPresentation(event = {}) {
+  if (Array.isArray(event.effects)) {
+    return { summary: String(event.text || ''), effects: event.effects.filter(Boolean) };
+  }
   const matches = String(event.text || '').match(/\(([^)]+)\)/g) || [];
-  const chips = matches.map(value => value.slice(1, -1)).filter(Boolean);
-  if (event.status) chips.push(event.status);
-  return chips;
+  const effects = matches.map(value => value.slice(1, -1)).filter(Boolean);
+  if (event.status) effects.push(event.status);
+  const summary = matches.reduce((text, match) => text.replace(match, ''), String(event.text || ''))
+    .replace(/\s+([,.!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return { summary, effects };
+}
+
+function incidentOutcome(outcome = null, fallbackTitle = '') {
+  if (!outcome) return null;
+  return {
+    title: outcome.title || fallbackTitle,
+    summary: outcome.summary || '',
+    effects: Array.isArray(outcome.effects) ? outcome.effects.filter(Boolean) : [],
+    factors: Array.isArray(outcome.factors) ? structuredClone(outcome.factors) : [],
+  };
 }
 
 export function openIncident(state, input = {}) {
@@ -165,7 +181,7 @@ export function openIncident(state, input = {}) {
     deadlineTurn: input.deadlineTurn ?? null,
     decisionKey: input.decisionKey || input.response?.kind || null,
     response: input.response ? structuredClone(input.response) : null,
-    outcome: input.outcome || null,
+    outcome: incidentOutcome(input.outcome, input.title || 'Grove Event'),
     quiet: input.quiet === true,
     scenePersistent: input.scenePersistent ?? !TERMINAL_STATES.has(incidentState),
     meta: input.meta ? structuredClone(input.meta) : {},
@@ -183,12 +199,13 @@ export function openIncident(state, input = {}) {
 }
 
 export function openEventIncident(state, event, overrides = {}) {
+  const presentation = eventPresentation(event);
   return openIncident(state, {
     kind: overrides.kind || event.kind || event.effect || 'observation',
     title: overrides.title || titleFromEvent(event),
-    summary: overrides.summary || event.text || '',
+    summary: overrides.summary ?? presentation.summary,
     artwork: overrides.artwork || incidentArtworkFor({ ...event, title: overrides.title || titleFromEvent(event), summary: event.text }),
-    effects: overrides.effects || effectChips(event),
+    effects: overrides.effects || presentation.effects,
     severity: overrides.severity || (event.effect === 'damage' || event.effect === 'offspring-loss' ? 'bad' : event.effect === 'warning' || event.effect === 'human-warning' ? 'warning' : event.effect === 'good' || event.effect === 'pollinated' ? 'good' : 'neutral'),
     quiet: overrides.quiet ?? event.effect === 'flavor',
     response: overrides.response || event.response || null,
@@ -201,14 +218,14 @@ export function openEventIncident(state, event, overrides = {}) {
   });
 }
 
-export function openMajorIncident(state, major, consequences = []) {
+export function openMajorIncident(state, major, outcome = null) {
   if (!major) return null;
   return openIncident(state, {
     kind: `major:${major.key}`,
     title: major.name,
     summary: major.desc,
     artwork: major.sceneArt,
-    effects: consequences,
+    outcome,
     severity: major.severity,
     tier: 'major',
     priority: 'lead',
@@ -222,11 +239,7 @@ export function resolveIncident(state, incidentId, outcome = {}) {
   const incident = getIncident(state, incidentId);
   if (!incident) return null;
   incident.state = outcome.state || INCIDENT_STATES.RESOLVED;
-  incident.outcome = {
-    title: outcome.title || incident.title,
-    summary: outcome.summary || '',
-    effects: Array.isArray(outcome.effects) ? outcome.effects.filter(Boolean) : [],
-  };
+  incident.outcome = incidentOutcome(outcome, incident.title);
   incident.scenePersistent = false;
   state.responseQueue = state.responseQueue.filter(id => id !== incidentId);
   return incident;
@@ -236,11 +249,9 @@ export function keepIncidentOngoing(state, incidentId, outcome = {}) {
   const incident = getIncident(state, incidentId);
   if (!incident) return null;
   incident.state = INCIDENT_STATES.ONGOING;
-  incident.outcome = outcome.title || outcome.summary ? {
-    title: outcome.title || incident.title,
-    summary: outcome.summary || '',
-    effects: Array.isArray(outcome.effects) ? outcome.effects.filter(Boolean) : [],
-  } : null;
+  incident.outcome = outcome.title || outcome.summary
+    ? incidentOutcome(outcome, incident.title)
+    : null;
   incident.scenePersistent = true;
   state.responseQueue = state.responseQueue.filter(id => id !== incidentId);
   return incident;

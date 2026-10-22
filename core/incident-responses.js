@@ -1,6 +1,6 @@
-import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=incident-system-v1';
-import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=incident-system-v1';
-import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=incident-system-v1';
+import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=structured-event-outcomes-v1';
+import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=structured-event-outcomes-v1';
+import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 function plainText(html = '') {
   return String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();

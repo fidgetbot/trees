@@ -574,7 +574,7 @@ function createHeadlessGame(seed, speciesName) {
       }
       updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
 
-      openMajorIncident(state, eventResult.major, eventResult.consequences);
+      openMajorIncident(state, eventResult.major, eventResult.majorOutcome);
       for (const event of eventResult.minors) {
         if (event.existingIncidentId) {
           const existing = getIncident(state, event.existingIncidentId);

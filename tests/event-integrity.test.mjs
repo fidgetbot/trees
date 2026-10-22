@@ -21,6 +21,7 @@ import {
   buildAggressionDecision,
   buildConnectionDecision,
   buildHelpRequestDecision,
+  checkAllyBetrayal,
   markNeighborDead,
   updateAlliesCount,
 } from '../core/diplomacy.js';
@@ -110,6 +111,72 @@ test('minor events omit stat-free ambient flavor observations', () => {
   }finally{Math.random=originalRandom}
 });
 
+test('repeated rain and resulting root rot are reported as one incident', () => {
+  const originalRandom = Math.random;
+  const rolls = [0.99, 0, 0.99, 0.99, 0.99, 0.99];
+  Math.random = () => rolls.shift() ?? 0.99;
+  try {
+    const state = {
+      flowers: 0, pollinated: 0, developing: 0, seeds: 0, nutrients: 0, water: 0, health: 8, branches: 0,
+      lifeStage: LIFE_STAGES[0], eventModifiers: { rainChain: 2 }, neighbors: [], offspringTrees: 0,
+    };
+    const events = rollMinorEvents(state, {
+      currentSeasonName: 'Spring', getPollinatorChance: value => value, species: {}, recordDamage() {}, STAGE_BY_NAME,
+      getRelationshipState, getNeighborStage, random: () => 0.99, advanceAllyCrises() {}, advanceOffspringCrises() {},
+      checkAllyBetrayal() {}, queueHostileTreeThreat() {}, queueChemicalDefenseThreat() {},
+      computeCurrentLifeStage: () => LIFE_STAGES[0],
+    });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].title, 'Rain and Root Rot');
+    assert.deepEqual(events[0].effects, ['Water +2', 'Health −1']);
+    assert.equal(state.water, 2);
+    assert.equal(state.health, 7);
+  } finally { Math.random = originalRandom; }
+});
+
+test('network blight reports cause and consequence in one event', () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const state = {
+      year: 8, health: 10, eventModifiers: { disease: 1 },
+      neighbors: [{ species: 'Pear', relation: 70, dead: false, helpRefusedToThem: 0, helpGivenToThem: 0 }],
+    };
+    const events = [];
+    checkAllyBetrayal(state, events, {
+      computeCurrentLifeStage: () => LIFE_STAGES[3], STAGE_BY_NAME, getRelationshipState,
+      recordDamage() {}, onRelationshipShift() {},
+    });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].title, 'Network Blight');
+    assert.deepEqual(events[0].effects, ['Health −2', 'Resource collection reduced']);
+    assert.equal(state.health, 8);
+    assert.equal(state.eventModifiers.disease, 0.7);
+  } finally { Math.random = originalRandom; }
+});
+
+test('a squirrel seed reward is disclosed without changing its established probability or value', () => {
+  const originalRandom = Math.random;
+  const rolls = [0.99, 0.99, 0.99, 0.99, 0, 0, 0.99];
+  Math.random = () => rolls.shift() ?? 0.99;
+  try {
+    const state = {
+      flowers: 0, pollinated: 0, developing: 0, seeds: 2, nutrients: 0, water: 0, health: 8, branches: 1,
+      lifeStage: LIFE_STAGES[3], eventModifiers: { rainChain: 0 }, neighbors: [], offspringTrees: 0,
+    };
+    const events = rollMinorEvents(state, {
+      currentSeasonName: 'Spring', getPollinatorChance: value => value, species: {}, recordDamage() {}, STAGE_BY_NAME,
+      getRelationshipState, getNeighborStage, random: () => 0.99, advanceAllyCrises() {}, advanceOffspringCrises() {},
+      checkAllyBetrayal() {}, queueHostileTreeThreat() {}, queueChemicalDefenseThreat() {},
+      computeCurrentLifeStage: () => LIFE_STAGES[3],
+    });
+    const squirrel = events.find(event => event.sceneArt === 'fruit-squirrel');
+    assert.ok(squirrel);
+    assert.deepEqual(squirrel.effects, ['Seed +1']);
+    assert.equal(state.seeds, 3);
+  } finally { Math.random = originalRandom; }
+});
+
 test('named wildlife and browser threats carry renderer scene metadata', () => {
   const majorEvents = createMajorEvents({
     getThreatMultiplier: () => 1,
@@ -177,7 +244,7 @@ test('a storm never reports that zero branches snapped', () => {
     updateNeighborAliveState() {},
     updateAlliesCount() {},
   }).find(event => event.key === 'Storm');
-  const effects = storm.apply({
+  const outcome = storm.apply({
     lifeStage: LIFE_STAGES[3],
     trunk: 8,
     rootZones: 8,
@@ -186,8 +253,9 @@ test('a storm never reports that zero branches snapped', () => {
     health: 10,
     eventModifiers: { shelter: 0 },
   });
-  assert.ok(effects.every(line => !/^0 branch/.test(line)));
-  assert.ok(effects.some(line => /only branch.*held fast/i.test(line)));
+  assert.ok(outcome.effects.every(line => !/^0 branch/.test(line)));
+  assert.match(outcome.summary, /only branch.*holds fast/i);
+  assert.ok(outcome.effects.includes('No branches lost'));
 });
 
 test('spindly height growth increases storm damage until trunk growth braces it', () => {
@@ -244,14 +312,38 @@ test('thorns and toxic leaves explicitly blunt herbivore surges', () => {
     updateAlliesCount() {},
   }).find(event => event.key === 'Herbivores');
   const defended = threatState({ thornDefense: 1, toxicLeaves: 1, leafClusters: 4, health: 8 });
-  const effects = herbivores.apply(defended);
+  const outcome = herbivores.apply(defended);
   assert.deepEqual(getHerbivoreDefense(defended), { thorns: 1, toxins: 1, total: 2 });
   assert.equal(defended.leafClusters, 4);
   assert.equal(defended.health, 8);
   assert.deepEqual(recorded, []);
-  assert.ok(effects.some(line => /thorns/i.test(line)));
-  assert.ok(effects.some(line => /toxic leaves/i.test(line)));
-  assert.ok(effects.some(line => /before they strip any foliage/i.test(line)));
+  assert.match(outcome.summary, /thorns/i);
+  assert.match(outcome.summary, /toxic foliage/i);
+  assert.match(outcome.summary, /before they can feed/i);
+  assert.deepEqual(outcome.effects, ['No leaf clusters lost', 'Defenses blocked 2 browsing pressure']);
+  assert.deepEqual(outcome.factors.find(factor => factor.kind === 'leaf-floor'), { kind: 'leaf-floor', amount: 0 });
+});
+
+test('herbivore surge explains final-leaf grazing without crediting imaginary defenses', () => {
+  const recorded = [];
+  const herbivores = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: (amount, cause) => recorded.push({ amount, cause }),
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  }).find(event => event.key === 'Herbivores');
+  const exposed = threatState({ thornDefense: 0, toxicLeaves: 0, leafClusters: 1, health: 8 });
+  const outcome = herbivores.apply(exposed);
+  assert.equal(exposed.leafClusters, 1);
+  assert.equal(exposed.health, 7);
+  assert.deepEqual(recorded, [{ amount: 1, cause: 'herbivores' }]);
+  assert.match(outcome.summary, /no thorns or toxic foliage/i);
+  assert.match(outcome.summary, /final leaf cluster.*survives/i);
+  assert.doesNotMatch(outcome.summary, /established defenses turn/i);
+  assert.deepEqual(outcome.effects, ['No leaf clusters lost', 'Health −1']);
+  assert.deepEqual(outcome.factors.find(factor => factor.kind === 'leaf-floor'), { kind: 'leaf-floor', amount: 1 });
 });
 
 test('shade decisions mark taller adjacent rivals as unreachable', () => {
@@ -341,10 +433,11 @@ test('wildfire can be fully resisted and records one correct damage cause', () =
     health: 10,
     eventModifiers: { shelter: 0 },
   };
-  const protectedEffects = fire.apply(protectedState);
+  const protectedOutcome = fire.apply(protectedState);
   assert.equal(protectedState.health, 10);
   assert.deepEqual(recorded, []);
-  assert.ok(protectedEffects.some(line => /completely protected/i.test(line)));
+  assert.match(protectedOutcome.summary, /thick bark.*hold back the flames/i);
+  assert.deepEqual(protectedOutcome.effects, ['No health lost']);
 
   const exposedState = {
     trunk: 0,
@@ -370,7 +463,9 @@ test('fungal bloom rewards connected allied neighbors, not offspring counts', ()
     allies: 2,
     neighbors: [{ relation: 0, dead: false }],
   };
-  assert.deepEqual(bloom.apply(childrenOnly), ['+3 nutrients from fungal bloom']);
+  const childrenOutcome = bloom.apply(childrenOnly);
+  assert.deepEqual(childrenOutcome.effects, ['Nutrients +3']);
+  assert.doesNotMatch(childrenOutcome.summary, /allies/i);
   assert.equal(childrenOnly.nutrients, 3);
 
   const connectedAlly = {
@@ -378,6 +473,8 @@ test('fungal bloom rewards connected allied neighbors, not offspring counts', ()
     allies: 1,
     neighbors: [{ relation: 70, dead: false }],
   };
-  assert.deepEqual(bloom.apply(connectedAlly), ['+4 nutrients from fungal bloom', 'Connected allies strengthened the bloom!']);
+  const allyOutcome = bloom.apply(connectedAlly);
+  assert.deepEqual(allyOutcome.effects, ['Nutrients +4']);
+  assert.match(allyOutcome.summary, /connected allies strengthen/i);
   assert.equal(connectedAlly.nutrients, 4);
 });

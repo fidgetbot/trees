@@ -1,6 +1,6 @@
 import { createDecision, findDecisionOption } from './decisions.js';
 import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=offspring-shade-v1';
-import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=incident-system-v1';
+import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 export const HUMAN_RUMORS = [
   {
@@ -453,7 +453,7 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
           ? '<p>New thorns harden along your lowest growth. The humans recoil from the spikes and abandon their work.</p><p>The thorn growth remains as a permanent defense.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
           : option.id === 'irritating-oils'
             ? '<p>You flood your leaves and bark with irritating oils. Burning skin and itching eyes drive the humans out of the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
-            : '<p>Your hardened bark, defensive growth, and resin make the work too difficult. The humans withdraw from the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
+            : '<p>The humans reconsider the difficult ground and leave the grove untouched.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
       repelled: true,
     };
   }
