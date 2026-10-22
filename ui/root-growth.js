@@ -124,17 +124,22 @@ function curvePoint(curve,t){
   return{x:x-dy/length*bend,y:y+dx/length*bend};
 }
 
-// Pure geometry used by rendering, saves, and regression tests. The stage is
-// deliberately absent: advancing the life-stage cannot replace this network.
-export function buildBotanicalRootGraph({rootZones=0,taprootDepth=0}={},reveal=null){
+// Pure geometry used by rendering, saves, and regression tests. Every stage
+// shares one scaffold; age only raises its inherited lifetime minimum, while
+// earned development can advance beyond that minimum without replacing paths.
+export function buildBotanicalRootGraph({rootZones=0,taprootDepth=0,lifeStage=null,presentationStage=null}={},reveal=null){
   const targetRoots=Math.max(0,Number(rootZones)||0),targetDeep=Math.max(0,Number(taprootDepth)||0);
   const rootsBefore=reveal?Math.max(0,Number(reveal.from?.roots)||0):targetRoots,deepBefore=reveal?Math.max(0,Number(reveal.from?.taproots)||0):targetDeep,progress=reveal?clamp(reveal.progress):1;
   const roots=mix(Math.min(targetRoots,rootsBefore),targetRoots,progress),deep=mix(Math.min(targetDeep,deepBefore),targetDeep,progress);
-  // The approved study used one five-axis lifetime scaffold. Gameplay advances
-  // it far enough per investment to remain legible at the game's smaller phone
-  // presentation.
-  const outwardClock=3+Math.max(0,roots-2)*1.5+deep*.6;
-  const deepClock=3+Math.max(0,roots-2)*.65+deep*2.5;
+  // The approved study used one five-axis lifetime scaffold. Age and gameplay
+  // advance its clock far enough to remain legible in the smaller game view.
+  const stageName=lifeStage?.name||presentationStage||'Sapling';
+  const stageIndex=Math.max(0,['Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stageName));
+  // Restore the prototype's shared lifetime timeline. Each later stage inherits
+  // an older minimum network, while unusually developed roots remain untouched.
+  const inheritedClock=3+stageIndex*6;
+  const outwardClock=Math.max(inheritedClock,3+Math.max(0,roots-2)*1.5+deep*.6);
+  const deepClock=Math.max(inheritedClock,3+Math.max(0,roots-2)*.65+deep*2.5);
   const spread=235,depth=210,nodes=[];
   function branch(curve,birth,duration,targetWidth,clock,parent=null,at=0,order=0,seed=1){
     const visible=clamp((clock-birth)/duration);if(visible<=0)return;
@@ -182,10 +187,13 @@ function drawRoot(ctx,node,color,material=null){
 
 function drawBotanicalRoots(ctx,image,source,geometry,state,reveal,materialImage=null,materialSource=null,materialGroundRatio=.61){
   const pixel=pixels(image,source),join=collar(pixel,geometry.groundRatio),materialPixel=pixels(materialImage||image,materialSource),materialJoin=collar(materialPixel,materialGroundRatio),color=sampleBark(materialPixel,materialJoin),material={...materialPixel,join:materialJoin},graph=buildBotanicalRootGraph(state,reveal),scale=Math.max(.42,Math.min(1.22,geometry.width/230,geometry.height/320));
-  // Root bases begin just behind the final painted trunk row. Drawing the
-  // painting last gives a natural bark-to-root overlap; a separate flat collar
-  // cap creates a conspicuous polygonal blob at the soil line.
-  ctx.save();ctx.scale(scale,scale);for(let i=graph.nodes.length-1;i>=0;i--)drawRoot(ctx,graph.nodes[i],color,material);ctx.restore();
+  ctx.save();ctx.scale(scale,scale);for(let i=graph.nodes.length-1;i>=0;i--)drawRoot(ctx,graph.nodes[i],color,material);
+  // The approved prototype joined the five axes through a short buttress crown
+  // textured from real trunk bark. The previous production cap was a flat fill,
+  // which made the same silhouette look like a geometric blob.
+  const collarWidth=Math.max(7,join.width/pixel.width*geometry.width/scale);
+  ctx.beginPath();ctx.moveTo(-collarWidth/2,-3);ctx.bezierCurveTo(-collarWidth*.5,4,-collarWidth*.38,10,-collarWidth*.31,13);ctx.quadraticCurveTo(0,7,collarWidth*.31,13);ctx.bezierCurveTo(collarWidth*.38,10,collarWidth*.5,4,collarWidth/2,-3);ctx.closePath();
+  ctx.save();ctx.clip();ctx.drawImage(material.canvas,material.join.x-material.join.width/2,Math.max(0,material.join.y-14),material.join.width,14,-collarWidth/2,-3,collarWidth,17);ctx.fillStyle='rgba(40,22,12,.10)';ctx.fill();ctx.restore();ctx.restore();
   const sw=source?.width||image.naturalWidth||image.width,sh=source?.height||image.naturalHeight||image.height,sx=source?.x||0,sy=source?.y||0,cut=Math.max(1,Math.min(sh,join.y)),destinationHeight=geometry.height*(cut/sh);
   ctx.drawImage(image,sx,sy,sw,cut,-geometry.width*(geometry.anchorX??.5),-geometry.height*geometry.groundRatio,geometry.width,destinationHeight);
 }

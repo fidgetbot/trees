@@ -14,11 +14,18 @@ test('root development survives every life-stage illustration handoff',()=>{
  reveal.progress=.5;assert.equal(rootGrowthAmount(s,reveal),2.5);
  reveal.progress=1;assert.equal(rootGrowthAmount(s,reveal),rootGrowthAmount(s));
 });
-test('later stages share one persistent botanical graph with no stage reset',()=>{
+test('later stages inherit the same botanical graph without root regression',()=>{
  const state={rootZones:7,taprootDepth:2};
  const sapling=buildBotanicalRootGraph({...state,lifeStage:{name:'Sapling'}});
  const ancient=buildBotanicalRootGraph({...state,lifeStage:{name:'Ancient'}});
- assert.deepEqual(ancient,sapling);
+ for(const node of sapling.nodes){
+   const inherited=ancient.nodes.find(candidate=>candidate.id===node.id);
+   assert.ok(inherited,`${node.id} survives the stage handoff`);
+   assert.deepEqual(inherited.curve,node.curve,'persistent paths do not move');
+   assert.ok(inherited.progress>=node.progress,'existing paths never shorten');
+   assert.ok(inherited.width>=node.width,'existing paths never thin');
+ }
+ assert.ok(ancient.nodes.length>sapling.nodes.length,'later-stage baseline adds the prototype’s inherited fine branching');
  assert.ok(sapling.nodes.some(node=>node.order>=2),'the network contains successively finer branches');
  for(const node of sapling.nodes.filter(node=>node.parent)){
    const parent=sapling.nodes.find(candidate=>candidate.id===node.parent);
