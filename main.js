@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=four-turn-seasons-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=structured-event-outcomes-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=shelter-grove-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=structured-event-outcomes-v1';
+} from './core/events.js?rev=shelter-grove-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -63,7 +63,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=structured-event-outcomes-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=structured-event-outcomes-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=shelter-grove-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -317,6 +317,7 @@ const ACTIONS = createActions({
   nurtureOffspringAction,
   getRelationshipState,
   getNeighborStage,
+  updateAlliesCount: s => updateAlliesCountForState(s, getRelationshipState),
 });
 
 const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
@@ -1219,11 +1220,14 @@ function resinReserveAction(s, context = {}) {
     applyChoice();
     showModal(title, body, () => transaction?.complete());
   };
-  showChoiceModal('Resin Reserve', '<p>How will you spend this dense pulse of nutrients?</p>', [
+  const choices = [
     { label: 'Saturate bark with bitter resin (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.defense += 2; state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.95); }, 'Resin Reserve', '<p>Your tissues run bitter and guarded. Insects and infection will have a harder time taking hold.</p>') },
-    { label: 'Build emergency defensive stores (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.fruitDefense += 2; state.eventModifiers.shelter = (state.eventModifiers.shelter || 0) + 1; }, 'Resin Reserve', '<p>You bank dense reserves against the next hardship, thickening your defensive chemistry.</p>') },
-    { label: 'Back', onChoose: () => transaction?.cancel() }
-  ]);
+  ];
+  if (!hasStoredProtection(state)) {
+    choices.push({ label: 'Build emergency defensive stores (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.fruitDefense += 2; state.eventModifiers.shelter = 1; }, 'Resin Reserve', '<p>You bank dense reserves against the next hardship, thickening your defensive chemistry.</p>') });
+  }
+  choices.push({ label: 'Back', onChoose: () => transaction?.cancel() });
+  showChoiceModal('Resin Reserve', '<p>How will you spend this dense pulse of nutrients?</p>', choices);
   return { deferred: true };
 }
 

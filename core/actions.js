@@ -10,6 +10,10 @@ export const CATEGORY_NAMES = {
 
 export const MAX_UNBRACED_HEIGHT = 3;
 
+export function hasStoredProtection(state) {
+  return Number(state.eventModifiers?.shelter || 0) > 0;
+}
+
 export const ACTION_UNLOCK_EXPLANATIONS = {
   growBranch: 'This lets you add a new branch and two leaf clusters, increasing sunlight gathered on future turns and supporting flowers.',
   extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
@@ -21,7 +25,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while helping connected allies grow and warming your relationships.',
   growThorns: 'This lets you add permanent thorns repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and browsing animals.',
   toxicLeaves: 'This lets you add permanent toxic foliage repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and herbivores.',
-  shelterGrove: 'This lets you brace yourself and your allies against the next hardship.',
+  shelterGrove: 'This lets you store protection against the next severe weather event while earning goodwill from every living neighbor.',
   resinReserve: 'This lets you store a concentrated defensive reserve for the next serious threat.',
   woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
   connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
@@ -116,6 +120,7 @@ export function getActionAvailability({
       if (action.key === 'connect') reason = 'Your roots must reach deeper first';
       else if (action.key === 'requestHelp') reason = (state.alliedNeighbors || 0) < 1 ? 'You need a living allied neighbor to call on' : 'You would only ask for help when wounded';
       else if (action.key === 'growTaller') reason = `Your trunk already carries ${MAX_UNBRACED_HEIGHT} unbraced height levels; use Fortify Bark before reaching higher`;
+      else if (action.key === 'shelterGrove' && hasStoredProtection(state)) reason = 'Stored protection is already ready';
       else reason = 'The moment is not right yet';
     } else if (state.actions <= 0) reason = 'No actions remain this turn';
     else if (!affordable) {
@@ -155,6 +160,7 @@ export function createActions(deps) {
     nurtureOffspringAction = () => null,
     getRelationshipState = () => ({ name: 'Neutral' }),
     getNeighborStage,
+    updateAlliesCount = () => {},
   } = deps;
 
   return [
@@ -178,7 +184,31 @@ export function createActions(deps) {
     } },
     { key: 'growThorns', name: 'Grow Thorns', icon: '🌵', category: 'defense', help: 'Adds lasting defense against humans, fruit threats, conflict, and browsers.', status: s => `${s.thornDefense || 0} thorn layer${(s.thornDefense || 0) === 1 ? '' : 's'} grown · each additional layer adds more defense`, baseCost: { sunlight: 4, water: 2, nutrients: 4 }, effect: s => { s.thornDefense = (s.thornDefense || 0) + 1; s.defense += 1; } },
     { key: 'toxicLeaves', name: 'Grow Toxic Leaves', icon: '☠️', category: 'defense', help: 'Adds lasting defense against humans, fruit threats, conflict, and herbivores.', status: s => `${s.toxicLeaves || 0} toxic layer${(s.toxicLeaves || 0) === 1 ? '' : 's'} grown · each additional layer adds more defense`, baseCost: { sunlight: 3, water: 2, nutrients: 5 }, effect: s => { s.toxicLeaves = (s.toxicLeaves || 0) + 1; s.defense += 1; } },
-    { key: 'shelterGrove', name: 'Shelter the Grove', icon: '⛺', category: 'defense', help: 'Protects you and your allies from the next hardship.', baseCost: { sunlight: 4, water: 3, nutrients: 6 }, effect: s => { s.eventModifiers.shelter = 1; } },
+    {
+      key: 'shelterGrove',
+      name: 'Shelter the Grove',
+      icon: '⛺',
+      category: 'defense',
+      help: 'Stores protection against 1 damage from the next drought, storm, gale, or wildfire; every living neighbor gains +2 attitude.',
+      status: s => hasStoredProtection(s)
+        ? 'Stored protection ready · unavailable until it is used'
+        : 'No protection currently stored',
+      baseCost: { sunlight: 4, water: 3, nutrients: 6 },
+      prereq: s => !hasStoredProtection(s),
+      effect: s => {
+        s.eventModifiers ||= {};
+        s.eventModifiers.shelter = 1;
+        for (const neighbor of s.neighbors || []) {
+          if (neighbor.dead) continue;
+          neighbor.relation = Math.min(100, (neighbor.relation || 0) + 2);
+          if (neighbor.relation >= 0) {
+            neighbor.playerShading = false;
+            neighbor.shadingPlayer = false;
+          }
+        }
+        updateAlliesCount(s);
+      },
+    },
     { key: 'resinReserve', name: 'Resin Reserve', icon: '🧪', category: 'defense', help: 'Stores defense for the next serious threat.', baseCost: { sunlight: 2, water: 1, nutrients: 8 }, effect: (s, context) => resinReserveAction(s, context) },
     { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Boosts your trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: (s, context) => woodSurgeAction(s, context) },
 

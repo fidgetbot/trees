@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createEngine } from '../core/engine.js';
 import { LIFE_STAGES, SEASONS, STAGE_BY_NAME, getNeighborStage, getRelationshipState } from '../core/constants.js';
 import {
   applyHeavySnow,
@@ -15,6 +16,7 @@ import {
   resolveHostileEncroachmentChoice,
   WINTER_PRECIPITATION,
   createMajorEvents,
+  normalizeStoredProtection,
   rollMajorEvent,
 } from '../core/events.js';
 import {
@@ -278,6 +280,77 @@ test('spindly height growth increases storm damage until trunk growth braces it'
   storm.apply(spindly);
   assert.ok(spindly.health < stable.health);
   assert.ok(recorded[1] > recorded[0]);
+});
+
+test('stored protection persists until an eligible event prevents damage', () => {
+  const engine = createEngine({
+    SEASONS,
+    updateUI() {},
+    render() {},
+  });
+  const quietState = {
+    health: 10,
+    maxHealth: 10,
+    majorEventsSurvivedInStage: 0,
+    eventModifiers: { drought: 0.5, disease: 0.5, shelter: 0.25 },
+  };
+  engine.applyEventEffects(quietState, null, []);
+  assert.equal(quietState.eventModifiers.shelter, 1, 'quiet turns preserve and normalize a legacy fractional charge');
+
+  const unrelated = {
+    health: 10,
+    maxHealth: 10,
+    majorEventsSurvivedInStage: 0,
+    eventModifiers: { drought: 1, disease: 1, shelter: 1 },
+  };
+  engine.applyEventEffects(unrelated, { apply: () => ({ summary: 'Nothing tests the stored protection.', effects: [], factors: [] }) }, []);
+  assert.equal(unrelated.eventModifiers.shelter, 1, 'unrelated events preserve the charge');
+  assert.equal(normalizeStoredProtection(unrelated), 1);
+});
+
+test('stored protection prevents one damage from drought, storms, gales, and wildfire', () => {
+  const recorded = [];
+  const events = createMajorEvents({
+    getThreatMultiplier: () => 1,
+    recordDamage: (amount, cause) => recorded.push({ amount, cause }),
+    getDroughtResistance: () => 0,
+    getRelationshipState,
+    updateNeighborAliveState() {},
+    updateAlliesCount() {},
+  });
+
+  for (const key of ['Storm', 'WinterStorm']) {
+    const state = {
+      lifeStage: LIFE_STAGES[3], trunk: 0, rootZones: 0, branches: 0,
+      leafClusters: 0, health: 10, eventModifiers: { shelter: 1 },
+    };
+    const outcome = events.find(event => event.key === key).apply(state);
+    assert.equal(state.health, 7, `${key} should deal 3 instead of 4 damage`);
+    assert.equal(state.eventModifiers.shelter, 0);
+    assert.ok(outcome.effects.includes('Stored protection −1 damage'));
+    assert.deepEqual(outcome.factors.find(factor => factor.kind === 'shelter'), { kind: 'shelter', amount: 1 });
+  }
+
+  const droughtState = {
+    lifeStage: LIFE_STAGES[3], trunk: 0, taprootDepth: 0,
+    health: 10, eventModifiers: { shelter: 1 },
+  };
+  const droughtOutcome = events.find(event => event.key === 'Drought').apply(droughtState);
+  assert.equal(droughtState.health, 8);
+  assert.equal(droughtState.eventModifiers.shelter, 0);
+  assert.ok(droughtOutcome.effects.includes('Stored protection −1 damage'));
+
+  const fireState = { trunk: 0, health: 10, eventModifiers: { shelter: 1 } };
+  const fireOutcome = events.find(event => event.key === 'Fire').apply(fireState);
+  assert.equal(fireState.health, 9);
+  assert.equal(fireState.eventModifiers.shelter, 0);
+  assert.ok(fireOutcome.effects.includes('Stored protection −1 damage'));
+
+  const safeFireState = { trunk: 4, health: 10, eventModifiers: { shelter: 1 } };
+  const safeFireOutcome = events.find(event => event.key === 'Fire').apply(safeFireState);
+  assert.equal(safeFireState.health, 10);
+  assert.equal(safeFireState.eventModifiers.shelter, 1, 'bark-only prevention should preserve the charge');
+  assert.ok(!safeFireOutcome.effects.some(effect => /stored protection/i.test(effect)));
 });
 
 test('major events are restricted to ecologically appropriate seasons', () => {

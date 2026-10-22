@@ -2,6 +2,7 @@ import { createOffspringRecords } from './humans.js?rev=structured-event-outcome
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
 import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
+import { normalizeStoredProtection } from './events.js?rev=shelter-grove-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -320,7 +321,7 @@ export function createEngine(deps) {
   function applyEventEffects(state, major, minors) {
     state.eventModifiers.drought = 1;
     state.eventModifiers.disease = 1;
-    state.eventModifiers.shelter = Math.max(0, (state.eventModifiers.shelter || 0) - 0.25);
+    normalizeStoredProtection(state);
 
     let majorOutcome = null;
 
@@ -472,6 +473,10 @@ export function createEngine(deps) {
         addLog?.(supportedAllies
           ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedAllies} connected ${supportedAllies === 1 ? 'ally receives' : 'allies receive'} lasting growth support.`
           : 'You enrich the soil community around your roots, improving future nutrient uptake.');
+      }
+      if (action.key === 'shelterGrove') {
+        const livingNeighbors = (state.neighbors || []).filter(neighbor => !neighbor.dead).length;
+        addLog?.(`You store protection against the next severe weather event. ${livingNeighbors} living neighbor${livingNeighbors === 1 ? '' : 's'} gained +2 attitude.`);
       }
       if (action.key === 'flower') addLog?.(`You bloom with ${state.flowers} flower${state.flowers !== 1 ? 's' : ''}.`);
       if (action.key === 'massFlower') addLog?.(`You drive a heavy bloom: ${state.flowers} flower${state.flowers !== 1 ? 's' : ''} now open.`);

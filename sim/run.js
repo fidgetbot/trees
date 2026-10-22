@@ -5,7 +5,7 @@ import { createSeededRng } from '../core/random.js';
 import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
-import { createActions, getActionAvailability, getActionUnlockReason, isActionUnlockedForState } from '../core/actions.js';
+import { createActions, getActionAvailability, getActionUnlockReason, hasStoredProtection, isActionUnlockedForState } from '../core/actions.js';
 import { createMajorEvents, rollMajorEvent, rollMinorEvents, resolveSeedFate, resolvePendingStartOfTurnEffects, buildChemicalDefenseDecision, buildHostileEncroachmentDecision, describeDecisionPrompt, resolveUnanswerableChemicalThreat } from '../core/events.js';
 import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as compareConflictPowerForState, buildAggressionDecision, buildConnectionDecision, buildAidDecision, buildHelpRequestDecision, markNeighborDead, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
@@ -339,6 +339,7 @@ function createHeadlessGame(seed, speciesName) {
     nurtureOffspringAction: s => nurtureOffspring(s),
     getRelationshipState,
     getNeighborStage,
+    updateAlliesCount: s => updateAlliesCount(s, getRelationshipState),
   });
 
   function processSimulationIncidentResponses() {
@@ -468,6 +469,11 @@ function createHeadlessGame(seed, speciesName) {
     if ((state.spindlyGrowth || 0) >= 2) {
       const brace = pick(['bark']);
       if (brace) return brace;
+    }
+
+    if (!hasStoredProtection(state)) {
+      const shelter = pick(['shelterGrove']);
+      if (shelter) return shelter;
     }
 
     if ((state.heightGrowth || 0) < 2 && (state.spindlyGrowth || 0) < 2) {

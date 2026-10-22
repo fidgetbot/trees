@@ -122,6 +122,50 @@ test('enriching the rhizosphere permanently supports connected allies and warms 
   assert.equal(neutral.relation, 0);
 });
 
+test('sheltering stores one charge and warms every living neighbor exactly once', () => {
+  let allyCountUpdates = 0;
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+    updateAlliesCount() { allyCountUpdates += 1; },
+  });
+  const shelter = actions.find(action => action.key === 'shelterGrove');
+  const state = gatheringState({
+    lifeStage: LIFE_STAGES.find(stage => stage.name === 'Mature Tree'),
+    actions: 3,
+    sunlight: 99,
+    water: 99,
+    nutrients: 99,
+    eventModifiers: { drought: 1, disease: 1, soilBonus: 0, shelter: 0 },
+    neighbors: [
+      { relation: -1, dead: false, playerShading: true, shadingPlayer: true },
+      { relation: 99, dead: false },
+      { relation: 10, dead: true },
+    ],
+  });
+
+  shelter.effect(state);
+  assert.equal(state.eventModifiers.shelter, 1);
+  assert.deepEqual(state.neighbors.map(neighbor => neighbor.relation), [1, 100, 10]);
+  assert.equal(state.neighbors[0].playerShading, false);
+  assert.equal(state.neighbors[0].shadingPlayer, false);
+  assert.equal(allyCountUpdates, 1);
+
+  const availability = getActionAvailability({
+    action: shelter,
+    state,
+    lifeStages: LIFE_STAGES,
+    currentStageRank: state.lifeStage.rank,
+    currentSeasonName: 'Summer',
+    seasonalActions: SEASONAL_ACTIONS,
+    getScaledCost: cost => cost,
+    canAfford: () => true,
+    isActionUnlocked: () => true,
+  });
+  assert.equal(availability.usable, false);
+  assert.match(availability.reason, /stored protection is already ready/i);
+});
+
 test('shading one side warns about offspring there and slows their growth', () => {
   const left = { slot: 1, species: 'Apricot', relation: -60, stageScore: 600, dead: false };
   const state = {

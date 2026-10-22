@@ -28,6 +28,26 @@ function eventOutcome(summary, effects = [], factors = []) {
   };
 }
 
+export function normalizeStoredProtection(state) {
+  state.eventModifiers ||= {};
+  state.eventModifiers.shelter = Number(state.eventModifiers.shelter || 0) > 0 ? 1 : 0;
+  return state.eventModifiers.shelter;
+}
+
+export function applyStoredProtection(state, incomingDamage) {
+  const damageBeforeProtection = Math.max(0, Number(incomingDamage) || 0);
+  const charge = normalizeStoredProtection(state);
+  const prevented = charge > 0 && damageBeforeProtection > 0
+    ? Math.min(1, damageBeforeProtection)
+    : 0;
+  if (prevented > 0) state.eventModifiers.shelter = 0;
+  return {
+    damage: damageBeforeProtection - prevented,
+    prevented,
+    used: prevented > 0,
+  };
+}
+
 export function createMajorEvents(deps) {
   const {
     getThreatMultiplier,
@@ -41,7 +61,9 @@ export function createMajorEvents(deps) {
   const applyWindStorm = (s, winter = false) => {
     const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
     const spindlyPenalty = Math.max(0, s.spindlyGrowth || 0);
-    const damage = Math.max(0, 4 + stagePressure + spindlyPenalty - s.trunk - Math.floor(s.rootZones / 2) - Math.floor(s.eventModifiers.shelter || 0));
+    const unprotectedDamage = Math.max(0, 4 + stagePressure + spindlyPenalty - s.trunk - Math.floor(s.rootZones / 2));
+    const storedProtection = applyStoredProtection(s, unprotectedDamage);
+    const damage = storedProtection.damage;
     s.health -= damage;
     recordDamage(damage, 'storm');
     const effects = [];
@@ -65,15 +87,20 @@ export function createMajorEvents(deps) {
         ? 'The gale bends your young stem and scours the frozen soil.'
         : 'The storm bends your young stem and scours the soil around your base.';
     }
-    const healthSummary = damage > 0
-      ? 'The remaining force damages living tissue.'
-      : 'Your combined structural strength prevents health damage.';
+    const healthSummary = storedProtection.used
+      ? damage > 0
+        ? 'Stored protection absorbs part of the force, but the remainder damages living tissue.'
+        : 'Stored protection absorbs the remaining force before it can damage living tissue.'
+      : damage > 0
+        ? 'The remaining force damages living tissue.'
+        : 'Your combined structural strength prevents health damage.';
+    if (storedProtection.used) effects.push(`Stored protection −${storedProtection.prevented} damage`);
     effects.push(damage > 0 ? `Health −${damage}` : 'No health lost');
     if (spindlyPenalty > 0) effects.push(`Spindly growth +${spindlyPenalty} wind pressure`);
     return eventOutcome(`${structuralSummary} ${healthSummary}`, effects, [
       { kind: 'trunk', amount: s.trunk || 0 },
       { kind: 'root-zones', amount: Math.floor((s.rootZones || 0) / 2) },
-      { kind: 'shelter', amount: Math.floor(s.eventModifiers.shelter || 0) },
+      { kind: 'shelter', amount: storedProtection.prevented },
       { kind: 'spindly-growth', amount: spindlyPenalty },
     ]);
   };
@@ -91,22 +118,32 @@ export function createMajorEvents(deps) {
         const baseDroughtModifier = Math.max(0.15, 0.55 - (s.trunk * 0.08));
         s.eventModifiers.drought = Math.min(1, baseDroughtModifier + (droughtResist * 0.35));
         const stagePressure = s.lifeStage?.rank >= 5 ? 4 : s.lifeStage?.rank >= 4 ? 2 : 0;
-        const baseThirst = Math.max(1, 3 + stagePressure - s.trunk - Math.floor((s.taprootDepth || 0) / 2) - Math.floor(s.eventModifiers.shelter || 0));
-        const thirst = Math.max(1, Math.ceil(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.45)));
+        const baseThirst = Math.max(1, 3 + stagePressure - s.trunk - Math.floor((s.taprootDepth || 0) / 2));
+        const unprotectedThirst = Math.max(1, Math.ceil(baseThirst * getThreatMultiplier() * (1 - droughtResist * 0.45)));
+        const storedProtection = applyStoredProtection(s, unprotectedThirst);
+        const thirst = storedProtection.damage;
         s.health -= thirst;
         recordDamage(thirst, 'drought');
         const protections = [
           droughtResist >= 0.4 ? `your species' drought tolerance` : null,
           s.taprootDepth > 0 ? 'your deep taproot' : null,
         ].filter(Boolean);
-        const summary = protections.length
-          ? `${protections.join(' and ')} help you hold onto moisture, but the dry season still takes its toll.`
-          : 'With little protection from the dry season, thirst and water stress take their toll.';
-        return eventOutcome(summary, ['Water collection reduced', `Health −${thirst}`], [
+        const summary = storedProtection.used
+          ? thirst > 0
+            ? 'Your preparations preserve vital moisture, though the dry season still takes a toll.'
+            : 'Your preparations preserve enough vital moisture to prevent health damage from the drought.'
+          : protections.length
+            ? `${protections.join(' and ')} help you hold onto moisture, but the dry season still takes its toll.`
+            : 'With little protection from the dry season, thirst and water stress take their toll.';
+        return eventOutcome(summary, [
+          'Water collection reduced',
+          storedProtection.used ? `Stored protection −${storedProtection.prevented} damage` : null,
+          thirst > 0 ? `Health −${thirst}` : 'No health lost',
+        ], [
           { kind: 'species-drought-tolerance', amount: droughtResist },
           { kind: 'trunk', amount: s.trunk || 0 },
           { kind: 'taproot', amount: Math.floor((s.taprootDepth || 0) / 2) },
-          { kind: 'shelter', amount: Math.floor(s.eventModifiers.shelter || 0) },
+          { kind: 'shelter', amount: storedProtection.prevented },
         ]);
       }
     },
@@ -165,19 +202,23 @@ export function createMajorEvents(deps) {
       key: 'Fire', name: 'Wildfire', seasons: ['Summer', 'Autumn'], icon: '🔥', desc: 'Flames sweep through the understory. Thick bark and stored protection can blunt the heat.', severity: 'critical', sceneArt: 'event-wildfire',
       apply: (s) => {
         const barkProtection = Math.min(2, Math.floor(s.trunk / 2));
-        const shelterProtection = Math.floor(s.eventModifiers.shelter || 0);
-        const damage = Math.max(0, 2 - barkProtection - shelterProtection);
+        const unprotectedDamage = Math.max(0, 2 - barkProtection);
+        const storedProtection = applyStoredProtection(s, unprotectedDamage);
+        const damage = storedProtection.damage;
         s.health -= damage;
         if (damage > 0) recordDamage(damage, 'fire');
-        const protectionNames = [barkProtection > 0 ? 'thick bark' : null, shelterProtection > 0 ? 'stored protection' : null].filter(Boolean);
+        const protectionNames = [barkProtection > 0 ? 'thick bark' : null, storedProtection.used ? 'stored protection' : null].filter(Boolean);
         const summary = damage === 0
           ? `${protectionNames.join(' and ')} hold back the flames before they damage living tissue.`
           : protectionNames.length
             ? `${protectionNames.join(' and ')} blunt the heat, but the fire still reaches living tissue.`
             : 'With no effective barrier, the fire reaches living tissue.';
-        return eventOutcome(summary, [damage > 0 ? `Health −${damage}` : 'No health lost'], [
+        return eventOutcome(summary, [
+          storedProtection.used ? `Stored protection −${storedProtection.prevented} damage` : null,
+          damage > 0 ? `Health −${damage}` : 'No health lost',
+        ], [
           { kind: 'bark', amount: barkProtection },
-          { kind: 'shelter', amount: shelterProtection },
+          { kind: 'shelter', amount: storedProtection.prevented },
         ]);
       }
     },
