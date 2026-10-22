@@ -112,6 +112,10 @@ test('every species resolves to painted terminal shoot and root progression asse
       assert.ok(existsSync(url),`${species} ${key}`);
     }
   }
+  for(const family of ['juvenile','woody']){
+    const url=new URL(getTreeGrowthAssetUrl('Cherry',`root-extension-${family}`));url.search='';
+    assert.ok(existsSync(url),`shared ${family} root extension`);
+  }
 });
 
 test('painted structure geometry still reflects structural growth within a stage', () => {

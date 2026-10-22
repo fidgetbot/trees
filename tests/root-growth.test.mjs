@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rootGrowthAmount,rootRevealEffect,drawRootGrowth,resetRootGrowthCache} from '../ui/root-growth.js';
-test('juvenile root investments persist across leaf and stage changes',()=>{
- const s={lifeStage:{name:'Sprout'},rootZones:4,visualGrowth:{structuralBase:{roots:4,taproots:0}}};
+import {rootExtensionFamily,rootGrowthAmount,rootGrowthBounds,rootRevealEffect,drawRootGrowth,resetRootGrowthCache} from '../ui/root-growth.js';
+test('root development survives every life-stage illustration handoff',()=>{
+ const s={lifeStage:{name:'Sprout'},rootZones:4};
  assert.equal(rootGrowthAmount(s),3);
  s.lifeStage={name:'Seedling'};assert.equal(rootGrowthAmount(s),3);
+ s.lifeStage={name:'Sapling'};assert.equal(rootGrowthAmount(s),3);
+ s.lifeStage={name:'Young Tree'};assert.equal(rootGrowthAmount(s),3);
+ assert.equal(rootExtensionFamily('Seedling'),'juvenile');
+ assert.equal(rootExtensionFamily('Sapling'),'woody');
  const reveal={from:{roots:3,taproots:0},progress:0};
  assert.equal(rootGrowthAmount(s,reveal),2);
  reveal.progress=.5;assert.equal(rootGrowthAmount(s,reveal),2.5);
@@ -22,25 +26,12 @@ test('root emphasis follows only new bounds and disappears at the endpoint',()=>
  assert.ok(rootRevealEffect(state,{from,progress:1},geometry).pulse<1e-12);
  assert.equal(rootRevealEffect(state,{from:{roots:3,taproots:0},progress:.5},geometry),null,'leaf-only reveals do not flash roots');
 });
-test('root deformation preserves the collar and increases depth without separate stamps',()=>{
- const calls=[],rows=[],ctx={drawImage:(...args)=>calls.push(args)},image={width:600,height:900};
- const original=globalThis.document;
- globalThis.document={createElement:()=>({getContext:()=>({drawImage:(...args)=>rows.push(args)})})};
+test('the stage painting remains unchanged while extension bounds grow monotonically',()=>{
+ const calls=[],ctx={drawImage:(...args)=>calls.push(args)},image={width:600,height:900};
  const geometry={width:40,height:60,groundRatio:.5,rootStart:.7};
- try{
-  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
-  assert.equal(calls.length,1,'screen receives one connected raster');
-  assert.ok(rows.every(r=>r[0]===image),'all root pixels come from the same specimen');
-  assert.equal(rows[1][6],630,'first root row starts at the unchanged collar');
-  assert.ok(rows.slice(1).every(r=>Number.isInteger(r[6])&&r[8]===1),'raster rows are contiguous, integral and gap-free');
-  assert.ok(calls[0][4]>60,'root depth grows');
-  assert.ok(calls[0][3]>40,'root spread grows');
-  const firstMesh=calls[0][0],extent=calls[0].slice(1);
-  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
-  assert.equal(calls[1][0],firstMesh,'ordinary redraw reuses the mesh');
-  resetRootGrowthCache();
-  drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
-  assert.notEqual(calls[2][0],firstMesh,'recovery rebuilds a discarded backing surface');
-  assert.deepEqual(calls[2].slice(1),extent,'recovery preserves visible growth dimensions');
- }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original;}
+ drawRootGrowth(ctx,image,null,geometry,{presentationStage:'Seedling',rootZones:3});
+ assert.deepEqual(calls[0],[image,0,0,600,900,-20,-30,40,60]);
+ const one=rootGrowthBounds(geometry,1),four=rootGrowthBounds(geometry,4);
+ assert.ok(four.width>one.width&&four.height>one.height);
+ resetRootGrowthCache();
 });

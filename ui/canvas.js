@@ -1,4 +1,4 @@
-import {drawRootGrowth,rootGrowthAmount,resetRootGrowthCache} from './root-growth.js?rev=artwork-recovery-v1';
+import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=stage-matched-roots-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
 import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=artwork-recovery-v1';
@@ -39,6 +39,7 @@ const SEED_PALETTES = {
 const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
 const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
 const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
+const ROOT_EXTENSION_ASSET_REVISION='stage-matched-roots-v1';
 const GROUND_ASSET_REVISION='painted-snow-v1';
 const HEDGE_ASSET_REVISION='seasonal-hedges-v2';
 const TREE_REMAINS_ASSET_REVISION='painted-tree-remains-v1';
@@ -94,6 +95,10 @@ const TREE_STRUCTURE_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_
   ]);
 })));
 const TREE_GROWTH_ASSET_KEYS=Object.freeze(['shoot','root-radicle','root-forked','root-fan']);
+const ROOT_EXTENSION_ASSET_URLS=Object.freeze({
+  juvenile:new URL(`../assets/trees/growth/root-extension-juvenile-v2.png?rev=${ROOT_EXTENSION_ASSET_REVISION}`,import.meta.url).href,
+  woody:new URL(`../assets/trees/growth/root-extension-woody-v2.png?rev=${ROOT_EXTENSION_ASSET_REVISION}`,import.meta.url).href,
+});
 const TREE_GROWTH_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_SPECIES.flatMap(species=>{
   const slug=species.toLowerCase();
   return TREE_GROWTH_ASSET_KEYS.map(assetKey=>[
@@ -342,6 +347,7 @@ export function getTreeStructureAssetUrl(species,stageKey){
 }
 
 export function getTreeGrowthAssetUrl(species,assetKey){
+  if(assetKey.startsWith('root-extension-'))return ROOT_EXTENSION_ASSET_URLS[assetKey.slice('root-extension-'.length)]||null;
   return TREE_GROWTH_ASSET_URLS[`${species}:${assetKey}`]||null;
 }
 
@@ -516,7 +522,7 @@ function treeHitTarget(tree,state,playerStageName,camera,groundY){
   const geometry=juvenile?getJuvenileGeometry(visual.selectedSpecies||'Plum',juvenile,visual):getTreeStructureGeometry(key,visual);
   const trunk=visual.trunk||1,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
   const amount=tree.isPlayer?rootGrowthAmount({...visual,presentationStage:stage}):0;
-  const spread=.45*amount,depth=1+.22*Math.sqrt(amount);
+  const growthBounds=rootGrowthBounds(geometry,amount),spread=growthBounds.width/geometry.width-1,depth=(growthBounds.height/geometry.height-geometry.groundRatio)/(1-geometry.groundRatio);
   const above=geometry.height*geometry.groundRatio*scale;
   const below=geometry.height*(1-geometry.groundRatio)*depth*scale;
   const paintedWidth=geometry.width*(1+spread)*scale;
@@ -883,7 +889,9 @@ function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false,re
   const geometry=getTreeStructureGeometry(stageKey,visualState),{width,height,groundRatio}=geometry;
   ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
-  drawRootGrowth(ctx,image,source,geometry,visualState,reveal);
+  const family=rootExtensionFamily(visualState.presentationStage);
+  const extension=requestTreeGrowthAsset(visualState.selectedSpecies,`root-extension-${family}`);
+  drawRootGrowth(ctx,image,source,geometry,visualState,reveal,extension);
   ctx.restore();
 }
 
@@ -927,6 +935,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
     if(image) {
       const geometry=getJuvenileGeometry(species,key,visualState);
       const growth=preparePaintedGrowth(image,null,isPlayer?state:visualState,stage,geometry,getJuvenileLayers(image,geometry).dormant);
+      const rootExtension=requestTreeGrowthAsset(species,'root-extension-juvenile');
       ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
       if(shaded)ctx.filter='brightness(.58) saturate(.76)';
       drawGrowthSprites(ctx,growth,growthReveal,season,growthSprites);
@@ -934,8 +943,8 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       const filter=paintedFoliageFilter(season,shaded);
       const previousKey=growthReveal&&growthReveal.from.leaves>0?JUVENILE_KEYS[Math.min(2,growthReveal.from.leaves-1)]:null;
       const previous=previousKey&&previousKey!==key&&treeStructureAssets.get(`${species}:${previousKey}`);
-      if(previous)drawJuvenilePlant(ctx,previous,getJuvenileGeometry(species,previousKey,visualState),season,leaves,filter,1-growthReveal.progress,isPlayer?state:visualState,growthReveal);
-      drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1,isPlayer?state:visualState,growthReveal);
+      if(previous)drawJuvenilePlant(ctx,previous,getJuvenileGeometry(species,previousKey,visualState),season,leaves,filter,1-growthReveal.progress,isPlayer?state:visualState,growthReveal,rootExtension);
+      drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1,isPlayer?state:visualState,growthReveal,rootExtension);
       const donor=requestTreeStructureAsset(species,'first-leaves');
       if(donor)drawJuvenileLeaves(ctx,growth,growthReveal,season,donor,getJuvenileGeometry(species,'first-leaves',visualState),filter);
       const targets=attachPests(image,null,geometry,growth);

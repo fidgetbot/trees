@@ -1,6 +1,6 @@
 // Dedicated infant plants. Generated masters stay intact; seasonal layers are
 // derived in memory so the living tip and seed survive leaf loss and winter.
-import {drawRootGrowth} from './root-growth.js?rev=artwork-recovery-v1';
+import {drawRootGrowth} from './root-growth.js?rev=stage-matched-roots-v1';
 export const JUVENILE_KEYS = ['first-leaves', 'unfurling', 'juvenile'];
 const anchors = {
   Cherry: [[.56,.51],[.55,.545],[.55,.59]],
@@ -118,11 +118,11 @@ export function getJuvenileLayers(image, geometry) {
   const result={dormant,foliage,singleLeaf};layers.set(image,result);return result;
 }
 
-export function drawJuvenilePlant(ctx,image,geometry,season,leafCount,filter='none',alpha=1,state={},reveal=null) {
+export function drawJuvenilePlant(ctx,image,geometry,season,leafCount,filter='none',alpha=1,state={},reveal=null,extensionImage=null) {
   const {dormant,foliage}=getJuvenileLayers(image,geometry);
   const args=[-geometry.width*geometry.anchorX,-geometry.height*geometry.groundRatio,geometry.width,geometry.height];
   ctx.save();ctx.globalAlpha=alpha;
-  drawRootGrowth(ctx,dormant,null,geometry,state,reveal);
+  drawRootGrowth(ctx,dormant,null,geometry,state,reveal,extensionImage);
   if(season!=='Winter'&&leafCount>0){ctx.filter=filter;ctx.drawImage(foliage,...args);}
   ctx.restore();
 }
