@@ -1,4 +1,4 @@
-import { TURNS_PER_SEASON } from '../core/constants.js?rev=four-turn-seasons-v1';
+import { TURNS_PER_SEASON } from '../core/constants.js?rev=botanical-roots-v1';
 
 export { TURNS_PER_SEASON };
 

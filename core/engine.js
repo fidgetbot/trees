@@ -80,11 +80,11 @@ export function updateResourceShortageNudges(state, gains) {
     ],
     water: [
       'Extend Root',
-      rank >= 3 && turnsInStage >= 6 ? 'Deepen Taproot' : null,
+      rank >= 3 && turnsInStage >= 6 ? 'Deepen Roots' : null,
     ],
     nutrients: [
       'Extend Root',
-      rank >= 3 && turnsInStage >= 6 ? 'Deepen Taproot' : null,
+      rank >= 3 && turnsInStage >= 6 ? 'Deepen Roots' : null,
       rank >= 3 && turnsInStage >= 15 ? 'Enrich Rhizosphere' : null,
     ],
   };

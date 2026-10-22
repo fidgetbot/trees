@@ -1,4 +1,4 @@
-import { LIFE_STAGES, TURNS_PER_SEASON, TURNS_PER_YEAR } from './constants.js?rev=four-turn-seasons-v1';
+import { LIFE_STAGES, TURNS_PER_SEASON, TURNS_PER_YEAR } from './constants.js?rev=botanical-roots-v1';
 
 export function computeCurrentLifeStage(state) {
   return state.lifeStage || LIFE_STAGES[0];

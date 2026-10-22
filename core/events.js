@@ -126,7 +126,7 @@ export function createMajorEvents(deps) {
         recordDamage(thirst, 'drought');
         const protections = [
           droughtResist >= 0.4 ? `your species' drought tolerance` : null,
-          s.taprootDepth > 0 ? 'your deep taproot' : null,
+          s.taprootDepth > 0 ? 'your deep roots' : null,
         ].filter(Boolean);
         const summary = storedProtection.used
           ? thirst > 0

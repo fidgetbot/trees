@@ -54,12 +54,12 @@ test('root investments receive a longer reveal without slowing other growth',()=
  assert.equal(growthRevealProgress(1,true),1);
 });
 
-test('deepening the taproot adds progressively branched painted modules',()=>{
+test('later deep-root growth is handled by the connected botanical renderer, not added sprites',()=>{
  const s={...state(),taprootDepth:1};syncGrowthAttachments(s);
  s.taprootDepth++;let modules=getPaintedGrowthPlan(s,'Sapling',geometry).roots.filter(r=>r.kind==='taproots');
- assert.deepEqual(modules.map(r=>[r.id,r.spriteVariant]),[['taproot-1','radicle']]);
+ assert.deepEqual(modules,[]);
  s.taprootDepth++;modules=getPaintedGrowthPlan(s,'Sapling',geometry).roots.filter(r=>r.kind==='taproots');
- assert.deepEqual(modules.map(r=>[r.id,r.spriteVariant]),[['taproot-1','radicle'],['taproot-2','forked']]);
+ assert.deepEqual(modules,[]);
 });
 
 test('a new life stage absorbs terminal overlays into its painted specimen',()=>{

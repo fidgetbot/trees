@@ -57,7 +57,7 @@ The opening is deliberately small. Your first meaningful decision is to extend a
 
 - **Four distinct seasons** with changing light, water, dormancy, weather, reproduction, and event pools.
 - **Seven life stages** from Seed to Ancient, each visible in the Canvas art and tied to real progression requirements.
-- **Persistent structure:** roots, taproots, trunk strength, height, branches, foliage, canopy spread, bark, thorns, and toxic leaves all have mechanical and visual consequences.
+- **Persistent structure:** spreading and deep roots, trunk strength, height, branches, foliage, canopy spread, bark, thorns, and toxic leaves all have mechanical and visual consequences.
 - **A living neighborhood:** nearby trees retain their species, size, health, relationship, crises, competition, and history with you.
 - **Directional canopy competition:** growing taller can let you shade a neighbor, but taller rivals can crowd you in return.
 - **Mycorrhizal cooperation:** allied trees exchange water and minerals and can help prime realistic chemical defenses.

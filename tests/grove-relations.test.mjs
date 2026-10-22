@@ -397,7 +397,7 @@ test('gathering summary separates bonuses and penalties into readable factors', 
   const gains = engine().collectResources(state);
   const summary = renderResourcePhaseBody({ state, gains });
   assert.match(summary, /resource-factor positive[^>]*>Height \+2/);
-  assert.match(summary, /resource-factor positive[^>]*>Taproot \+/);
+  assert.match(summary, /resource-factor positive[^>]*>Deep roots \+/);
   assert.match(summary, /resource-factor positive[^>]*>Allies \+/);
   assert.match(summary, /resource-factor positive[^>]*>Shading \+2/);
   assert.match(summary, /resource-factor negative[^>]*>Crowding/);

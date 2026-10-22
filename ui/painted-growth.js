@@ -58,7 +58,7 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
   const base = state.visualGrowth?.structuralBase || current;
   const absorbedRoots = Math.max(count(base.roots), stage === 'Seed' ? 1 : 0);
   const rootVariants = ['radicle','forked','fan'];
-  const roots = Array.from({ length: Math.max(0, current.roots - absorbedRoots) }, (_, offset) => {
+  const roots = juvenile ? Array.from({ length: Math.max(0, current.roots - absorbedRoots) }, (_, offset) => {
     const index=absorbedRoots+offset,side=index%2?1:-1,tier=Math.floor(offset/6);
     return { id: `root-${index}`, index, spriteVariant:rootVariants[Math.min(2,offset)], u:side<0?.18:.82,
       v:(geometry.rootStart || .67)+(offset%3)*(geometry.juvenile?.035:.045),
@@ -66,9 +66,9 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
       // Early roots build a legible three-step progression, like the first
       // painted leaf sequence: radicle, fork, then a spreading fine-root fan.
       spriteSize:height*(juvenile?[.34,.42,.50][Math.min(2,offset)]:[.19,.22,.25][Math.min(2,offset)]) };
-  });
+  }) : [];
   const absorbedTaproots=count(base.taproots);
-  for(let offset=0;offset<Math.max(0,current.taproots-absorbedTaproots);offset++){
+  for(let offset=0;juvenile&&offset<Math.max(0,current.taproots-absorbedTaproots);offset++){
     const index=absorbedTaproots+offset;
     roots.push({id:`taproot-${index}`,index,kind:'taproots',spriteVariant:rootVariants[Math.min(2,offset)],u:.5,
       v:.76+Math.min(.12,offset*.035),dx:width*(offset%2?.025:-.025),dy:height*(.12+offset*.02),spriteSize:height*(juvenile?.17:.2)});

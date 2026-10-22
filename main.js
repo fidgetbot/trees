@@ -1,4 +1,4 @@
-import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=stage-matched-roots-v1';
+import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=botanical-roots-v1';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -8,7 +8,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=four-turn-seasons-v1';
+} from './core/constants.js?rev=botanical-roots-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -26,7 +26,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=four-turn-seasons-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=shelter-grove-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=botanical-roots-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=shelter-grove-v1';
+} from './core/events.js?rev=botanical-roots-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -63,7 +63,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=structured-event-outcomes-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=shelter-grove-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=botanical-roots-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
 import {
   ensureIncidentState,
@@ -85,10 +85,10 @@ import { getContextualActions, getTargetActionContext, pickSceneTarget } from '.
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=season-cards-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=base-plus-bonus-copy-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-roots-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=structured-event-outcomes-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=botanical-roots-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
@@ -125,7 +125,7 @@ function maybeShowGrowthNudge(onContinue = showResourcePhase) {
       'The seasons work on you in silence. Change is coming.',
     ],
     roots: [
-      'Your taproot probes deeper, seeking something it cannot name.',
+      'Your deepest roots probe farther down, seeking something they cannot name.',
       'The soil below still holds something you need.',
     ],
     leaves: [
@@ -1239,7 +1239,7 @@ function woodSurgeAction(s, context = {}) {
     showModal('Wood Surge', body, () => transaction?.complete());
   };
   showChoiceModal('Wood Surge', '<p>How will you spend this growth surge?</p>', [
-    { label: 'Drive down and outward (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.rootZones += 1; state.taprootDepth += 1; }, '<p>You invest heavily belowground. Your roots thicken and your taproot pushes toward deeper water.</p>') },
+    { label: 'Drive down and outward (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.rootZones += 1; state.taprootDepth += 1; }, '<p>You invest heavily belowground. Your major roots thicken and curve toward deeper water.</p>') },
     { label: 'Lay on wood and crown (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.trunk += 1; state.canopySpread += 1; state.leafClusters += 1; state.maxHealth += 1; state.health = Math.min(state.maxHealth, state.health + 1); }, '<p>You turn surplus nutrients into wood, crown, and living strength.</p>') },
     { label: 'Back', onChoose: () => transaction?.cancel() }
   ]);
@@ -1866,7 +1866,7 @@ function showEventPhase() {
         maybeShowHealthWarning,
         advanceTurn,
         showTaprootResilience: (onContinue) => {
-          showModal('Taproot Resilience', '<p>Your deep taproot reaches moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+          showModal('Deep-root Resilience', '<p>Your deep roots reach moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
         },
       });
     }, {

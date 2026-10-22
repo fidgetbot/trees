@@ -1,6 +1,6 @@
 // Dedicated infant plants. Generated masters stay intact; seasonal layers are
 // derived in memory so the living tip and seed survive leaf loss and winter.
-import {drawRootGrowth} from './root-growth.js?rev=stage-matched-roots-v1';
+import {drawRootGrowth} from './root-growth.js?rev=botanical-roots-v1';
 export const JUVENILE_KEYS = ['first-leaves', 'unfurling', 'juvenile'];
 const anchors = {
   Cherry: [[.56,.51],[.55,.545],[.55,.59]],

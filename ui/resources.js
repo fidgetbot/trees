@@ -76,7 +76,7 @@ export function renderResourcePhaseBody({ state, gains }) {
         <span class="resource-factors">
           ${factor(`Trunk storage ${state.trunk}`)}
           ${state.rootZones ? factor(`Root support +${Math.floor((gains.effectiveRoots ?? state.rootZones) / 2)}`, 'positive') : ''}
-          ${gains.taprootBonus ? factor(`Taproot +${number(gains.taprootBonus)}`, 'positive') : ''}
+          ${gains.taprootBonus ? factor(`Deep roots +${number(gains.taprootBonus)}`, 'positive') : ''}
           ${gains.allyWater ? factor(`Allies +${number(gains.allyWater)}`, 'positive') : ''}
           ${gains.hostileWaterPenalty ? factor(`Hostile roots −${number(gains.hostileWaterPenalty)}`, 'negative') : ''}
           ${seasonalFactor('water', season.factorWater)}
@@ -96,7 +96,7 @@ export function renderResourcePhaseBody({ state, gains }) {
         <details class="gather-details"><summary>View nutrients details</summary>
         <span class="resource-factors">
           ${factor(`Roots +${number(((gains.effectiveRoots ?? state.rootZones) || 0) * 0.7)}`, 'positive')}
-          ${gains.taprootNutrients ? factor(`Taproot +${number(gains.taprootNutrients)}`, 'positive') : ''}
+          ${gains.taprootNutrients ? factor(`Deep roots +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
           ${gains.shadeNutrientBonus ? factor(`Shading +${number(gains.shadeNutrientBonus)}`, 'positive') : ''}
           ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}

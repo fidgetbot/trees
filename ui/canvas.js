@@ -1,7 +1,7 @@
-import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=stage-matched-roots-v1';
+import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
-import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=artwork-recovery-v1';
+import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
@@ -890,7 +890,7 @@ function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false,re
   ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
   const family=rootExtensionFamily(visualState.presentationStage);
-  const extension=requestTreeGrowthAsset(visualState.selectedSpecies,`root-extension-${family}`);
+  const extension=family==='juvenile'?requestTreeGrowthAsset(visualState.selectedSpecies,'root-extension-juvenile'):null;
   drawRootGrowth(ctx,image,source,geometry,visualState,reveal,extension);
   ctx.restore();
 }
