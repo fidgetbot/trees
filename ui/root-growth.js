@@ -1,7 +1,9 @@
 // Persistent botanical root growth. Seed, Sprout, and Seedling retain their
-// approved painted presentation. Sapling and later stages share one connected
+// approved painted specimens while connected juvenile extensions make later
+// root investments visible. Sapling and later stages share one connected
 // deterministic network whose geometry depends on earned growth, never stage.
 let stagePixels=new WeakMap();
+let extensionMetrics=new WeakMap();
 const clamp=value=>Math.max(0,Math.min(1,value));
 
 export function rootExtensionFamily(stage){return ['Seed','Sprout','Seedling'].includes(stage)?'juvenile':'botanical'}
@@ -54,6 +56,64 @@ function sampleBark(pixel,join){
     const i=(y*pixel.width+x)*4;if(pixel.data[i+3]>210)samples.push([pixel.data[i],pixel.data[i+1],pixel.data[i+2]]);
   }
   return samples.length?[0,1,2].map(k=>Math.round(samples.reduce((sum,c)=>sum+c[k],0)/samples.length)):[112,72,43];
+}
+
+function metrics(image){
+  if(extensionMetrics.has(image))return extensionMetrics.get(image);
+  const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);
+  const data=ctx.getImageData(0,0,width,height).data;let sx=width/2,sy=0,found=false;
+  for(let y=0;y<height&&!found;y++){
+    const xs=[];for(let x=0;x<width;x++)if(data[(y*width+x)*4+3]>220)xs.push(x);
+    if(xs.length>3){sy=Math.min(height-1,y+6);sx=xs.reduce((a,b)=>a+b,0)/xs.length;found=true}
+  }
+  const row=[];for(let x=0;x<width;x++)if(data[(sy*width+x)*4+3]>160)row.push(x);
+  const result={sx,sy,maxY:height-1,inletWidth:Math.max(1,row.length?row.at(-1)-row[0]+1:4),width,height};
+  extensionMetrics.set(image,result);return result;
+}
+
+const JUVENILE_ATTACHMENTS=Object.freeze([
+  [.38,-1,.62],[.49,1,.58],[.61,-1,.54],[.72,1,.50],
+  [.80,-1,.45],[.56,1,.43],[.69,-1,.40],[.86,1,.37],
+]);
+
+function attachment(pixel,groundRatio,fraction,side){
+  const desired=Math.round(pixel.height*(groundRatio+(1-groundRatio)*fraction));
+  for(let radius=0;radius<pixel.height*.12;radius++)for(const y of radius?[desired-radius,desired+radius]:[desired]){
+    if(y<0||y>=pixel.height)continue;const xs=[];
+    for(let x=0;x<pixel.width;x++)if(pixel.data[(y*pixel.width+x)*4+3]>150)xs.push(x);
+    if(!xs.length)continue;const x=side<0?xs[0]:xs.at(-1);let left=x,right=x;
+    while(left>0&&pixel.data[(y*pixel.width+left-1)*4+3]>95)left--;
+    while(right<pixel.width-1&&pixel.data[(y*pixel.width+right+1)*4+3]>95)right++;
+    return{x,y,parentWidth:right-left+1};
+  }
+  return null;
+}
+
+export function getJuvenileRootExtensionLayout(image,source,geometry,amount){
+  if(!image||amount<=0||typeof document==='undefined')return[];
+  const pixel=pixels(image,source),count=Math.min(JUVENILE_ATTACHMENTS.length,Math.ceil(amount));
+  return JUVENILE_ATTACHMENTS.slice(0,count).map(([fraction,side,size],index)=>{
+    const point=attachment(pixel,geometry.groundRatio,fraction,side);if(!point)return null;
+    return{index,side,progress:clamp(amount-index),size,
+      x:(point.x/pixel.width-(geometry.anchorX??.5))*geometry.width,
+      y:(point.y/pixel.height-geometry.groundRatio)*geometry.height,
+      parentWidth:point.parentWidth/pixel.width*geometry.width};
+  }).filter(Boolean);
+}
+
+function drawJuvenileExtensions(ctx,stageImage,source,geometry,state,reveal,extensionImage){
+  const amount=rootGrowthAmount(state,reveal);if(!extensionImage||amount<=0)return;
+  const m=metrics(extensionImage),establishedScale=1+Math.min(.35,Math.max(0,amount-8)*.025);
+  for(const part of getJuvenileRootExtensionLayout(stageImage,source,geometry,amount)){
+    const desired=geometry.height*part.size*.82*establishedScale;
+    const scale=Math.min(desired/Math.max(1,m.maxY-m.sy),part.parentWidth*.8/m.inletWidth);
+    if(!(scale>0))continue;
+    ctx.save();ctx.translate(part.x,part.y);ctx.rotate(part.side<0?.64:-.59);ctx.scale(part.side<0?-1:1,1);
+    ctx.beginPath();ctx.rect(-m.sx*scale,-m.sy*scale,m.width*scale,(m.maxY-m.sy)*scale*part.progress+2);ctx.clip();
+    ctx.drawImage(extensionImage,-m.sx*scale,-m.sy*scale,m.width*scale,m.height*scale);ctx.restore();
+  }
 }
 
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -122,18 +182,22 @@ function drawRoot(ctx,node,color,material=null){
 
 function drawBotanicalRoots(ctx,image,source,geometry,state,reveal,materialImage=null,materialSource=null,materialGroundRatio=.61){
   const pixel=pixels(image,source),join=collar(pixel,geometry.groundRatio),materialPixel=pixels(materialImage||image,materialSource),materialJoin=collar(materialPixel,materialGroundRatio),color=sampleBark(materialPixel,materialJoin),material={...materialPixel,join:materialJoin},graph=buildBotanicalRootGraph(state,reveal),scale=Math.max(.42,Math.min(1.22,geometry.width/230,geometry.height/320));
-  ctx.save();ctx.scale(scale,scale);for(let i=graph.nodes.length-1;i>=0;i--)drawRoot(ctx,graph.nodes[i],color,material);
-  const collarWidth=Math.max(7,join.width/pixel.width*geometry.width/scale);ctx.fillStyle=rgba(color,.92);ctx.beginPath();ctx.moveTo(-collarWidth/2,-2);ctx.bezierCurveTo(-collarWidth*.5,4,-collarWidth*.38,9,-collarWidth*.3,12);ctx.quadraticCurveTo(0,6,collarWidth*.3,12);ctx.bezierCurveTo(collarWidth*.38,9,collarWidth*.5,4,collarWidth/2,-2);ctx.closePath();ctx.fill();ctx.restore();
+  // Root bases begin just behind the final painted trunk row. Drawing the
+  // painting last gives a natural bark-to-root overlap; a separate flat collar
+  // cap creates a conspicuous polygonal blob at the soil line.
+  ctx.save();ctx.scale(scale,scale);for(let i=graph.nodes.length-1;i>=0;i--)drawRoot(ctx,graph.nodes[i],color,material);ctx.restore();
   const sw=source?.width||image.naturalWidth||image.width,sh=source?.height||image.naturalHeight||image.height,sx=source?.x||0,sy=source?.y||0,cut=Math.max(1,Math.min(sh,join.y)),destinationHeight=geometry.height*(cut/sh);
   ctx.drawImage(image,sx,sy,sw,cut,-geometry.width*(geometry.anchorX??.5),-geometry.height*geometry.groundRatio,geometry.width,destinationHeight);
 }
 
-export function resetRootGrowthCache(){stagePixels=new WeakMap()}
+export function resetRootGrowthCache(){stagePixels=new WeakMap();extensionMetrics=new WeakMap()}
 
 export function drawRootGrowth(ctx,image,source,geometry,state={},reveal=null,extensionImage=null,materialImage=null,materialSource=null,materialGroundRatio=.61){
   const stage=state.lifeStage?.name||state.presentationStage;
   if(rootExtensionFamily(stage)==='botanical'&&typeof document!=='undefined'){drawBotanicalRoots(ctx,image,source,geometry,state,reveal,materialImage,materialSource,materialGroundRatio);return}
-  // Approved Seed/Sprout/Seedling artwork remains byte-for-byte unchanged.
+  // Preserve the approved juvenile specimen and grow connected pale rootlets
+  // behind it, so every Sprout/Seedling investment changes visible pixels.
   const sw=source?.width||image.naturalWidth||image.width,sh=source?.height||image.naturalHeight||image.height,sx=source?.x||0,sy=source?.y||0,{width,height,groundRatio}=geometry,anchor=geometry.anchorX??.5;
+  if(typeof document!=='undefined')drawJuvenileExtensions(ctx,image,source,geometry,state,reveal,extensionImage);
   ctx.drawImage(image,sx,sy,sw,sh,-width*anchor,-height*groundRatio,width,height);
 }
