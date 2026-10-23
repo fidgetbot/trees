@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSceneHumanPresentation, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getJuvenileGeometry } from '../ui/juvenile-growth.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
@@ -142,7 +142,7 @@ test('painted botanical module counts remain sparse and follow game state', () =
   assert.equal(getBotanicalModuleCount('foliage', 0, 20), 0);
   assert.equal(getBotanicalModuleCount('foliage', 4, 20), 4);
   assert.equal(getBotanicalModuleCount('blossoms', 1, 20), 1);
-  assert.equal(getBotanicalModuleCount('blossoms', 5, 20), 3);
+  assert.equal(getBotanicalModuleCount('blossoms', 5, 20), 5);
   assert.equal(getBotanicalModuleCount('fruit', 1, 20), 1);
   assert.equal(getBotanicalModuleCount('fruit', 9, 20), 3);
   assert.equal(getBotanicalModuleCount('fruit', 100, 4), 4);
@@ -155,7 +155,7 @@ test('blossoms and fruit reuse the exact painted foliage attachment map',()=>{
     {end:{x:16,y:-51},width:44},
     {end:{x:38,y:-39},width:36},
   ]};
-  for(const kind of ['blossoms','fruit']){
+  for(const kind of ['fruit']){
     const entries=paintedCanopyEntries(growth,7319,kind,5);
     assert.equal(entries.length,getBotanicalModuleCount(kind,5,growth.leaves.length));
     for(const entry of entries){
@@ -347,4 +347,38 @@ test('map labels show health for allies without cluttering non-allies', () => {
   const neutral = getTreeLabelText(false, { species: 'Cherry', stageName: 'Sapling', relation: 0, health: 8, maxHealth: 10 }, state, 'Seed', getRelationshipState);
   assert.match(ally.secondary, /Ally.*♥ 6\/10/);
   assert.doesNotMatch(neutral.secondary, /♥|8\/10/);
+});
+
+
+test('each additional blossom preserves earlier flowers and adds a foliage-attached placement',()=>{
+  const growth={leaves:[{end:{x:-20,y:-40},width:40},{end:{x:20,y:-50},width:36}]};
+  let previous=[];
+  for(let count=1;count<=25;count++){
+    const entries=paintedCanopyEntries(growth,7319,'blossoms',count);
+    assert.equal(entries.length,count);
+    assert.deepEqual(entries.slice(0,-1),previous);
+    for(const entry of entries){
+      assert.ok(growth.leaves.includes(entry.leaf));
+      assert.ok(Math.hypot(entry.cluster.x-entry.leaf.end.x,entry.cluster.y-entry.leaf.end.y)<=entry.leaf.width*.28);
+    }
+    previous=entries;
+  }
+});
+
+test('human map portraits include fruit gatherers and conservation visitors, and clear only on resolution',()=>{
+  for(const [kind,artwork,meta] of [
+    ['fruit-threat','human-surveyor',{threatType:'human'}],
+    ['conservation-inspection','human-surveyor',{}],
+    ['human-encounter','human-surveyor',{encounter:{phase:'survey',count:2}}],
+    ['human-encounter','human-logger',{encounter:{phase:'cutting',count:4}}],
+  ]){
+    const human={kind,artwork,meta,state:'ongoing',scenePersistent:true};
+    const robin={kind:'wildlife',artwork:'fruit-robin',state:'ongoing',scenePersistent:true};
+    const state={incidents:[human,robin]};
+    assert.equal(getSceneHumanPresentation(state).phase,artwork==='human-logger'?'cutting':'survey');
+    assert.equal(getSceneHumanPresentation(state).count,meta.encounter?.count||2);
+    human.state='resolved';
+    assert.equal(getSceneHumanPresentation(state),null);
+    assert.deepEqual(getSceneArtKinds(state),['fruit-robin']);
+  }
 });

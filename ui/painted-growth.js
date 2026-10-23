@@ -158,6 +158,36 @@ function inkPoint(pixel, u, v) {
   return null;
 }
 
+// Marks use the same cropped source, anchor, and transform as the painted
+// trunk. Sample actual opaque wood so asymmetric trunks do not shed the mark.
+export function getPaintedTrunkMark(image, source, geometry, row = 0) {
+  const pixel = pixels(image, source);
+  const ink = inkPoint(pixel, geometry.anchorX ?? .5, geometry.groundRatio - .045 - row * .015);
+  if (!ink) return null;
+  const desiredWidth = (ink.right - ink.left + 1) / pixel.width * geometry.width * .66;
+  const desiredHeight = Math.min(desiredWidth * .24, geometry.height * .009);
+  let halfRows = Math.floor(desiredHeight / geometry.height * pixel.height / 2);
+  let left, right;
+  // A curved edge can cross the rectangle above/below its center. Intersect
+  // all covered scanlines so the entire mark, not just its midpoint, is on wood.
+  for (; halfRows >= 0; halfRows--) {
+    left = ink.left; right = ink.right;
+    for (let y = ink.y - halfRows; y <= ink.y + halfRows; y++) {
+      const band = inkPoint(pixel, ink.x / pixel.width, y / pixel.height);
+      if (!band || band.y !== y) { right = left; break; }
+      left = Math.max(left, band.left); right = Math.min(right, band.right);
+    }
+    if (right - left >= 2) break;
+  }
+  if (halfRows < 0) return null;
+  return {
+    x: ((left + right) / 2 / pixel.width - (geometry.anchorX ?? .5)) * geometry.width,
+    y: (ink.y / pixel.height - geometry.groundRatio) * geometry.height,
+    width: (right - left) / pixel.width * geometry.width * .66,
+    height: Math.max(.8, halfRows * 2) / pixel.height * geometry.height,
+  };
+}
+
 // Move an interior attachment point to the first painted edge in the growth
 // direction. The persistent sprite is drawn below the stage painting, so its
 // base remains concealed while the new terminal growth emerges beyond the

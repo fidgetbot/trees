@@ -551,3 +551,13 @@ test('fungal bloom rewards connected allied neighbors, not offspring counts', ()
   assert.match(allyOutcome.summary, /connected allies strengthen/i);
   assert.equal(connectedAlly.nutrients, 4);
 });
+
+
+test('rival combat preview is readable text carrying both authoritative power values',()=>{
+  const s={lifeStage:LIFE_STAGES[4],heightGrowth:0,sunlight:10,water:10,nutrients:10};
+  const n={species:'Pear',relation:-35,stageScore:600,heightGrowth:0};
+  const decision=buildHostileEncroachmentDecision(s,n,{getRelationshipState,getNeighborStage,compareConflictPower:()=>({yourPower:17,theirPower:9})});
+  const preview=decision.options.find(option=>option.id==='chemical-battle').preview;
+  assert.equal(typeof preview,'string');
+  assert.match(preview,/17/);assert.match(preview,/9/);assert.doesNotMatch(preview,/\[object/);
+});
