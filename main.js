@@ -1,3 +1,4 @@
+import { neighborGrowthFactor, neighborHelpAvailable } from './core/neighbor-economy.js?rev=neighbor-economy-v1';
 import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=trunk-marks-v1';
 import {
   SEASONS,
@@ -17,7 +18,7 @@ import {
   getAdjustedRelationshipDelta,
   getPollinatorChance,
   getDroughtResistance,
-} from './core/species.js?rev=resource-balance-v1';
+} from './core/species.js?rev=neighbor-economy-v1';
 import {
   computeCurrentLifeStage as computeCurrentLifeStageFromState,
   turnsForYears,
@@ -26,7 +27,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=four-turn-seasons-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=botanical-roots-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=neighbor-economy-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -39,7 +40,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=event-text-v2';
+} from './core/events.js?rev=neighbor-economy-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -51,7 +52,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=structured-event-outcomes-v1';
+} from './core/diplomacy.js?rev=neighbor-economy-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -63,8 +64,8 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=structured-event-outcomes-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=botanical-roots-v1';
-import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=neighbor-economy-v1';
+import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=neighbor-economy-v1';
 import {
   ensureIncidentState,
   awaitIncidentResponse,
@@ -78,22 +79,22 @@ import {
   queuedResponseIncidents,
   resolveIncident,
 } from './core/incidents.js?rev=structured-event-outcomes-v1';
-import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=readable-conflict-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=neighbor-economy-v1';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=drag-carousel-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
+import { renderActionPanels } from './ui/actions.js?rev=neighbor-economy-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=neighbor-economy-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-roots-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=neighbor-economy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-scene-fixes-oct23-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=neighbor-economy-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=four-turn-seasons-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=neighbor-economy-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -961,7 +962,7 @@ function growNeighbors() {
       return;
     }
     const baseGrowth = 20 + Math.floor(Math.random() * 35);
-      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
+      n.stageScore += Math.floor((neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n)) * neighborGrowthFactor(n));
     const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
     if (heightChange) openIncident(state, {
       kind: 'canopy-notice', title: 'The Canopy Shifts', summary: heightChange.message,
@@ -1112,70 +1113,6 @@ function crisisLabel(crisis) {
   return `${crisis.title} (${crisis.amount}${icon})`;
 }
 
-function createAllyCrisis(neighbor) {
-  const options = [
-    { kind: 'nutrients', title: 'Mite bloom', amount: 8, severity: 2, healthLoss: 2, flavors: [
-      `The ${neighbor.species}'s bark crawls with mites. The infestation is eating into its reserves.`,
-      `The ${neighbor.species} is still struggling with mites. The crawling pressure is spreading into fresh tissue.`,
-      `The ${neighbor.species} is losing ground to the mites. Its distress comes through the roots in ragged pulses.`
-    ]},
-    { kind: 'water', title: 'Dry roots', amount: 7, severity: 2, healthLoss: 2, flavors: [
-      `The ${neighbor.species}'s leaves hang limp. Its roots are finding only dust.`,
-      `The ${neighbor.species} is still desiccating. It begs for water through the fungal dark.`,
-      `The ${neighbor.species} is close to collapse from thirst. Even its cambium feels brittle.`
-    ]},
-    { kind: 'nutrients', title: 'Blight recovery', amount: 10, severity: 3, healthLoss: 3, flavors: [
-      `The ${neighbor.species} has spent itself fighting blight. It needs dense reserves to recover.`,
-      `The ${neighbor.species} is still trying to wall off blight. Its reserves are nearly gone.`,
-      `The ${neighbor.species} can barely contain the blight now. Without rich help, it may die.`
-    ]}
-  ];
-  const chosen = options[Math.floor(Math.random() * options.length)];
-  return { ...chosen, stage: 0, id: `${Date.now()}-${Math.random()}` };
-}
-
-function maybeAddAllyCrisis(neighbor) {
-  const allowMultiple = computeCurrentLifeStage().rank >= STAGE_BY_NAME['Young Tree'].rank;
-  neighbor.activeCrises = neighbor.activeCrises || [];
-  if (!allowMultiple && neighbor.activeCrises.length > 0) return null;
-  const crisis = createAllyCrisis(neighbor);
-  neighbor.activeCrises.push(crisis);
-  return crisis;
-}
-
-function advanceAllyCrises(events) {
-  for (const neighbor of state.neighbors) {
-    if (neighbor.dead) continue;
-    if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
-    neighbor.activeCrises = neighbor.activeCrises || [];
-    if (neighbor.activeCrises.length === 0 && Math.random() < (state.alliedNeighbors === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
-    for (const crisis of [...neighbor.activeCrises]) {
-      const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
-      const event = {
-        kind: 'ally-aid',
-        title: `${neighbor.species}: ${crisis.title}`,
-        text: `${flavor} The crisis is deepening.`,
-        effect: 'warning',
-        subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
-        response: { kind: 'ally-aid', neighborSlot: neighbor.slot, crisisId: crisis.id },
-      };
-      const existing = findActiveIncident(state, 'ally-aid', incident => incident.response?.neighborSlot === neighbor.slot && incident.response?.crisisId === crisis.id);
-      if (existing) {
-        awaitIncidentResponse(state, existing.id, event);
-        event.existingIncidentId = existing.id;
-      }
-      events.push(event);
-      crisis.stage += 1;
-      neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
-      if (neighbor.health <= 0) {
-        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. The crisis ends in silence.`, effect: 'damage' });
-        updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
-        continue;
-      }
-    }
-  }
-}
-
 function advanceChildCrises(events) {
   const outcomes = advanceOffspringCrises(state, Math.random);
   for (const outcome of outcomes) {
@@ -1284,7 +1221,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
       showModal('Aid Cancelled', `<p>The ${neighborName} can no longer receive ally aid.</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
       return;
     }
-    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
+    const crisisLine = outcome.crisisResolved ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
     const paid = outcome.paidCost || { sunlight: 0, water: 0, nutrients: 0 };
     showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
@@ -1334,6 +1271,13 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
       return;
     }
     const proceed = () => {
+      const target = state.neighbors[option.targetIndex];
+      if (!target || target.dead || option.disabled || (decision.kind === 'ally-help-request' && (getRelationshipState(target.relation).name !== 'Ally' || !neighborHelpAvailable(state, target, option.meta.requestKind, getNeighborStage)))) {
+        showFeedback('That tree cannot spare this aid. Nothing spent.', 'info');
+        cancel();
+        return;
+      }
+      if (decision.kind === 'ally-aid' && (getRelationshipState(target.relation).name !== 'Ally' || (target.health >= target.maxHealth && !target.activeCrises?.length))) { cancel(); return; }
       transaction?.commit();
       const resolved = resolveDiplomacyDecision(state, decision, option.id, {
         getRelationshipState,
@@ -1356,7 +1300,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     proceed();
   };
 
-  if (preferredTargetIndex != null) {
+  if (preferredTargetIndex != null && decision.kind !== 'ally-help-request') {
     const preferred = decision.options.find(option => option.targetIndex === preferredTargetIndex);
     if (preferred) {
       execute(preferred);
@@ -1364,7 +1308,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     }
   }
 
-  if (decision.options.length === 1 && !decision.options[0].disabled) {
+  if (decision.kind !== 'ally-help-request' && decision.options.length === 1 && !decision.options[0].disabled) {
     execute(decision.options[0]);
     return { deferred: true };
   }
@@ -1416,8 +1360,8 @@ function rootDominionAction(s, context) {
 
 function requestHelpFromAllies(s, context = {}) {
   const missingHealth = Math.max(0, state.maxHealth - state.health);
-  showChoiceModal('What do you need?', '<p>Choose what your tissues need most. The ally will decide how much it can spare.</p>', [
-    { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+  showChoiceModal('What do you need?', '<p>Choose what your tissues need most. Only surplus above the ally’s survival reserve can be shared. The next screen shows the available amount before you spend an action.</p>', [
+    { label: missingHealth >= 1 ? 'Health' : 'Health — already full', description: missingHealth >= 1 ? 'Recovery uses one water and one nutrient from the donor per health restored.' : 'Your health is already full.', disabled: missingHealth < 1, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
     { label: 'Back', onChoose: () => context.transaction?.cancel({ silent: true }) },
@@ -1666,6 +1610,7 @@ const MAJOR_EVENTS = createMajorEvents({
 
 engine = createEngine({
   SEASONS,
+  updateNeighborAliveState,
   computeCurrentLifeStage,
   getStageProgressIncrement: getStageProgressIncrementForState,
   rollMajorEvent,
@@ -1767,7 +1712,6 @@ function rollMinorEvents() {
     getRelationshipState,
     getNeighborStage,
     random: Math.random,
-    advanceAllyCrises: (events) => advanceAllyCrises(events),
     advanceOffspringCrises: (events) => advanceChildCrises(events),
     checkAllyBetrayal: (events) => checkAllyBetrayal(events),
     queueHostileTreeThreat: (target, events) => queueHostileTreeThreat(target, events),

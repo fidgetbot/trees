@@ -1,8 +1,9 @@
+import { advanceNeighborEcology, collectNeighborDonations } from './neighbor-economy.js?rev=neighbor-economy-v1';
 import { createOffspringRecords } from './humans.js?rev=structured-event-outcomes-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
 import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
-import { normalizeStoredProtection } from './events.js?rev=shelter-grove-v1';
+import { normalizeStoredProtection } from './events.js?rev=neighbor-economy-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -198,17 +199,15 @@ export function createEngine(deps) {
     const crowdedSunlightGain = Math.max(1, Math.floor(sunlightBase * exposureFactor(state, relations.crowdingNeighbors) * season.factorSun * state.eventModifiers.disease));
     const sunlightGain = Math.max(1, crowdedSunlightGain + canopyAdvantage);
     const neutralSunlightGain = Math.max(1, Math.floor(neutralSunlightBase * exposureFactor(state, 0) * season.factorSun * state.eventModifiers.disease));
-    const allyWater = relations.connectedAllyStrength * 0.35;
     const hostileWaterPenalty = Math.min(2, relations.hostileNeighbors);
-    const waterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus + allyWater);
+    const waterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus);
     const neutralWaterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus);
     const unpressuredWaterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
-    const waterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty);
+    const ownWaterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty);
     const neutralWaterGain = Math.max(1, Math.floor(neutralWaterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
 
     const taprootNutrients = effectiveTaproot * 0.5;
     const rootNutrients = (effectiveRoots * 0.7) + taprootNutrients;
-    const allyNutrients = Math.min(5, relations.connectedAllyStrength);
     const rootCompetitionPenalty = Math.min(3, relations.rivalNeighbors + relations.hostileNeighbors);
     const soilBonus = state.eventModifiers.soilBonus || 0;
     const maintenance = getResourceMaintenance(state, season.name);
@@ -216,11 +215,18 @@ export function createEngine(deps) {
     const maintenanceCost = maintenance.nutrients;
     const dormancySavings = Object.values(maintenance.base).reduce((sum, value) => sum + value, 0)
       - (maintenance.sunlight + maintenance.water + maintenance.nutrients);
-    const grossNutrients = Math.max(1, Math.floor((rootNutrients + allyNutrients + soilBonus) * state.eventModifiers.disease));
+    const grossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
-    const nutrientGain = Math.max(0, grossNutrients - rootCompetitionPenalty) + shadeNutrientBonus;
+    const ownNutrientGain = Math.max(0, grossNutrients - rootCompetitionPenalty) + shadeNutrientBonus;
     const neutralNutrientGain = neutralGrossNutrients;
     const capacities = getResourceCapacities(state);
+    const donations = collectNeighborDonations(state, getRelationshipState, getNeighborStage, {
+      water: Math.max(0, capacities.water - (state.water || 0) - ownWaterGain + maintenance.water),
+      nutrients: Math.max(0, capacities.nutrients - (state.nutrients || 0) - ownNutrientGain + maintenance.nutrients),
+    });
+    const allyWater = donations.water, allyNutrients = donations.nutrients;
+    const waterGain = ownWaterGain + allyWater;
+    const nutrientGain = ownNutrientGain + allyNutrients;
     const previous = { sunlight: state.sunlight || 0, water: state.water || 0, nutrients: state.nutrients || 0 };
     const beforeCapacity = {
       sunlight: Math.max(0, previous.sunlight + sunlightGain - maintenance.sunlight),
@@ -419,6 +425,8 @@ export function createEngine(deps) {
     const major = state.turnInSeason === TURNS_PER_SEASON ? rollMajorEvent() : null;
     const minors = rollMinorEvents();
     const majorOutcome = applyEventEffects(state, major, minors);
+    minors.push(...advanceNeighborEcology(state, { majorKey: major?.key, getRelationshipState, getNeighborStage, random: deps.random || Math.random, onDeath: deps.updateNeighborAliveState }));
+    updateAlliesCount?.();
     updateScoreState(state);
     updateUI();
     render();

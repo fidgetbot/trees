@@ -1,3 +1,4 @@
+import { applyNeighborAid, ensureNeighborEconomy, neighborHelpAvailable } from './neighbor-economy.js?rev=neighbor-economy-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
@@ -78,6 +79,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
     paidCost = { sunlight: 0, water: 0, nutrients: 0 },
   } = deps;
 
+  ensureNeighborEconomy(neighbor);
   const oldState = getRelationshipState(neighbor.relation).name;
   const crisis = (neighbor.activeCrises || [])[0] || null;
 
@@ -91,7 +93,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
       reason: 'not-an-ally',
     };
   }
-  if (neighbor.health >= neighbor.maxHealth) {
+  if (neighbor.health >= neighbor.maxHealth && !crisis) {
     return {
       ok: false,
       oldState,
@@ -110,11 +112,14 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   const adjusted = getAdjustedRelationshipDelta(state, crisis ? 10 : 8);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjusted));
   neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + (crisis ? 3 : 2));
-  if (crisis) neighbor.activeCrises = neighbor.activeCrises.filter(c => c.id !== crisis.id);
+  applyNeighborAid(neighbor, 'water', paidCost.water || 0);
+  applyNeighborAid(neighbor, 'nutrients', paidCost.nutrients || 0);
+  const crisisResolved = !!crisis && !neighbor.activeCrises.some(c => c.id === crisis.id);
   const newState = getRelationshipState(neighbor.relation).name;
 
   return {
     ok: true,
+    crisisResolved,
     oldState,
     newState,
     crisis,
@@ -132,34 +137,30 @@ export function resolveHelpRequestFromAlly(state, neighbor, deps = {}) {
     requestKind = 'health',
   } = deps;
 
+  ensureNeighborEconomy(neighbor);
+  const available = getRelationshipState(neighbor.relation).name === 'Ally'
+    ? neighborHelpAvailable(state, neighbor, requestKind, getNeighborStage) : 0;
+  if (!available) return {
+    ok: false, reason: 'no-surplus', requestKind, actualAmount: 0, actualHeal: 0,
+    oldState: getRelationshipState(neighbor.relation).name,
+    newState: getRelationshipState(neighbor.relation).name,
+    tone: `The ${neighbor.species} cannot safely spare ${requestKind}. Its survival reserves stay intact.`,
+    clearedThreat: null, threatStatus: null,
+  };
   neighbor.timesAskedThemForHelp += 1;
   const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
-  const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
-  const healthRatio = neighbor.maxHealth > 0 ? neighbor.health / neighbor.maxHealth : 0;
-  const crisisPenalty = Math.min(2, (neighbor.activeCrises || []).length);
-  const capacity = Math.max(2, Math.min(6, 1 + stageBonus + Math.floor(healthRatio * 3) - crisisPenalty));
-  let amount = Math.max(2, Math.min(capacity, 1 + Math.floor(random() * Math.max(1, capacity))));
-  let relationShift = -3;
-  let tone = `The ${neighbor.species} answers through the fungal dark.`;
-  if (neighbor.lastAidMemory === 'you-refused' || neighbor.helpRefusedToThem > neighbor.helpGivenToThem) {
-    amount = Math.max(2, amount - 2);
-    relationShift = -7;
-    tone = `The ${neighbor.species} remembers when you conserved your own strength instead of answering its need. It still responds, but sends less.`;
-  } else if (favorBalance < -2) {
-    amount = Math.max(2, amount - 1);
-    relationShift = -6;
-    tone = `The ${neighbor.species} answers coolly. You have asked much of it lately, and the imbalance has begun to strain the bond.`;
-  } else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) {
-    relationShift = -1;
-    tone = `The ${neighbor.species} remembers that you answered its need before and responds generously.`;
-  }
-
-  let actualAmount = amount;
+  const relationShift = favorBalance < -2 ? -2 : 0;
+  const tone = favorBalance < -2
+    ? `The ${neighbor.species} shares its surplus, but repeated one-sided requests are straining the bond.`
+    : `The ${neighbor.species} shares its surplus while keeping reserves for its own recovery.`;
+  const actualAmount = available;
   if (requestKind === 'health') {
-    actualAmount = Math.min(amount, state.maxHealth - state.health);
+    neighbor.reserves.water -= actualAmount;
+    neighbor.reserves.nutrients -= actualAmount;
     state.health += actualAmount;
   } else {
-    state[requestKind] += amount;
+    neighbor.reserves[requestKind] -= actualAmount;
+    state[requestKind] = (state[requestKind] || 0) + actualAmount;
   }
 
   const threatIncident = requestKind === 'health'
@@ -250,7 +251,7 @@ export function buildAidDecision(state, deps = {}) {
     body: 'Choose an allied tree to heal and help grow. Repeated support strengthens the bond and can qualify the tree for the protected-grove goal.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
-      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally' && neighbor.health < neighbor.maxHealth)
+      .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally' && (neighbor.health < neighbor.maxHealth || neighbor.activeCrises?.length))
       .map(({ neighbor, targetIndex }) => {
         const crisis = (neighbor.activeCrises || [])[0] || null;
         return {
@@ -279,11 +280,12 @@ export function buildHelpRequestDecision(state, deps = {}) {
   return createDecision({
     kind: 'ally-help-request',
     title: 'Ask an ally for help',
-    body: `Choose which allied tree you will ask for ${requestKind}. Its own health, life stage, current needs, and memory of your support affect how much it gives.`,
+    body: `Choose which allied tree you will ask for ${requestKind}. Each transfer uses one action, with no resource fee. The donor keeps its survival reserves.${requestKind === 'health' ? ' Each health restored uses one donor water and one donor nutrient.' : ''} Unavailable requests cost nothing.`,
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
       .map(({ neighbor, targetIndex }) => {
+        const available = neighborHelpAvailable(state, neighbor, requestKind, getNeighborStage);
         const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
         const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
         let toneHint = 'steady';
@@ -291,7 +293,10 @@ export function buildHelpRequestDecision(state, deps = {}) {
         else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
         return {
           id: `neighbor-${targetIndex}`,
-          label: `${neighbor.species} — Ally`,
+          label: `${neighbor.species} — ${available ? `${available} ${requestKind} available` : `cannot spare ${requestKind}`}`,
+          description: available ? `Receive ${available} ${requestKind}; its survival buffer is protected.` : 'Its own needs come first. Try another resource or return later.',
+          disabled: available <= 0,
+          affordable: available > 0,
           targetIndex,
           meta: {
             species: neighbor.species,

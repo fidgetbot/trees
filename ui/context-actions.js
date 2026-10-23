@@ -45,7 +45,7 @@ export function isActionRelevantToTarget(action, target, state, getRelationshipS
   if (!neighbor || neighbor.dead) return false;
   const relationship = getRelationshipState(neighbor.relation).name;
   if (action.key === 'connect') return true;
-  if (action.key === 'aidAlly') return relationship === 'Ally' && neighbor.health < neighbor.maxHealth;
+  if (action.key === 'aidAlly') return relationship === 'Ally' && (neighbor.health < neighbor.maxHealth || neighbor.activeCrises?.length > 0);
   if (action.key === 'requestHelp') return relationship === 'Ally';
   if (action.key === 'shadeRival') return neighbor.slot === 1 || neighbor.slot === 3;
   if (action.key === 'rootDominion') return true;
@@ -107,12 +107,14 @@ export function getContextualActions({ target, usableActions, state, getRelation
 export function describeNeighborEffects(neighbor, relationship = 'Neutral') {
   if (!neighbor) return ['No current effects'];
   const effects = [];
-  if (relationship === 'Ally') effects.push('Shares water and nutrients through the fungal network');
+  if (relationship === 'Ally') effects.push('Shares only surplus water and nutrients; keeps a survival buffer');
   if (neighbor.playerShading) effects.push('Growing under your shade; its growth is slowed');
   if (neighbor.shadingPlayer) effects.push('Crowding your canopy and reducing your available light');
   if (relationship === 'Rival') effects.push('Its roots compete with yours for nutrients');
   if (relationship === 'Hostile') effects.push('Its roots compete for nutrients and reduce your water');
   if ((neighbor.rhizosphereBonus || 0) > 0) effects.push('Benefits from your enriched rhizosphere');
+  if (neighbor.reserves) effects.push(`Reserves · ${neighbor.reserves.water} water · ${neighbor.reserves.nutrients} nutrients`);
+  if (neighbor.shortageTurns >= 2) effects.push('Prolonged shortage threatens health');
   for (const crisis of neighbor.activeCrises || []) effects.push(crisis.title || 'Needs support');
   if (Number.isFinite(neighbor.health) && Number.isFinite(neighbor.maxHealth) && neighbor.health < neighbor.maxHealth) {
     effects.push(`Injured · ${Math.max(0, neighbor.health)}/${neighbor.maxHealth} health`);

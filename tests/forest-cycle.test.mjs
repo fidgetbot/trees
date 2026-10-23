@@ -118,14 +118,14 @@ test('first alliance permanently awakens ally actions', () => {
   assert.equal(state.hasMadeFirstAlly, true);
 });
 
-test('help requests can supply water and remember withheld aid', () => {
+test('help requests debit water surplus without penalizing a previous inability to help', () => {
   const state = { health: 5, maxHealth: 10, water: 0, nutrients: 0, pendingChemicalThreat: null };
   const neighbor = { species: 'Pear', relation: 70, stageScore: 3300, health: 10, maxHealth: 10, activeCrises: [], helpGivenToThem: 0, helpRefusedToThem: 1, helpReceivedFromThem: 0, timesAskedThemForHelp: 0, lastAidMemory: 'you-refused' };
   const result = resolveHelpRequestFromAlly(state, neighbor, { getRelationshipState, getNeighborStage: () => ({ rank: 5 }), requestKind: 'water', random: () => 0.99 });
   assert.ok(state.water >= 2);
   assert.ok(result.actualAmount >= 2);
-  assert.match(result.tone, /remembers when you conserved/);
-  assert.ok(neighbor.relation < 70);
+  assert.equal(neighbor.reserves.water, 12 - result.actualAmount);
+  assert.equal(neighbor.relation, 70);
 });
 
 test('ally help decisions give exactly the resource the player requested', () => {
@@ -163,9 +163,9 @@ test('ally help decisions give exactly the resource the player requested', () =>
   }
 });
 
-test('requesting help always costs exactly one nutrient', () => {
+test('requesting help has no nutrient toll', () => {
   const stage = LIFE_STAGES.find(candidate => candidate.name === 'Mature Tree');
-  assert.deepEqual(getSpeciesAdjustedCost({ selectedSpecies: 'Plum' }, 'requestHelp', { nutrients: 1 }, stage), { sunlight: 0, water: 0, nutrients: 1 });
+  assert.deepEqual(getSpeciesAdjustedCost({ selectedSpecies: 'Plum' }, 'requestHelp', { nutrients: 1 }, stage), { sunlight: 0, water: 0, nutrients: 0 });
 });
 
 test('late-stage actions shift costs from scarce nutrients toward sunlight and water', () => {

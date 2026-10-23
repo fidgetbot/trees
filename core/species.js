@@ -60,7 +60,7 @@ export function getStageProgressIncrement(state) {
 }
 
 export function getSpeciesAdjustedCost(state, actionKey, baseCost, currentStage) {
-  if (actionKey === 'requestHelp') return { sunlight: 0, water: 0, nutrients: 1 };
+  if (actionKey === 'requestHelp') return { sunlight: 0, water: 0, nutrients: 0 };
   const multiplier = Math.max(1, currentStage.rank);
   const sunlightFactor = currentStage.rank >= 5 ? 1.15 : currentStage.rank >= 4 ? 1.05 : 1;
   const waterFactor = currentStage.rank >= 5 ? 1.15 : currentStage.rank >= 4 ? 1.05 : 1;

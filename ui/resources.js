@@ -84,7 +84,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
           ${maintenance.water ? factor(`Transpiration −${number(maintenance.water)}`, 'negative') : ''}
         </span>
-        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · larger allies share more` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
+        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · only available surplus is transferred` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
         </details>
       </section>
       <section class="res-line gather-nutrients" aria-label="Nutrients gathered">

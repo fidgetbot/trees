@@ -30,7 +30,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
   connect: 'This lets you seek an underground fungal connection with a neighboring tree.',
   aidAlly: 'This lets you spend water and nutrients to heal an ally, accelerate its growth, strengthen your bond, and build the support needed for grove protection.',
-  requestHelp: 'This lets you call on allied trees for resources and resilience when you are wounded.',
+  requestHelp: 'This lets you request surplus water, nutrients, or recovery aid without taking the donor’s survival reserves.',
   shadeRival: 'This lets you lean over one shorter adjacent tree for +2 sunlight and +1 nutrient each turn while slowing its growth; choosing another target releases the first.',
   rootDominion: 'This lets you pressure a neighboring root system and take water and nutrients from it.',
   flower: 'This lets you produce blossoms that pollinators can turn into fruit and seeds.',
@@ -213,8 +213,8 @@ export function createActions(deps) {
     { key: 'woodSurge', name: 'Wood Surge', icon: '🏗️', category: 'growth', help: 'Boosts your trunk, roots, or crown.', baseCost: { sunlight: 2, water: 2, nutrients: 8 }, effect: (s, context) => woodSurgeAction(s, context) },
 
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Seeks a fungal connection with a neighbor.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: (s, context) => attemptConnection(s, context) },
-    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Heals and grows an ally; strengthens your bond and protection progress.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && n.health < n.maxHealth), effect: (s, context) => offerAidToAlly(s, context) },
-    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Asks an ally for health, water, or nutrients; repeated requests strain the bond.', baseCost: { sunlight: 0, water: 0, nutrients: 1 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => requestHelpFromAllies(s, context) },
+    { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Replenishes reserves, heals and grows an ally; strengthens your bond and protection progress.', baseCost: { sunlight: 0, water: 1, nutrients: 4 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && (n.health < n.maxHealth || n.activeCrises?.length)), effect: (s, context) => offerAidToAlly(s, context) },
+    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Asks an ally for health, water, or nutrients; repeated requests strain the bond.', baseCost: { sunlight: 0, water: 0, nutrients: 0 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => requestHelpFromAllies(s, context) },
     { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Gains +2 sunlight and +1 nutrient each turn by slowing a shorter neighbor.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Takes water and nutrients from a neighbor; rivals yield more.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },
 

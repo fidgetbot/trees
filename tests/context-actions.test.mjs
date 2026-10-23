@@ -35,7 +35,7 @@ test('a selected ally shows only actions concerning that exact tree', () => {
 
 test('neighbor overview describes relationship effects from authoritative state', () => {
   assert.deepEqual(describeNeighborEffects({ health: 8, maxHealth: 10, playerShading: true, rhizosphereBonus: .5 }, 'Ally'), [
-    'Shares water and nutrients through the fungal network',
+    'Shares only surplus water and nutrients; keeps a survival buffer',
     'Growing under your shade; its growth is slowed',
     'Benefits from your enriched rhizosphere',
     'Injured · 8/10 health',

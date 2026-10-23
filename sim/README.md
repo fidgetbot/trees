@@ -15,6 +15,7 @@ The `sim/` directory contains the headless Node-based simulation harness for **T
 It now:
 - creates an initial game state without browser dependencies
 - runs seeded headless simulations through the shared engine in `core/`
+- advances the same neighbor reserves, environmental shortages, safe donations, and emergency aid responses as the browser; there is no simulator-only damage from shading/root-domination actions
 - executes a baseline non-interactive policy automatically
 - runs repeated batch simulations
 - emits structured JSON for analysis
