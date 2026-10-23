@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trees</title>
+  <title>Trees · Painted roots review</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="styles.css?rev=structured-event-outcomes-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=ominous-rumors-v1" />
@@ -197,13 +197,13 @@
       .then(r => r.json())
       .then(data => {
         document.querySelectorAll('[data-build-version]').forEach(el => {
-          if (typeof data.version !== 'undefined') el.textContent = data.version;
+          if (typeof data.version !== 'undefined') el.textContent = data.version + ' · root review';
         });
       })
       .catch(() => {
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=botanical-roots-v4"></script>
+  <script type="module" src="main.js?rev=painted-joins-v1"></script>
 </body>
 </html>

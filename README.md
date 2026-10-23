@@ -15,6 +15,8 @@
 
 ## You are the tree
 
+**Painted-root integration branch:** [open the separate playable review](https://fidgetbot.github.io/trees-previews/playable-root-joins/?review=1). The **Root review · controls** button selects any species/stage/season, refills resources, or supplies milestone requirements for a real age-up transition. Normal action buttons remain playable. Production at `/trees/` is unchanged. Approved patch provenance is in [assets/trees/joins](assets/trees/joins/README.md); lifecycle invariants are covered by `tests/painted-root-joins.test.mjs`.
+
 *Trees* is a slow-burn survival and ecology game played across seasons and years. You do not command a forest from above. You begin underground as a single seed and make the biological choices of one growing tree: where to put down roots, when to open new leaves, how much to invest in height or resilience, which neighbors to trust, and what part of yourself to risk when trouble arrives.
 
 The forest remembers those choices. A tree you help while it is young may one day shelter the grove. An ally you neglect may be less generous when you need water. A rival can crowd your canopy or compete belowground. Your own shade can slow an offspring growing on the wrong side of your trunk. Trees die, weather into stumps, and eventually make room for seedlings.
