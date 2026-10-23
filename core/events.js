@@ -676,7 +676,7 @@ export function buildHostileEncroachmentDecision(state, neighbor, deps = {}) {
         id: 'chemical-battle',
         label: canAffordDefense ? `Chemical battle (☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients})` : `Chemical battle (☀️${DEFENSE_COST.sunlight} 💧${DEFENSE_COST.water} 🌱${DEFENSE_COST.nutrients}) — too costly right now`,
         affordable: canAffordDefense,
-        preview: powerPreview,
+        preview: powerPreview ? `Your strength: ${powerPreview.yourPower}. Their strength: ${powerPreview.theirPower}.` : null,
       },
       {
         id: 'diplomacy',

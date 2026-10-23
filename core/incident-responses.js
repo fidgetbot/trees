@@ -1,4 +1,4 @@
-import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=structured-event-outcomes-v1';
+import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=event-text-v2';
 import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=structured-event-outcomes-v1';
 import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 

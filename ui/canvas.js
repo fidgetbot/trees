@@ -2,7 +2,7 @@ import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,res
 import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=painted-joins-v2';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=small-birds-v1';
-import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
+import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=trunk-marks-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
@@ -441,7 +441,7 @@ export function getBotanicalVariantIndex(species,kind,treeSeed,placementIndex,va
 export function getBotanicalModuleCount(kind,count,clusterCount){
   if(count<=0||clusterCount<=0)return 0;
   if(kind==='foliage')return Math.min(clusterCount,count);
-  if(kind==='blossoms')return Math.min(clusterCount,6,Math.ceil(count/2));
+  if(kind==='blossoms')return Math.max(0,Math.floor(count));
   if(kind==='fruit')return Math.min(clusterCount,6,Math.ceil(count/4));
   return 0;
 }
@@ -514,7 +514,7 @@ export function getDeadTreePresentation(stage,deathAge=0,{rootZones=0,leafCluste
   if(deathAge<4)return{kind:'snag',stageKey};
   const geometry=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
   const width=Math.max(24,Math.min(84,geometry.width*.68));
-  return{kind:'stump',stageKey,width,height:width*2/3};
+  return{kind:'stump',stageKey,width,height:width*2/3,groundRatio:.52};
 }
 
 function treeHitTarget(tree,state,playerStageName,camera,groundY){
@@ -706,16 +706,19 @@ function stageForScore(score){
   if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Young Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
 }
 
+export function getSceneHumanPresentation(state){
+  const incident=(state.incidents||[]).find(incident=>incident.scenePersistent
+    && ['awaiting-response','ongoing'].includes(incident.state)
+    && ['human-surveyor','human-logger'].includes(incident.artwork));
+  if(!incident)return null;
+  const encounter=incident.meta?.encounter;
+  return {phase:encounter?.phase||(incident.artwork==='human-logger'?'cutting':'survey'),
+    count:encounter?.count||2,
+    title:incident.kind==='fruit-threat'?'Fruit gatherers':incident.kind==='conservation-inspection'?'Conservation visitors':incident.artwork==='human-logger'?'Logging crew':'Surveyors'};
+}
+
 function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
-  const cuts=state.cuttingProgress||0,encounter=findActiveIncident(state,'human-encounter',incident=>['awaiting-response','ongoing'].includes(incident.state))?.meta?.encounter;
-  if((state.humanAttention||0)>0){
-    const markScale=Math.max(.7,camera.zoom);ctx.save();ctx.fillStyle='rgba(223,109,63,.92)';ctx.beginPath();ctx.roundRect(x-5*markScale,groundY-15*markScale,10*markScale,3.2*markScale,1.4*markScale);ctx.fill();ctx.restore();
-  }
-  if(cuts>0){
-    ctx.save();ctx.strokeStyle='rgba(205,112,62,.9)';ctx.lineWidth=Math.max(2,2.4*camera.zoom);ctx.lineCap='round';
-    for(let i=0;i<cuts;i++){const y=groundY-(9+i*5)*camera.zoom;ctx.beginPath();ctx.moveTo(x-5*camera.zoom,y);ctx.lineTo(x+5*camera.zoom,y+1.5*camera.zoom);ctx.stroke()}
-    ctx.restore();
-  }
+  const encounter=getSceneHumanPresentation(state);
   if(!encounter)return;
   const count=Math.max(1,encounter.count||2),scale=getSceneArtworkScale(viewportWidth);
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
@@ -746,10 +749,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
     // the obsolete stick-figure placeholder while an image is still loading.
     continue;
   }
-  if(Number.isFinite(groupLeft))hitTargets.push({id:`human-${encounter.phase}`,type:'human-encounter',kind:encounter.phase==='cutting'?'loggers':'surveyors',title:encounter.phase==='cutting'?'Logging crew':'Surveyors',bounds:{x:groupLeft-10,y:groupTop-10,width:groupRight-groupLeft+20,height:groundY-groupTop+20}});
-  if(encounter.phase==='survey'&&(state.humanAttention||0)===0){
-    ctx.fillStyle='#df6d3f';ctx.beginPath();ctx.roundRect(x-5*scale,groundY-15*scale,10*scale,3.2*scale,1.4*scale);ctx.fill();
-  }
+  if(Number.isFinite(groupLeft))hitTargets.push({id:`human-${encounter.phase}`,type:'human-encounter',kind:encounter.phase==='cutting'?'loggers':'surveyors',title:encounter.title,bounds:{x:groupLeft-10,y:groupTop-10,width:groupRight-groupLeft+20,height:groundY-groupTop+20}});
   ctx.restore();
 }
 
@@ -979,6 +979,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       drawGrowthSprites(ctx,growth,growthReveal,season,growthSprites);
       drawGrowthWood(ctx,growth,growthReveal,season);
       drawPaintedTreeStructure(ctx,structureImage,structureStageKey,{...visualState,taprootDepth:state.taprootDepth},shaded,growthReveal);
+      drawPaintedTrunkMarks(ctx,structureImage,getTreeStructureSourceRect(species,structureStageKey),geometry,state);
       if(!juvenileKey)drawGrowthLeaves(ctx,growth,growthReveal,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
       if(!rootedSeed){
         const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);
@@ -1009,6 +1010,18 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
   }
 }
 
+function drawPaintedTrunkMarks(ctx,image,source,geometry,state){
+  const marked=(state.humanAttention||0)>0,cuts=Math.max(0,state.cuttingProgress||0);
+  if(!marked&&!cuts)return;
+  ctx.save();
+  for(let row=0;row<(marked?1:0)+cuts;row++){
+    const band=getPaintedTrunkMark(image,source,geometry,row);if(!band)continue;
+    ctx.fillStyle=marked&&row===0?'rgba(223,109,63,.94)':'rgba(102,54,31,.92)';
+    ctx.beginPath();ctx.roundRect(band.x-band.width/2,band.y-band.height/2,band.width,band.height,band.height*.3);ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,deathAge){
   const scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
   const presentation=getDeadTreePresentation(stage,deathAge,visualState);
@@ -1017,7 +1030,7 @@ function drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,de
   if(presentation.kind==='stump'){
     if(deadTreeStumpAsset){
       ctx.filter='saturate(.72) brightness(.78) contrast(1.04)';
-      ctx.drawImage(deadTreeStumpAsset,-presentation.width/2,-presentation.height*.86,presentation.width,presentation.height);
+      ctx.drawImage(deadTreeStumpAsset,-presentation.width/2,-presentation.height*presentation.groundRatio,presentation.width,presentation.height);
     }
   }else{
     const image=requestTreeStructureAsset(visualState.selectedSpecies,presentation.stageKey);
@@ -1208,6 +1221,17 @@ export function paintedCanopyEntries(growth,seed,kind,count){
   }));
   const limit=getBotanicalModuleCount(kind,count,candidates.length);
   if(!limit)return[];
+  if(kind==='blossoms'){
+    // Stable prefixes: each earned flower adds a cluster without moving the
+    // earlier flowers. Reuse canopy hosts with small in-leaf offsets once full.
+    const hosts=candidates.map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)})).sort((a,b)=>a.priority-b.priority);
+    return Array.from({length:limit},(_,index)=>{
+      const host=hosts[index%hosts.length],cycle=Math.floor(index/hosts.length);
+      const angle=cycle*2.3999632297+host.priority%360*Math.PI/180;
+      const radius=cycle?host.leaf.width*.28*Math.sqrt(cycle/(cycle+1)):0;
+      return {...host,index,cluster:{x:host.cluster.x+Math.cos(angle)*radius,y:host.cluster.y+Math.sin(angle)*radius*.6,size:host.cluster.size*.64}};
+    });
+  }
   const spread=candidates
     .map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)}))
     .sort((a,b)=>a.cluster.x-b.cluster.x||a.priority-b.priority);
