@@ -63,11 +63,11 @@ export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
 // one family so large mammals remain convincingly larger than small mammals,
 // birds, and insects while camera focus changes independently.
 export const FAUNA_SCENE_SIZES=Object.freeze({
-  woodpecker:Object.freeze({height:72}),
+  woodpecker:Object.freeze({height:32}),
   beaver:Object.freeze({width:104}),
   'browser-deer':Object.freeze({width:132}),
   'browser-rabbit':Object.freeze({width:58}),
-  'fruit-robin':Object.freeze({width:76}),
+  'fruit-robin':Object.freeze({width:28}),
   'fruit-squirrel':Object.freeze({width:66}),
   'pollinator-bumblebee':Object.freeze({width:42}),
   'pollinator-honeybee':Object.freeze({width:42}),

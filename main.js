@@ -39,7 +39,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=botanical-roots-v1';
+} from './core/events.js?rev=event-grammar-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -88,7 +88,7 @@ import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-roots-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=botanical-roots-v4';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=small-birds-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
@@ -2074,7 +2074,9 @@ els.canvas.addEventListener('contextrestored', () => requestAnimationFrame(recov
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') requestAnimationFrame(recoverSceneArtwork);
 });
-new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()}).observe(els.hudPanel);
+const sceneOverlayResizeObserver = new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()});
+sceneOverlayResizeObserver.observe(els.hudPanel);
+sceneOverlayResizeObserver.observe(els.groveMinimap);
 window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
 
 els.startGame.addEventListener('click', startGame);

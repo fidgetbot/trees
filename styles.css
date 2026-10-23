@@ -2066,9 +2066,9 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   right: 14px;
   bottom: auto;
   left: 14px;
-  height: 46px;
+  height: auto;
   display: grid;
-  grid-template-columns: max-content 40px max-content;
+  grid-template-columns: max-content 40px minmax(0, max-content);
   justify-content: space-between;
   align-items: center;
   gap: 6px;
@@ -2101,13 +2101,15 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 }
 .grove-notebook-button:hover,
 .grove-notebook-button:focus-visible { background: #fffaf0; outline: 2px solid #8c713e; outline-offset: 2px; }
-.game-started .grove-resource-pill { pointer-events: auto; }
+.game-started .grove-resource-pill { pointer-events: auto; min-width: 0; max-width: 100%; justify-self: end; flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+.grove-resource { flex-shrink: 0; white-space: nowrap; }
 .grove-minimap {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: max(68px, calc(env(safe-area-inset-top) + 56px));
-  right: 14px;
-  left: 14px;
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 4px;
+  pointer-events: auto;
   height: 52px;
   border: 1px solid #fff8;
   border-radius: 26px;
@@ -2169,14 +2171,13 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 .context-reset { white-space: nowrap; }
 
 @media (max-width: 560px) {
-  .game-started .map-status { right: 8px; left: 8px; gap: 4px; grid-template-columns: max-content 36px minmax(0,max-content); }
-  .game-started .grove-time-pill { grid-template-columns: 24px auto; column-gap: 5px; min-width: 132px; padding: 6px 7px; }
+  .game-started .map-status { right: 8px; left: 8px; gap: 6px; grid-template-columns: minmax(0,1fr) 36px; }
+  .game-started .grove-time-pill { justify-self: start; grid-template-columns: 24px auto; column-gap: 5px; min-width: 132px; padding: 6px 7px; }
   .game-started .season-progress-pie { width: 24px; height: 24px; }
   .game-started .season-progress-title { font-size: var(--ui-font-floor); }
   .game-started .season-progress-detail { font-size: var(--ui-font-floor); }
-  .game-started .grove-resource-pill { gap: 4px; padding: 7px 6px; }
+  .game-started .grove-resource-pill { grid-column: 1 / -1; width: 100%; justify-content: space-evenly; gap: 8px; padding: 7px 6px; }
   .grove-notebook-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; font-size: 16px; }
-  .grove-minimap { right: 8px; left: 8px; }
   .minimap-fruit { width: 34px; min-width: 34px; height: 34px; min-height: 34px; font-size: 17px; }
   .minimap-fruit > img { width: 27px; height: 27px; }
   .minimap-fruit.player { width: 38px; min-width: 38px; height: 38px; min-height: 38px; }
@@ -2190,7 +2191,7 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 }
 
 @media (max-height: 500px) {
-  .grove-minimap { top: max(60px, calc(env(safe-area-inset-top) + 50px)); height: 44px; }
+  .grove-minimap { height: 44px; margin-top: 0; }
   .minimap-fruit { width: 32px; min-width: 32px; height: 32px; min-height: 32px; font-size: 16px; }
   .minimap-fruit > img { width: 25px; height: 25px; }
   .minimap-fruit.player { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }

@@ -1,6 +1,6 @@
 import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v4';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=small-birds-v1';
 import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
@@ -651,7 +651,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
     const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
     const contactY=getAnimalScenePlacement(kind).contactY??.94;
     const top=groundY-displayHeight*contactY;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
-    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,anchor:{type:'ground',x:centerX,y:groundY},bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,anchor:{type:'ground',x:centerX,y:groundY},bounds:{x:centerX-Math.max(44,displayWidth+16)/2,y:top+displayHeight/2-Math.max(44,displayHeight+16)/2,width:Math.max(44,displayWidth+16),height:Math.max(44,displayHeight+16)}});
   };
   const drawFloating=(kind,centerX,centerY,displayWidth,title)=>{
     const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
@@ -670,7 +670,7 @@ function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,view
       const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
       const contactX=getAnimalScenePlacement(kind).contactX??.27;
       const left=x-displayWidth*contactX,top=centerY-displayHeight*.48;ctx.drawImage(image,left,top,displayWidth,displayHeight);
-      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',anchor:{type:'trunk',x,y:centerY},bounds:{x:left-10,y:top-10,width:displayWidth+20,height:displayHeight+20}});
+      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',anchor:{type:'trunk',x,y:centerY},bounds:{x:left+displayWidth/2-Math.max(44,displayWidth+20)/2,y:top+displayHeight/2-Math.max(44,displayHeight+20)/2,width:Math.max(44,displayWidth+20),height:Math.max(44,displayHeight+20)}});
       return;
     }
     if(kind==='beaver'){

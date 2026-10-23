@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=structured-event-outcomes-v1" />
+  <link rel="stylesheet" href="styles.css?rev=responsive-status-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=ominous-rumors-v1" />
 </head>
 <body class="theme-light-rounded">
@@ -36,8 +36,8 @@
               <span class="grove-resource grove-health" title="Health" aria-label="Health"><span aria-hidden="true">❤️</span><strong id="grove-health">0</strong></span></button>
               <div class="grove-player-pill"><span>Life stage</span><strong id="life-stage">Seed</strong><span id="grove-player-species">Tree</span><span aria-hidden="true"> · </span><span>You</span></div>
               <div class="map-build">v<span data-build-version>…</span></div>
+              <nav id="grove-minimap" class="grove-minimap" aria-label="Trees in the grove"></nav>
             </div>
-            <nav id="grove-minimap" class="grove-minimap" aria-label="Trees in the grove"></nav>
             <canvas id="game-canvas" width="900" height="600" tabindex="0" aria-label="Grove view. Select a tree or visitor in the scene or use the fruit minimap above."></canvas>
           </div>
         </div>
@@ -204,6 +204,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-  <script type="module" src="main.js?rev=botanical-roots-v4"></script>
+  <script type="module" src="main.js?rev=status-event-birds-v1"></script>
 </body>
 </html>
