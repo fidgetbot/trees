@@ -83,12 +83,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=drag-carousel-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-roots-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-joins-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-joins-v2';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
@@ -2095,7 +2095,7 @@ loadCanvasAssets(asset=>{
 });
 
 if(new URLSearchParams(location.search).get('review')==='1'){
- import('./ui/root-review.js?rev=painted-joins-v1').then(({mountRootReview})=>{
+ import('./ui/root-review.js?rev=painted-joins-v2').then(({mountRootReview})=>{
   const refresh=()=>{
    cancelSceneCameraAnimation();growthTransition=null;lastGrowthSnapshot=null;
    contextualActionOrderByTarget.clear();contextualActionScrollByTarget.clear();

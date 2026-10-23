@@ -1,5 +1,5 @@
 import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v4';
-import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=painted-joins-v1';
+import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=painted-joins-v2';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
 import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
@@ -349,7 +349,7 @@ export function getTreeStructureAssetUrl(species,stageKey){
 }
 
 export function getTreeGrowthAssetUrl(species,assetKey){
-  if(assetKey.startsWith('join-'))return new URL(`../assets/trees/joins/${species.toLowerCase()}-${assetKey.slice(5)}.png?rev=painted-joins-v1`,import.meta.url).href;
+  if(assetKey.startsWith('join-'))return new URL(`../assets/trees/joins/${species.toLowerCase()}-${assetKey.slice(5)}.png?rev=painted-joins-v2`,import.meta.url).href;
   if(assetKey.startsWith('root-extension-'))return ROOT_EXTENSION_ASSET_URLS[assetKey.slice('root-extension-'.length)]||null;
   return TREE_GROWTH_ASSET_URLS[`${species}:${assetKey}`]||null;
 }

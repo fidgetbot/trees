@@ -1,7 +1,7 @@
 // Approved localized join artwork + its exact five-axis attachment scaffold.
 // Geometry lives in collar-relative coordinates. A stage changes biological
 // scale/material, never root IDs or the earned growth clock.
-import {JOIN_PROFILES} from './root-join-profiles.js?rev=painted-joins-v1';
+import {JOIN_PROFILES} from './root-join-profiles.js?rev=painted-joins-v2';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
 export const JOIN_STAGES=['Sapling','Young Tree','Mature Tree','Ancient'];
@@ -106,7 +106,13 @@ function rootLayer(graph,source,profile){
   const p=rootCurvePoint(node.p,Math.min(t,node.end)),pad=node.w/2+2;
   left=Math.min(left,p[0]-pad);right=Math.max(right,p[0]+pad);top=Math.min(top,p[1]-pad);bottom=Math.max(bottom,p[1]+pad);
  }
- const width=right-left,height=bottom-top,density=Math.min(3,1536/Math.max(width,height));
+ // Pin the raster grid to the root collar. Fractional bounds moving with a
+ // growing tip must not shift the texture sampling of already-earned wood.
+ let density=3;
+ while(Math.max(right-left,bottom-top)*density>1534)density/=2;
+ left=Math.floor(left*density)/density;top=Math.floor(top*density)/density;
+ right=Math.ceil(right*density)/density;bottom=Math.ceil(bottom*density)/density;
+ const width=right-left,height=bottom-top;
  const canvas=document.createElement('canvas');canvas.width=Math.ceil(width*density);canvas.height=Math.ceil(height*density);
  const ctx=canvas.getContext('2d');ctx.scale(density,density);ctx.translate(-left,-top);
  for(const node of graph.nodes)drawWood(ctx,node,source,profile);
