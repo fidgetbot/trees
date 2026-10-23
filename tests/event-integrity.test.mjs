@@ -509,7 +509,7 @@ test('wildfire can be fully resisted and records one correct damage cause', () =
   const protectedOutcome = fire.apply(protectedState);
   assert.equal(protectedState.health, 10);
   assert.deepEqual(recorded, []);
-  assert.match(protectedOutcome.summary, /thick bark.*hold back the flames/i);
+  assert.match(protectedOutcome.summary, /thick bark.*holds back the flames/i);
   assert.deepEqual(protectedOutcome.effects, ['No health lost']);
 
   const exposedState = {

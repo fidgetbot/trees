@@ -125,15 +125,15 @@ export function createMajorEvents(deps) {
         s.health -= thirst;
         recordDamage(thirst, 'drought');
         const protections = [
-          droughtResist >= 0.4 ? `your species' drought tolerance` : null,
-          s.taprootDepth > 0 ? 'your deep roots' : null,
+          droughtResist >= 0.4 ? `species' drought tolerance` : null,
+          s.taprootDepth > 0 ? 'deep roots' : null,
         ].filter(Boolean);
         const summary = storedProtection.used
           ? thirst > 0
             ? 'Your preparations preserve vital moisture, though the dry season still takes a toll.'
             : 'Your preparations preserve enough vital moisture to prevent health damage from the drought.'
           : protections.length
-            ? `${protections.join(' and ')} help you hold onto moisture, but the dry season still takes its toll.`
+            ? `Your ${protections.join(' and ')} ${protections.length === 1 && !s.taprootDepth ? 'helps' : 'help'} you hold onto moisture, but the dry season still takes its toll.`
             : 'With little protection from the dry season, thirst and water stress take their toll.';
         return eventOutcome(summary, [
           'Water collection reduced',
@@ -159,20 +159,21 @@ export function createMajorEvents(deps) {
         s.leafClusters = Math.max(leafFloor, s.leafClusters - damage);
         const lost = prevLeaves - s.leafClusters;
         const defenseNames = [defenses.thorns > 0 ? 'thorns' : null, defenses.toxins > 0 ? 'toxic foliage' : null].filter(Boolean);
+        const singularDefense = defenses.thorns === 0 && defenses.toxins > 0;
         let summary = '';
         if (damage === 0) {
-          summary = `Your ${defenseNames.join(' and ')} turn the browsers away before they can feed.`;
+          summary = `Your ${defenseNames.join(' and ')} ${singularDefense ? 'turns' : 'turn'} the browsers away before they can feed.`;
         } else if (lost > 0) {
           summary = defenseNames.length
-            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still tear into reachable foliage.`
+            ? `Your ${defenseNames.join(' and ')} ${singularDefense ? 'reduces' : 'reduce'} the feeding pressure, but browsers still tear into reachable foliage.`
             : 'With no thorns or toxic foliage to deter them, the browsers tear into your leaves.';
         } else if (prevLeaves === 1) {
           summary = defenseNames.length
-            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still graze your final leaf cluster. It survives, though tender tissue is damaged.`
+            ? `Your ${defenseNames.join(' and ')} ${singularDefense ? 'reduces' : 'reduce'} the feeding pressure, but browsers still graze your final leaf cluster. It survives, though tender tissue is damaged.`
             : 'No thorns or toxic foliage deter them. The browsers graze your final leaf cluster; it survives, but the feeding damages tender tissue.';
         } else {
           summary = defenseNames.length
-            ? `Your ${defenseNames.join(' and ')} reduce the feeding pressure, but browsers still gnaw exposed buds and tender stems.`
+            ? `Your ${defenseNames.join(' and ')} ${singularDefense ? 'reduces' : 'reduce'} the feeding pressure, but browsers still gnaw exposed buds and tender stems.`
             : 'With no foliage available, the browsers gnaw exposed buds and tender stems instead.';
         }
         const effects = [lost > 0 ? `−${lost} leaf cluster${lost === 1 ? '' : 's'}` : 'No leaf clusters lost'];
@@ -209,9 +210,9 @@ export function createMajorEvents(deps) {
         if (damage > 0) recordDamage(damage, 'fire');
         const protectionNames = [barkProtection > 0 ? 'thick bark' : null, storedProtection.used ? 'stored protection' : null].filter(Boolean);
         const summary = damage === 0
-          ? `${protectionNames.join(' and ')} hold back the flames before they damage living tissue.`
+          ? `Your ${protectionNames.join(' and ')} ${protectionNames.length === 1 ? 'holds' : 'hold'} back the flames before they damage living tissue.`
           : protectionNames.length
-            ? `${protectionNames.join(' and ')} blunt the heat, but the fire still reaches living tissue.`
+            ? `Your ${protectionNames.join(' and ')} ${protectionNames.length === 1 ? 'blunts' : 'blunt'} the heat, but the fire still reaches living tissue.`
             : 'With no effective barrier, the fire reaches living tissue.';
         return eventOutcome(summary, [
           storedProtection.used ? `Stored protection −${storedProtection.prevented} damage` : null,
