@@ -1,6 +1,6 @@
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { randomChoice, randomInt } from './random.js';
-import { getFruitLossMultiplier } from './species.js';
+import { getFruitLossMultiplier } from './species.js?rev=neighbor-economy-v1';
 import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
 
 export function getHerbivoreDefense(state) {
@@ -256,23 +256,6 @@ export function createMajorEvents(deps) {
         const effects = ['Resource collection −50%'];
         let summary = 'The infection settles into your tissues, sharply reducing resource collection.';
         const factors = [{ kind: 'disease-collection-multiplier', amount: 0.5 }];
-        const alliedNeighbors = s.neighbors.filter(n => !n.dead && getRelationshipState(n.relation).name === 'Ally');
-        if (alliedNeighbors.length > 0) {
-          const target = randomChoice(alliedNeighbors);
-          const blightDamage = 5;
-          const previousHealth = target.health;
-          target.health = Math.max(0, target.health - blightDamage);
-          const lostHealth = previousHealth - target.health;
-          summary += ` It also travels through the fungal connection to your allied ${target.species}.`;
-          effects.push(`Allied ${target.species} health −${lostHealth}`);
-          factors.push({ kind: 'allied-tree-hit', amount: lostHealth, target: target.species });
-          if (target.health <= 0) {
-            summary += ` The ${target.species} is overwhelmed by the blight.`;
-            effects.push(`Allied ${target.species} lost`);
-            updateNeighborAliveState(target, 'fungal blight');
-          }
-          updateAlliesCount();
-        }
         return eventOutcome(summary, effects, factors);
       }
     },
@@ -962,7 +945,6 @@ export function rollMinorEvents(state, deps) {
     recordDamage,
     STAGE_BY_NAME,
     getRelationshipState,
-    advanceAllyCrises,
     advanceOffspringCrises,
     checkAllyBetrayal,
     queueHostileTreeThreat,
@@ -1022,7 +1004,7 @@ export function rollMinorEvents(state, deps) {
   });
   if (escalation) events.push(escalation.event);
   const { allied: alliedNeighbors, contested: contestedNeighbors } = getLivingNeighborsByDisposition(state, getRelationshipState);
-  if (alliedNeighbors.length > 0) { advanceAllyCrises(events); checkAllyBetrayal(events); }
+  if (alliedNeighbors.length > 0) checkAllyBetrayal(events);
   if (state.offspringTrees > 0) advanceOffspringCrises(events);
   const adjacentContested = contestedNeighbors.filter(neighbor =>
     (neighbor.slot === 1 || neighbor.slot === 3)

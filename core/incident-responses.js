@@ -1,4 +1,5 @@
-import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=event-text-v2';
+import { applyNeighborAid, ensureNeighborEconomy } from './neighbor-economy.js?rev=neighbor-economy-v1';
+import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=neighbor-economy-v1';
 import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=structured-event-outcomes-v1';
 import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
@@ -35,11 +36,18 @@ export function buildIncidentDecision(state, incident, deps = {}) {
     const neighbor = state.neighbors.find(candidate => candidate.slot === response.neighborSlot && !candidate.dead);
     const crisis = neighbor?.activeCrises?.find(candidate => candidate.id === response.crisisId);
     if (!neighbor || !crisis) return null;
+    ensureNeighborEconomy(neighbor);
+    const available = Math.min(crisis.amount, Math.max(0, state[crisis.kind] || 0));
+    const partial = Math.min(available, Math.max(1, Math.floor(crisis.amount / 2)));
     const icon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
     return {
       kind: 'ally-aid', title: `${neighbor.species} asks for help`,
-      body: `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p><strong>Health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`,
-      options: [{ id: 'give', label: 'Give what you can', affordable: true }, { id: 'withhold', label: 'Withhold your resources', affordable: true }],
+      body: `<p><em>${crisis.flavors[Math.max(0, Math.min(crisis.stage - 1, crisis.flavors.length - 1))]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p>Its roots are working to recover. Any contribution replenishes real reserves and prevents shortage damage for at least one turn. Keeping your resources does not harm the relationship.</p><p><strong>Health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`,
+      options: [
+        { id: 'give', label: available ? `Send ${available} ${crisis.kind}` : `No ${crisis.kind} to spare`, affordable: available > 0, disabled: available <= 0 },
+        ...(partial < available ? [{ id: 'partial', label: `Send just ${partial} ${crisis.kind}`, affordable: true }] : []),
+        { id: 'withhold', label: 'Keep my reserves for now', affordable: true },
+      ],
       meta: { neighborSlot: neighbor.slot, crisisId: crisis.id },
     };
   }
@@ -82,26 +90,21 @@ export function resolveIncidentDecision(state, incident, decision, optionId, dep
     if (!neighbor || !crisis) return { title: 'The Moment Passes', body: '<p>The crisis is no longer active.</p>' };
     const oldState = getRelationshipState(neighbor.relation).name;
     let summary;
-    if (optionId === 'withhold') {
-      neighbor.helpRefusedToThem += 1; neighbor.lastAidMemory = 'you-refused'; crisis.amount += 2;
-      neighbor.relation = Math.max(-100, neighbor.relation - 12);
-      summary = `You keep your reserves. The ${neighbor.species} weakens and remembers the silence.`;
+    ensureNeighborEconomy(neighbor);
+    const requested = optionId === 'partial' ? Math.max(1, Math.floor(crisis.amount / 2)) : crisis.amount;
+    const offered = optionId === 'withhold' ? 0 : Math.min(requested, Math.max(0, state[crisis.kind] || 0));
+    const given = applyNeighborAid(neighbor, crisis.kind, offered);
+    state[crisis.kind] = Math.max(0, (state[crisis.kind] || 0) - given);
+    if (given > 0) {
+      neighbor.helpGivenToThem += 1;
+      neighbor.lastAidMemory = 'you-helped';
+      applyRelationshipDelta(neighbor, given >= requested && optionId !== 'partial' ? 8 : 2);
+      const recovered = !neighbor.activeCrises.some(c => c.id === crisis.id);
+      summary = recovered
+        ? `You send ${given} ${crisis.kind}. The ${neighbor.species} has enough reserves to leave immediate shortage and continue recovering.`
+        : `You send ${given} ${crisis.kind}. Its reserves rise, and it is protected from shortage damage for ${neighbor.aidGrace} turn${neighbor.aidGrace === 1 ? '' : 's'} while its roots recover.`;
     } else {
-      const given = Math.min(crisis.amount, Math.max(0, state[crisis.kind] || 0));
-      state[crisis.kind] -= given;
-      neighbor.helpGivenToThem += given > 0 ? 1 : 0; neighbor.helpRefusedToThem += given <= 0 ? 1 : 0;
-      neighbor.lastAidMemory = given > 0 ? 'you-helped' : 'you-refused';
-      if (given >= crisis.amount) {
-        neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + crisis.healthLoss + 2);
-        neighbor.activeCrises = neighbor.activeCrises.filter(candidate => candidate.id !== crisis.id);
-        applyRelationshipDelta(neighbor, 12);
-        summary = `You meet the full request. The ${neighbor.species} steadies and remembers your generosity.`;
-      } else if (given > 0) {
-        neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + 1); crisis.amount = Math.max(1, crisis.amount - given);
-        applyRelationshipDelta(neighbor, 2); summary = `You send ${given} ${crisis.kind}. It helps, but the crisis remains.`;
-      } else {
-        crisis.amount += 2; applyRelationshipDelta(neighbor, -8); summary = `You cannot send what the ${neighbor.species} needs. The crisis worsens.`;
-      }
+      summary = `You keep your reserves. The ${neighbor.species} continues trying to recover on its own. Your relationship is unchanged.`;
     }
     const newState = getRelationshipState(neighbor.relation).name;
     if (!(neighbor.activeCrises || []).some(candidate => candidate.id === crisis.id)) resolveIncident(state, incident.id, { title: 'Aid Given', summary });

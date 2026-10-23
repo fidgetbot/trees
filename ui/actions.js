@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=future-actions-label-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=neighbor-economy-v1';
 
 export function carouselScrollbarMetrics({ clientWidth = 0, scrollWidth = 0, scrollLeft = 0, minThumbWidth = 48 } = {}) {
   const viewport = Math.max(0, Number(clientWidth) || 0);

@@ -141,6 +141,7 @@ export function startBrowserGame({
   random,
 }) {
   Object.assign(state, {
+    neighborEcologyTurn: null,
     started: true,
     year: 1,
     seasonIndex: 0,

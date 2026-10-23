@@ -1,6 +1,7 @@
+import { neighborGrowthFactor, neighborHelpAvailable } from '../core/neighbor-economy.js';
 import { readFileSync } from 'node:fs';
 import { createEngine } from '../core/engine.js';
-import { createStartingNeighbors } from '../core/neighbors.js';
+import { createStartingNeighbors, advanceNeighborDeathCycle } from '../core/neighbors.js';
 import { createSeededRng } from '../core/random.js';
 import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
@@ -243,9 +244,9 @@ function createHeadlessGame(seed, speciesName) {
   function growNeighbors() {
     const activeShadeTarget = normalizePlayerShadeTarget(state);
     state.neighbors.forEach(n => {
-      if (n.dead) return;
+      if (n.dead) { advanceNeighborDeathCycle(n, { speciesNames: Object.keys(SPECIES), seedlingThreshold: STAGE_BY_NAME.Seedling.threshold, random: rng }); return; }
       const baseGrowth = 20 + Math.floor(rng() * 35);
-      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
+      n.stageScore += Math.floor((neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n)) * neighborGrowthFactor(n));
       const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
       if (heightChange) openIncident(state, { kind:'canopy-notice', title:'The Canopy Shifts', summary:heightChange.message, artwork:'event-relationship', meta:{kind:heightChange.kind,neighborSlot:n.slot} });
       if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && rng() < 0.25) {
@@ -301,7 +302,7 @@ function createHeadlessGame(seed, speciesName) {
         getNeighborStage,
         requestKind,
       });
-      const targetOption = decision.options.find(option => option.meta?.toneHint === 'warm') || decision.options[0];
+      const targetOption = decision.options.find(option => !option.disabled && option.meta?.toneHint === 'warm') || decision.options.find(option => !option.disabled);
       if (!targetOption) return;
       resolveDiplomacyDecision(s, decision, targetOption.id, {
         getRelationshipState,
@@ -321,8 +322,7 @@ function createHeadlessGame(seed, speciesName) {
       });
       const neighbor = s.neighbors[resolved.targetIndex];
       if (!neighbor) return;
-      neighbor.health = Math.max(0, neighbor.health - 1);
-      if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
+
     },
     rootDominionAction: s => {
       const decision = buildAggressionDecision(s, 'dominion', { getRelationshipState });
@@ -333,8 +333,7 @@ function createHeadlessGame(seed, speciesName) {
       });
       const neighbor = s.neighbors[resolved.targetIndex];
       if (!neighbor) return;
-      neighbor.health = Math.max(0, neighbor.health - (resolved.outcome.alreadyContested ? 2 : 1));
-      if (neighbor.health <= 0) updateNeighborAliveState(s, neighbor);
+
     },
     nurtureOffspringAction: s => nurtureOffspring(s),
     getRelationshipState,
@@ -377,6 +376,8 @@ function createHeadlessGame(seed, speciesName) {
   }
   const engine = createEngine({
     SEASONS,
+    random: rng,
+    updateNeighborAliveState: neighbor => updateNeighborAliveState(state, neighbor),
     computeCurrentLifeStage: () => computeCurrentLifeStage(state),
     getStageProgressIncrement: () => getStageProgressIncrement(state),
     rollMajorEvent: () => rollMajorEvent(majorEvents, SEASONS[state.seasonIndex].name, rng),
@@ -389,7 +390,6 @@ function createHeadlessGame(seed, speciesName) {
       getRelationshipState,
       getNeighborStage,
       random: rng,
-      advanceAllyCrises: () => {},
       advanceOffspringCrises: () => {},
       checkAllyBetrayal: () => false,
       queueHostileTreeThreat: (neighbor, events) => {
@@ -458,6 +458,9 @@ function createHeadlessGame(seed, speciesName) {
       }))
       .filter(entry => !entry.availability.hidden && entry.availability.usable);
 
+    const requestedKind = state.maxHealth - state.health >= 2 ? 'health' : state.water <= state.nutrients ? 'water' : 'nutrients';
+    const unusableRequest = available.findIndex(entry => entry.action.key === 'requestHelp' && !state.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && neighborHelpAvailable(state, n, requestedKind, getNeighborStage) > 0));
+    if (unusableRequest >= 0) available.splice(unusableRequest, 1);
     const pick = keys => available.find(entry => keys.includes(entry.action.key));
     const unmet = currentStageRequirements(state).filter(req => !req.met).map(req => req.key);
 

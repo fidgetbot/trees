@@ -208,7 +208,7 @@ test('adjacent rivals and hostile trees impose visible root competition each tur
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {
   const state = gatheringState({
     neighbors: [
-      { slot: 0, relation: 70, dead: false },
+      { slot: 0, relation: 70, stageScore: 3300, dead: false },
       { slot: 1, relation: 0, dead: false, playerShading: true },
       { slot: 3, relation: -60, dead: false, shadingPlayer: true },
     ],
