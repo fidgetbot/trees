@@ -24,9 +24,9 @@ export function createStartingNeighbors(speciesNames, lifeStages, random = Math.
       lastAidMemory: '',
       maxHealth: 10,
       health: 10,
-      reserves: { water: 12, nutrients: 12 },
-      strains: { water: 0, nutrients: 0 },
-      lastAidRequestTurns: { water: -100, nutrients: -100 },
+      reserves: { sunlight: 12, water: 12, nutrients: 12 },
+      strains: { sunlight: 0, water: 0, nutrients: 0 },
+      lastAidRequestTurns: { sunlight: -100, water: -100, nutrients: -100 },
       activeCrises: [],
       crisisCounter: 0,
       dead: false,
@@ -60,11 +60,11 @@ export function advanceNeighborDeathCycle(neighbor, { speciesNames, seedlingThre
   neighbor.timesAskedThemForHelp = 0;
   neighbor.lastAidMemory = '';
   neighbor.rhizosphereBonus = 0;
-  neighbor.reserves = { water: 12, nutrients: 12 };
-  neighbor.strains = { water: 0, nutrients: 0 };
+  neighbor.reserves = { sunlight: 12, water: 12, nutrients: 12 };
+  neighbor.strains = { sunlight: 0, water: 0, nutrients: 0 };
   neighbor.shortageTurns = neighbor.aidGrace = neighbor.hardshipCooldown = neighbor.crisisCounter = 0;
   neighbor.activeCrises = [];
-  neighbor.lastAidRequestTurns = { water: -100, nutrients: -100 };
+  neighbor.lastAidRequestTurns = { sunlight: -100, water: -100, nutrients: -100 };
   neighbor.growthAidReceived = 0;
   neighbor.firstAidStageScore = null;
   return { changed: true, phase: 'seedling', species: neighbor.species };

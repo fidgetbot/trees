@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=neighbor-economy-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=action-flow-v1';
 
 export function carouselScrollbarMetrics({ clientWidth = 0, scrollWidth = 0, scrollLeft = 0, minThumbWidth = 48 } = {}) {
   const viewport = Math.max(0, Number(clientWidth) || 0);
@@ -122,12 +122,12 @@ export function renderActionPanels({
     shortlist.setAttribute('role', 'group');
     shortlist.setAttribute('aria-roledescription', 'carousel');
     shortlist.setAttribute('aria-label', `${contextualActions.length} available actions. Scroll horizontally to browse.`);
-    contextualActions.forEach(({ action, scaledCost, costsHtml }) => {
+    contextualActions.forEach(({ action, scaledCost, costsHtml, statusText }) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'context-action';
       button.dataset.actionKey = action.key;
-      button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong><span class="action-description">${action.help}</span>${costsHtml}`;
+      button.innerHTML = `<span class="context-action-icon">${action.icon}</span><strong>${action.name}</strong><span class="action-description">${action.help}</span>${statusText ? `<span class="action-state">${statusText}</span>` : ''}${costsHtml}`;
       button.title = action.help || action.name;
       button.onclick = () => onUseAction(action, scaledCost);
       shortlist.appendChild(button);

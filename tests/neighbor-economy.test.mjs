@@ -49,7 +49,7 @@ test('passive and requested aid debit the same reserve and cannot invade its sur
   const received = resolveHelpRequestFromAlly(s, n, { ...deps, requestKind: 'nutrients' });
   assert.equal(received.actualAmount, advertised);
   assert.equal(n.reserves.nutrients, 12 - passive.nutrients - received.actualAmount);
-  assert.equal(n.reserves.nutrients, 8);
+  assert.equal(n.reserves.nutrients, 6);
   const before = structuredClone(s);
   assert.equal(resolveHelpRequestFromAlly(s, n, { ...deps, requestKind: 'nutrients' }).actualAmount, 0);
   assert.deepEqual(s, before);
@@ -121,7 +121,7 @@ test('succession removes the former tree’s shortages, aid history and depleted
   assert.equal(n.dead, false);
   assert.equal(n.species, 'Cherry');
   assert.equal(n.relation, 0);
-  assert.deepEqual(n.reserves, { water: 12, nutrients: 12 });
+  assert.deepEqual(n.reserves, { sunlight: 12, water: 12, nutrients: 12 });
   assert.equal(n.shortageTurns, 0);
   assert.equal(n.growthAidReceived, 0);
 });
@@ -141,5 +141,29 @@ test('passive support does not drain a donor when the recipient has no room', ()
   const n = tree(), s = grove([n]);
   const gains = collectNeighborDonations(s, getRelationshipState, getNeighborStage, {water:0,nutrients:0});
   assert.deepEqual(gains, {water:0,nutrients:0});
-  assert.deepEqual(n.reserves, {water:12,nutrients:12});
+  assert.deepEqual(n.reserves, {sunlight:12,water:12,nutrients:12});
+});
+
+test('passive support preserves useful explicit offers and sunlight can be requested', () => {
+  const n = tree(70, { reserves: { sunlight: 16, water: 16, nutrients: 16 } });
+  const s = grove([n]);
+  s.sunlight = 0;
+  collectNeighborDonations(s, getRelationshipState, getNeighborStage);
+  assert.ok(neighborHelpAvailable(s, n, 'water', getNeighborStage) >= 4);
+  assert.ok(neighborHelpAvailable(s, n, 'nutrients', getNeighborStage) >= 4);
+  const decision = buildHelpRequestDecision(s, deps);
+  assert.equal(decision.options.length, 4);
+  const sunlight = decision.options.find(option => option.meta.requestKind === 'sunlight');
+  assert.ok(sunlight.affordable);
+  const before = s.sunlight;
+  const received = resolveHelpRequestFromAlly(s, n, { ...deps, requestKind: 'sunlight' });
+  assert.equal(s.sunlight, before + received.actualAmount);
+});
+
+test('sunlight shortages can produce ally aid requests', () => {
+  const n = tree(70, { reserves: { sunlight: 0, water: 12, nutrients: 12 }, strains: { sunlight: 4, water: 0, nutrients: 0 } });
+  const s = grove([n]);
+  const request = tick(s).find(event => event.response?.kind === 'ally-aid');
+  assert.equal(n.activeCrises[0].kind, 'sunlight');
+  assert.match(request.title, /Dimmed crown/);
 });

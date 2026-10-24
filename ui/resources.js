@@ -100,6 +100,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
           ${gains.shadeNutrientBonus ? factor(`Shading +${number(gains.shadeNutrientBonus)}`, 'positive') : ''}
           ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}
+          ${gains.rootCompetitionDefense ? factor(`Deep roots blocked ${number(gains.rootCompetitionDefense)}`, 'positive') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
           ${maintenance.nutrients ? factor(`Tissue upkeep −${number(maintenance.nutrients)}`, 'negative') : ''}
           ${gains.dormancySavings ? factor(`Dormancy saved ${number(gains.dormancySavings)}`, 'positive') : ''}

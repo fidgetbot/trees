@@ -1,7 +1,7 @@
 const PLAYER_PRIORITY = [
   'extendRoot', 'growLeaves', 'growBranch', 'growTaller', 'bark', 'taproot',
   'canopy', 'flower', 'massFlower', 'rhizosphere', 'growThorns', 'toxicLeaves',
-  'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear',
+  'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear', 'stopShade',
 ];
 
 const TARGET_PRIORITIES = {
@@ -48,6 +48,7 @@ export function isActionRelevantToTarget(action, target, state, getRelationshipS
   if (action.key === 'aidAlly') return relationship === 'Ally' && (neighbor.health < neighbor.maxHealth || neighbor.activeCrises?.length > 0);
   if (action.key === 'requestHelp') return relationship === 'Ally';
   if (action.key === 'shadeRival') return neighbor.slot === 1 || neighbor.slot === 3;
+  if (action.key === 'stopShade') return Boolean(neighbor.playerShading);
   if (action.key === 'rootDominion') return true;
   return false;
 }
@@ -88,7 +89,7 @@ export function getContextualActions({ target, usableActions, state, getRelation
 
   let priorities = [];
   if (!target || target.type === 'player-tree') priorities = playerPriority(state);
-  else if (target.type === 'neighbor-tree') priorities = ['aidAlly', 'requestHelp', 'connect', 'shadeRival', 'rootDominion'];
+  else if (target.type === 'neighbor-tree') priorities = ['stopShade', 'aidAlly', 'requestHelp', 'connect', 'shadeRival', 'rootDominion'];
   else if (target.type === 'offspring-tree') priorities = ['nurtureOffspring'];
   else priorities = TARGET_PRIORITIES[target.kind] || [];
 
@@ -113,7 +114,7 @@ export function describeNeighborEffects(neighbor, relationship = 'Neutral') {
   if (relationship === 'Rival') effects.push('Its roots compete with yours for nutrients');
   if (relationship === 'Hostile') effects.push('Its roots compete for nutrients and reduce your water');
   if ((neighbor.rhizosphereBonus || 0) > 0) effects.push('Benefits from your enriched rhizosphere');
-  if (neighbor.reserves) effects.push(`Reserves · ${neighbor.reserves.water} water · ${neighbor.reserves.nutrients} nutrients`);
+  if (neighbor.reserves) effects.push(`Reserves · ${neighbor.reserves.sunlight ?? 12} sunlight · ${neighbor.reserves.water} water · ${neighbor.reserves.nutrients} nutrients`);
   if (neighbor.shortageTurns >= 2) effects.push('Prolonged shortage threatens health');
   for (const crisis of neighbor.activeCrises || []) effects.push(crisis.title || 'Needs support');
   if (Number.isFinite(neighbor.health) && Number.isFinite(neighbor.maxHealth) && neighbor.health < neighbor.maxHealth) {

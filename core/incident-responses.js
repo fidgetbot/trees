@@ -1,6 +1,6 @@
-import { applyNeighborAid, ensureNeighborEconomy } from './neighbor-economy.js?rev=neighbor-economy-v1';
-import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=neighbor-economy-v1';
-import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=structured-event-outcomes-v1';
+import { applyNeighborAid, ensureNeighborEconomy } from './neighbor-economy.js?rev=action-flow-v1';
+import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=action-flow-v1';
+import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=action-flow-v1';
 import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 function plainText(html = '') {
@@ -26,8 +26,8 @@ export function buildIncidentDecision(state, incident, deps = {}) {
     if (!child || !crisis) return null;
     const icon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
     return {
-      kind: 'offspring-aid', title: `${child.species} offspring asks for help`,
-      body: `<p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p><strong>Health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`,
+      kind: 'offspring-aid', title: `Your ${child.species} offspring asks for help`,
+      body: `<p><strong>This is your offspring.</strong></p><p><em>${crisis.flavors[Math.min(crisis.stage - 1, crisis.flavors.length - 1)]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p><strong>Your current reserves:</strong> ☀️${state.sunlight || 0} · 💧${state.water || 0} · 🌱${state.nutrients || 0}</p><p><strong>Offspring health:</strong> ${child.health}/${child.maxHealth} · <strong>Growth:</strong> ${child.stageScore}</p>`,
       options: [{ id: 'give', label: 'Give what you can', affordable: true }, { id: 'withhold', label: 'Withhold your resources', affordable: true }],
       meta: { childId: child.id, crisisId: crisis.id },
     };
@@ -41,8 +41,8 @@ export function buildIncidentDecision(state, incident, deps = {}) {
     const partial = Math.min(available, Math.max(1, Math.floor(crisis.amount / 2)));
     const icon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
     return {
-      kind: 'ally-aid', title: `${neighbor.species} asks for help`,
-      body: `<p><em>${crisis.flavors[Math.max(0, Math.min(crisis.stage - 1, crisis.flavors.length - 1))]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p>Its roots are working to recover. Any contribution replenishes real reserves and prevents shortage damage for at least one turn. Keeping your resources does not harm the relationship.</p><p><strong>Health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`,
+      kind: 'ally-aid', title: `${neighbor.species} ally asks for help`,
+      body: `<p><em>${crisis.flavors[Math.max(0, Math.min(crisis.stage - 1, crisis.flavors.length - 1))]}</em></p><p>It needs <strong>${crisis.amount} ${icon} ${crisis.kind}</strong>.</p><p><strong>Your current reserves:</strong> ☀️${state.sunlight || 0} · 💧${state.water || 0} · 🌱${state.nutrients || 0}</p><p>Any contribution replenishes real reserves and prevents shortage damage for at least one turn. Keeping your resources does not harm the relationship.</p><p><strong>Ally health:</strong> ${neighbor.health}/${neighbor.maxHealth}</p>`,
       options: [
         { id: 'give', label: available ? `Send ${available} ${crisis.kind}` : `No ${crisis.kind} to spare`, affordable: available > 0, disabled: available <= 0 },
         ...(partial < available ? [{ id: 'partial', label: `Send just ${partial} ${crisis.kind}`, affordable: true }] : []),

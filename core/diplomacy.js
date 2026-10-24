@@ -1,7 +1,7 @@
-import { applyNeighborAid, ensureNeighborEconomy, neighborHelpAvailable } from './neighbor-economy.js?rev=neighbor-economy-v1';
+import { applyNeighborAid, ensureNeighborEconomy, neighborHelpAvailable } from './neighbor-economy.js?rev=action-flow-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
-import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=shared-rhizosphere-v1';
+import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=action-flow-v1';
 
 export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
 
@@ -112,6 +112,7 @@ export function resolveAidToAlly(state, neighbor, deps = {}) {
   const adjusted = getAdjustedRelationshipDelta(state, crisis ? 10 : 8);
   neighbor.relation = Math.max(-100, Math.min(100, neighbor.relation + adjusted));
   neighbor.health = Math.min(neighbor.maxHealth, neighbor.health + (crisis ? 3 : 2));
+  applyNeighborAid(neighbor, 'sunlight', paidCost.sunlight || 0);
   applyNeighborAid(neighbor, 'water', paidCost.water || 0);
   applyNeighborAid(neighbor, 'nutrients', paidCost.nutrients || 0);
   const crisisResolved = !!crisis && !neighbor.activeCrises.some(c => c.id === crisis.id);
@@ -254,9 +255,17 @@ export function buildAidDecision(state, deps = {}) {
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally' && (neighbor.health < neighbor.maxHealth || neighbor.activeCrises?.length))
       .map(({ neighbor, targetIndex }) => {
         const crisis = (neighbor.activeCrises || [])[0] || null;
+        ensureNeighborEconomy(neighbor);
+        const needs = (neighbor.activeCrises || []).map(active => active.title || active.kind).join(', ');
+        const condition = needs
+          ? `Needs help with ${needs}.`
+          : neighbor.health < neighbor.maxHealth
+            ? `Recovering from injury at ${neighbor.health}/${neighbor.maxHealth} health.`
+            : 'Stable and growing normally.';
         return {
           id: `neighbor-${targetIndex}`,
           label: `${neighbor.species} — Ally`,
+          description: `${condition} Reserves: ${neighbor.reserves.sunlight} sunlight, ${neighbor.reserves.water} water, ${neighbor.reserves.nutrients} nutrients.`,
           targetIndex,
           affordable: true,
           meta: {
@@ -274,27 +283,35 @@ export function buildHelpRequestDecision(state, deps = {}) {
   const {
     getRelationshipState,
     getNeighborStage = () => ({ rank: 1 }),
-    requestKind = 'health',
+    requestKind = null,
   } = deps;
+
+  const requestKinds = requestKind ? [requestKind] : ['health', 'sunlight', 'water', 'nutrients'];
+  const kindLabel = kind => kind === 'health' ? 'health' : kind;
 
   return createDecision({
     kind: 'ally-help-request',
     title: 'Ask an ally for help',
-    body: `Choose which allied tree you will ask for ${requestKind}. Each transfer uses one action, with no resource fee. The donor keeps its survival reserves.${requestKind === 'health' ? ' Each health restored uses one donor water and one donor nutrient.' : ''} Unavailable requests cost nothing.`,
+    body: requestKind
+      ? `Choose which allied tree you will ask for ${requestKind}. Each transfer uses one action, with no resource fee. The donor keeps its survival reserves.${requestKind === 'health' ? ' Each health restored uses one donor water and one donor nutrient.' : ''} Unavailable requests cost nothing.`
+      : 'Every safe offer is shown below. Choose an ally and resource directly; unavailable offers remain visible for planning and cost nothing.',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
-      .map(({ neighbor, targetIndex }) => {
-        const available = neighborHelpAvailable(state, neighbor, requestKind, getNeighborStage);
+      .flatMap(({ neighbor, targetIndex }) => requestKinds.map(kind => {
+        const available = neighborHelpAvailable(state, neighbor, kind, getNeighborStage);
         const favorBalance = neighbor.helpGivenToThem - neighbor.timesAskedThemForHelp;
         const stageBonus = Math.max(0, getNeighborStage(neighbor.stageScore).rank - 1);
         let toneHint = 'steady';
         if (favorBalance < -2) toneHint = 'strained';
         else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
         return {
-          id: `neighbor-${targetIndex}`,
-          label: `${neighbor.species} — ${available ? `${available} ${requestKind} available` : `cannot spare ${requestKind}`}`,
-          description: available ? `Receive ${available} ${requestKind}; its survival buffer is protected.` : 'Its own needs come first. Try another resource or return later.',
+          id: requestKind ? `neighbor-${targetIndex}` : `neighbor-${targetIndex}-${kind}`,
+          label: `${neighbor.species} — ${available ? `${available} ${kindLabel(kind)} available` : `cannot spare ${kindLabel(kind)}`}`,
+          description: available ? `Receive ${available} ${kindLabel(kind)}; its survival buffer is protected.` : `Its own ${kindLabel(kind)} needs come first; check again after it replenishes.`,
+          group: requestKind ? null : `${neighbor.species} ally`,
+          groupDescription: requestKind ? null : `Health ${neighbor.health}/${neighbor.maxHealth} · reserves ${neighbor.reserves?.sunlight ?? 12} sunlight, ${neighbor.reserves?.water ?? 12} water, ${neighbor.reserves?.nutrients ?? 12} nutrients`,
+          groupOrder: targetIndex,
           disabled: available <= 0,
           affordable: available > 0,
           targetIndex,
@@ -304,10 +321,10 @@ export function buildHelpRequestDecision(state, deps = {}) {
             favorBalance,
             stageBonus,
             toneHint,
-            requestKind,
+            requestKind: kind,
           },
         };
-      }),
+      })),
   });
 }
 
@@ -470,14 +487,16 @@ export function buildAggressionDecision(state, kind, deps = {}) {
       return {
         id: `neighbor-${targetIndex}`,
         label: kind === 'shade'
-          ? neighbor.species
+          ? `${neighbor.species} — ${relationName}`
           : `${neighbor.species} — ${relationName}`,
         description: kind === 'shade'
-          ? (shadeAllowed
+          ? (neighbor.playerShading
+              ? `Currently shaded. Choose Stop Shading to release this tree and offspring on its side.`
+              : shadeAllowed
               ? `Shorter than you — can be shaded.${shadedOffspring.length ? ` Warning: ${shadedOffspring.length} offspring on this side will also lose light.` : ''}`
               : `You'd need to grow taller first.${heightNeeded > 1 ? ` (${heightNeeded} height levels)` : ''}`)
           : null,
-        disabled: kind === 'shade' && !shadeAllowed,
+        disabled: kind === 'shade' && (!shadeAllowed || neighbor.playerShading),
         targetIndex,
         requiresConfirmation: requiresWarning || shadedOffspring.length > 0,
         confirmation: requiresWarning || shadedOffspring.length > 0 ? {
@@ -489,6 +508,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           species: neighbor.species,
           relationName,
           alreadyContested,
+          currentShade: Boolean(neighbor.playerShading),
           blockedReason: shadeAllowed ? null : 'too-short',
           playerHeight,
           targetHeight,

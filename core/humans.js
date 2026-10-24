@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
-import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=offspring-shade-v1';
+import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=action-flow-v1';
 import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 export const HUMAN_RUMORS = [
@@ -417,7 +417,9 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
     };
   }
 
-  let defensePower = state.thornDefense * 2 + state.toxicLeaves * 2 + Math.min(2, state.defense || 0);
+  // Thorns are a strong physical deterrent to people; toxic foliage is much
+  // better against herbivores and leaf pests than against tools and gloves.
+  let defensePower = state.thornDefense * 3 + state.toxicLeaves + Math.min(2, state.defense || 0);
   if (option.id === 'call-network' && state.nutrients >= 2 && state.allies > 0) {
     state.nutrients -= 2;
     defensePower += 3 + Math.min(3, state.allies);

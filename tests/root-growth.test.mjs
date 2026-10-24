@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildBotanicalRootGraph,rootExtensionFamily,rootGrowthAmount,rootGrowthBounds,rootRevealEffect,drawRootGrowth,resetRootGrowthCache} from '../ui/root-growth.js';
+import {rootLifetime} from '../ui/painted-root-joins.js';
+import {growthRevealDuration} from '../ui/painted-growth.js';
 test('root development survives every life-stage illustration handoff',()=>{
  const s={lifeStage:{name:'Sprout'},rootZones:4};
  assert.equal(rootGrowthAmount(s),3);
@@ -13,6 +15,15 @@ test('root development survives every life-stage illustration handoff',()=>{
  assert.equal(rootGrowthAmount(s,reveal),2);
  reveal.progress=.5;assert.equal(rootGrowthAmount(s,reveal),2.5);
  reveal.progress=1;assert.equal(rootGrowthAmount(s,reveal),rootGrowthAmount(s));
+});
+test('stage handoff sizes roots from the artwork currently being presented',()=>{
+ const state={lifeStage:{name:'Young Tree'},presentationStage:'Sapling',turnsInStage:0};
+ assert.equal(rootLifetime(state),rootLifetime({lifeStage:{name:'Sapling'},turnsInStage:0}));
+});
+test('dense repeated root and crown growth skips imperceptible per-action reveals',()=>{
+ assert.equal(growthRevealDuration({roots:9,taproots:1,leaves:8,branches:4},{roots:8,taproots:1,leaves:8,branches:4}),0);
+ assert.equal(growthRevealDuration({roots:4,taproots:1,leaves:11,branches:7},{roots:4,taproots:1,leaves:10,branches:7}),0);
+ assert.equal(growthRevealDuration({roots:2,taproots:0,leaves:2,branches:0},{roots:1,taproots:0,leaves:2,branches:0}),900);
 });
 test('later stages inherit the same botanical graph without root regression',()=>{
  const state={rootZones:7,taprootDepth:2};

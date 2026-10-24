@@ -63,14 +63,18 @@ test('shade targets only immediate neighbors and establishes a persistent arrang
   assert.equal(switched.sunlightPerTurn, SHADE_SUNLIGHT_BONUS);
   assert.equal(switched.nutrientsPerTurn, SHADE_NUTRIENT_BONUS);
   assert.equal(switched.targetGrowthMultiplier, SHADED_NEIGHBOR_GROWTH_MULTIPLIER);
+  const repeated = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
+  const current = repeated.options.find(option => option.targetIndex === state.neighbors.indexOf(right));
+  assert.equal(current.disabled, true);
+  assert.match(current.description, /Stop Shading/i);
 });
 
 test('equal-height trees cannot shade, and an overtaking rival reverses the canopy contest', () => {
-  const neighbor = { slot: 1, species: 'Pear', relation: -30, stageScore: 600, heightGrowth: 0, dead: false, playerShading: true, shadingPlayer: false };
+  const neighbor = { slot: 1, species: 'Pear', relation: -30, stageScore: 600, heightGrowth: 0, dead: false, playerShading: false, shadingPlayer: false };
   const state = { lifeStage: LIFE_STAGES[3], heightGrowth: 0, neighbors: [neighbor] };
   const equalDecision = buildAggressionDecision(state, 'shade', { getRelationshipState, getNeighborStage });
   assert.equal(equalDecision.options[0].meta.blockedReason, 'too-short');
-  assert.equal(equalDecision.options[0].label, 'Pear');
+  assert.equal(equalDecision.options[0].label, 'Pear — Rival');
   assert.equal(equalDecision.options[0].disabled, true);
   assert.match(equalDecision.options[0].description, /need to grow taller first/i);
 
@@ -79,6 +83,7 @@ test('equal-height trees cannot shade, and an overtaking rival reverses the cano
   assert.equal(shadeableDecision.options[0].meta.blockedReason, null);
   assert.equal(shadeableDecision.options[0].disabled, false);
   assert.match(shadeableDecision.options[0].description, /can be shaded/i);
+  neighbor.playerShading = true;
   neighbor.heightGrowth = 2;
   const change = reconcileCanopyHeight(state, neighbor, getNeighborStage, getRelationshipState);
   assert.equal(change.kind, 'reversed');
@@ -112,7 +117,7 @@ test('enriching the rhizosphere permanently supports connected allies and warms 
   const neutral = { relation: 0, dead: false, stageScore: 600 };
   const state = { eventModifiers: { soilBonus: 0 }, neighbors: [ally, neutral] };
   actions.find(action => action.key === 'rhizosphere').effect(state);
-  assert.equal(state.eventModifiers.soilBonus, 0.5);
+  assert.equal(state.eventModifiers.soilBonus, 1.5);
   assert.equal(ally.rhizosphereBonus, 0.5);
   assert.equal(neighborRhizosphereGrowthBonus(ally), 2);
   assert.equal(ally.relation, 73);
@@ -203,6 +208,15 @@ test('adjacent rivals and hostile trees impose visible root competition each tur
   const summary = renderResourcePhaseBody({ state: contestedState, gains: contested });
   assert.match(summary, /Hostile roots −1/);
   assert.match(summary, /Rival roots −2/);
+
+  const defended = engine().collectResources(gatheringState({
+    taprootDepth: 2,
+    neighbors: contestedState.neighbors.map(neighbor => ({ ...neighbor })),
+  }));
+  assert.equal(defended.rawRootCompetitionPenalty, 2);
+  assert.equal(defended.rootCompetitionDefense, 1);
+  assert.equal(defended.rootCompetitionPenalty, 1);
+  assert.match(renderResourcePhaseBody({ state: contestedState, gains: defended }), /Deep roots blocked 1/);
 });
 
 test('allies and persistent canopy positions change gathering relative to neutral baseline', () => {
@@ -343,6 +357,22 @@ test('offer aid reports the exact scaled action cost that was already paid', () 
   const resolved = resolveDiplomacyDecision(state, decision, decision.options[0].id, { getRelationshipState });
   assert.deepEqual(decision.options[0].meta.paidCost, paidCost);
   assert.deepEqual(resolved.outcome.paidCost, paidCost);
+  assert.match(decision.options[0].description, /health|Needs help/);
+  assert.match(decision.options[0].description, /Reserves:/);
+});
+
+test('stop shading is a visible zero-resource action only while shade is active', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  });
+  const stop = actions.find(action => action.key === 'stopShade');
+  const target = { species: 'Pear', slot: 1, relation: -30, dead: false, playerShading: true };
+  const state = { neighbors: [target] };
+  assert.equal(stop.hidden(state), false);
+  stop.effect(state);
+  assert.equal(target.playerShading, false);
+  assert.equal(stop.hidden(state), true);
 });
 
 test('relationship repair clears persistent canopy pressure through the shared helper', () => {
@@ -358,6 +388,22 @@ test('deepening a taproot adds nutrient access beyond its ordinary root zone', (
   const deep = engine().collectResources(gatheringState({ rootZones: 5, taprootDepth: 1 }));
   assert.ok(deep.rootNutrients > ordinary.rootNutrients);
   assert.ok(deep.taprootNutrients > 0);
+});
+
+test('later root and crown actions provide stronger gathering structures than basic growth', () => {
+  const rootBase = gatheringState({ rootZones: 4, taprootDepth: 0, leafClusters: 8 });
+  const extended = engine().collectResources({ ...rootBase, rootZones: 5, eventModifiers: { ...rootBase.eventModifiers } });
+  const deepened = engine().collectResources({ ...rootBase, rootZones: 5, taprootDepth: 1, eventModifiers: { ...rootBase.eventModifiers } });
+  const enriched = engine().collectResources({ ...rootBase, eventModifiers: { ...rootBase.eventModifiers, soilBonus: 1.5 } });
+  assert.ok(deepened.waterStorage > extended.waterStorage);
+  assert.ok(deepened.rootNutrients > extended.rootNutrients);
+  assert.ok(enriched.grossNutrients > engine().collectResources({ ...rootBase, eventModifiers: { ...rootBase.eventModifiers } }).grossNutrients);
+
+  const leaf = engine().collectResources(gatheringState({ leafClusters: 9, branches: 0, canopySpread: 0 }));
+  const branch = engine().collectResources(gatheringState({ leafClusters: 10, branches: 1, canopySpread: 0 }));
+  const canopy = engine().collectResources(gatheringState({ leafClusters: 11, branches: 1, canopySpread: 1 }));
+  assert.ok(branch.sunlightBase > leaf.sunlightBase);
+  assert.ok(canopy.sunlightBase > branch.sunlightBase);
 });
 
 test('canopy arrangements visibly move and lean the participating trees', () => {

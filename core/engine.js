@@ -1,9 +1,9 @@
-import { advanceNeighborEcology, collectNeighborDonations } from './neighbor-economy.js?rev=neighbor-economy-v1';
-import { createOffspringRecords } from './humans.js?rev=structured-event-outcomes-v1';
-import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=shared-rhizosphere-v1';
+import { advanceNeighborEcology, collectNeighborDonations } from './neighbor-economy.js?rev=action-flow-v1';
+import { createOffspringRecords } from './humans.js?rev=action-flow-v1';
+import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=action-flow-v1';
 import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
-import { normalizeStoredProtection } from './events.js?rev=neighbor-economy-v1';
+import { normalizeStoredProtection } from './events.js?rev=action-flow-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -208,7 +208,9 @@ export function createEngine(deps) {
 
     const taprootNutrients = effectiveTaproot * 0.5;
     const rootNutrients = (effectiveRoots * 0.7) + taprootNutrients;
-    const rootCompetitionPenalty = Math.min(3, relations.rivalNeighbors + relations.hostileNeighbors);
+    const rawRootCompetitionPenalty = Math.min(3, relations.rivalNeighbors + relations.hostileNeighbors);
+    const rootCompetitionDefense = Math.min(rawRootCompetitionPenalty, Math.ceil(Math.max(0, state.taprootDepth || 0) / 2));
+    const rootCompetitionPenalty = Math.max(0, rawRootCompetitionPenalty - rootCompetitionDefense);
     const soilBonus = state.eventModifiers.soilBonus || 0;
     const maintenance = getResourceMaintenance(state, season.name);
     const baseMaintenanceCost = maintenance.base.nutrients;
@@ -264,6 +266,8 @@ export function createEngine(deps) {
       allyWater,
       hostileWaterPenalty,
       rootCompetitionPenalty,
+      rawRootCompetitionPenalty,
+      rootCompetitionDefense,
       canopyAdvantage,
       shadeNutrientBonus,
       soilBonus,
@@ -482,6 +486,7 @@ export function createEngine(deps) {
           ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedAllies} connected ${supportedAllies === 1 ? 'ally receives' : 'allies receive'} lasting growth support.`
           : 'You enrich the soil community around your roots, improving future nutrient uptake.');
       }
+      if (action.key === 'stopShade') addLog?.(`You stop shading the ${state.lastReleasedShadeTarget || 'neighboring tree'} and release the offspring beneath that side.`);
       if (action.key === 'shelterGrove') {
         const livingNeighbors = (state.neighbors || []).filter(neighbor => !neighbor.dead).length;
         addLog?.(`You store protection against the next severe weather event. ${livingNeighbors} living neighbor${livingNeighbors === 1 ? '' : 's'} gained +2 attitude.`);

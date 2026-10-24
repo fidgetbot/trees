@@ -138,6 +138,11 @@ test('flowers appear only after the player produces them in Spring', () => {
   assert.equal(shouldDrawPlayerBlossoms({ flowers: 2 }, 'Summer'), false);
 });
 
+test('pollinated spring blossoms remain visible until they become fruit', () => {
+  assert.equal(shouldDrawPlayerBlossoms({ flowers: 0, pollinated: 2 }, 'Spring'), true);
+  assert.equal(shouldDrawPlayerBlossoms({ flowers: 0, pollinated: 2 }, 'Summer'), false);
+});
+
 test('painted botanical module counts remain sparse and follow game state', () => {
   assert.equal(getBotanicalModuleCount('foliage', 0, 20), 0);
   assert.equal(getBotanicalModuleCount('foliage', 4, 20), 4);

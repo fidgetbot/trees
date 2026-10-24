@@ -2,7 +2,8 @@ import { awaitIncidentResponse, findActiveIncident, resolveIncident } from './in
 
 export const NEIGHBOR_BUFFER = 4;
 export const NEIGHBOR_CAPACITY = 16;
-const RESOURCES = ['water', 'nutrients'];
+export const NEIGHBOR_RESOURCES = ['sunlight', 'water', 'nutrients'];
+const PASSIVE_SHARED_RESOURCES = ['water', 'nutrients'];
 
 // Old games acquire finite reserves once, never on each request or gathering.
 export function ensureNeighborEconomy(neighbor) {
@@ -10,23 +11,25 @@ export function ensureNeighborEconomy(neighbor) {
   neighbor.health ??= neighbor.maxHealth;
   neighbor.activeCrises ||= [];
   if (!neighbor.reserves) {
-    neighbor.reserves = { water: 12, nutrients: 12 };
-    neighbor.strains = { water: 0, nutrients: 0 };
+    neighbor.reserves = { sunlight: 12, water: 12, nutrients: 12 };
+    neighbor.strains = { sunlight: 0, water: 0, nutrients: 0 };
     for (const crisis of neighbor.activeCrises) {
-      if (!RESOURCES.includes(crisis.kind)) continue;
+      if (!NEIGHBOR_RESOURCES.includes(crisis.kind)) continue;
       neighbor.reserves[crisis.kind] = 0;
       neighbor.strains[crisis.kind] = 4;
     }
   }
-  neighbor.strains ||= { water: 0, nutrients: 0 };
-  for (const kind of RESOURCES) {
+  neighbor.strains ||= { sunlight: 0, water: 0, nutrients: 0 };
+  for (const kind of NEIGHBOR_RESOURCES) {
+    if (neighbor.reserves[kind] == null) neighbor.reserves[kind] = 12;
     neighbor.reserves[kind] = Math.max(0, Math.min(NEIGHBOR_CAPACITY, Number(neighbor.reserves[kind]) || 0));
     neighbor.strains[kind] ||= 0;
   }
   neighbor.shortageTurns ||= 0;
   neighbor.aidGrace ||= 0;
   neighbor.crisisCounter ||= 0;
-  neighbor.lastAidRequestTurns ||= { water: -100, nutrients: -100 };
+  neighbor.lastAidRequestTurns ||= { sunlight: -100, water: -100, nutrients: -100 };
+  for (const kind of NEIGHBOR_RESOURCES) neighbor.lastAidRequestTurns[kind] ??= -100;
   neighbor.hardshipCooldown ||= 0;
   for (const key of ['helpGivenToThem', 'helpRefusedToThem', 'helpReceivedFromThem', 'timesAskedThemForHelp']) neighbor[key] ||= 0;
   return neighbor;
@@ -34,14 +37,14 @@ export function ensureNeighborEconomy(neighbor) {
 
 export function neighborSurplus(neighbor, kind) {
   ensureNeighborEconomy(neighbor);
-  if (neighbor.dead || !RESOURCES.includes(kind) || neighbor.activeCrises.some(c => c.kind === kind)) return 0;
+  if (neighbor.dead || !NEIGHBOR_RESOURCES.includes(kind) || neighbor.activeCrises.some(c => c.kind === kind)) return 0;
   // Retain enough to weather the rest of a known shortage, not merely today's upkeep.
-  const buffer = 8 + Math.min(6, neighbor.strains[kind] * 2);
+  const buffer = 6 + Math.min(8, neighbor.strains[kind] * 2);
   return Math.max(0, Math.floor(neighbor.reserves[kind] - buffer));
 }
 
 export function neighborHelpAvailable(state, neighbor, kind, getNeighborStage = () => ({ rank: 1 })) {
-  if (!neighbor || neighbor.dead || !['health', ...RESOURCES].includes(kind)) return 0;
+  if (!neighbor || neighbor.dead || !['health', ...NEIGHBOR_RESOURCES].includes(kind)) return 0;
   const cap = Math.min(6, Math.max(1, (getNeighborStage(neighbor.stageScore).rank || 0) + 1));
   if (kind === 'health') {
     ensureNeighborEconomy(neighbor);
@@ -53,7 +56,7 @@ export function neighborHelpAvailable(state, neighbor, kind, getNeighborStage = 
 
 export function neighborGrowthFactor(neighbor) {
   ensureNeighborEconomy(neighbor);
-  const minimum = Math.min(...RESOURCES.map(kind => neighbor.reserves[kind]));
+  const minimum = Math.min(...NEIGHBOR_RESOURCES.map(kind => neighbor.reserves[kind]));
   return minimum === 0 ? 0 : minimum < NEIGHBOR_BUFFER ? 0.5 : 1;
 }
 
@@ -74,10 +77,15 @@ export function collectNeighborDonations(state, getRelationshipState, getNeighbo
   const gains = { water: 0, nutrients: 0 };
   for (const neighbor of state.neighbors || []) {
     if (neighbor.dead || getRelationshipState(neighbor.relation).name !== 'Ally') continue;
+    ensureNeighborEconomy(neighbor);
     const rank = getNeighborStage(neighbor.stageScore).rank || 0;
     const limit = rank >= 4 ? 2 : rank >= 2 ? 1 : 0;
-    for (const kind of RESOURCES) {
-      const amount = Math.max(0, Math.min(limit, neighborSurplus(neighbor, kind), needed[kind] - gains[kind]));
+    for (const kind of PASSIVE_SHARED_RESOURCES) {
+      // Passive support is deliberately conservative. Explicit requests may
+      // draw farther down to the safe reserve, so allies retain useful help
+      // instead of donating every available unit before the action phase.
+      const passiveSurplus = Math.max(0, Math.floor(neighbor.reserves[kind] - 10));
+      const amount = Math.max(0, Math.min(limit, passiveSurplus, needed[kind] - gains[kind]));
       neighbor.reserves[kind] -= amount;
       gains[kind] += amount;
     }
@@ -88,7 +96,7 @@ export function collectNeighborDonations(state, getRelationshipState, getNeighbo
 const WEATHER_STRAINS = {
   Drought: { water: 4 }, Herbivores: { nutrients: 3 }, FungalBlight: { nutrients: 4 },
   Fire: { water: 3, nutrients: 3 }, Wildfire: { water: 3, nutrients: 3 },
-  LateFrost: { nutrients: 2 }, Storm: { nutrients: 2 }, WinterStorm: { nutrients: 2 },
+  LateFrost: { sunlight: 2, nutrients: 2 }, Storm: { sunlight: 1, nutrients: 2 }, WinterStorm: { sunlight: 2, nutrients: 2 },
 };
 
 export function advanceNeighborEcology(state, { majorKey, getRelationshipState, getNeighborStage, random = Math.random, onDeath } = {}) {
@@ -108,18 +116,19 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
     const subject = { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor.stageScore).name };
     for (const [kind, duration] of Object.entries(WEATHER_STRAINS[majorKey] || {})) neighbor.strains[kind] = Math.max(neighbor.strains[kind], duration);
     neighbor.hardshipCooldown = Math.max(0, neighbor.hardshipCooldown - 1);
-    if (!neighbor.hardshipCooldown && !RESOURCES.some(kind => neighbor.strains[kind]) && random() < 0.04) {
-      const kind = random() < 0.5 ? 'water' : 'nutrients';
+    if (!neighbor.hardshipCooldown && !NEIGHBOR_RESOURCES.some(kind => neighbor.strains[kind]) && random() < 0.04) {
+      const kind = NEIGHBOR_RESOURCES[Math.min(NEIGHBOR_RESOURCES.length - 1, Math.floor(random() * NEIGHBOR_RESOURCES.length))];
       neighbor.strains[kind] = 6;
       neighbor.hardshipCooldown = 16;
     }
     const income = rank >= 4 ? 4 : 3;
-    for (const kind of RESOURCES) {
-      const net = (neighbor.strains[kind] > 0 ? -2 : income - 2) - (kind === 'nutrients' && neighbor.playerShading ? 1 : 0);
+    for (const kind of NEIGHBOR_RESOURCES) {
+      const shadeCost = neighbor.playerShading ? (kind === 'sunlight' ? 2 : kind === 'nutrients' ? 1 : 0) : 0;
+      const net = (neighbor.strains[kind] > 0 ? -2 : income - 2) - shadeCost;
       neighbor.reserves[kind] = Math.max(0, Math.min(NEIGHBOR_CAPACITY, neighbor.reserves[kind] + net));
       neighbor.strains[kind] = Math.max(0, neighbor.strains[kind] - 1);
     }
-    const empty = RESOURCES.some(kind => neighbor.reserves[kind] === 0);
+    const empty = NEIGHBOR_RESOURCES.some(kind => neighbor.reserves[kind] === 0);
     neighbor.shortageTurns = empty ? neighbor.shortageTurns + 1 : 0;
     const grace = neighbor.aidGrace > 0;
     neighbor.aidGrace = Math.max(0, neighbor.aidGrace - 1);
@@ -128,7 +137,7 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
 
     // Resolve recovered requests even after diplomacy changes the relationship.
     for (const crisis of [...neighbor.activeCrises]) {
-      if (!RESOURCES.includes(crisis.kind) || neighbor.reserves[crisis.kind] >= NEIGHBOR_BUFFER) {
+      if (!NEIGHBOR_RESOURCES.includes(crisis.kind) || neighbor.reserves[crisis.kind] >= NEIGHBOR_BUFFER) {
         neighbor.activeCrises = neighbor.activeCrises.filter(c => c !== crisis);
         const incident = findActiveIncident(state, 'ally-aid', i => i.response?.neighborSlot === neighbor.slot && i.response?.crisisId === crisis.id);
         if (incident) resolveIncident(state, incident.id, { summary: `The ${neighbor.species} has replenished its reserves. The shortage has passed.` });
@@ -149,11 +158,12 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
       if (!deathReported) events.push({ title: `${neighbor.species} lost`, text: 'After prolonged shortages, the tree can no longer sustain its living tissue.', effect: 'damage', subject });
       continue;
     }
-    for (const kind of RESOURCES) {
+    for (const kind of NEIGHBOR_RESOURCES) {
       if (neighbor.reserves[kind] >= NEIGHBOR_BUFFER) continue;
       let crisis = neighbor.activeCrises.find(c => c.kind === kind);
       if (!crisis) {
-        crisis = { id: `reserve-${neighbor.slot}-${++neighbor.crisisCounter}`, kind, title: kind === 'water' ? 'Dry roots' : 'Lean soil', stage: 0, healthLoss: 1, lastAskedTurn: -100, flavors: [`The ${neighbor.species} is drawing down its ${kind} reserves. Growth slows while its roots recover.`] };
+        const title = kind === 'sunlight' ? 'Dimmed crown' : kind === 'water' ? 'Dry roots' : 'Lean soil';
+        crisis = { id: `reserve-${neighbor.slot}-${++neighbor.crisisCounter}`, kind, title, stage: 0, healthLoss: 1, lastAskedTurn: -100, flavors: [`The ${neighbor.species} is drawing down its ${kind} reserves. Growth slows while it recovers.`] };
         neighbor.activeCrises.push(crisis);
       }
       crisis.amount = 6 - neighbor.reserves[kind];
@@ -163,7 +173,7 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
       neighbor.lastAidRequestTurns[kind] = turn;
       const allied = getRelationshipState(neighbor.relation).name === 'Ally';
       const text = neighbor.shortageTurns >= 2
-        ? `The ${neighbor.species} has exhausted its ${kind}. Continued shortage threatens its health; its roots are still working to recover.`
+        ? `The ${neighbor.species} has exhausted its ${kind}. Continued shortage threatens its health; its tissues are still working to recover.`
         : crisis.flavors[0];
       const event = { kind: allied ? 'ally-aid' : 'neighbor-stress', title: `${neighbor.species}: ${crisis.title}`, text, effect: 'warning', subject };
       if (allied) {

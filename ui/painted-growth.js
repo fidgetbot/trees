@@ -12,6 +12,12 @@ const count = value => Math.max(0, Math.floor(Number(value) || 0));
 
 export function growthRevealDuration(current,previous){
   const rootChanged=(current?.roots||0)>(previous?.roots||0)||(current?.taproots||0)>(previous?.taproots||0);
+  const denseRoots=(current?.roots||0)+(current?.taproots||0)>8;
+  const denseCrown=(current?.leaves||0)>10||(current?.branches||0)>6;
+  // Once individual additions are too small to read at grove scale, draw the
+  // final accumulated form immediately. This keeps repeatable late-game
+  // growth responsive without discarding the visible investment.
+  if ((rootChanged&&denseRoots)||(!rootChanged&&denseCrown)) return 0;
   return rootChanged?900:650;
 }
 

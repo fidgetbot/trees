@@ -47,6 +47,12 @@ test('Young Tree and Mature Tree action bundles are dispersed across seasons', (
   assert.equal(unlocked('rootDominion', TURNS_PER_SEASON * 3, matureTree), true);
 });
 
+test('Produce Flower cannot unlock while the player is still a Sapling', () => {
+  assert.equal(unlocked('flower', TURNS_PER_SEASON * 20, sapling), false);
+  assert.equal(isActionAnnounceableInSeason('flower', 'Spring', SEASONAL_ACTIONS), true);
+  assert.equal(isActionUnlockedForState('flower', { lifeStage: sapling, turnsInStage: 999 }, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS), false);
+});
+
 test('locked Sapling actions explain when they will awaken', () => {
   const state = { lifeStage: sapling, turnsInStage: 0 };
   assert.equal(

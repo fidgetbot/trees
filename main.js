@@ -1,5 +1,5 @@
-import { neighborGrowthFactor, neighborHelpAvailable } from './core/neighbor-economy.js?rev=neighbor-economy-v1';
-import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=trunk-marks-v1';
+import { neighborGrowthFactor, neighborHelpAvailable } from './core/neighbor-economy.js?rev=action-flow-v1';
+import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=action-flow-v1';
 import {
   SEASONS,
   LIFE_STAGES,
@@ -9,7 +9,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=botanical-roots-v1';
+} from './core/constants.js?rev=action-flow-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -25,9 +25,9 @@ import {
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js?rev=four-turn-seasons-v1';
+} from './core/stages.js?rev=action-flow-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=neighbor-economy-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=action-flow-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -40,7 +40,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=neighbor-economy-v1';
+} from './core/events.js?rev=action-flow-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -52,7 +52,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=neighbor-economy-v1';
+} from './core/diplomacy.js?rev=action-flow-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -63,9 +63,9 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=structured-event-outcomes-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=neighbor-economy-v1';
-import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=neighbor-economy-v1';
+} from './core/humans.js?rev=action-flow-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=action-flow-v1';
+import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=action-flow-v1';
 import {
   ensureIncidentState,
   awaitIncidentResponse,
@@ -79,21 +79,21 @@ import {
   queuedResponseIncidents,
   resolveIncident,
 } from './core/incidents.js?rev=structured-event-outcomes-v1';
-import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=neighbor-economy-v1';
-import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
-import { renderActionPanels } from './ui/actions.js?rev=neighbor-economy-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=neighbor-economy-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=action-flow-v1';
+import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=action-flow-v1';
+import { renderActionPanels } from './ui/actions.js?rev=action-flow-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=action-flow-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=neighbor-economy-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=action-flow-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-joins-v2';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=action-flow-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=neighbor-economy-v1';
-import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=four-turn-seasons-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=action-flow-v1';
+import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=neighbor-economy-v1';
 
 function computeCurrentLifeStage() {
@@ -247,7 +247,14 @@ function tryAdvanceLifeStage(onContinue) {
       render();
       if (onContinue) onContinue();
       else resumeTurnFlow();
-    }, { kind: 'growth', eyebrow: `A new chapter · ${next.rank + 1} of ${LIFE_STAGES.length}` });
+    }, {
+      kind: 'growth',
+      eyebrow: `A new chapter · ${next.rank + 1} of ${LIFE_STAGES.length}`,
+      // The first root is also the Seed→Sprout handoff. Its chapter is the
+      // player's immediate confirmation, so it must not sit behind the root
+      // reveal that it just initiated.
+      waitForGrowth: next.name === 'Sprout' && state.leafClusters === 0 ? false : undefined,
+    });
     return true;
   }
   return false;
@@ -274,7 +281,7 @@ function maybeAnnounceProgressiveActionUnlocks(onContinue) {
 }
 
 function isActionAnnounceableNow(action) {
-  return isActionAnnounceableInSeason(action.key, currentSeason().name, SEASONAL_ACTIONS);
+  return action.announce !== false && isActionAnnounceableInSeason(action.key, currentSeason().name, SEASONAL_ACTIONS);
 }
 
 
@@ -318,6 +325,15 @@ const ACTIONS = createActions({
   nurtureOffspringAction,
   getRelationshipState,
   getNeighborStage,
+  getAllyHelpStatus: s => {
+    const allies = (s.neighbors || []).filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally');
+    if (!allies.length) return 'No living allied neighbors';
+    const offers = allies.flatMap(neighbor => ['health', 'sunlight', 'water', 'nutrients']
+      .map(kind => ({ neighbor, kind, amount: neighborHelpAvailable(s, neighbor, kind, getNeighborStage) }))
+      .filter(offer => offer.amount > 0));
+    if (!offers.length) return 'No safe surplus now; ally reserves and shortages are shown when selected';
+    return `Available now · ${offers.map(offer => `${offer.neighbor.species}: ${offer.amount} ${offer.kind}`).join(' · ')}`;
+  },
   updateAlliesCount: s => updateAlliesCountForState(s, getRelationshipState),
 });
 
@@ -337,7 +353,8 @@ function currentGrowthReveal() {
   syncGrowthAttachments(state);
   const previous=lastGrowthSnapshot;
   if(previous&&previous.species===snapshot.species&&['roots','leaves','branches','taproots'].some(key=>snapshot[key]>previous[key])) {
-    growthTransition={from:previous,start:performance.now(),duration:growthRevealDuration(snapshot,previous),root:isRootGrowthReveal(snapshot,previous)};
+    const duration=growthRevealDuration(snapshot,previous);
+    growthTransition=duration>0?{from:previous,start:performance.now(),duration,root:isRootGrowthReveal(snapshot,previous)}:null;
     scheduleGrowthCameraRefit();
   }
   if(previous?.species!==snapshot.species)growthTransition=null;
@@ -668,6 +685,11 @@ function recordPopup(title, body) {
 
 function showModal(title, body, onContinue, { record = true, ...presentation } = {}) {
   if (record) recordPopup(title, body);
+  if (presentation.waitForGrowth === false) {
+    delete presentation.waitForGrowth;
+    render();
+    return showStandardModal(els, title, body, onContinue, presentation);
+  }
   return afterGrowthAnimation(() => showStandardModal(els, title, body, onContinue, presentation));
 }
 
@@ -686,7 +708,7 @@ function presentSeasonChange({ season, year }, onContinue) {
   );
 }
 
-const POST_GROWTH_DIALOG_PAUSE_MS = 1000;
+const POST_GROWTH_DIALOG_PAUSE_MS = 180;
 
 function afterGrowthAnimation(open) {
   // Some choice outcomes request a dialog before their normal render hook.
@@ -1061,7 +1083,7 @@ function continueWithRelationshipChange(species, oldState, newState, onDone, { a
 function maybeShowMilestone(key, title, body, onContinue) {
   if (state.milestones[key]) return false;
   state.milestones[key] = true;
-  showModal(title, `<p><em>${body}</em></p>`, onContinue);
+  showModal(title, `<p><em>${body}</em></p>`, onContinue, { waitForGrowth: false });
   return true;
 }
 
@@ -1126,8 +1148,8 @@ function advanceChildCrises(events) {
     }
     const event = {
       kind: 'offspring-aid',
-      title: `${child.species} offspring: ${crisis.title}`,
-      text: `${flavor} The crisis is deepening.`,
+      title: `Your ${child.species} offspring: ${crisis.title}`,
+      text: `${flavor} Your offspring's crisis is deepening.`,
       effect: 'warning',
       subject: { type: 'offspring', id: child.id, species: child.species, stageName: describeOffspring(state, LIFE_STAGES).find(entry => entry.id === child.id)?.stageName || 'Seedling' },
       response: { kind: 'offspring-aid', childId: child.id, crisisId: crisis.id },
@@ -1223,7 +1245,7 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
     }
     const crisisLine = outcome.crisisResolved ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
     const paid = outcome.paidCost || { sunlight: 0, water: 0, nutrients: 0 };
-    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
+    showModal('Aid Sent', `<p>You send sunlight-built sugars, water, and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
       refreshMainView();
       continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
     });
@@ -1265,6 +1287,11 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
   }
 
   const execute = (option) => {
+    if (option.meta?.currentShade) {
+      showFeedback('You are already shading that tree. Use Stop Shading to release it.', 'info');
+      cancel();
+      return;
+    }
     if (option.meta?.blockedReason === 'too-short') {
       const neighbor = state.neighbors[option.targetIndex];
       showModal('Not Tall Enough', `<p>The ${neighbor?.species || 'neighboring tree'} is not shorter than you. Lasting shade requires your crown to rise above its crown.</p><p><strong>Grow Taller</strong>, then try again.</p>`, cancel);
@@ -1308,8 +1335,23 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     }
   }
 
-  if (decision.kind !== 'ally-help-request' && decision.options.length === 1 && !decision.options[0].disabled) {
+  if (!['ally-help-request', 'ally-aid'].includes(decision.kind) && decision.options.length === 1 && !decision.options[0].disabled) {
     execute(decision.options[0]);
+    return { deferred: true };
+  }
+
+  if (decision.kind === 'ally-help-request') {
+    const choices = decision.options.map(option => ({
+      label: option.label,
+      description: option.description,
+      group: option.group,
+      groupDescription: option.groupDescription,
+      groupOrder: option.groupOrder,
+      disabled: option.disabled,
+      onChoose: () => execute(option),
+    }));
+    choices.push({ label: 'Back', onChoose: cancel });
+    showChoiceModal(decision.title, `<p>${decision.body}</p>`, choices);
     return { deferred: true };
   }
 
@@ -1359,14 +1401,11 @@ function rootDominionAction(s, context) {
 }
 
 function requestHelpFromAllies(s, context = {}) {
-  const missingHealth = Math.max(0, state.maxHealth - state.health);
-  showChoiceModal('What do you need?', '<p>Choose what your tissues need most. Only surplus above the ally’s survival reserve can be shared. The next screen shows the available amount before you spend an action.</p>', [
-    { label: missingHealth >= 1 ? 'Health' : 'Health — already full', description: missingHealth >= 1 ? 'Recovery uses one water and one nutrient from the donor per health restored.' : 'Your health is already full.', disabled: missingHealth < 1, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
-    { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
-    { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
-    { label: 'Back', onChoose: () => context.transaction?.cancel({ silent: true }) },
-  ]);
-  return { deferred: true };
+  return runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage }), {
+    emptyMessage: 'No allies are close enough to help',
+    transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
+  });
 }
 
 function nurtureOffspringAction(s, context = {}) {
@@ -1457,6 +1496,7 @@ function actionUnlockReason(actionKey) {
 
 function getAffordableActions() {
   return ACTIONS.filter(action => {
+    if (action.hidden?.(state)) return false;
     if (action.hideAt) {
       const hideStage = LIFE_STAGES.find(s => s.name === action.hideAt);
       if (hideStage && computeCurrentLifeStage().rank >= hideStage.rank) return false;

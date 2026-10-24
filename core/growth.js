@@ -59,6 +59,12 @@ export function setPlayerShadeTarget(state, target) {
   return releasedTarget;
 }
 
+export function clearPlayerShadeTarget(state) {
+  const target = getPlayerShadeTarget(state);
+  if (target) target.playerShading = false;
+  return target;
+}
+
 export function neighborGrowthFromLight(baseGrowth, neighbor, activeTarget = neighbor) {
   if (!neighbor?.playerShading || neighbor !== activeTarget) return baseGrowth;
   return Math.max(1, Math.round(baseGrowth * SHADED_NEIGHBOR_GROWTH_MULTIPLIER));

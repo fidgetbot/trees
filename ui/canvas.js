@@ -1,10 +1,10 @@
 import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v4';
-import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=painted-joins-v2';
-import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
+import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=action-flow-v1';
+import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=action-flow-v1';
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=small-birds-v1';
-import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=trunk-marks-v1';
+import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-flow-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
-import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
+import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=action-flow-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
 
 // Decoded PNGs remain authoritative. Canvas-derived layers can be discarded
@@ -984,7 +984,7 @@ function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,
       if(!rootedSeed){
         const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);
         if(state.thornDefense>0||state.toxicLeaves>0)drawPlayerDefenses(ctx,tree,state,seed);
-        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,growth,seed,state.flowers,species);
+        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,growth,seed,(state.flowers||0)+(state.pollinated||0),species);
         if(season==='Summer'&&state.developing>0)drawFruit(ctx,growth,seed,state.developing,species);
       }
       const targets=attachPests(structureImage,getTreeStructureSourceRect(species,structureStageKey),geometry,growth);
@@ -1047,7 +1047,7 @@ function drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,de
   ctx.restore();
 }
 
-export function shouldDrawPlayerBlossoms(state,season){return season==='Spring'&&(state.flowers||0)>0}
+export function shouldDrawPlayerBlossoms(state,season){return season==='Spring'&&((state.flowers||0)+(state.pollinated||0))>0}
 export function shouldDrawSeedRadicle(stage,roots,leaves){return(stage==='Seed'||stage==='Sprout')&&roots>0&&leaves===0}
 export function isTreeShaded(state,neighbor){const target=getPlayerShadeTarget(state);return Boolean(neighbor&&(neighbor.slot===target?.slot||(neighbor.offspring&&offspringSharesShadeDirection(neighbor,neighbor.offspringIndex,target))))}
 
@@ -1223,8 +1223,20 @@ export function paintedCanopyEntries(growth,seed,kind,count){
   if(!limit)return[];
   if(kind==='blossoms'){
     // Stable prefixes: each earned flower adds a cluster without moving the
-    // earlier flowers. Reuse canopy hosts with small in-leaf offsets once full.
-    const hosts=candidates.map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)})).sort((a,b)=>a.priority-b.priority);
+    // earlier flowers. Choose each new host farthest from those already used,
+    // then reuse hosts with golden-angle offsets once the canopy is full.
+    const pending=candidates.map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)}));
+    const hosts=[];
+    while(pending.length){
+      let chosen=0,best=-Infinity;
+      for(let candidateIndex=0;candidateIndex<pending.length;candidateIndex++){
+        const candidate=pending[candidateIndex];
+        const spacing=hosts.length?Math.min(...hosts.map(host=>Math.hypot(candidate.cluster.x-host.cluster.x,(candidate.cluster.y-host.cluster.y)*1.35))):0;
+        const score=hosts.length?spacing-candidate.priority*1e-12:-candidate.priority;
+        if(score>best){best=score;chosen=candidateIndex;}
+      }
+      hosts.push(pending.splice(chosen,1)[0]);
+    }
     return Array.from({length:limit},(_,index)=>{
       const host=hosts[index%hosts.length],cycle=Math.floor(index/hosts.length);
       const angle=cycle*2.3999632297+host.priority%360*Math.PI/180;

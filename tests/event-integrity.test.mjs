@@ -386,7 +386,7 @@ test('thorns and toxic leaves explicitly blunt herbivore surges', () => {
   }).find(event => event.key === 'Herbivores');
   const defended = threatState({ thornDefense: 1, toxicLeaves: 1, leafClusters: 4, health: 8 });
   const outcome = herbivores.apply(defended);
-  assert.deepEqual(getHerbivoreDefense(defended), { thorns: 1, toxins: 1, total: 2 });
+  assert.deepEqual(getHerbivoreDefense(defended), { thorns: 1, toxins: 1, physical: 2, chemical: 3, total: 5 });
   assert.equal(defended.leafClusters, 4);
   assert.equal(defended.health, 8);
   assert.deepEqual(recorded, []);
@@ -560,4 +560,20 @@ test('rival combat preview is readable text carrying both authoritative power va
   const preview=decision.options.find(option=>option.id==='chemical-battle').preview;
   assert.equal(typeof preview,'string');
   assert.match(preview,/17/);assert.match(preview,/9/);assert.doesNotMatch(preview,/\[object/);
+});
+
+test('winning a chemical battle yields a net resource gain after its cost', () => {
+  const state = threatState({ sunlight: 10, water: 10, nutrients: 10, defense: 20, lifeStage: LIFE_STAGES[4] });
+  const neighbor = { species: 'Pear', relation: -70, stageScore: 600, dead: false };
+  const before = { sunlight: state.sunlight, water: state.water, nutrients: state.nutrients };
+  const result = resolveHostileEncroachmentChoice(state, neighbor, 'chemical-battle', {
+    getRelationshipState,
+    getNeighborStage,
+    compareConflictPower: () => ({ yourPower: 20, theirPower: 1 }),
+    random: () => 0,
+  });
+  assert.ok(state.sunlight > before.sunlight);
+  assert.ok(state.water > before.water);
+  assert.ok(state.nutrients > before.nutrients);
+  assert.match(result.body, /net/);
 });

@@ -1,12 +1,12 @@
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js?rev=neighbor-economy-v1';
-import { canNeighborShadePlayer } from './growth.js?rev=canopy-competition-v2';
+import { canNeighborShadePlayer } from './growth.js?rev=action-flow-v1';
 
 export function getHerbivoreDefense(state) {
   const thorns = Math.max(0, state.thornDefense || 0);
   const toxins = Math.max(0, state.toxicLeaves || 0);
-  return { thorns, toxins, total: thorns + toxins };
+  return { thorns, toxins, physical: thorns * 2, chemical: toxins * 3, total: (thorns * 2) + (toxins * 3) };
 }
 
 export function getPollinatorSceneArt(visitor = '') {
@@ -318,7 +318,7 @@ export function rollMajorEvent(majorEvents, currentSeasonName = null, random = M
 }
 
 const FRUIT_THREATS = Object.freeze({
-  human: { type:'human', sceneArt:'human-surveyor', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your established defenses reduced the risk, but humans still took ${losses}. ${saved} remained.` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' },
+  human: { type:'human', sceneArt:'human-surveyor', warning:'Lots of human activity stirs beneath your branches. They are eyeing your sweet fruits.', baseLoss:0.45, outcome:(losses,saved,defended)=> defended ? `Your established defenses reduced the risk, but humans still took ${losses} (${saved} remaining).` : `Humans harvested ${losses} ripe fruit${losses !== 1 ? 's' : ''} from your branches.`, safeText:'Your fruits ripened untouched despite the curious humans.' },
   bird: { type:'bird', sceneArt:'fruit-robin', warning:'Bright birds gather near your canopy, watching the ripening fruit.', baseLoss:0.35, outcome:(losses,saved,defended)=> defended ? `Your defenses discouraged the birds from many fruits. ${losses} were lost, ${saved} survived.` : `Birds pecked through ${losses} fruit${losses !== 1 ? 's' : ''} before autumn.`, safeText:'Most birds lost interest before doing any serious damage.' },
   chewer: { type:'chewer', sceneArt:'fruit-squirrel', warning:'Gnawing animals are scouting your branches for easy meals.', baseLoss:0.4, outcome:(losses,saved,defended)=> defended ? `Your established defenses reduced the risk. ${losses} fruit lost, ${saved} remained.` : `${losses} fruit${losses !== 1 ? 's' : ''} were chewed apart before the seeds matured.`, safeText:'The animals passed by without ruining your fruits.' },
 });
@@ -329,14 +329,17 @@ export function resolveFruitThreats(state, events) {
   if (!incident) return;
   const threat = FRUIT_THREATS[incident.meta?.threatType];
   if (!threat) return;
-  const defensePower = state.defense + state.fruitDefense;
+  const generalDefense = state.defense + state.fruitDefense;
+  const thornDefense = Math.max(0, state.thornDefense || 0);
+  const toxicDefense = Math.max(0, state.toxicLeaves || 0);
+  const defensePower = generalDefense + thornDefense + toxicDefense;
   let losses = 0;
   let saved = 0;
   for (let i = 0; i < state.developing; i++) {
     let lossChance = threat.baseLoss;
-    if (threat.type === 'human') lossChance -= 0.12 * defensePower;
-    if (threat.type === 'bird') lossChance -= 0.08 * defensePower;
-    if (threat.type === 'chewer') lossChance -= 0.1 * defensePower;
+    if (threat.type === 'human') lossChance -= (0.12 * generalDefense) + (0.16 * thornDefense) + (0.04 * toxicDefense);
+    if (threat.type === 'bird') lossChance -= (0.08 * generalDefense) + (0.03 * thornDefense) + (0.03 * toxicDefense);
+    if (threat.type === 'chewer') lossChance -= (0.1 * generalDefense) + (0.1 * thornDefense) + (0.16 * toxicDefense);
     lossChance *= getFruitLossMultiplier(state);
     lossChance = Math.max(0.05, Math.min(0.95, lossChance));
     if (Math.random() < lossChance) losses += 1; else saved += 1;
@@ -723,13 +726,15 @@ export function resolveHostileEncroachmentChoice(state, neighbor, choiceId, deps
     let body = '';
     if (swing >= 2) {
       neighbor.shadingPlayer = false;
-      const stolenSun = Math.max(1, Math.min(3, Math.floor(random() * 3) + 1));
-      const stolenWater = Math.max(0, Math.min(2, Math.floor(random() * 2)));
-      const stolenNutrients = Math.max(1, Math.min(3, Math.floor(random() * 3) + 1));
-      state.sunlight += stolenSun; state.water += stolenWater; state.nutrients += stolenNutrients;
+      const netSunlight = Math.max(2, Math.min(4, Math.floor(random() * 3) + 2));
+      const netWater = Math.max(1, Math.min(2, Math.floor(random() * 2) + 1));
+      const netNutrients = Math.max(2, Math.min(4, Math.floor(random() * 3) + 2));
+      state.sunlight += DEFENSE_COST.sunlight + netSunlight;
+      state.water += DEFENSE_COST.water + netWater;
+      state.nutrients += DEFENSE_COST.nutrients + netNutrients;
       neighbor.stageScore = Math.max(0, neighbor.stageScore - 40);
       neighbor.relation = Math.max(-100, neighbor.relation - 6);
-      body = `Your chemistry turns the contested ground against the ${neighbor.species}. You siphon <strong>${stolenSun} sunlight</strong>, <strong>${stolenWater} water</strong>, and <strong>${stolenNutrients} nutrients</strong>.`;
+      body = `Your chemistry turns the contested ground against the ${neighbor.species}. You recover the reserves spent on the battle and gain a net <strong>${netSunlight} sunlight</strong>, <strong>${netWater} water</strong>, and <strong>${netNutrients} nutrients</strong>.`;
     } else if (swing <= -2) {
       const lostSun = Math.min(state.sunlight, Math.max(1, Math.floor(random() * 3) + 1));
       const lostWater = Math.min(state.water, Math.max(0, Math.floor(random() * 2)));

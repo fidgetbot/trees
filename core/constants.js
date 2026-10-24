@@ -12,7 +12,7 @@ export const TURNS_PER_YEAR = TURNS_PER_SEASON * SEASONS.length;
 export const LIFE_STAGES = [
   { name: 'Seed', rank: 0, threshold: 0, unlocks: ['extendRoot'], damageMult: 3, popup: '' },
   { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },
-  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'growTaller', 'shadeRival', 'bark', 'requestHelp', 'aidAlly'], damageMult: 1.5, popup: 'Your roots find rich soil. You feel sturdy.' },
+  { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'growTaller', 'shadeRival', 'stopShade', 'bark', 'requestHelp', 'aidAlly'], damageMult: 1.5, popup: 'Your roots find rich soil. You feel sturdy.' },
   { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'rhizosphere'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
   { name: 'Young Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'growThorns', 'toxicLeaves'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
   { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },

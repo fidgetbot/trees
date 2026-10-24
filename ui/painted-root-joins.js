@@ -7,7 +7,10 @@ const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
 export const JOIN_STAGES=['Sapling','Young Tree','Mature Tree','Ancient'];
 export function getJoinProfile(species,stage){return JOIN_PROFILES[`${species}:${stage}`]||null}
 export function rootLifetime(state){
- const stage=state.lifeStage?.name||state.presentationStage;
+ // During an image handoff, presentationStage describes the artwork actually
+ // on screen. Using the new biological stage with the old specimen briefly
+ // produced roots at the new lifetime but the old scale.
+ const stage=state.presentationStage||state.lifeStage?.name;
  const i=Math.max(0,JOIN_STAGES.indexOf(stage));
  return i*6+6*clamp((state.turnsInStage||0)/[32,48,48,48][i]);
 }
@@ -129,7 +132,10 @@ export function drawJoinedRootTree(ctx,image,geometry,state,reveal,patch){
  const graph=buildJoinedRootGraph(state,reveal);
  ctx.save();ctx.scale(1,geometry.height/(geometry.width*profile.sourceHeight/profile.sourceWidth));
  const layer=rootLayer(graph,image,profile);
- ctx.save();ctx.scale(unit,unit);ctx.drawImage(layer.canvas,layer.x,layer.y,layer.width,layer.height);ctx.restore();
+ // A woody tree can temporarily have no earned root paths after severe loss
+ // or during an artwork handoff. Canvas rejects a zero-sized source; the
+ // painted flare still renders and later investments create a real layer.
+ if(layer.canvas.width>0&&layer.canvas.height>0&&layer.width>0&&layer.height>0){ctx.save();ctx.scale(unit,unit);ctx.drawImage(layer.canvas,layer.x,layer.y,layer.width,layer.height);ctx.restore();}
  // The gallery's opaque background hid the original roots beneath its patch.
  // With a transparent runtime patch, retaining that extra strip exposes
  // detached painted fragments. The approved flare supplies the overlap.
