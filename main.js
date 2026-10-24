@@ -84,12 +84,12 @@ import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGro
 import { renderActionPanels } from './ui/actions.js?rev=neighbor-economy-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=neighbor-economy-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=season-cards-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=neighbor-economy-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=scene-fixes-oct23-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-joins-v2';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
 import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=neighbor-economy-v1';
@@ -360,14 +360,16 @@ function scheduleGrowthCameraRefit(){
 }
 
 function playerSceneTarget() {
-  return sceneHitTargets.find(target => target.id === 'player') || {
+  return {
+    ...sceneHitTargets.find(target => target.id === 'player'),
     id: 'player', type: 'player-tree', title: state.selectedSpecies || 'Your tree',
     stageName: computeCurrentLifeStage().name,
+    subtitle: `${computeCurrentLifeStage().name} · You`,
   };
 }
 
 function activeSceneTarget() {
-  if (!selectedSceneTarget) return playerSceneTarget();
+  if (!selectedSceneTarget || selectedSceneTarget.id === 'player') return playerSceneTarget();
   return sceneHitTargets.find(target => target.id === selectedSceneTarget.id) || playerSceneTarget();
 }
 

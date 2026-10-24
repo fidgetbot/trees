@@ -25,6 +25,8 @@ Use [the simulator](../sim/README.md) for seeded balance/long-run investigations
 
 ## Keep the harness small
 
+Painted root joins: `painted-root-joins.test.mjs` checks exact approved-asset hashes, normalized graph identity through real woody-stage age thresholds, monotonic growth/branch attachment, reveal endpoints, JSON compatibility, collar geometry and increasing biological scale. These structural tests do not establish visual quality: inspect actual phone/desktop game renders in spring and winter and exercise both root actions and every stage handoff.
+
 1. Name the observable failure a test would catch. Prefer actual rules/resolvers and resulting state over extensive mocks.
 2. Keep money/resource accounting, identity/lifecycle, boundary cases, and reproduced regressions even when they look small.
 3. Do not freeze prose, punctuation, CSS spelling, file revision suffixes, or entire constant tables. Test meaningful contracts (such as a displayed cost, missing artwork, or unsafe camera) instead.

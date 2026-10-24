@@ -1,5 +1,5 @@
 import { renderEncounterArt } from './fauna-art.js?rev=season-cards-v1';
-import { getTreeStructureSourceRect } from './canvas.js?rev=botanical-roots-v1';
+import { getTreeStructureSourceRect } from './canvas.js?rev=painted-joins-v2';
 import { getJuvenileStageKey } from './juvenile-growth.js?rev=winter-surface-stem-v1';
 
 export function modalPlainText(body) {

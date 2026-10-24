@@ -1,0 +1,150 @@
+{
+  "approvedRepository": "https://github.com/fidgetbot/trees-previews",
+  "approvedCommit": "1b8dab51f90795c21e8c6b57c8f9d2c66c5cce5b",
+  "patches": [
+    {
+      "id": "cherry-sapling",
+      "source": "painted-joins/assets/patches/cherry-sapling.png",
+      "sha256": "deba324b07e31cb8c7a09e981a28eda8f2307af38847ba870e22d9c1a12582e4",
+      "masterSha256": "8440cf0134426155db129fe9544f8539bb49c40c322aab6a8bcca52533935853"
+    },
+    {
+      "id": "cherry-young-tree",
+      "source": "painted-joins/assets/patches/cherry-young-tree.png",
+      "sha256": "3043f35256e4e647e00487d8fbffc64bbd6f67e4880f70c00ecbaade47911dc5",
+      "masterSha256": "a8e18220676eda6a127080365aeffe75305916115c9bfe60cc017d048cf71a12"
+    },
+    {
+      "id": "cherry-mature-tree",
+      "source": "cherry-root-join/assets/cherry-join-patch.png",
+      "sha256": "9269373262d8883580a922224e9019569f82108049d6158ea3f39aa786f88f6b",
+      "masterSha256": "8c753f01d6986103247c29d5950a6d5995e1db275adf388d4779da467cdee245"
+    },
+    {
+      "id": "cherry-ancient",
+      "source": "painted-joins/assets/patches/cherry-ancient.png",
+      "sha256": "758293226e9e5c58a377d76801f81e1e26aa22f7d1521cf843b4bebcd77ed176",
+      "masterSha256": "fbd6d98935fc3a73328c50050c26fac5848756bfb36662ffb737d716a74547ed"
+    },
+    {
+      "id": "plum-sapling",
+      "source": "painted-joins/assets/patches/plum-sapling.png",
+      "sha256": "26684507b5ad81c3f0c12e4960f5da04ea17e39857bb56c7725909a45e009f80",
+      "masterSha256": "f866e6bf77bd5efb9cb25559cd6dfb7bda2aa6c25eb2a5bc3ea3b80c1ce09756"
+    },
+    {
+      "id": "plum-young-tree",
+      "source": "painted-joins/assets/patches/plum-young-tree.png",
+      "sha256": "9727d673e09651922f48f82d2a048d68697d81e24158b9fa19333198884fd748",
+      "masterSha256": "11766ef8fd98a7d02b013082fbcf51a92e02c60622a5e62357c967c93b0043c6"
+    },
+    {
+      "id": "plum-mature-tree",
+      "source": "painted-joins/assets/patches/plum-mature-tree.png",
+      "sha256": "334bf9d0c31f3945486c26ca96d88d900e2807b16ea6b500533c730bf1dca507",
+      "masterSha256": "a235c6548697b0ee0080952c6562522acbb438d00967d3a72fb82fd739800565"
+    },
+    {
+      "id": "plum-ancient",
+      "source": "painted-joins/assets/patches/plum-ancient.png",
+      "sha256": "821a386a87f91d06a4d8c428e5b7c43e3acd1a83ebb7d89aea55d8bd01a9084b",
+      "masterSha256": "30413a9623c8ad46747d39e87e2a57274227db2506a4ef7d0412be5fae3a4a57"
+    },
+    {
+      "id": "apricot-sapling",
+      "source": "painted-joins/assets/patches/apricot-sapling.png",
+      "sha256": "fff919bfdd37c2b19a4551c6e3d83614ef02d162fcdbff5fa6c211a00c2a70ef",
+      "masterSha256": "d4ddd39c0c912353c10e003c8c5bec8f1c40d7a7fa76f1f816349f26fe0fadbc"
+    },
+    {
+      "id": "apricot-young-tree",
+      "source": "painted-joins/assets/patches/apricot-young-tree.png",
+      "sha256": "742429f085d92f6f0556b861771c5ecc87808194ef4ce7baf041f0eebc914116",
+      "masterSha256": "c7dce99e2ac71a4866f7ce5c27d4df998856a5254bd94a129179632d5c42eb15"
+    },
+    {
+      "id": "apricot-mature-tree",
+      "source": "painted-joins/assets/patches/apricot-mature-tree.png",
+      "sha256": "a2cf56ab75bb4ece8634bb3856ff2e05742db329e042088b663e5dcd43b5c86e",
+      "masterSha256": "edc5246a6950c304380a772c014cc092544b4533fd534250bf29e020e06b23c9"
+    },
+    {
+      "id": "apricot-ancient",
+      "source": "painted-joins/assets/patches/apricot-ancient.png",
+      "sha256": "9d8d7a65ac4076cf3c3ccba3f1eeeb95aa6e25835066b08cb51bc3ca82de530a",
+      "masterSha256": "f39e2552571a220ab96958b58347ff1d38ddfc373c38403b07bb4e0f08f496d1"
+    },
+    {
+      "id": "peach-sapling",
+      "source": "painted-joins/assets/patches/peach-sapling.png",
+      "sha256": "50530b6f8e21ba8b3203e801ffa8dda00e60753fc894a600af5d0d6deebb3f92",
+      "masterSha256": "b680caa116ae0d6d6a4503fa844465e6cae4d5bdb9b6199a14ddf2cb6d7589cf"
+    },
+    {
+      "id": "peach-young-tree",
+      "source": "painted-joins/assets/patches/peach-young-tree.png",
+      "sha256": "638a67eb771442885086ba094a11a1a1b7eb52b2897cec68a1687ff6d4344560",
+      "masterSha256": "76cb98081e319f09e966f731929a24a372a5679d0412dbe38a06022080a8432e"
+    },
+    {
+      "id": "peach-mature-tree",
+      "source": "painted-joins/assets/patches/peach-mature-tree.png",
+      "sha256": "a7cbc725447ddf0ed429e914a641a2552f010c820901d0a70d1d107c074e816c",
+      "masterSha256": "bb59be131b66c19c2e9b70f7d0183eb6df479caf07639a1f89df3fb8acc7de99"
+    },
+    {
+      "id": "peach-ancient",
+      "source": "painted-joins/assets/patches/peach-ancient.png",
+      "sha256": "2051152d54e31651cc1071bc6bbdd95b281edc4ee7bf3ea784d6f70855152533",
+      "masterSha256": "397750c85d6e069dfc8e2ec1cc4f8a8123766f045453492552d20698b067b798"
+    },
+    {
+      "id": "pear-sapling",
+      "source": "painted-joins/assets/patches/pear-sapling.png",
+      "sha256": "2321cd538ec0547690aba7daedd646e2fdbe41bf53749822d290dc4f9c4f601b",
+      "masterSha256": "b3feed39331f1096b022ed234487b54c787b2a6b81bfcdef469e267a411986b3"
+    },
+    {
+      "id": "pear-young-tree",
+      "source": "painted-joins/assets/patches/pear-young-tree.png",
+      "sha256": "9a6e97b4613830b3c1b0735d12b1830ae0649a943a65a37f17e8b15c904c92e3",
+      "masterSha256": "1b04c59220a4b68e41e9f3f134f00a2b669bf50d93b1ff8c0c5b43ae7cb55436"
+    },
+    {
+      "id": "pear-mature-tree",
+      "source": "painted-joins/assets/patches/pear-mature-tree.png",
+      "sha256": "2348f267e441e3b57829c98dcd6ce34f9c0e949dda82b0fe945c444ce41f4e77",
+      "masterSha256": "d98306ae539f6b680c077c8166b398281546b588d7eaef862f876baf4d42560c"
+    },
+    {
+      "id": "pear-ancient",
+      "source": "painted-joins/assets/patches/pear-ancient.png",
+      "sha256": "9fa2ac30661c68bd3539342bff0e5d42d886ffd6a3b99637080ca23473d3c56e",
+      "masterSha256": "679240dc46130e065b802e202450ba4d6def655ac46a6aa9a5d86754b7b32204"
+    },
+    {
+      "id": "citrus-sapling",
+      "source": "painted-joins/assets/patches/citrus-sapling.png",
+      "sha256": "165efd5816ce08731905a26f4d35eb286217bb426519c70cd0438492f211d8f6",
+      "masterSha256": "529121950e95c92d2a7e998d3622593be44e0363df536daeef469caef7be6ccd"
+    },
+    {
+      "id": "citrus-young-tree",
+      "source": "painted-joins/assets/patches/citrus-young-tree.png",
+      "sha256": "53852c5c1ee290c7b45804a8f6325ccf015a2e161227bed7e7d8c2b081e4edd5",
+      "masterSha256": "93d7ae013a905304c85e93e7aa63e729d42b2fe4d5ae8dc3034c2cbdc32b25ed"
+    },
+    {
+      "id": "citrus-mature-tree",
+      "source": "painted-joins/assets/patches/citrus-mature-tree.png",
+      "sha256": "a004cfa2bd23de85f4f7c7d83a86522f732ee92e4262ef836dbb1fb59e966c9b",
+      "masterSha256": "0d4e202a924bb0397a1ac740788688f344a2c5ca5380944345990ed2c718664d"
+    },
+    {
+      "id": "citrus-ancient",
+      "source": "painted-joins/assets/patches/citrus-ancient.png",
+      "sha256": "eb70ecfa0077bdf316459df236d13046faef07dfb5ee48fe44b73d59568b3a03",
+      "masterSha256": "9b1d0ab31c860d25ff325250ba1859f41239aac7bae16d409341d8839ef0b9b4"
+    }
+  ]
+}
