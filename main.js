@@ -332,7 +332,13 @@ const ACTIONS = createActions({
       .map(kind => ({ neighbor, kind, amount: neighborHelpAvailable(s, neighbor, kind, getNeighborStage) }))
       .filter(offer => offer.amount > 0));
     if (!offers.length) return 'No safe surplus now; ally reserves and shortages are shown when selected';
-    return `Available now · ${offers.map(offer => `${offer.neighbor.species}: ${offer.amount} ${offer.kind}`).join(' · ')}`;
+    const byAlly = new Map();
+    offers.forEach(offer => {
+      const kinds = byAlly.get(offer.neighbor.species) || [];
+      kinds.push(offer.kind);
+      byAlly.set(offer.neighbor.species, kinds);
+    });
+    return `Available now · ${[...byAlly].map(([species, kinds]) => `${species}: ${kinds.join(', ')}`).join(' · ')}`;
   },
   updateAlliesCount: s => updateAlliesCountForState(s, getRelationshipState),
 });
