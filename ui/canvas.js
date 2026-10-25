@@ -1,7 +1,7 @@
 import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v4';
 import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=action-flow-v1';
 import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=action-flow-v1';
-import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=small-birds-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize, getHumanSceneHeight } from './fauna-art.js?rev=true-map-scale-v1';
 import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-flow-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
 import { getPlayerRootDominionTarget, getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=mature-grove-v1';
@@ -730,7 +730,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
     if(encounter.phase==='survey'){
       const image=surveyorAssets.get(getSurveyorVariantIndex(i));
       if(image){
-        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
+        const displayHeight=getHumanSceneHeight()*scale,displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
         const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
         groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
@@ -740,7 +740,7 @@ function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
     if(encounter.phase==='cutting'){
       const image=loggerAssets.get(getLoggerVariantIndex(i));
       if(image){
-        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
+        const displayHeight=getHumanSceneHeight()*scale,displayWidth=displayHeight*2/3;
         const spriteX=x+side*(42+rank*28)*scale;
         const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
         groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);

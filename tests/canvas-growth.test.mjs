@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync } from 'node:fs';
 
-import { EVENT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from '../ui/fauna-art.js';
+import { EVENT_ASSET_URLS, SCENE_PIXELS_PER_METER, getAnimalScenePlacement, getFaunaSceneSize, getHumanSceneHeight } from '../ui/fauna-art.js';
 
 import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSceneHumanPresentation, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getJuvenileGeometry } from '../ui/juvenile-growth.js';
@@ -208,12 +208,17 @@ test('animal artwork uses pose-appropriate scene anchors', () => {
   assert.equal(getAnimalScenePlacement('pollinator-butterfly').anchor, 'air');
 });
 
-test('fauna baselines preserve a plausible size hierarchy',()=>{
-  assert.ok(getFaunaSceneSize('browser-deer').width>getFaunaSceneSize('beaver').width);
-  assert.ok(getFaunaSceneSize('beaver').width>getFaunaSceneSize('fruit-squirrel').width);
-  assert.ok(getFaunaSceneSize('fruit-squirrel').width>getFaunaSceneSize('browser-rabbit').width);
-  assert.ok(getFaunaSceneSize('browser-rabbit').width>getFaunaSceneSize('pollinator-butterfly').width);
-  assert.ok(getFaunaSceneSize('browser-deer').width/getFaunaSceneSize('browser-rabbit').width>2);
+test('fauna and humans share one measured biological map scale',()=>{
+  assert.equal(SCENE_PIXELS_PER_METER,24);
+  assert.ok(Math.abs(getHumanSceneHeight()*.863-SCENE_PIXELS_PER_METER*1.7)<.01);
+  for(const kind of ['browser-deer','beaver','fruit-squirrel','browser-rabbit','fruit-robin','pollinator-butterfly']){
+    const size=getFaunaSceneSize(kind);
+    assert.ok(size.metres>0,`${kind} needs a real-world extent`);
+  }
+  assert.equal(getFaunaSceneSize('fruit-squirrel').metres,getFaunaSceneSize('browser-rabbit').metres);
+  assert.ok(getFaunaSceneSize('browser-deer').metres>getFaunaSceneSize('beaver').metres);
+  assert.ok(getFaunaSceneSize('beaver').metres>getFaunaSceneSize('fruit-squirrel').metres);
+  assert.ok(getFaunaSceneSize('fruit-robin').metres>getFaunaSceneSize('pollinator-butterfly').metres);
 });
 
 test('grounded wildlife keeps its projected world position instead of sticking to viewport edges',()=>{

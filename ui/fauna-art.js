@@ -59,23 +59,32 @@ export const ANIMAL_SCENE_PLACEMENT=Object.freeze({
   'fruit-squirrel':Object.freeze({anchor:'ground',contactY:.92,worldOffset:-42}),
 });
 
-// Baseline CSS-pixel sizes at the neutral viewport scale. These are tuned as
-// one family so large mammals remain convincingly larger than small mammals,
-// birds, and insects while camera focus changes independently.
+// One neutral map metre occupies 24 CSS pixels. The painted PNGs have unequal
+// transparent margins, so each display extent compensates for the measured
+// opaque fraction of its source. This keeps a 45 cm squirrel the same map
+// length as a 45 cm rabbit and makes every visitor proportional to the 1.7 m
+// human figures and established fruit trees. Hit targets remain much larger
+// than the artwork, so truthful scale does not make tiny visitors untappable.
+export const SCENE_PIXELS_PER_METER=24;
+const faunaSize=(axis,metres,opaqueFraction)=>Object.freeze({[axis]:metres*SCENE_PIXELS_PER_METER/opaqueFraction,metres});
 export const FAUNA_SCENE_SIZES=Object.freeze({
-  woodpecker:Object.freeze({height:32}),
-  beaver:Object.freeze({width:104}),
-  'browser-deer':Object.freeze({width:132}),
-  'browser-rabbit':Object.freeze({width:58}),
-  'fruit-robin':Object.freeze({width:28}),
-  'fruit-squirrel':Object.freeze({width:66}),
-  'pollinator-bumblebee':Object.freeze({width:42}),
-  'pollinator-honeybee':Object.freeze({width:42}),
-  'pollinator-mason-bee':Object.freeze({width:42}),
-  'pollinator-hoverfly':Object.freeze({width:42}),
-  'pollinator-butterfly':Object.freeze({width:48}),
-  'pollinator-beetle':Object.freeze({width:42}),
+  woodpecker:faunaSize('height',.24,.948),
+  beaver:faunaSize('width',1,.969),
+  'browser-deer':faunaSize('width',1.8,.819),
+  'browser-rabbit':faunaSize('width',.45,.840),
+  'fruit-robin':faunaSize('width',.25,.898),
+  'fruit-squirrel':faunaSize('width',.45,.779),
+  'pollinator-bumblebee':faunaSize('width',.024,.638),
+  'pollinator-honeybee':faunaSize('width',.015,.728),
+  'pollinator-mason-bee':faunaSize('width',.014,.715),
+  'pollinator-hoverfly':faunaSize('width',.015,.784),
+  'pollinator-butterfly':faunaSize('width',.065,.560),
+  'pollinator-beetle':faunaSize('width',.025,.807),
 });
+
+export function getHumanSceneHeight(){
+  return 1.7*SCENE_PIXELS_PER_METER/.863;
+}
 
 export function getFaunaSceneSize(kind){
   return FAUNA_SCENE_SIZES[kind]||Object.freeze({width:42});
