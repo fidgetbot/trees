@@ -17,6 +17,7 @@ import {
   growOffspringRecords,
   getProtectedCompanions,
   nurtureOffspring,
+  queueFirstFlowerWarning,
   resolveOffspringCrisisAid,
   resolveHumanDecision,
   updateProtectionProgress,
@@ -49,13 +50,15 @@ test('the approved human adaptation cards preserve the reviewed language', () =>
   assert.equal(HUMAN_ADAPTATION_CARDS.length, 21);
   assert.match(HUMAN_ADAPTATION_CARDS[1].paragraphs[0], /ominously empty baskets/);
   assert.match(HUMAN_ADAPTATION_CARDS[2].paragraphs[0], /taste will be foul/);
-  assert.match(HUMAN_ADAPTATION_CARDS[3].paragraphs[1], /Only the new, slick oils on your leaves/);
+  assert.equal(HUMAN_ADAPTATION_CARDS[3].title, 'Reaching Fingers');
+  assert.equal(HUMAN_ADAPTATION_CARDS[3].paragraphs[0], 'As fruit weighs down your branches, the humans return. Bare fingers reach into your branches. Only the new, slick oils on your leaves stand between their hunger and your harvest.');
   assert.equal(HUMAN_ADAPTATION_CARDS[8].paragraphs[1], 'The devices reach farther than any hand.');
   assert.equal(HUMAN_ADAPTATION_CARDS[20].paragraphs.at(-1).endsWith('and the roots cannot understand why.'), true);
 });
 
 test('the prepared route advances through all twenty chapters in seasonal order', () => {
   const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, pollinated: 1, humanAdaptationChapter: 0, turnsElapsed: 20 });
+  assert.equal(queueFirstFlowerWarning(s), true);
   assert.equal(claimFirstFlowerWarning(s).chapter, 1);
   assert.equal(advanceHumanAdaptation(s), null);
   s.turnsElapsed += 1;
@@ -150,16 +153,19 @@ test('the prepared route advances through all twenty chapters in seasonal order'
   assert.equal(advanceHumanAdaptation(s).chapter, 20);
 });
 
-test('the first ominous baskets appear only after the first real flower', () => {
+test('the first ominous baskets must be queued by a real flower and claimed after its night', () => {
   const s = state({ lifeStage: LIFE_STAGES[4], flowers: 0, pollinated: 0, humanAdaptationChapter: 0, turnsElapsed: 12 });
   assert.equal(claimFirstFlowerWarning(s), null);
   s.flowers = 1;
+  assert.equal(claimFirstFlowerWarning(s), null);
+  assert.equal(queueFirstFlowerWarning(s), true);
   assert.equal(claimFirstFlowerWarning(s).title, 'Baskets Beneath the Blossoms');
   assert.equal(claimFirstFlowerWarning(s), null);
 });
 
 test('story counters unlock only after an indirect reminder and a later season', () => {
   const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, humanAdaptationChapter: 0, turnsElapsed: 8 });
+  queueFirstFlowerWarning(s);
   claimFirstFlowerWarning(s);
   s.seasonIndex = 1;
   s.turnsElapsed += 1;

@@ -145,6 +145,61 @@
               </div>
             </div>
           </div>
+
+          <div class="stat-group" data-group="preparations" aria-label="Defenses and preparations">
+            <div class="stat-group-content">
+              <div class="stat-row" data-stat="thorn-defense" data-help="Each thorn layer strengthens physical defense against fruit threats, conflict, and browsing animals.">
+                <span class="stat-icon">🌵</span>
+                <span class="stat-name">Thorn layers</span>
+                <span class="stat-value" id="thorn-defense">0</span>
+              </div>
+              <div class="stat-row" data-stat="toxic-leaves" data-help="Each toxic-leaf layer strengthens chemical defense against fruit threats, pests, and herbivores.">
+                <span class="stat-icon">☠️</span>
+                <span class="stat-name">Toxic-leaf layers</span>
+                <span class="stat-value" id="toxic-leaves">0</span>
+              </div>
+              <div class="stat-row" data-stat="crown-preparation" data-help="An interlaced crown closes clear paths used by poles, hooks, and nets.">
+                <span class="stat-icon">🪢</span>
+                <span class="stat-name">Crown paths</span>
+                <span class="stat-value" id="crown-preparation">Open</span>
+              </div>
+              <div class="stat-row" data-stat="resin-preparation" data-help="Primed resin can flood the next serious saw wound and foul the blade.">
+                <span class="stat-icon">🟠</span>
+                <span class="stat-name">Resin reserve</span>
+                <span class="stat-value" id="resin-preparation">Not primed</span>
+              </div>
+              <div class="stat-row" data-stat="grove-shelter" data-help="Shelter the Grove stores protection against the next damaging drought, storm, gale, or wildfire.">
+                <span class="stat-icon">⛺</span>
+                <span class="stat-name">Grove shelter</span>
+                <span class="stat-value" id="grove-shelter">Not stored</span>
+              </div>
+              <div class="stat-row" data-stat="root-dominion" data-help="Root Dominion draws water and nutrients from one neighboring tree until released.">
+                <span class="stat-icon">👑</span>
+                <span class="stat-name">Root dominion</span>
+                <span class="stat-value" id="root-dominion">Inactive</span>
+              </div>
+              <div class="stat-row" data-stat="watch-path" data-help="A prepared offspring can warn the grove through shared soil.">
+                <span class="stat-icon">👁️</span>
+                <span class="stat-name">Watch the Path</span>
+                <span class="stat-value" id="watch-path">Unassigned</span>
+              </div>
+              <div class="stat-row" data-stat="stagger-harvest" data-help="A prepared offspring can spread fruit ripening across heights and times.">
+                <span class="stat-icon">🗓️</span>
+                <span class="stat-name">Stagger Harvest</span>
+                <span class="stat-value" id="stagger-harvest">Unassigned</span>
+              </div>
+              <div class="stat-row" data-stat="close-approach" data-help="A prepared offspring can fill an open approach with low, dense growth.">
+                <span class="stat-icon">🌿</span>
+                <span class="stat-name">Close the Approach</span>
+                <span class="stat-value" id="close-approach">Unassigned</span>
+              </div>
+              <div class="stat-row" data-stat="grove-response" data-help="Rouse the Grove coordinates all three offspring roles into one response.">
+                <span class="stat-icon">🌲</span>
+                <span class="stat-name">Grove response</span>
+                <span class="stat-value" id="grove-response">Not prepared</span>
+              </div>
+            </div>
+          </div>
           
           <div class="stat-group" data-group="reproduction" aria-label="Reproduction">
             <div class="stat-group-content">
@@ -209,6 +264,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-    <script type="module" src="main.js?rev=human-pacing-v2"></script>
+    <script type="module" src="main.js?rev=story-ui-cleanup-v1"></script>
 </body>
 </html>

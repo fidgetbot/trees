@@ -145,6 +145,30 @@ export function updateHudUI({
   if (heightGrowth) heightGrowth.textContent = heightLevel;
   if (braceStatus) braceStatus.textContent = heightLevel > 0 ? `${bracedLevels} of ${heightLevel} braced` : 'No added height';
   if (spindlyGrowth) spindlyGrowth.textContent = (state.spindlyGrowth || 0) > 0 ? `+${state.spindlyGrowth} damage` : 'None';
+  const setNotebookValue = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  const roleChild = role => {
+    const childId = state.humanGroveRoles?.[role];
+    return (state.offspringRecords || []).find(child => child.id === childId && !child.dead) || null;
+  };
+  const roleLabel = role => {
+    const child = roleChild(role);
+    return child ? `${child.species} offspring` : 'Unassigned';
+  };
+  const activeRoles = ['watchPath', 'staggerHarvest', 'closeApproach'].filter(role => roleChild(role)).length;
+  const dominated = (state.neighbors || []).find(neighbor => !neighbor.dead && neighbor.playerRootDominated);
+  setNotebookValue('thorn-defense', Math.max(0, state.thornDefense || 0));
+  setNotebookValue('toxic-leaves', Math.max(0, state.toxicLeaves || 0));
+  setNotebookValue('crown-preparation', state.interlacedCrown ? 'Interlaced' : 'Open');
+  setNotebookValue('resin-preparation', state.humanResinPrimed ? 'Primed' : 'Not primed');
+  setNotebookValue('grove-shelter', Number(state.eventModifiers?.shelter || 0) > 0 ? 'Stored' : 'Not stored');
+  setNotebookValue('root-dominion', dominated ? `Active against ${dominated.species}` : 'Inactive');
+  setNotebookValue('watch-path', roleLabel('watchPath'));
+  setNotebookValue('stagger-harvest', roleLabel('staggerHarvest'));
+  setNotebookValue('close-approach', roleLabel('closeApproach'));
+  setNotebookValue('grove-response', state.groveRoused ? 'Prepared' : `${activeRoles}/3 roles prepared`);
   document.getElementById('flowers').textContent = state.flowers;
   document.getElementById('pollinated').textContent = state.pollinated;
   document.getElementById('developing').textContent = state.developing;

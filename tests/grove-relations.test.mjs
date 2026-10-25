@@ -339,6 +339,15 @@ test('three unbraced height levels require fortified bark before further bolting
   assert.equal(growTaller.status, undefined);
 });
 
+test('changing defense and preparation statistics stay out of action cards', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
+  });
+  const tracked = ['growThorns', 'toxicLeaves', 'interlaceCrown', 'primeResin', 'shelterGrove', 'rootDominion', 'watchPath', 'staggerHarvest', 'closeApproach', 'rouseGrove'];
+  for (const key of tracked) assert.equal(actions.find(action => action.key === key).status, undefined, key);
+});
+
 test('offspring do not masquerade as connected allied neighbors during gathering', () => {
   const state = gatheringState({
     neighbors: [{ slot: 1, relation: 0, dead: false }],
@@ -426,6 +435,9 @@ test('offer aid reports the exact scaled action cost that was already paid', () 
   };
   const state = { neighbors: [ally] };
   const decision = buildAidDecision(state, { getRelationshipState, paidCost });
+  assert.equal(decision.options[0].requiresConfirmation, true);
+  assert.equal(decision.options[0].confirmation.title, 'Send aid to Pear?');
+  assert.match(decision.options[0].confirmation.body, /☀️0 sunlight · 💧5 water · 🌱20 nutrients/);
   const resolved = resolveDiplomacyDecision(state, decision, decision.options[0].id, { getRelationshipState });
   assert.deepEqual(decision.options[0].meta.paidCost, paidCost);
   assert.deepEqual(resolved.outcome.paidCost, paidCost);

@@ -56,9 +56,8 @@ export const HUMAN_ADAPTATION_CARDS = [
     'New compounds gather inside your leaves. Their taste will be foul; their touch will leave a lingering irritation.',
     'Your crown has found a way to guard what it will soon bear.',
   ], unlock: { key: 'toxicLeaves', label: 'Grow Toxic Leaves' } },
-  { title: 'The Open Hand', paragraphs: [
-    'The humans return when fruit weighs down your branches. Bare fingers reach into your crown while baskets wait below.',
-    'Only the new, slick oils on your leaves stand between their hunger and your harvest.',
+  { title: 'Reaching Fingers', paragraphs: [
+    'As fruit weighs down your branches, the humans return. Bare fingers reach into your branches. Only the new, slick oils on your leaves stand between their hunger and your harvest.',
   ] },
   { title: 'The Itching Retreat', paragraphs: [
     'Hands push between your leaves. Before long, the humans begin to scratch. Their skin reddens; their reaching becomes frantic and clumsy.',
@@ -145,7 +144,7 @@ export const HUMAN_ADAPTATION_CARDS = [
   ] },
 ];
 
-const HUMAN_ADAPTATION_PACING_VERSION = 2;
+const HUMAN_ADAPTATION_PACING_VERSION = 3;
 
 const HUMAN_ADAPTATION_WARNINGS = {
   1: {
@@ -294,6 +293,7 @@ export function ensureHumanState(state) {
   state.interlacedCrown ??= false;
   state.humanResinPrimed ??= false;
   state.groveRoused ??= false;
+  state.firstFlowerWarningPending ??= false;
   initializeAdaptationPacing(state);
   return state;
 }
@@ -742,13 +742,21 @@ function displayAdaptationPayoff(state, chapter) {
   };
 }
 
-export function claimFirstFlowerWarning(state) {
+export function queueFirstFlowerWarning(state) {
   ensureHumanState(state);
   const season = ['Spring', 'Summer', 'Autumn', 'Winter'][state.seasonIndex] || 'Spring';
   if ((state.humanAdaptationChapter || 0) !== 0
     || (state.lifeStage?.rank || 0) < 4
     || season !== 'Spring'
-    || ((state.flowers || 0) <= 0 && (state.pollinated || 0) <= 0)) return null;
+    || ((state.flowers || 0) <= 0 && (state.pollinated || 0) <= 0)) return false;
+  state.firstFlowerWarningPending = true;
+  return true;
+}
+
+export function claimFirstFlowerWarning(state) {
+  ensureHumanState(state);
+  if (!state.firstFlowerWarningPending || (state.humanAdaptationChapter || 0) !== 0) return null;
+  state.firstFlowerWarningPending = false;
   return displayAdaptationCard(state, 1);
 }
 
@@ -834,13 +842,11 @@ export function advanceHumanAdaptation(state) {
   ensureHumanState(state);
   const chapter = state.humanAdaptationChapter;
   const season = ['Spring', 'Summer', 'Autumn', 'Winter'][state.seasonIndex] || 'Spring';
-  const rank = state.lifeStage?.rank || 0;
   const fruitReady = (state.developing || 0) > 0;
 
   const reminder = claimAdaptationReminder(state);
   if (reminder) return reminder;
 
-  if (chapter === 0 && rank >= 4 && season === 'Spring' && ((state.flowers || 0) > 0 || (state.pollinated || 0) > 0)) return displayAdaptationCard(state, 1);
   if (chapter === 2 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'toxicLeaves') && onceThisYear(state, 'open-hand')) {
     state.humanAdaptationOpenHandPrepared = (state.toxicLeaves || 0) > 0;
     return displayAdaptationCard(state, 3);

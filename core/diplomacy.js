@@ -270,6 +270,11 @@ export function buildAidDecision(state, deps = {}) {
           description: `${condition} Reserves: ${neighbor.reserves.sunlight} sunlight, ${neighbor.reserves.water} water, ${neighbor.reserves.nutrients} nutrients.`,
           targetIndex,
           affordable: true,
+          requiresConfirmation: true,
+          confirmation: {
+            title: `Send aid to ${neighbor.species}?`,
+            body: `<p>This will spend <strong>☀️${paidCost.sunlight || 0} sunlight · 💧${paidCost.water || 0} water · 🌱${paidCost.nutrients || 0} nutrients</strong>.</p><p>The aid will replenish this ally’s reserves, support its recovery, and strengthen your bond.</p>`,
+          },
           meta: {
             species: neighbor.species,
             relationName: 'Ally',

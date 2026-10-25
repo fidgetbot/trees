@@ -28,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=human-pacing-v2';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=story-ui-cleanup-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -53,7 +53,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=mature-grove-v1';
+} from './core/diplomacy.js?rev=story-ui-cleanup-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanAdaptationTurnStart,
@@ -67,7 +67,7 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=human-pacing-v2';
+} from './core/humans.js?rev=story-ui-cleanup-v1';
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=human-pacing-v2';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
@@ -96,7 +96,7 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=root-dominion-visibility-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=menu-housekeeping-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=story-ui-cleanup-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=human-adaptation-v1';
 
@@ -1087,22 +1087,6 @@ function maybeShowMilestone(key, title, body, onContinue) {
 }
 
 function maybeTriggerActionMilestone(actionKey) {
-  if (actionKey === 'flower' || actionKey === 'massFlower' || actionKey === 'mastYear') {
-    const warning = claimFirstFlowerWarning(state);
-    if (warning) {
-      addLog(`The Humans Learn: ${warning.title}. ${warning.body}`);
-      showModal(warning.title, renderFungalRumorBody(warning), () => resumeTurnFlow(), {
-        record: false,
-        kind: 'ominous',
-        eyebrow: `The Humans Learn · Chapter ${warning.chapter} of 20`,
-        sceneArt: warning.artwork,
-        buttonLabel: 'Continue',
-        waitForGrowth: false,
-      });
-      return true;
-    }
-  }
-
   const adaptation = claimHumanActionPayoff(state, actionKey);
   if (adaptation) {
     addLog(`Chosen adaptation: ${adaptation.title}. ${adaptation.body}`);
@@ -1123,11 +1107,6 @@ function maybeTriggerActionMilestone(actionKey) {
   }
   if (actionKey === 'growLeaves' && state.leafClusters === 1) {
     return maybeShowMilestone('firstLeaf', 'First Leaves', 'Your first leaves unfurl into the light. The sun is no longer a rumor but a source of life.', () => {
-      resumeTurnFlow();
-    });
-  }
-  if (actionKey === 'growLeaves' && state.leafClusters === 2) {
-    return maybeShowMilestone('fullCrown', 'A Wider Reach', 'More green spreads above you. You are no longer merely surviving; you are beginning to claim space.', () => {
       resumeTurnFlow();
     });
   }
@@ -1351,9 +1330,14 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     };
 
     if (option.requiresConfirmation && option.confirmation) {
+      const isAid = decision.kind === 'ally-aid';
       showChoiceModal(option.confirmation.title, option.confirmation.body, [
-        { label: option.meta?.shadedOffspringCount ? 'Yes, cast the shade' : 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
-        { label: 'No, keep the peace', className: 'btn', onChoose: cancel },
+        {
+          label: isAid ? 'Send aid' : option.meta?.shadedOffspringCount ? 'Yes, cast the shade' : 'Yes, turn this relationship hostile',
+          className: isAid ? 'btn' : 'btn warning',
+          onChoose: () => proceed(),
+        },
+        { label: isAid ? 'Cancel' : 'No, keep the peace', className: 'btn', onChoose: cancel },
       ]);
       return;
     }
@@ -1848,7 +1832,7 @@ function showEventPhase() {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
   }
   if (humanUpdate.storyCard) {
-    addLog(`The Humans Learn: ${humanUpdate.storyCard.title}. ${humanUpdate.storyCard.body}`);
+    addLog(`${humanUpdate.storyCard.title}: ${humanUpdate.storyCard.body}`);
   }
   if (humanUpdate.storyReminder) {
     addLog(`${humanUpdate.storyReminder.title}: ${humanUpdate.storyReminder.body}`);
@@ -1899,16 +1883,41 @@ function showEventPhase() {
   updateUI();
   render();
 
+  const continueAfterNight = () => {
+    const warning = claimFirstFlowerWarning(state);
+    if (warning) {
+      addLog(`${warning.title}: ${warning.body}`);
+      showModal(warning.title, renderFungalRumorBody(warning), () => {
+        engine.continueAfterEvent(state, {
+          processIncidentResponses,
+          maybeShowHealthWarning,
+          advanceTurn,
+          showTaprootResilience: (onContinue) => {
+            showModal('Deep-root Resilience', '<p>Your deep roots reach moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+          },
+        });
+      }, {
+        record: false,
+        kind: 'ominous',
+        eyebrow: 'At the grove’s edge',
+        sceneArt: warning.artwork,
+        buttonLabel: 'Continue',
+      });
+      return;
+    }
+    engine.continueAfterEvent(state, {
+      processIncidentResponses,
+      maybeShowHealthWarning,
+      advanceTurn,
+      showTaprootResilience: (onContinue) => {
+        showModal('Deep-root Resilience', '<p>Your deep roots reach moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+      },
+    });
+  };
+
   const showNightJournal = () => {
     showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents }), () => {
-      engine.continueAfterEvent(state, {
-        processIncidentResponses,
-        maybeShowHealthWarning,
-        advanceTurn,
-        showTaprootResilience: (onContinue) => {
-          showModal('Deep-root Resilience', '<p>Your deep roots reach moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
-        },
-      });
+      continueAfterNight();
     }, {
       record: false,
       kind: 'night',
@@ -1921,7 +1930,7 @@ function showEventPhase() {
     showModal(humanUpdate.storyCard.title, renderFungalRumorBody(humanUpdate.storyCard), showNightJournal, {
       record: false,
       kind: 'ominous',
-      eyebrow: `The Humans Learn · Chapter ${humanUpdate.storyCard.chapter} of 20`,
+      eyebrow: 'At the grove’s edge',
       sceneArt: humanUpdate.storyCard.artwork,
       buttonLabel: 'Continue',
     });

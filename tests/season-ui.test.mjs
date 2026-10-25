@@ -22,6 +22,13 @@ test('opening screen uses Put down roots as its only subtitle', () => {
   assert.doesNotMatch(html, /class="intro-footnote"/);
 });
 
+test('the notebook contains changing defense and grove-preparation readings', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  for (const id of ['thorn-defense', 'toxic-leaves', 'crown-preparation', 'resin-preparation', 'grove-shelter', 'root-dominion', 'watch-path', 'stagger-harvest', 'close-approach', 'grove-response']) {
+    assert.match(html, new RegExp(`id="${id}"`), id);
+  }
+});
+
 for (const season of ['Spring', 'Summer', 'Autumn', 'Winter']) {
   test(`${season} has a dedicated season-change presentation`, () => {
     const presentation = seasonChangePresentation(season, 2);
