@@ -108,19 +108,24 @@
           
           <div class="stat-group" data-group="structure" aria-label="Structure">
             <div class="stat-group-content">
-              <div class="stat-row" data-stat="trunk" data-help="Thicker trunk increases max health, water storage, and drought resistance.">
+              <div class="stat-row" data-stat="trunk" data-help="Fortifying the trunk increases max health, water storage, drought resistance, and bracing.">
                 <span class="stat-icon">🪵</span>
-                <span class="stat-name">Trunk</span>
+                <span class="stat-name">Trunk level</span>
                 <span class="stat-value" id="trunk">0</span>
               </div>
               <div class="stat-row" data-stat="height-growth" data-help="Extra trunk height gathers more sunlight and lets you shade shorter trees.">
                 <span class="stat-icon">↟</span>
-                <span class="stat-name">Extra height</span>
+                <span class="stat-name">Height level</span>
                 <span class="stat-value" id="height-growth">0</span>
               </div>
-              <div class="stat-row" data-stat="spindly-growth" data-help="Each unbraced height level adds one damage in storms. Fortify Bark braces one level.">
+              <div class="stat-row" data-stat="brace-status" data-help="Fortify Trunk braces one added height level at a time.">
+                <span class="stat-icon">🛡️</span>
+                <span class="stat-name">Brace status</span>
+                <span class="stat-value" id="brace-status">No added height</span>
+              </div>
+              <div class="stat-row" data-stat="spindly-growth" data-help="Each unbraced height level adds one damage in storms.">
                 <span class="stat-icon">🌬️</span>
-                <span class="stat-name">Wind penalty</span>
+                <span class="stat-name">Storm exposure</span>
                 <span class="stat-value" id="spindly-growth">None</span>
               </div>
               <div class="stat-row" data-stat="branches" data-help="More branches support more leaf clusters.">
@@ -204,6 +209,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-    <script type="module" src="main.js?rev=true-map-scale-v1"></script>
+    <script type="module" src="main.js?rev=menu-housekeeping-v1"></script>
 </body>
 </html>

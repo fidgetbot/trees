@@ -137,8 +137,13 @@ export function updateHudUI({
   document.getElementById('branches').textContent = state.branches;
   document.getElementById('trunk').textContent = state.trunk;
   const heightGrowth = document.getElementById('height-growth');
+  const braceStatus = document.getElementById('brace-status');
   const spindlyGrowth = document.getElementById('spindly-growth');
-  if (heightGrowth) heightGrowth.textContent = `+${state.heightGrowth || 0}`;
+  const heightLevel = Math.max(0, state.heightGrowth || 0);
+  const unbracedLevels = Math.max(0, state.spindlyGrowth || 0);
+  const bracedLevels = Math.max(0, heightLevel - unbracedLevels);
+  if (heightGrowth) heightGrowth.textContent = heightLevel;
+  if (braceStatus) braceStatus.textContent = heightLevel > 0 ? `${bracedLevels} of ${heightLevel} braced` : 'No added height';
   if (spindlyGrowth) spindlyGrowth.textContent = (state.spindlyGrowth || 0) > 0 ? `+${state.spindlyGrowth} damage` : 'None';
   document.getElementById('flowers').textContent = state.flowers;
   document.getElementById('pollinated').textContent = state.pollinated;

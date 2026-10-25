@@ -18,7 +18,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   growBranch: 'This lets you add a new branch and two leaf clusters, increasing sunlight gathered on future turns and supporting flowers.',
   extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
   growLeaves: 'This lets you grow a new leaf that collects more sunlight each turn.',
-  growTaller: 'This lets you lengthen your trunk to reach more light and overtop nearby trees, but each unbraced level adds wind damage; Fortify Bark braces it.',
+  growTaller: 'This lets you lengthen your trunk to reach more light and overtop nearby trees, but each unbraced level adds wind damage; Fortify Trunk braces it.',
   taproot: 'This lets major roots curve deeper into the soil, adding more water storage and nutrient access than ordinary outward growth while improving drought resistance.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
   bark: 'This lets you brace one level of spindly height while thickening your trunk, storing more water, gaining health, and resisting drought, storms, insects, fire, and woodpeckers.',
@@ -130,9 +130,9 @@ export function getActionAvailability({
         : `Best attempted in ${allowedSeasons.join('/')}`;
     }
     else if (!prereqOk) {
-      if (action.key === 'connect') reason = 'Your roots must reach deeper first';
-      else if (action.key === 'requestHelp') reason = (state.alliedNeighbors || 0) < 1 ? 'You need a living allied neighbor to call on' : 'You would only ask for help when wounded';
-      else if (action.key === 'growTaller') reason = `Your trunk already carries ${MAX_UNBRACED_HEIGHT} unbraced height levels; use Fortify Bark before reaching higher`;
+      if (action.prereqReason) reason = action.prereqReason(state);
+      else if (action.key === 'connect') reason = 'Your roots must reach deeper first';
+      else if (action.key === 'growTaller') reason = `Your trunk already carries ${MAX_UNBRACED_HEIGHT} unbraced height levels; use Fortify Trunk before reaching higher`;
       else if (action.key === 'shelterGrove' && hasStoredProtection(state)) reason = 'Stored protection is already ready';
       else reason = 'The moment is not right yet';
     } else if (state.actions <= 0) reason = 'No actions remain this turn';
@@ -175,6 +175,7 @@ export function createActions(deps) {
     nurtureOffspringAction = () => null,
     getRelationshipState = () => ({ name: 'Neutral' }),
     getNeighborStage,
+    canAnyAllyHelp = s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'),
     updateAlliesCount = () => {},
   } = deps;
 
@@ -182,11 +183,11 @@ export function createActions(deps) {
     { key: 'growBranch', name: 'Grow Branch', icon: '🌿', category: 'growth', help: 'Adds a branch and two leaf clusters; improves sunlight and supports flowers.', baseCost: { sunlight: 2, water: 1, nutrients: 1 }, effect: s => { s.branches += 1; s.leafClusters += 2; } },
     { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Improves water, nutrients, stability, and fungal reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
     { key: 'growLeaves', name: 'Grow Leaf', icon: '🍃', category: 'growth', help: 'Grows one leaf; improves sunlight gathering.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Young Tree', effect: s => { s.leafClusters += 1; } },
-    { key: 'growTaller', name: 'Grow Taller', icon: '↟', category: 'growth', help: 'Improves sunlight and shading reach; increases storm risk until braced.', status: s => { const total = Math.max(0, s.heightGrowth || 0); const risk = Math.max(0, s.spindlyGrowth || 0); return risk ? `Height level ${total} · ${risk}/${MAX_UNBRACED_HEIGHT} unbraced · +${risk} storm damage` : `Height level ${total} · fully braced`; }, baseCost: { sunlight: 3, water: 2, nutrients: 1 }, prereq: s => (s.spindlyGrowth || 0) < MAX_UNBRACED_HEIGHT, effect: s => { s.heightGrowth = (s.heightGrowth || 0) + 1; s.spindlyGrowth = (s.spindlyGrowth || 0) + 1; if (getNeighborStage) { const changes = (s.neighbors || []).map(neighbor => reconcileCanopyHeight(s, neighbor, getNeighborStage, getRelationshipState)).filter(Boolean); changes.forEach(change => openIncident(s, { kind:'canopy-notice', title:'The Canopy Shifts', summary:change.message, artwork:'event-relationship', severity:change.kind==='hostile-crowding'?'warning':'neutral', meta:{kind:change.kind,unannounced:true,neighborSlot:change.neighbor?.slot} })); } } },
+    { key: 'growTaller', name: 'Grow Taller', icon: '↟', category: 'growth', help: 'Improves sunlight and shading reach; increases storm risk until braced.', baseCost: { sunlight: 3, water: 2, nutrients: 1 }, prereq: s => (s.spindlyGrowth || 0) < MAX_UNBRACED_HEIGHT, effect: s => { s.heightGrowth = (s.heightGrowth || 0) + 1; s.spindlyGrowth = (s.spindlyGrowth || 0) + 1; if (getNeighborStage) { const changes = (s.neighbors || []).map(neighbor => reconcileCanopyHeight(s, neighbor, getNeighborStage, getRelationshipState)).filter(Boolean); changes.forEach(change => openIncident(s, { kind:'canopy-notice', title:'The Canopy Shifts', summary:change.message, artwork:'event-relationship', severity:change.kind==='hostile-crowding'?'warning':'neutral', meta:{kind:change.kind,unannounced:true,neighborSlot:change.neighbor?.slot} })); } } },
     { key: 'taproot', name: 'Deepen Roots', icon: '⬇️', category: 'growth', help: 'Develops major roots downward, improving water, nutrients, health, drought resistance, and defense against rival roots.', baseCost: { sunlight: 2, water: 0, nutrients: 1 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Adds a branch and three leaf clusters while broadening the crown for stronger sunlight collection.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 3; s.branches += 1; s.canopySpread += 1; } },
 
-    { key: 'bark', name: 'Fortify Bark', icon: '🛡️', category: 'defense', help: 'Braces height; improves health, water storage, and resistance.', status: s => { const risk = Math.max(0, s.spindlyGrowth || 0); const level = Math.max(0, s.trunk || 0); return risk ? `Bark level ${level} · will brace 1 of ${risk} unbraced height levels` : `Bark level ${level} · all height is braced`; }, baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
+    { key: 'bark', name: 'Fortify Trunk', icon: '🛡️', category: 'defense', help: 'Braces height; improves health, water storage, and resistance.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
     { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Adds strong permanent nutrient uptake and storage while accelerating connected allies and offspring.', baseCost: { sunlight: 1, water: 1, nutrients: 2 }, effect: s => {
       s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 1.5;
       for (const neighbor of s.neighbors || []) {
@@ -236,7 +237,7 @@ export function createActions(deps) {
 
     { key: 'connect', name: 'Seek Root Connection', icon: '🤝', category: 'diplomacy', help: 'Seeks a fungal connection with a neighbor.', baseCost: { sunlight: 1, water: 0, nutrients: 1 }, prereq: s => s.rootZones >= 3, effect: (s, context) => attemptConnection(s, context) },
     { key: 'aidAlly', name: 'Offer Aid to Ally', icon: '🎁', category: 'diplomacy', help: 'Replenishes sunlight, water, and nutrient reserves, heals and grows an ally, and strengthens your bond.', baseCost: { sunlight: 1, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally' && (n.health < n.maxHealth || n.activeCrises?.length)), effect: (s, context) => offerAidToAlly(s, context) },
-    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Shows every ally’s safe health, sunlight, water, and nutrient offer in one list.', status: s => deps.getAllyHelpStatus?.(s) || '', baseCost: { sunlight: 0, water: 0, nutrients: 0 }, prereq: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally'), effect: (s, context) => requestHelpFromAllies(s, context) },
+    { key: 'requestHelp', name: 'Request Help from Allies', icon: '🆘', category: 'diplomacy', help: 'Ask an allied tree to share resources it can safely spare.', baseCost: { sunlight: 0, water: 0, nutrients: 0 }, prereq: s => canAnyAllyHelp(s), prereqReason: s => s.neighbors.some(n => !n.dead && getRelationshipState(n.relation).name === 'Ally') ? 'No ally can safely spare health or resources right now' : 'You need a living allied neighbor to call on', effect: (s, context) => requestHelpFromAllies(s, context) },
     { key: 'shadeRival', name: 'Shade Neighbor', icon: '☂️', category: 'diplomacy', help: 'Gains +2 sunlight and +1 nutrient each turn by slowing a shorter neighbor.', baseCost: { sunlight: 3, water: 1, nutrients: 2 }, prereq: s => s.neighbors.some(n => !n.dead && (n.slot === 1 || n.slot === 3)), effect: (s, context) => shadeRivalAction(s, context) },
     { key: 'stopShade', name: 'Stop Shading', icon: '↔️', category: 'diplomacy', help: 'Withdraws your crown and releases the shaded neighbor and offspring.', announce: false, hidden: s => !getPlayerShadeTarget(s), baseCost: { sunlight: 0, water: 0, nutrients: 0 }, prereq: s => Boolean(getPlayerShadeTarget(s)), effect: s => { s.lastReleasedShadeTarget = clearPlayerShadeTarget(s)?.species || null; } },
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Establishes one lasting contested root zone, drawing up to 1 water and 1 nutrient from the target each turn.', status: s => getRootDominionTarget(s) ? `Active against ${getRootDominionTarget(s).species}` : 'No active root dominion', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },

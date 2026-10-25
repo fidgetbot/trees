@@ -335,8 +335,8 @@ test('three unbraced height levels require fortified bark before further bolting
     isActionUnlocked: () => true,
   });
   assert.equal(availability.usable, false);
-  assert.match(availability.reason, /Fortify Bark/);
-  assert.match(growTaller.status(state), /3\/3/);
+  assert.match(availability.reason, /Fortify Trunk/);
+  assert.equal(growTaller.status, undefined);
 });
 
 test('offspring do not masquerade as connected allied neighbors during gathering', () => {
@@ -374,6 +374,47 @@ test('offspring do not unlock requests for help from allied neighbors', () => {
   assert.equal(requestHelp.prereq(childrenOnly), false);
   childrenOnly.neighbors.push({ relation: 70, dead: false });
   assert.equal(requestHelp.prereq(childrenOnly), true);
+});
+
+test('Request Help is available only while an ally has a safe offer', () => {
+  let canHelp = false;
+  const actions = createActions({
+    resinReserveAction() {},
+    woodSurgeAction() {},
+    attemptConnection() {},
+    offerAidToAlly() {},
+    requestHelpFromAllies() {},
+    shadeRivalAction() {},
+    rootDominionAction() {},
+    getRelationshipState,
+    canAnyAllyHelp: () => canHelp,
+  });
+  const requestHelp = actions.find(action => action.key === 'requestHelp');
+  const state = gatheringState({
+    lifeStage: LIFE_STAGES[2],
+    actions: 3,
+    sunlight: 10,
+    water: 10,
+    nutrients: 10,
+    neighbors: [{ relation: 70, dead: false }],
+  });
+  const availability = () => getActionAvailability({
+    action: requestHelp,
+    state,
+    lifeStages: LIFE_STAGES,
+    currentStageRank: state.lifeStage.rank,
+    currentSeasonName: 'Summer',
+    seasonalActions: SEASONAL_ACTIONS,
+    getScaledCost: cost => cost,
+    canAfford: () => true,
+    isActionUnlocked: () => true,
+  });
+
+  assert.equal(availability().usable, false);
+  assert.match(availability().reason, /No ally can safely spare health or resources right now/);
+  canHelp = true;
+  assert.equal(availability().usable, true);
+  assert.equal(requestHelp.status, undefined);
 });
 
 test('offer aid reports the exact scaled action cost that was already paid', () => {

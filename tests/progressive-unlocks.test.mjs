@@ -76,7 +76,7 @@ test('locked Sapling actions explain when they will awaken', () => {
   );
 });
 
-test('Grow Taller and Shade Neighbor arrive with Seedling, then Fortify Bark follows one season later', () => {
+test('Grow Taller and Shade Neighbor arrive with Seedling, then Fortify Trunk follows one season later', () => {
   const seedling = LIFE_STAGES.find(stage => stage.name === 'Seedling');
   assert.equal(unlocked('growTaller', 0, seedling), true);
   assert.equal(unlocked('shadeRival', 0, seedling), true);

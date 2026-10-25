@@ -28,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=human-adaptation-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=menu-housekeeping-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -93,7 +93,7 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=true-map-scale-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=human-adaptation-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=menu-housekeeping-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=human-adaptation-v1';
 
@@ -324,20 +324,10 @@ const ACTIONS = createActions({
   nurtureOffspringAction,
   getRelationshipState,
   getNeighborStage,
-  getAllyHelpStatus: s => {
+  canAnyAllyHelp: s => {
     const allies = (s.neighbors || []).filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally');
-    if (!allies.length) return 'No living allied neighbors';
-    const offers = allies.flatMap(neighbor => ['health', 'sunlight', 'water', 'nutrients']
-      .map(kind => ({ neighbor, kind, amount: neighborHelpAvailable(s, neighbor, kind, getNeighborStage) }))
-      .filter(offer => offer.amount > 0));
-    if (!offers.length) return 'No safe surplus now; ally reserves and shortages are shown when selected';
-    const byAlly = new Map();
-    offers.forEach(offer => {
-      const kinds = byAlly.get(offer.neighbor.species) || [];
-      kinds.push(offer.kind);
-      byAlly.set(offer.neighbor.species, kinds);
-    });
-    return `Available now · ${[...byAlly].map(([species, kinds]) => `${species}: ${kinds.join(', ')}`).join(' · ')}`;
+    return allies.some(neighbor => ['health', 'sunlight', 'water', 'nutrients']
+      .some(kind => neighborHelpAvailable(s, neighbor, kind, getNeighborStage) > 0));
   },
   updateAlliesCount: s => updateAlliesCountForState(s, getRelationshipState),
 });
