@@ -1880,7 +1880,7 @@ function showEventPhase() {
       kind: 'ominous',
       eyebrow: `The Humans Learn · Chapter ${humanUpdate.storyCard.chapter} of 20`,
       sceneArt: humanUpdate.storyCard.artwork,
-      buttonLabel: 'Continue to Night Falls →',
+      buttonLabel: 'Continue',
     });
     return;
   }
@@ -1890,7 +1890,7 @@ function showEventPhase() {
       record: false,
       kind: ominous ? 'ominous' : '',
       eyebrow: 'A Distant Tremor · Fungal network',
-      buttonLabel: 'Continue to Night Falls →',
+      buttonLabel: 'Continue',
     });
     return;
   }
