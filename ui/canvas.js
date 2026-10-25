@@ -619,10 +619,10 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   if(!measureTargetId){
     drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
     hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets,w);
-    // Keep relationship geometry in grove coordinates even when specimen art
-    // is isolated after focusing. The clipped dotted path then persists under
-    // an ally or any tree between the player and that ally.
-    if(cameraFor(state,playerStageName).rank>=2){drawFungalNetwork(ctx,trees,groundY,getRelationshipState);drawRootDominionNetwork(ctx,trees,groundY,state);}
+    // Fungal links retain grove context while focused. Root Dominion is more
+    // forceful and must have both endpoints visible; otherwise its clipped
+    // dashes resemble disconnected brown fragments beneath the focused tree.
+    if(cameraFor(state,playerStageName).rank>=2){drawFungalNetwork(ctx,trees,groundY,getRelationshipState);drawRootDominionNetwork(ctx,drawableTrees,groundY,state);}
   }
   const labelRows=[];
   drawableTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
@@ -857,9 +857,15 @@ function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
   segments.forEach(({from,to})=>{ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.bezierCurveTo(from.x-(from.x-to.x)*.3,groundY+70,to.x+(from.x-to.x)*.3,to.y-20,to.x,to.y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(to.x,to.y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
-function drawRootDominionNetwork(ctx,trees,groundY,state){
+export function getRootDominionSegment(trees,state){
   const target=getPlayerRootDominionTarget(state),player=trees.find(tree=>tree.isPlayer),dominated=trees.find(tree=>!tree.neighbor?.offspring&&tree.neighbor?.slot===target?.slot);
-  if(!player||!dominated)return;
+  return player&&dominated?{player,dominated}:null;
+}
+
+function drawRootDominionNetwork(ctx,trees,groundY,state){
+  const segment=getRootDominionSegment(trees,state);
+  if(!segment)return;
+  const{player,dominated}=segment;
   const direction=dominated.x<player.x?-1:1,mid=(player.x+dominated.x)/2;
   ctx.save();ctx.strokeStyle='rgba(154,82,46,.9)';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(player.x,groundY+42);ctx.bezierCurveTo(mid-direction*22,groundY+76,mid+direction*18,groundY+92,dominated.x,groundY+56);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle='rgba(154,82,46,.72)';ctx.beginPath();ctx.arc(dominated.x,groundY+56,5,0,TAU);ctx.fill();ctx.restore();

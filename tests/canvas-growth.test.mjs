@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 
 import { EVENT_ASSET_URLS, SCENE_PIXELS_PER_METER, getAnimalScenePlacement, getFaunaSceneSize, getHumanSceneHeight } from '../ui/fauna-art.js';
 
-import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getSceneArtworkScale, getSceneArtKinds, getSceneHumanPresentation, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
+import { fitGroundedArtwork, getBotanicalModuleCount, getBotanicalVariantCount, getBotanicalVariantIndex, getCanopyArrangement, getCanopyShadowGeometry, getDeadTreePresentation, getDrawableGroveTrees, getFoliagePalette, getFungalNetworkSegments, getJoinedLimbWidth, getLoggerVariantIndex, getPaintedFoliageModuleCount, getPlayerVisualProfile, getRootDominionSegment, getSceneArtworkScale, getSceneArtKinds, getSceneHumanPresentation, getSeasonalHedgeLayout, getSeasonalHedgeTileDraws, getStageArtProfile, getSurveyorVariantIndex, getTreeGrowthAssetUrl, getTreeLabelText, getTreeStructureAssetUrl, getTreeStructureFallbackKeys, getTreeStructureGeometry, getTreeStructureStageKey, getWinterSnowSurface, getWoodPalette, isTreeShaded, LEAFLESS_SPROUT_OCCUPANCY_RATIO, paintedCanopyEntries, projectSceneWorldX, shouldDrawPlayerBlossoms, shouldDrawSeedRadicle } from '../ui/canvas.js';
 import { getJuvenileGeometry } from '../ui/juvenile-growth.js';
 import { getRelationshipState } from '../core/constants.js';
 import { normalizePlayerShadeTarget } from '../core/growth.js';
@@ -32,6 +32,15 @@ test('Forest Gift and Mycorrhizal Bloom use dedicated event artwork', () => {
   assert.match(forestGift.pathname, /\/assets\/events\/forest-gift-v1\.png$/);
   assert.match(fungalBloom.pathname, /\/assets\/events\/mycorrhizal-bloom-v1\.png$/);
   assert.notEqual(forestGift.href, fungalBloom.href);
+});
+
+test('Root Dominion geometry requires both endpoint trees to be visible', () => {
+  const player={isPlayer:true,x:300};
+  const target={isPlayer:false,x:120,neighbor:{slot:1,playerRootDominated:true}};
+  const dominionState={neighbors:[target.neighbor]};
+  assert.deepEqual(getRootDominionSegment([player,target],dominionState),{player,dominated:target});
+  assert.equal(getRootDominionSegment([player],dominionState),null);
+  assert.equal(getRootDominionSegment([target],dominionState),null);
 });
 
 test('every structural growth stat changes its corresponding visual profile', () => {
