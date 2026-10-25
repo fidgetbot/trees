@@ -25,6 +25,12 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while permanently helping connected allies and living offspring grow.',
   growThorns: 'This lets you add permanent thorns repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and browsing animals.',
   toxicLeaves: 'This lets you add permanent toxic foliage repeatedly; every layer strengthens defense against humans, fruit threats, conflict, and herbivores.',
+  interlaceCrown: 'This lets flexible shoots close the paths that harvesting poles and nets need through your canopy.',
+  primeResin: 'This lets you hold resin ready to flood a cutting wound and foul a saw before it runs deep.',
+  watchPath: 'This gives one living offspring the role of detecting approaching humans through the shared soil.',
+  staggerHarvest: 'This gives one living offspring the role of spreading the grove’s fruit ripening across different heights and times.',
+  closeApproach: 'This gives one living offspring the role of filling easy access routes with low, dense growth.',
+  rouseGrove: 'This coordinates all three offspring roles into a prepared grove-wide defense against an organized crew.',
   shelterGrove: 'This lets you store protection against the next severe weather event while earning goodwill from every living neighbor.',
   resinReserve: 'This lets you store a concentrated defensive reserve for the next serious threat.',
   woodSurge: 'This lets you direct a powerful growth surge into your trunk, roots, or crown.',
@@ -55,17 +61,19 @@ export function isActionAnnounceableInSeason(actionKey, currentSeasonName, seaso
   return !allowedSeasons || allowedSeasons.includes(currentSeasonName);
 }
 
-export function isActionUnlockedForState(actionKey, state, lifeStages, progressiveUnlocks = {}) {
+export function isActionUnlockedForState(actionKey, state, lifeStages, progressiveUnlocks = {}, storyUnlocks = {}) {
   const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
   const currentStage = state.lifeStage;
   if (!unlockStage || !currentStage || currentStage.rank < unlockStage.rank) return false;
   if ((actionKey === 'requestHelp' || actionKey === 'aidAlly') && !state.hasMadeFirstAlly) return false;
+  const story = storyUnlocks[actionKey];
+  if (story && (state.humanAdaptationChapter || 0) < story.chapter) return false;
   const progressive = progressiveUnlocks[actionKey];
   if (!progressive || currentStage.name !== progressive.stage) return true;
   return (state.turnsInStage || 0) >= progressive.turnsInStage;
 }
 
-export function getActionUnlockReason(actionKey, state, lifeStages, progressiveUnlocks = {}) {
+export function getActionUnlockReason(actionKey, state, lifeStages, progressiveUnlocks = {}, storyUnlocks = {}) {
   const unlockStage = lifeStages.find(stage => stage.unlocks.includes(actionKey));
   if (!unlockStage || !state.lifeStage || state.lifeStage.rank < unlockStage.rank) {
     return `Awakens at the ${unlockStage?.name || 'next stage'}`;
@@ -73,6 +81,8 @@ export function getActionUnlockReason(actionKey, state, lifeStages, progressiveU
   if ((actionKey === 'requestHelp' || actionKey === 'aidAlly') && !state.hasMadeFirstAlly) {
     return 'Awakens after you form your first alliance';
   }
+  const story = storyUnlocks[actionKey];
+  if (story && (state.humanAdaptationChapter || 0) < story.chapter) return `Awakens ${story.label}`;
   const progressive = progressiveUnlocks[actionKey];
   if (progressive && state.lifeStage.name === progressive.stage && (state.turnsInStage || 0) < progressive.turnsInStage) {
     return `Awakens ${progressive.label}`;
@@ -193,6 +203,8 @@ export function createActions(deps) {
     } },
     { key: 'growThorns', name: 'Grow Thorns', icon: '🌵', category: 'defense', help: 'Adds lasting physical defense, strongest against humans, large browsers, and chewing animals.', status: s => `${s.thornDefense || 0} thorn layer${(s.thornDefense || 0) === 1 ? '' : 's'} · strongest against humans and physical browsing`, baseCost: { sunlight: 4, water: 2, nutrients: 4 }, effect: s => { s.thornDefense = (s.thornDefense || 0) + 1; s.defense += 1; } },
     { key: 'toxicLeaves', name: 'Grow Toxic Leaves', icon: '☠️', category: 'defense', help: 'Adds lasting chemical defense, strongest against leaf-eating animals, pests, and fruit chewers.', status: s => `${s.toxicLeaves || 0} toxic layer${(s.toxicLeaves || 0) === 1 ? '' : 's'} · strongest against herbivores and leaf pests`, baseCost: { sunlight: 3, water: 2, nutrients: 5 }, effect: s => { s.toxicLeaves = (s.toxicLeaves || 0) + 1; s.defense += 1; } },
+    { key: 'interlaceCrown', name: 'Interlace the Crown', icon: '🪢', category: 'defense', help: 'Closes clear paths through the canopy to poles, hooks, and nets.', status: s => s.interlacedCrown ? 'Living knots prepared' : 'Crown paths remain open', baseCost: { sunlight: 3, water: 2, nutrients: 3 }, prereq: s => !s.interlacedCrown, effect: s => { s.interlacedCrown = true; } },
+    { key: 'primeResin', name: 'Prime Resin Reserves', icon: '🟠', category: 'defense', help: 'Stores resin to flood the next serious saw wound and foul the blade.', status: s => s.humanResinPrimed ? 'Resin primed for the next cutting attempt' : 'No cutting reserve primed', baseCost: { sunlight: 2, water: 2, nutrients: 5 }, prereq: s => !s.humanResinPrimed, effect: s => { s.humanResinPrimed = true; } },
     {
       key: 'shelterGrove',
       name: 'Shelter the Grove',
@@ -233,6 +245,38 @@ export function createActions(deps) {
     { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates a blossom that can become fruit and seed.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; } },
     { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Creates three blossoms in one risky surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; } },
     { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Improves one child’s health and growth.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => (s.offspringRecords || []).some(child => !child.dead), effect: (s, context) => nurtureOffspringAction(s, context) },
+    { key: 'watchPath', name: 'Teach: Watch the Path', icon: '👁️', category: 'reproduction', help: 'An offspring learns to warn the grove before humans arrive.', status: s => groveRoleStatus(s, 'watchPath'), baseCost: { sunlight: 2, water: 2, nutrients: 3 }, prereq: s => canAssignGroveRole(s, 'watchPath'), effect: s => assignGroveRole(s, 'watchPath') },
+    { key: 'staggerHarvest', name: 'Teach: Stagger the Harvest', icon: '🗓️', category: 'reproduction', help: 'An offspring helps spread fruit ripening across different heights and times.', status: s => groveRoleStatus(s, 'staggerHarvest'), baseCost: { sunlight: 3, water: 2, nutrients: 3 }, prereq: s => canAssignGroveRole(s, 'staggerHarvest'), effect: s => assignGroveRole(s, 'staggerHarvest') },
+    { key: 'closeApproach', name: 'Teach: Close the Approach', icon: '🌿', category: 'reproduction', help: 'An offspring develops low dense growth across an easy human route.', status: s => groveRoleStatus(s, 'closeApproach'), baseCost: { sunlight: 3, water: 3, nutrients: 4 }, prereq: s => canAssignGroveRole(s, 'closeApproach'), effect: s => assignGroveRole(s, 'closeApproach') },
+    { key: 'rouseGrove', name: 'Rouse the Grove', icon: '🌲', category: 'defense', help: 'Coordinates prepared offspring into one grove-wide answer to an organized crew.', status: s => s.groveRoused ? 'The grove is prepared' : `${activeGroveRoleCount(s)}/3 offspring roles prepared`, baseCost: { sunlight: 5, water: 5, nutrients: 7 }, prereq: s => activeGroveRoleCount(s) === 3 && !s.groveRoused, effect: s => { s.groveRoused = true; } },
     { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'Creates five blossoms and one pollination in a major surge.', baseCost: { sunlight: 8, water: 4, nutrients: 8 }, effect: s => { s.flowers += 5; s.pollinated += 1; } },
   ];
+}
+
+function livingRoleChild(state, role) {
+  const id = state.humanGroveRoles?.[role];
+  return (state.offspringRecords || []).find(child => child.id === id && !child.dead) || null;
+}
+
+function activeGroveRoleCount(state) {
+  return ['watchPath', 'staggerHarvest', 'closeApproach'].filter(role => livingRoleChild(state, role)).length;
+}
+
+function canAssignGroveRole(state, role) {
+  return !livingRoleChild(state, role) && (state.offspringRecords || []).some(child => !child.dead);
+}
+
+function assignGroveRole(state, role) {
+  state.humanGroveRoles ||= {};
+  const alreadyAssigned = new Set(Object.values(state.humanGroveRoles));
+  const living = (state.offspringRecords || []).filter(child => !child.dead);
+  const child = living.find(candidate => !alreadyAssigned.has(candidate.id))
+    || [...living].sort((a, b) => (b.nurtureCount || 0) - (a.nurtureCount || 0) || b.stageScore - a.stageScore)[0];
+  if (child) state.humanGroveRoles[role] = child.id;
+  return child;
+}
+
+function groveRoleStatus(state, role) {
+  const child = livingRoleChild(state, role);
+  return child ? `${child.species} offspring prepared` : 'No offspring assigned';
 }

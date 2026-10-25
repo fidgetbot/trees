@@ -1,6 +1,6 @@
 import { applyNeighborAid, ensureNeighborEconomy } from './neighbor-economy.js?rev=mature-grove-v1';
 import { buildChemicalDefenseDecision, buildHostileEncroachmentDecision, resolveSharedDecision } from './events.js?rev=mature-grove-v1';
-import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=mature-grove-v1';
+import { buildConservationDecision, buildHumanEncounterDecision, resolveHumanDecision, resolveOffspringCrisisAid } from './humans.js?rev=human-adaptation-v1';
 import { keepIncidentOngoing, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 function plainText(html = '') {

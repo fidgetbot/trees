@@ -46,6 +46,105 @@ export const HUMAN_RUMORS = [
   },
 ];
 
+export const HUMAN_ADAPTATION_CARDS = [
+  null,
+  { title: 'Baskets Beneath the Blossoms', paragraphs: [
+    'While your flowers open, unfamiliar footsteps press the soil beneath you. Humans look upward and point between your branches. They carry ominously empty baskets.',
+    'They leave without touching you, but the fungal network holds the memory of their path.',
+  ] },
+  { title: 'A Bitter Gift', paragraphs: [
+    'New compounds gather inside your leaves. Their taste will be foul; their touch will leave a lingering irritation.',
+    'Your crown has found a way to guard what it will soon bear.',
+  ], unlock: { key: 'toxicLeaves', label: 'Grow Toxic Leaves' } },
+  { title: 'The Open Hand', paragraphs: [
+    'The humans return when fruit weighs down your branches. Bare fingers reach into your crown while baskets wait below.',
+    'Only the new, slick oils on your leaves stand between their hunger and your harvest.',
+  ] },
+  { title: 'The Itching Retreat', paragraphs: [
+    'Hands push between your leaves. Before long, the humans begin to scratch. Their skin reddens; their reaching becomes frantic and clumsy.',
+    'The baskets are withdrawn.',
+    'As the humans retreat, they begin to wrap their palms in strips of tough material.',
+  ] },
+  { title: 'Covered Hands', paragraphs: [
+    'The humans return wearing thin gloves stitched from the material you saw before.',
+    'Covered fingers press experimentally against your leaves. This time, the irritation does not immediately reach their skin.',
+    'What stopped them once will not stop them forever.',
+  ] },
+  { title: 'A New Answer', paragraphs: [
+    'Tender shoots harden into something sharper. You discover that growth need not always reach toward light. It can also guard what you have made.',
+  ], unlock: { key: 'growThorns', label: 'Grow Thorns' } },
+  { title: 'Points Through Cloth', paragraphs: [
+    'Thin gloves push safely past your bitter leaves. Covered hands reach toward your fruit.',
+    'Then your thorns strike. Their points pierce the material and find the fingers beneath. Hands recoil; torn gloves are pulled away.',
+    'One human remains below, studying the fruit beyond reach. The human raises a long pole and measures the distance with its eyes.',
+  ] },
+  { title: 'Beyond Touch', paragraphs: [
+    'The humans return carrying hooks, poles, and folded cloth. They no longer intend to place their bodies within your defenses.',
+    'The devices reach farther than any hand.',
+  ] },
+  { title: 'Interlace the Crown', paragraphs: [
+    'You learn to direct flexible shoots across the open ways through your canopy. Narrow paths become living knots.',
+    'There is no clear path for a pole or net to penetrate.',
+  ], unlock: { key: 'interlaceCrown', label: 'Interlace the Crown' } },
+  { title: 'The Net Catches', paragraphs: [
+    'Hooks rise toward your fruit. Cloth spreads beneath your crown.',
+    'The first pole disappears between crossing shoots. The second twists sideways. Their net catches on a hundred small branches and folds around itself.',
+    'The humans leave with little fruit and much torn cloth.',
+    'Before leaving, one opens a pruning hook and tests its sharpness.',
+  ] },
+  { title: 'Teeth in the Wood', paragraphs: [
+    'The wind turns sharp and bitter. Autumn strips away the leaves that hid your shape. Humans return to examine the exposed branches.',
+    'This time they carry saws. Metal teeth touch your bark, withdraw, and touch it again.',
+    'They have come not for fruit, but for firewood.',
+  ] },
+  { title: 'Resin in Waiting', paragraphs: [
+    'Beneath your bark, sugars and water thicken into a slow golden defense. You learn to hold it ready until living wood is broken.',
+    'The next wound can be flooded before the cutting runs deep.',
+  ], unlock: { key: 'primeResin', label: 'Prime Resin Reserves' } },
+  { title: 'Gold in the Cut', paragraphs: [
+    'The saw opens your bark. You answer at once.',
+    'Resin floods the wound, clings to the metal teeth, and hardens among them. The blade begins to drag. The humans pull harder, but every stroke grows shorter.',
+    'At last they abandon the fouled saw beneath your branches.',
+    'Through the fungal network comes one final image: other saws, clean and waiting.',
+  ] },
+  { title: 'The Tools Multiply', paragraphs: [
+    'The humans have learned again.',
+    'Hooks cut paths through your interlaced crown. Fresh blades replace those your resin disables. Gloves, covered faces, poles, and saws now arrive together.',
+    'No single part of you can answer every tool.',
+  ] },
+  { title: 'Younger Roots Answer', paragraphs: [
+    'A younger tree feels the approaching footsteps before they reach you. Its warning travels through shared soil.',
+    'The life you sheltered can now shelter something in return.',
+  ], unlock: { key: 'offspringRoles', label: 'Watch the Path, Stagger the Harvest, Close the Approach' } },
+  { title: 'The Grove Watches', paragraphs: [
+    'Your offspring’s warning reaches you while the humans are still distant.',
+    'Fruit ripens at different heights and different times. Low young branches close the easiest approach. By the time the humans reach your trunk, the simple path they remember no longer exists.',
+    'They leave carrying less than they expected.',
+    'From the edge of the grove comes the sound of many human voices, arguing.',
+  ] },
+  { title: 'An Organized Crew', paragraphs: [
+    'The ground trembles beneath more footsteps than before.',
+    'Humans arrive with ladders, ropes, hooks, spare blades, and enough hands to clear their own path. Some study your crown. Others study the younger trees around you. Several begin marking where each trunk might fall.',
+    'They are no longer trying to defeat one tree at a time.',
+  ] },
+  { title: 'Rouse the Grove', paragraphs: [
+    'A warning passes from root to root. Water, minerals, and chemical signals move through the shared dark. Young crowns close above old paths. Roots lift the ground where ladders would stand.',
+    'You do not prepare one defense. You prepare the grove.',
+  ], unlock: { key: 'rouseGrove', label: 'Rouse the Grove' } },
+  { title: 'No Clear Fall', paragraphs: [
+    'The humans understand your thorns. They understand your bitter leaves. They have brought blades enough for your resin.',
+    'What they do not understand is the grove.',
+    'Every clear approach ends in a tangle of branches. Roots break the level ground beneath their ladders. Young branches slip around their ropes. Warning pulses travel ahead of every movement.',
+    'The humans argue hotly about where the first cut tree would fall.',
+    'One by one, the tools go quiet.',
+  ] },
+  { title: 'No Easy Tree', paragraphs: [
+    'Seasons pass. The baskets do not return. The saws remain silent.',
+    'Some humans now avoid the grove entirely. Others linger at its edge, watching the old crowns and the younger trees beneath them.',
+    'They still make marks. They still measure. But their footsteps carry a different rhythm, and the roots cannot understand why.',
+  ] },
+];
+
 export function ensureHumanState(state) {
   migrateLegacyIncidentState(state);
   state.offspringRecords ||= [];
@@ -63,6 +162,12 @@ export function ensureHumanState(state) {
   state.protectionProgress ??= 0;
   state.protectionEligible ??= false;
   state.protectionDesignated ??= false;
+  state.humanAdaptationChapter ??= 0;
+  state.humanAdaptationLastAttempt ||= {};
+  state.humanGroveRoles ||= {};
+  state.interlacedCrown ??= false;
+  state.humanResinPrimed ??= false;
+  state.groveRoused ??= false;
   return state;
 }
 
@@ -126,6 +231,7 @@ export function nurtureOffspring(state, childId = null) {
 
 export function describeOffspring(state, lifeStages) {
   ensureHumanState(state);
+  const roleLabels = { watchPath: 'Watch the Path', staggerHarvest: 'Stagger the Harvest', closeApproach: 'Close the Approach' };
   return state.offspringRecords
     .filter(child => !child.dead)
     .map(child => {
@@ -144,6 +250,10 @@ export function describeOffspring(state, lifeStages) {
         nurtureCount: child.nurtureCount || 0,
         supportReceived: child.supportReceived || 0,
         rhizosphereBonus: child.rhizosphereBonus || 0,
+        humanRoles: Object.entries(state.humanGroveRoles)
+          .filter(([, childId]) => childId === child.id)
+          .map(([role]) => roleLabels[role])
+          .filter(Boolean),
       };
     });
 }
@@ -269,6 +379,7 @@ export function updateProtectionProgress(state, deps) {
   state.protectionProgress = Math.min(2, companions.length);
   state.protectionEligible = state.lifeStage?.name === 'Ancient'
     && state.protectionProgress >= 2
+    && state.humanAdaptationChapter >= 20
     && state.humanRumorIndex >= HUMAN_RUMORS.length;
   return { companions, eligible: state.protectionEligible };
 }
@@ -464,6 +575,131 @@ export function resolveHumanDecision(state, decision, optionId, deps = {}) {
   return failEncounter(state, encounter);
 }
 
+const ROLE_KEYS = ['watchPath', 'staggerHarvest', 'closeApproach'];
+
+function hasLivingRole(state, role) {
+  const childId = state.humanGroveRoles?.[role];
+  return (state.offspringRecords || []).some(child => child.id === childId && !child.dead);
+}
+
+export function activeHumanGroveRoles(state) {
+  ensureHumanState(state);
+  return ROLE_KEYS.filter(role => hasLivingRole(state, role));
+}
+
+function markStoryActionAnnounced(state, unlock) {
+  if (!unlock) return;
+  const keys = unlock.key === 'offspringRoles' ? ROLE_KEYS : [unlock.key];
+  state.announcedActionUnlocks ||= [];
+  for (const key of keys) {
+    if (!state.announcedActionUnlocks.includes(key)) state.announcedActionUnlocks.push(key);
+  }
+}
+
+function displayAdaptationCard(state, chapter) {
+  const card = HUMAN_ADAPTATION_CARDS[chapter];
+  if (!card) return null;
+  state.humanAdaptationChapter = chapter;
+  markStoryActionAnnounced(state, card.unlock);
+  return {
+    ...card,
+    chapter,
+    body: card.paragraphs.join(' '),
+    presentation: 'ominous',
+    artwork: chapter >= 11 ? 'human-logger' : 'human-surveyor',
+  };
+}
+
+function onceThisYear(state, key) {
+  if (state.humanAdaptationLastAttempt[key] === state.year) return false;
+  state.humanAdaptationLastAttempt[key] = state.year;
+  return true;
+}
+
+function failedAdaptationAttempt(state, { key, chapter, title, paragraphs, fruitLoss = 0, cutting = false }) {
+  if (fruitLoss > 0) state.developing = Math.max(0, (state.developing || 0) - fruitLoss);
+  if (cutting) {
+    state.health = Math.max(0, state.health - 2);
+    state.trunk = Math.max(1, (state.trunk || 1) - 1);
+    state.cuttingProgress = (state.cuttingProgress || 0) + 1;
+    state.lastDamageCause = 'logging';
+  }
+  return {
+    title,
+    paragraphs,
+    body: paragraphs.join(' '),
+    chapter,
+    presentation: 'ominous',
+    artwork: cutting ? 'human-logger' : 'human-surveyor',
+    failure: true,
+    retryKey: key,
+  };
+}
+
+export function advanceHumanAdaptation(state) {
+  ensureHumanState(state);
+  const chapter = state.humanAdaptationChapter;
+  const season = ['Spring', 'Summer', 'Autumn', 'Winter'][state.seasonIndex] || 'Spring';
+  const rank = state.lifeStage?.rank || 0;
+  const fruitReady = (state.developing || 0) > 0;
+
+  if (chapter === 0 && rank >= 4 && season === 'Spring' && ((state.flowers || 0) > 0 || (state.pollinated || 0) > 0)) return displayAdaptationCard(state, 1);
+  if (chapter === 1) return displayAdaptationCard(state, 2);
+  if (chapter === 2 && season === 'Summer' && fruitReady && onceThisYear(state, 'open-hand')) {
+    state.humanAdaptationOpenHandPrepared = (state.toxicLeaves || 0) > 0;
+    return displayAdaptationCard(state, 3);
+  }
+  if (chapter === 3) {
+    if (state.humanAdaptationOpenHandPrepared) return displayAdaptationCard(state, 4);
+    state.humanAdaptationChapter = 2;
+    const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
+    return failedAdaptationAttempt(state, {
+      key: 'open-hand', chapter: 3, title: 'The Baskets Fill', fruitLoss: loss,
+      paragraphs: [`Bare hands move freely through your crown. The humans take ${loss} fruit before withdrawing.`, 'They have learned nothing new. They will return the same way when fruit hangs from you again.'],
+    });
+  }
+  if (chapter === 4 && season === 'Spring' && state.year > (state.humanAdaptationLastAttempt['open-hand'] || 0)) return displayAdaptationCard(state, 5);
+  if (chapter === 5) return displayAdaptationCard(state, 6);
+  if (chapter === 6 && season === 'Summer' && fruitReady && onceThisYear(state, 'covered-hands')) {
+    if ((state.thornDefense || 0) > 0) return displayAdaptationCard(state, 7);
+    const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
+    return failedAdaptationAttempt(state, {
+      key: 'covered-hands', chapter: 7, title: 'Covered Hands Reach Deep', fruitLoss: loss,
+      paragraphs: [`Thin gloves keep your oils from their skin. The humans take ${loss} fruit before leaving.`, 'They will return with the same protection next year.'],
+    });
+  }
+  if (chapter === 7 && season === 'Spring') return displayAdaptationCard(state, 8);
+  if (chapter === 8) return displayAdaptationCard(state, 9);
+  if (chapter === 9 && season === 'Summer' && fruitReady && onceThisYear(state, 'long-reach')) {
+    if (state.interlacedCrown) return displayAdaptationCard(state, 10);
+    const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
+    return failedAdaptationAttempt(state, {
+      key: 'long-reach', chapter: 10, title: 'The Long Reach', fruitLoss: loss,
+      paragraphs: [`Hooks and nets pass through the open ways in your crown. The humans take ${loss} fruit without touching leaf or thorn.`, 'They will return with the same devices next year.'],
+    });
+  }
+  if (chapter === 10 && season === 'Autumn') return displayAdaptationCard(state, 11);
+  if (chapter === 11) return displayAdaptationCard(state, 12);
+  if (chapter === 12 && season === 'Autumn' && onceThisYear(state, 'saws')) {
+    if (state.humanResinPrimed) {
+      state.humanResinPrimed = false;
+      return displayAdaptationCard(state, 13);
+    }
+    return failedAdaptationAttempt(state, {
+      key: 'saws', chapter: 13, title: 'A Deep Cut', cutting: true,
+      paragraphs: ['The saw runs cleanly through unprepared wood. Before the humans withdraw, a deep wound crosses your trunk.', 'You lose 2 health and one level of trunk growth. They will return with the same saws next autumn.'],
+    });
+  }
+  if (chapter === 13) return displayAdaptationCard(state, 14);
+  if (chapter === 14 && rank >= 5 && (state.offspringRecords || []).some(child => !child.dead)) return displayAdaptationCard(state, 15);
+  if (chapter === 15 && season === 'Summer' && fruitReady && activeHumanGroveRoles(state).length === 3) return displayAdaptationCard(state, 16);
+  if (chapter === 16 && season === 'Autumn') return displayAdaptationCard(state, 17);
+  if (chapter === 17) return displayAdaptationCard(state, 18);
+  if (chapter === 18 && season === 'Autumn' && state.groveRoused) return displayAdaptationCard(state, 19);
+  if (chapter === 19) return displayAdaptationCard(state, 20);
+  return null;
+}
+
 export function advanceHumanSystem(state, deps = {}) {
   const {
     getRelationshipState,
@@ -480,6 +716,9 @@ export function advanceHumanSystem(state, deps = {}) {
   if (activeHumanIncident) {
     return { decision: buildHumanEncounterDecision(state, activeHumanIncident.meta?.encounter), incidentId: activeHumanIncident.id };
   }
+
+  const storyCard = advanceHumanAdaptation(state);
+  if (storyCard) return { storyCard };
 
   const protection = updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
   if (protection.eligible && !state.victoryAchieved) {
@@ -505,6 +744,11 @@ export function advanceHumanSystem(state, deps = {}) {
     state.humanPressure = Math.min(8, state.humanPressure + 1);
     state.lastPressureYear = state.year;
   }
+
+  // Once the adaptation race begins, its legible seasonal chapters replace
+  // the old random survey/cutting loop. Legacy pending encounters above still
+  // resolve for compatible saved games.
+  if (state.humanAdaptationChapter > 0) return {};
 
   const attraction = woodAttraction(state);
   if (attraction <= 0 || state.humanCooldown > 0) return {};

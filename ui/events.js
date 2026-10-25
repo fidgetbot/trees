@@ -64,10 +64,12 @@ export function renderEventPhaseBody({ incidents = [] } = {}) {
   `;
 }
 
-export function renderFungalRumorBody({ body = '', presentation = '' } = {}) {
+export function renderFungalRumorBody({ body = '', paragraphs = null, presentation = '', unlock = null } = {}) {
   const tone = presentation === 'ominous' ? ' fungal-rumor-ominous' : '';
+  const messages = Array.isArray(paragraphs) && paragraphs.length ? paragraphs : [body];
   return `<section class="fungal-rumor${tone}">
-    <p class="fungal-rumor-message">${escapeHtml(body)}</p>
+    ${messages.map(message => `<p class="fungal-rumor-message">${escapeHtml(message)}</p>`).join('')}
+    ${unlock ? `<p class="action-unlock"><strong>New action${unlock.key === 'offspringRoles' ? 's' : ''}: ${escapeHtml(unlock.label)}</strong></p>` : ''}
   </section>`;
 }
 

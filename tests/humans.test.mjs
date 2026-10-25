@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { LIFE_STAGES, getNeighborStage, getRelationshipState } from '../core/constants.js';
 import {
   HUMAN_RUMORS,
+  HUMAN_ADAPTATION_CARDS,
+  advanceHumanAdaptation,
   advanceHumanSystem,
   advanceOffspringCrises,
   buildHumanEncounterDecision,
@@ -39,6 +41,75 @@ function state(overrides = {}) {
 }
 
 const deps = { getRelationshipState, getNeighborStage, random: () => 0 };
+
+test('the approved human adaptation cards preserve the reviewed language', () => {
+  assert.equal(HUMAN_ADAPTATION_CARDS.length, 21);
+  assert.match(HUMAN_ADAPTATION_CARDS[1].paragraphs[0], /ominously empty baskets/);
+  assert.match(HUMAN_ADAPTATION_CARDS[2].paragraphs[0], /taste will be foul/);
+  assert.match(HUMAN_ADAPTATION_CARDS[3].paragraphs[1], /Only the new, slick oils on your leaves/);
+  assert.equal(HUMAN_ADAPTATION_CARDS[8].paragraphs[1], 'The devices reach farther than any hand.');
+  assert.equal(HUMAN_ADAPTATION_CARDS[20].paragraphs.at(-1).endsWith('and the roots cannot understand why.'), true);
+});
+
+test('the prepared route advances through all twenty chapters in seasonal order', () => {
+  const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, pollinated: 1, humanAdaptationChapter: 0 });
+  assert.equal(advanceHumanAdaptation(s).chapter, 1);
+  assert.equal(advanceHumanAdaptation(s).chapter, 2);
+  assert.ok(s.announcedActionUnlocks.includes('toxicLeaves'));
+
+  s.seasonIndex = 1;
+  s.developing = 4;
+  s.toxicLeaves = 1;
+  assert.equal(advanceHumanAdaptation(s).chapter, 3);
+  assert.equal(advanceHumanAdaptation(s).chapter, 4);
+
+  s.year += 1;
+  s.seasonIndex = 0;
+  assert.equal(advanceHumanAdaptation(s).chapter, 5);
+  assert.equal(advanceHumanAdaptation(s).chapter, 6);
+  s.seasonIndex = 1;
+  s.thornDefense = 1;
+  assert.equal(advanceHumanAdaptation(s).chapter, 7);
+
+  s.seasonIndex = 0;
+  assert.equal(advanceHumanAdaptation(s).chapter, 8);
+  assert.equal(advanceHumanAdaptation(s).chapter, 9);
+  s.seasonIndex = 1;
+  s.interlacedCrown = true;
+  assert.equal(advanceHumanAdaptation(s).chapter, 10);
+  s.seasonIndex = 2;
+  assert.equal(advanceHumanAdaptation(s).chapter, 11);
+  assert.equal(advanceHumanAdaptation(s).chapter, 12);
+
+  s.year += 1;
+  s.humanResinPrimed = true;
+  assert.equal(advanceHumanAdaptation(s).chapter, 13);
+  assert.equal(s.humanResinPrimed, false);
+  assert.equal(advanceHumanAdaptation(s).chapter, 14);
+
+  s.lifeStage = LIFE_STAGES[5];
+  s.offspringRecords = [{ id: 'child', species: 'Pear', dead: false, stageScore: 600, health: 8, maxHealth: 8 }];
+  assert.equal(advanceHumanAdaptation(s).chapter, 15);
+  s.humanGroveRoles = { watchPath: 'child', staggerHarvest: 'child', closeApproach: 'child' };
+  s.seasonIndex = 1;
+  assert.equal(advanceHumanAdaptation(s).chapter, 16);
+  s.seasonIndex = 2;
+  assert.equal(advanceHumanAdaptation(s).chapter, 17);
+  assert.equal(advanceHumanAdaptation(s).chapter, 18);
+  s.groveRoused = true;
+  assert.equal(advanceHumanAdaptation(s).chapter, 19);
+  assert.equal(advanceHumanAdaptation(s).chapter, 20);
+});
+
+test('an unprepared fruit raid causes loss without teaching humans a new tactic', () => {
+  const s = state({ lifeStage: LIFE_STAGES[4], seasonIndex: 1, developing: 5, humanAdaptationChapter: 2, toxicLeaves: 0 });
+  assert.equal(advanceHumanAdaptation(s).chapter, 3);
+  const failure = advanceHumanAdaptation(s);
+  assert.equal(failure.failure, true);
+  assert.equal(s.humanAdaptationChapter, 2);
+  assert.equal(s.developing, 2);
+  assert.equal(advanceHumanAdaptation(s), null);
+});
 
 test('fungal rumors arrive in order and are not repeated', () => {
   const s = state({ lifeStage: LIFE_STAGES[2], humanStoryTurns: 5 });
@@ -137,6 +208,7 @@ test('nurturing supports a specific persistent child', () => {
     nurtureCount: 1,
     supportReceived: 0,
     rhizosphereBonus: 0,
+    humanRoles: [],
   });
 });
 
@@ -182,6 +254,7 @@ test('two genuinely supported mature allies qualify an Ancient grove', () => {
   const s = state({
     lifeStage: LIFE_STAGES[6],
     humanRumorIndex: HUMAN_RUMORS.length,
+    humanAdaptationChapter: 20,
     neighbors: [
       { species: 'Cherry', relation: 60, stageScore: mature, firstAidStageScore: 900, growthAidReceived: 2, helpGivenToThem: 2, health: 8, maxHealth: 10, dead: false },
       { species: 'Citrus', relation: 75, stageScore: mature + 100, firstAidStageScore: 800, growthAidReceived: 3, helpGivenToThem: 3, health: 9, maxHealth: 10, dead: false },

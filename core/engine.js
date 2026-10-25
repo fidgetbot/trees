@@ -1,5 +1,5 @@
 import { advanceNeighborEcology, collectNeighborDonations, collectRootDominionTransfer } from './neighbor-economy.js?rev=mature-grove-v1';
-import { createOffspringRecords } from './humans.js?rev=mature-grove-v1';
+import { createOffspringRecords } from './humans.js?rev=human-adaptation-v1';
 import { allyResourceWeight, getShadedOffspring, normalizePlayerRootDominionTarget, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=mature-grove-v1';
 import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';

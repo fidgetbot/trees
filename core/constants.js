@@ -14,8 +14,8 @@ export const LIFE_STAGES = [
   { name: 'Sprout', rank: 1, threshold: 100, unlocks: ['growLeaves'], damageMult: 1.5, popup: 'Your shell cracks. You push outward into the unknown.' },
   { name: 'Seedling', rank: 2, threshold: 300, unlocks: ['defense', 'connect', 'growTaller', 'shadeRival', 'stopShade', 'bark', 'requestHelp', 'aidAlly'], damageMult: 1.5, popup: 'Your roots find rich soil. You feel sturdy.' },
   { name: 'Sapling', rank: 3, threshold: 600, unlocks: ['growBranch', 'taproot', 'canopy', 'rhizosphere'], damageMult: 1.2, popup: 'Your woody fibers harden. You have become a Sapling!' },
-  { name: 'Young Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'growThorns', 'toxicLeaves'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
-  { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion', 'stopRootDominion'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
+  { name: 'Young Tree', rank: 4, threshold: 1000, unlocks: ['flower', 'toxicLeaves', 'growThorns', 'interlaceCrown', 'primeResin'], damageMult: 1, popup: 'You yearn skyward. Your canopy reaches for the light.' },
+  { name: 'Mature Tree', rank: 5, threshold: 3300, unlocks: ['massFlower', 'nurtureOffspring', 'shelterGrove', 'rootDominion', 'stopRootDominion', 'watchPath', 'staggerHarvest', 'closeApproach', 'rouseGrove'], damageMult: 0.8, popup: 'Fruits of your own hang heavy. The cycle turns.' },
   { name: 'Ancient', rank: 6, threshold: 10200, unlocks: ['mastYear'], damageMult: 0.5, popup: 'Lightning scar and fire ash — you endure. Ancient patience fills you. Now the survival of the wider grove will decide your legacy.' },
 ];
 
@@ -38,12 +38,21 @@ export const PROGRESSIVE_ACTION_UNLOCKS = {
   taproot: { stage: 'Sapling', turnsInStage: 1, label: 'after 1 turn as a Sapling' },
   canopy: { stage: 'Sapling', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Sapling' },
   rhizosphere: { stage: 'Sapling', turnsInStage: TURNS_PER_SEASON * 5, label: 'after 5 seasons as a Sapling' },
-  growThorns: { stage: 'Young Tree', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Young Tree' },
-  toxicLeaves: { stage: 'Young Tree', turnsInStage: TURNS_PER_SEASON * 2, label: 'after 2 seasons as a Young Tree' },
   nurtureOffspring: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON, label: 'after 1 season as a Mature Tree' },
   shelterGrove: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON * 2, label: 'after 2 seasons as a Mature Tree' },
   rootDominion: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON * 3, label: 'after 3 seasons as a Mature Tree' },
   stopRootDominion: { stage: 'Mature Tree', turnsInStage: TURNS_PER_SEASON * 3, label: 'after 3 seasons as a Mature Tree' },
+};
+
+export const HUMAN_STORY_ACTION_UNLOCKS = {
+  toxicLeaves: { chapter: 2, label: 'after the first ominous baskets appear' },
+  growThorns: { chapter: 6, label: 'after humans return with covered hands' },
+  interlaceCrown: { chapter: 9, label: 'after humans begin using poles and nets' },
+  primeResin: { chapter: 12, label: 'after saw teeth first touch your bark' },
+  watchPath: { chapter: 15, label: 'when younger roots begin answering' },
+  staggerHarvest: { chapter: 15, label: 'when younger roots begin answering' },
+  closeApproach: { chapter: 15, label: 'when younger roots begin answering' },
+  rouseGrove: { chapter: 18, label: 'when an organized crew threatens the whole grove' },
 };
 
 export const RELATIONSHIP_STATES = {

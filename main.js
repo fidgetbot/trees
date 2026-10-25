@@ -6,10 +6,11 @@ import {
   STAGE_BY_NAME,
   SEASONAL_ACTIONS,
   PROGRESSIVE_ACTION_UNLOCKS,
+  HUMAN_STORY_ACTION_UNLOCKS,
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=mature-grove-v1';
+} from './core/constants.js?rev=human-adaptation-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -27,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=mature-grove-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=human-adaptation-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -63,7 +64,7 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=mature-grove-v1';
+} from './core/humans.js?rev=human-adaptation-v1';
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=mature-grove-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
@@ -82,8 +83,8 @@ import {
 import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=mature-grove-v1';
 import { canNeighborShadePlayer, clearPlayerRootDominionTarget, getPlayerRootDominionTarget, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerRootDominionTarget, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=mature-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=action-flow-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=mature-grove-v1';
-import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=human-adaptation-v1';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=human-adaptation-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=mature-grove-v1';
@@ -92,9 +93,9 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=mature-grove-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=mature-grove-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=human-adaptation-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=mature-grove-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=human-adaptation-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -1504,11 +1505,11 @@ function getNeighborTree(idx) {
 }
 
 function isActionUnlocked(actionKey) {
-  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, HUMAN_STORY_ACTION_UNLOCKS);
 }
 
 function actionUnlockReason(actionKey) {
-  return getActionUnlockReason(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+  return getActionUnlockReason(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, HUMAN_STORY_ACTION_UNLOCKS);
 }
 
 function getAffordableActions() {
@@ -1823,6 +1824,9 @@ function showEventPhase() {
   if (humanUpdate.rumor) {
     addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
   }
+  if (humanUpdate.storyCard) {
+    addLog(`The Humans Learn: ${humanUpdate.storyCard.title}. ${humanUpdate.storyCard.body}`);
+  }
   const majorIncident = openMajorIncident(state, major, majorOutcome);
   const minorIncidents = minors.map(event => {
     if (event.existingIncidentId) {
@@ -1880,6 +1884,16 @@ function showEventPhase() {
     });
   };
 
+  if (humanUpdate.storyCard) {
+    showModal(humanUpdate.storyCard.title, renderFungalRumorBody(humanUpdate.storyCard), showNightJournal, {
+      record: false,
+      kind: 'ominous',
+      eyebrow: `The Humans Learn · Chapter ${humanUpdate.storyCard.chapter} of 20`,
+      sceneArt: humanUpdate.storyCard.artwork,
+      buttonLabel: 'Continue to Night Falls →',
+    });
+    return;
+  }
   if (humanUpdate.rumor) {
     const ominous = humanUpdate.rumor.presentation === 'ominous';
     showModal(humanUpdate.rumor.title, renderFungalRumorBody(humanUpdate.rumor), showNightJournal, {

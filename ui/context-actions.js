@@ -1,7 +1,8 @@
 const PLAYER_PRIORITY = [
   'extendRoot', 'growLeaves', 'growBranch', 'growTaller', 'bark', 'taproot',
   'canopy', 'flower', 'massFlower', 'rhizosphere', 'growThorns', 'toxicLeaves',
-  'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear', 'stopShade', 'stopRootDominion',
+  'interlaceCrown', 'primeResin', 'watchPath', 'staggerHarvest', 'closeApproach',
+  'rouseGrove', 'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear', 'stopShade', 'stopRootDominion',
 ];
 
 const TARGET_PRIORITIES = {
@@ -20,8 +21,8 @@ const TARGET_PRIORITIES = {
   aphids: ['resinReserve', 'bark', 'toxicLeaves'],
   'surface-crawlers': ['resinReserve', 'bark', 'toxicLeaves'],
   mites: ['resinReserve', 'bark', 'toxicLeaves'],
-  surveyors: ['bark', 'growThorns', 'toxicLeaves'],
-  loggers: ['bark', 'growThorns', 'toxicLeaves'],
+  surveyors: ['toxicLeaves', 'growThorns', 'interlaceCrown'],
+  loggers: ['primeResin', 'rouseGrove', 'bark'],
 };
 
 export function pickSceneTarget(targets, x, y) {
@@ -35,7 +36,7 @@ export function pickSceneTarget(targets, x, y) {
 
 export function isActionRelevantToTarget(action, target, state, getRelationshipState = () => ({ name: 'Neutral' })) {
   if (!target || target.type === 'player-tree') return true;
-  if (target.type === 'offspring-tree') return action.key === 'nurtureOffspring';
+  if (target.type === 'offspring-tree') return ['nurtureOffspring', 'watchPath', 'staggerHarvest', 'closeApproach'].includes(action.key);
   if (target.type === 'wildlife' || target.type === 'human-encounter') {
     return (TARGET_PRIORITIES[target.kind] || []).includes(action.key);
   }
@@ -91,7 +92,7 @@ export function getContextualActions({ target, usableActions, state, getRelation
   let priorities = [];
   if (!target || target.type === 'player-tree') priorities = playerPriority(state);
   else if (target.type === 'neighbor-tree') priorities = ['stopShade', 'stopRootDominion', 'aidAlly', 'requestHelp', 'connect', 'shadeRival', 'rootDominion'];
-  else if (target.type === 'offspring-tree') priorities = ['nurtureOffspring'];
+  else if (target.type === 'offspring-tree') priorities = ['nurtureOffspring', 'watchPath', 'staggerHarvest', 'closeApproach'];
   else priorities = TARGET_PRIORITIES[target.kind] || [];
 
   const priorityIndex = new Map(priorities.map((key, index) => [key, index]));

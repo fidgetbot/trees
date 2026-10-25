@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createEngine } from '../core/engine.js';
 import { createStartingNeighbors, advanceNeighborDeathCycle } from '../core/neighbors.js';
 import { createSeededRng } from '../core/random.js';
-import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
+import { SEASONS, LIFE_STAGES, STAGE_BY_NAME, SEASONAL_ACTIONS, PROGRESSIVE_ACTION_UNLOCKS, HUMAN_STORY_ACTION_UNLOCKS, getRelationshipState } from '../core/constants.js';
 import { SPECIES, getStageProgressIncrement, getSpeciesAdjustedCost, getDroughtResistance, getPollinatorChance } from '../core/species.js';
 import { computeCurrentLifeStage, currentStageRequirements, getNextStage, resetStageProgressCounters } from '../core/stages.js';
 import { createActions, getActionAvailability, getActionUnlockReason, hasStoredProtection, isActionUnlockedForState } from '../core/actions.js';
@@ -150,7 +150,7 @@ function getScaledCost(state, actionKey, baseCost) {
 }
 
 function isActionUnlocked(state, actionKey) {
-  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, HUMAN_STORY_ACTION_UNLOCKS);
 }
 
 function updateNeighborAliveState(state, neighbor) {
@@ -453,7 +453,7 @@ function createHeadlessGame(seed, speciesName) {
           getScaledCost: cost => getScaledCost(state, action.key, cost),
           canAfford: cost => canAfford(state, cost),
           isActionUnlocked: key => isActionUnlocked(state, key),
-          getUnlockReason: key => getActionUnlockReason(key, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS),
+          getUnlockReason: key => getActionUnlockReason(key, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, HUMAN_STORY_ACTION_UNLOCKS),
         }),
       }))
       .filter(entry => !entry.availability.hidden && entry.availability.usable);

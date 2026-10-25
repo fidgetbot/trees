@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=mature-grove-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=human-adaptation-v1';
 import { seasonProgress } from './seasons.js?rev=four-turn-seasons-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
@@ -161,11 +161,13 @@ export function updateHudUI({
       const rhizosphere = child.rhizosphereBonus > 0
         ? ` · enriched soil +${Math.floor(child.rhizosphereBonus * 4)} growth/season`
         : '';
+      const humanRoles = child.humanRoles?.length ? `<span>Grove roles · ${child.humanRoles.join(' · ')}</span>` : '';
       return `<div class="offspring-stat-card">
         <strong>${child.species} · ${child.stageName}</strong>
         <span>${child.health}/${child.maxHealth} health</span>
         <span>${progress}</span>
         <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'}${rhizosphere}</span>
+        ${humanRoles}
       </div>`;
     }).join('');
   }

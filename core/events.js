@@ -367,7 +367,8 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
     events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
   if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && Math.random() < 0.45) {
-    const threat = randomChoice(Object.values(FRUIT_THREATS));
+    const availableThreats = Object.values(FRUIT_THREATS).filter(threat => state.humanAdaptationChapter > 0 ? threat.type !== 'human' : true);
+    const threat = randomChoice(availableThreats);
     events.push({
       title: threat.type === 'human' ? 'Fruit Gatherers' : threat.type === 'bird' ? 'Fruit-Watching Birds' : 'Fruit Chewers',
       text: `${threat.warning} You have until the next event phase to strengthen your bark or defensive foliage. The danger is still gathering.`,
