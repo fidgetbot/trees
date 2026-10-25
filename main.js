@@ -10,7 +10,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=human-adaptation-v1';
+} from './core/constants.js?rev=human-pacing-v2';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -28,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=menu-housekeeping-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=human-pacing-v2';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -56,16 +56,19 @@ import {
 } from './core/diplomacy.js?rev=mature-grove-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
+  advanceHumanAdaptationTurnStart,
   advanceHumanSystem,
   advanceOffspringCrises,
   buildConservationDecision,
   buildHumanEncounterDecision,
+  claimFirstFlowerWarning,
+  claimHumanActionPayoff,
   describeOffspring,
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=human-adaptation-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=mature-grove-v1';
+} from './core/humans.js?rev=human-pacing-v2';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=human-pacing-v2';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
   ensureIncidentState,
@@ -1084,6 +1087,35 @@ function maybeShowMilestone(key, title, body, onContinue) {
 }
 
 function maybeTriggerActionMilestone(actionKey) {
+  if (actionKey === 'flower' || actionKey === 'massFlower' || actionKey === 'mastYear') {
+    const warning = claimFirstFlowerWarning(state);
+    if (warning) {
+      addLog(`The Humans Learn: ${warning.title}. ${warning.body}`);
+      showModal(warning.title, renderFungalRumorBody(warning), () => resumeTurnFlow(), {
+        record: false,
+        kind: 'ominous',
+        eyebrow: `The Humans Learn · Chapter ${warning.chapter} of 20`,
+        sceneArt: warning.artwork,
+        buttonLabel: 'Continue',
+        waitForGrowth: false,
+      });
+      return true;
+    }
+  }
+
+  const adaptation = claimHumanActionPayoff(state, actionKey);
+  if (adaptation) {
+    addLog(`Chosen adaptation: ${adaptation.title}. ${adaptation.body}`);
+    showModal(adaptation.title, renderFungalRumorBody(adaptation), () => resumeTurnFlow(), {
+      record: false,
+      kind: 'growth',
+      eyebrow: 'A chosen adaptation',
+      buttonLabel: 'Continue',
+      waitForGrowth: false,
+    });
+    return true;
+  }
+
   if (actionKey === 'extendRoot' && state.rootZones === 1) {
     return maybeShowMilestone('firstRoot', 'First Root', 'Your first root slips into the soil, tasting darkness, moisture, and promise.', () => {
       resumeTurnFlow();
@@ -1818,6 +1850,15 @@ function showEventPhase() {
   if (humanUpdate.storyCard) {
     addLog(`The Humans Learn: ${humanUpdate.storyCard.title}. ${humanUpdate.storyCard.body}`);
   }
+  if (humanUpdate.storyReminder) {
+    addLog(`${humanUpdate.storyReminder.title}: ${humanUpdate.storyReminder.body}`);
+    minors.unshift({
+      kind: 'human-story-reminder',
+      title: humanUpdate.storyReminder.title,
+      text: humanUpdate.storyReminder.body,
+      effect: 'flavor',
+    });
+  }
   const majorIncident = openMajorIncident(state, major, majorOutcome);
   const minorIncidents = minors.map(event => {
     if (event.existingIncidentId) {
@@ -1831,6 +1872,7 @@ function showEventPhase() {
     }
     return openEventIncident(state, event, {
       kind: event.kind,
+      title: event.title,
       subject: event.subject,
       response: event.response,
       responseMode: event.responseMode,
@@ -1915,6 +1957,7 @@ function advanceTurn() {
       if (fate.sprouted > 0) addLog(`${fate.sprouted} ${state.selectedSpecies} offspring tree${fate.sprouted !== 1 ? 's' : ''} took root nearby as allies.`);
       if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
     },
+    onTurnStarted: () => advanceHumanAdaptationTurnStart(state),
     onAfterAdvance: () => {},
   });
 }

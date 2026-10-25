@@ -54,6 +54,14 @@ test('Young Tree and Mature Tree action bundles are dispersed across stages and 
   assert.equal(unlocked('rouseGrove', 0, matureTree, 18), true);
 });
 
+test('human-story action announcements describe biological possibilities without naming humans', () => {
+  const keys = ['toxicLeaves', 'growThorns', 'interlaceCrown', 'primeResin', 'watchPath', 'staggerHarvest', 'closeApproach', 'rouseGrove'];
+  for (const key of keys) {
+    assert.doesNotMatch(ACTION_UNLOCK_EXPLANATIONS[key], /humans?/i, key);
+    assert.doesNotMatch(HUMAN_STORY_ACTION_UNLOCKS[key].label, /humans?/i, key);
+  }
+});
+
 test('a Mature time-only growth nudge is claimed once while exact progress remains available', () => {
   const state = { lifeStage: matureTree, turnsInStage: 4, majorEventsSurvivedInStage: 2, allies: 1, growthNudgeCooldown: 0 };
   const first = claimGrowthNudge(state);

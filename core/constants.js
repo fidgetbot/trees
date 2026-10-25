@@ -45,14 +45,14 @@ export const PROGRESSIVE_ACTION_UNLOCKS = {
 };
 
 export const HUMAN_STORY_ACTION_UNLOCKS = {
-  toxicLeaves: { chapter: 2, label: 'after the first ominous baskets appear' },
-  growThorns: { chapter: 6, label: 'after humans return with covered hands' },
-  interlaceCrown: { chapter: 9, label: 'after humans begin using poles and nets' },
-  primeResin: { chapter: 12, label: 'after saw teeth first touch your bark' },
-  watchPath: { chapter: 15, label: 'when younger roots begin answering' },
-  staggerHarvest: { chapter: 15, label: 'when younger roots begin answering' },
-  closeApproach: { chapter: 15, label: 'when younger roots begin answering' },
-  rouseGrove: { chapter: 18, label: 'when an organized crew threatens the whole grove' },
+  toxicLeaves: { chapter: 2, label: 'when swelling fruit reveals a new chemical possibility' },
+  growThorns: { chapter: 6, label: 'when tender shoots discover a sharper form' },
+  interlaceCrown: { chapter: 9, label: 'when flexible shoots discover how to close the crown' },
+  primeResin: { chapter: 12, label: 'when the trunk learns to hold resin beneath its bark' },
+  watchPath: { chapter: 15, label: 'when younger roots are ready to answer' },
+  staggerHarvest: { chapter: 15, label: 'when younger roots are ready to answer' },
+  closeApproach: { chapter: 15, label: 'when younger roots are ready to answer' },
+  rouseGrove: { chapter: 18, label: 'when the prepared grove can answer as one' },
 };
 
 export const RELATIONSHIP_STATES = {

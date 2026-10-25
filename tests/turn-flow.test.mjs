@@ -64,6 +64,23 @@ test('season change pauses the advanced turn until its card is acknowledged', ()
   assert.equal(gatherings, 1);
 });
 
+test('turn-start story updates run after the calendar advances and before the season card', () => {
+  const state = turnState({ seasonIndex: 0, turnInSeason: TURNS_PER_SEASON });
+  const order = [];
+  const engine = turnEngine({
+    presentSeasonChange(_context, onContinue) { order.push('season-card'); onContinue(); },
+    showResourcePhase() { order.push('actions'); },
+  });
+  engine.advanceTurn(state, {
+    onTurnStarted({ seasonChanged, season }) {
+      assert.equal(seasonChanged, true);
+      assert.equal(season.name, 'Summer');
+      order.push('story-unlock');
+    },
+  });
+  assert.deepEqual(order, ['story-unlock', 'season-card', 'actions']);
+});
+
 test('the third turn advances to turn four without changing season', () => {
   const state = turnState({ seasonIndex: 1, turnInSeason: TURNS_PER_SEASON - 1 });
   let seasonCards = 0;

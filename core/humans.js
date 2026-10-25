@@ -145,6 +145,132 @@ export const HUMAN_ADAPTATION_CARDS = [
   ] },
 ];
 
+const HUMAN_ADAPTATION_PACING_VERSION = 2;
+
+const HUMAN_ADAPTATION_WARNINGS = {
+  1: {
+    unlockChapter: 2,
+    actionKeys: ['toxicLeaves'],
+    unlockSeason: 1,
+    reminder: {
+      title: 'The Baskets Remain',
+      body: 'At the grove’s edge, familiar footprints deepen. The ominously empty baskets have not gone far.',
+    },
+  },
+  5: {
+    unlockChapter: 6,
+    actionKeys: ['growThorns'],
+    unlockSeason: 1,
+    reminder: {
+      title: 'Stitched Material',
+      body: 'Fresh tracks cross the old path. A scrap of thin stitched material catches on a low twig.',
+    },
+  },
+  8: {
+    unlockChapter: 9,
+    actionKeys: ['interlaceCrown'],
+    unlockSeason: 1,
+    reminder: {
+      title: 'Marks in the Soil',
+      body: 'Long straight impressions score the soil beyond your crown. A hooked end has dragged through the fallen leaves.',
+    },
+  },
+  11: {
+    unlockChapter: 12,
+    actionKeys: ['primeResin'],
+    unlockSeason: 1,
+    requireLaterYear: true,
+    reminder: {
+      title: 'Metal at the Grove’s Edge',
+      body: 'The sharp metallic scent returns with the wind. Shallow cuts appear in fallen wood near the grove’s edge.',
+    },
+  },
+  14: {
+    unlockChapter: 15,
+    actionKeys: ['watchPath', 'staggerHarvest', 'closeApproach'],
+    unlockSeason: 1,
+    requiresOffspring: true,
+    reminder: {
+      title: 'Widening Paths',
+      body: 'Several old approaches have been cleared at once. Separate trails now converge toward the grove.',
+    },
+  },
+  17: {
+    unlockChapter: 18,
+    actionKeys: ['rouseGrove'],
+    unlockSeason: 0,
+    requireLaterYear: true,
+    requiresRoles: true,
+    reminder: {
+      title: 'Marks Around the Grove',
+      body: 'New marks surround trunks, open ground, and the places where roots lift the soil. The pattern now encompasses the whole grove.',
+    },
+  },
+};
+
+const HUMAN_ACTION_PAYOFFS = {
+  toxicLeaves: 2,
+  growThorns: 6,
+  interlaceCrown: 9,
+  primeResin: 12,
+  watchPath: 15,
+  staggerHarvest: 15,
+  closeApproach: 15,
+  rouseGrove: 18,
+};
+
+function adaptationSeasonSerial(state) {
+  return (Number(state.year || 0) * 4) + Number(state.seasonIndex || 0);
+}
+
+function initializeAdaptationPacing(state) {
+  state.humanAdaptationPacing ||= {
+    warningChapter: null,
+    warningTurn: null,
+    warningSeasonSerial: null,
+    warningYear: null,
+    reminderShown: false,
+    unlockedAtTurn: {},
+    payoffShown: {},
+    finaleSeasonSerial: null,
+  };
+  state.humanAdaptationPacing.unlockedAtTurn ||= {};
+  state.humanAdaptationPacing.payoffShown ||= {};
+
+  if (state.humanAdaptationPacingVersion !== HUMAN_ADAPTATION_PACING_VERSION) {
+    // Saves from the original twenty-card release already saw each automatic
+    // adaptation card that their chapter passed. Do not replay those payoffs.
+    const chapter = Number(state.humanAdaptationChapter || 0);
+    const seenByChapter = [
+      ['toxicLeaves', 2],
+      ['growThorns', 6],
+      ['interlaceCrown', 9],
+      ['primeResin', 12],
+      ['offspringRoles', 15],
+      ['rouseGrove', 18],
+    ];
+    if (chapter > 0) {
+      for (const [key, threshold] of seenByChapter) {
+        if (chapter >= threshold) state.humanAdaptationPacing.payoffShown[key] = true;
+      }
+    }
+    state.humanAdaptationPacingVersion = HUMAN_ADAPTATION_PACING_VERSION;
+  }
+
+  return state.humanAdaptationPacing;
+}
+
+function registerAdaptationWarning(state, chapter) {
+  const warning = HUMAN_ADAPTATION_WARNINGS[chapter];
+  if (!warning) return;
+  const pacing = initializeAdaptationPacing(state);
+  pacing.warningChapter = chapter;
+  pacing.warningTurn = Number(state.turnsElapsed || 0);
+  pacing.warningSeasonSerial = adaptationSeasonSerial(state);
+  pacing.warningYear = Number(state.year || 0);
+  pacing.reminderShown = false;
+}
+
 export function ensureHumanState(state) {
   migrateLegacyIncidentState(state);
   state.offspringRecords ||= [];
@@ -168,6 +294,7 @@ export function ensureHumanState(state) {
   state.interlacedCrown ??= false;
   state.humanResinPrimed ??= false;
   state.groveRoused ??= false;
+  initializeAdaptationPacing(state);
   return state;
 }
 
@@ -587,27 +714,94 @@ export function activeHumanGroveRoles(state) {
   return ROLE_KEYS.filter(role => hasLivingRole(state, role));
 }
 
-function markStoryActionAnnounced(state, unlock) {
-  if (!unlock) return;
-  const keys = unlock.key === 'offspringRoles' ? ROLE_KEYS : [unlock.key];
-  state.announcedActionUnlocks ||= [];
-  for (const key of keys) {
-    if (!state.announcedActionUnlocks.includes(key)) state.announcedActionUnlocks.push(key);
-  }
-}
-
 function displayAdaptationCard(state, chapter) {
   const card = HUMAN_ADAPTATION_CARDS[chapter];
   if (!card) return null;
   state.humanAdaptationChapter = chapter;
-  markStoryActionAnnounced(state, card.unlock);
+  registerAdaptationWarning(state, chapter);
+  if (chapter === 19) initializeAdaptationPacing(state).finaleSeasonSerial = adaptationSeasonSerial(state);
   return {
     ...card,
+    unlock: null,
     chapter,
     body: card.paragraphs.join(' '),
     presentation: 'ominous',
     artwork: chapter >= 11 ? 'human-logger' : 'human-surveyor',
   };
+}
+
+function displayAdaptationPayoff(state, chapter) {
+  const card = HUMAN_ADAPTATION_CARDS[chapter];
+  if (!card) return null;
+  return {
+    ...card,
+    unlock: null,
+    chapter,
+    body: card.paragraphs.join(' '),
+    presentation: 'growth',
+  };
+}
+
+export function claimFirstFlowerWarning(state) {
+  ensureHumanState(state);
+  const season = ['Spring', 'Summer', 'Autumn', 'Winter'][state.seasonIndex] || 'Spring';
+  if ((state.humanAdaptationChapter || 0) !== 0
+    || (state.lifeStage?.rank || 0) < 4
+    || season !== 'Spring'
+    || ((state.flowers || 0) <= 0 && (state.pollinated || 0) <= 0)) return null;
+  return displayAdaptationCard(state, 1);
+}
+
+export function claimHumanActionPayoff(state, actionKey) {
+  ensureHumanState(state);
+  const chapter = HUMAN_ACTION_PAYOFFS[actionKey];
+  if (!chapter || (state.humanAdaptationChapter || 0) < chapter) return null;
+  const pacing = state.humanAdaptationPacing;
+  const payoffKey = chapter === 15 ? 'offspringRoles' : actionKey;
+  if (pacing.payoffShown[payoffKey]) return null;
+  pacing.payoffShown[payoffKey] = true;
+  return displayAdaptationPayoff(state, chapter);
+}
+
+function claimAdaptationReminder(state) {
+  const pacing = initializeAdaptationPacing(state);
+  const warning = HUMAN_ADAPTATION_WARNINGS[state.humanAdaptationChapter];
+  if (!warning) return null;
+  if (pacing.warningChapter !== state.humanAdaptationChapter) registerAdaptationWarning(state, state.humanAdaptationChapter);
+  if (pacing.reminderShown || Number(state.turnsElapsed || 0) <= Number(pacing.warningTurn || 0)) return null;
+  pacing.reminderShown = true;
+  return { ...warning.reminder, kind: 'human-story-reminder' };
+}
+
+export function advanceHumanAdaptationTurnStart(state) {
+  ensureHumanState(state);
+  const chapter = state.humanAdaptationChapter;
+  const warning = HUMAN_ADAPTATION_WARNINGS[chapter];
+  if (!warning) return false;
+  const pacing = state.humanAdaptationPacing;
+  if (pacing.warningChapter !== chapter) registerAdaptationWarning(state, chapter);
+  if (!pacing.reminderShown) return false;
+  const currentSerial = adaptationSeasonSerial(state);
+  if (currentSerial <= Number(pacing.warningSeasonSerial)) return false;
+  if (Number(state.seasonIndex || 0) !== warning.unlockSeason) return false;
+  if (warning.requireLaterYear && Number(state.year || 0) <= Number(pacing.warningYear || 0)) return false;
+  if (warning.requiresOffspring && ((state.lifeStage?.rank || 0) < 5 || !(state.offspringRecords || []).some(child => !child.dead))) return false;
+  if (warning.requiresRoles && activeHumanGroveRoles(state).length < 3) return false;
+
+  state.humanAdaptationChapter = warning.unlockChapter;
+  for (const key of warning.actionKeys) pacing.unlockedAtTurn[key] = Number(state.turnsElapsed || 0);
+  pacing.warningChapter = null;
+  pacing.warningTurn = null;
+  pacing.warningSeasonSerial = null;
+  pacing.warningYear = null;
+  pacing.reminderShown = false;
+  return true;
+}
+
+function actionWindowElapsed(state, actionKey) {
+  const unlockedAt = initializeAdaptationPacing(state).unlockedAtTurn[actionKey];
+  if (unlockedAt == null) return true;
+  return Number(state.turnsElapsed || 0) >= Number(unlockedAt) + 1;
 }
 
 function onceThisYear(state, key) {
@@ -643,9 +837,11 @@ export function advanceHumanAdaptation(state) {
   const rank = state.lifeStage?.rank || 0;
   const fruitReady = (state.developing || 0) > 0;
 
+  const reminder = claimAdaptationReminder(state);
+  if (reminder) return reminder;
+
   if (chapter === 0 && rank >= 4 && season === 'Spring' && ((state.flowers || 0) > 0 || (state.pollinated || 0) > 0)) return displayAdaptationCard(state, 1);
-  if (chapter === 1) return displayAdaptationCard(state, 2);
-  if (chapter === 2 && season === 'Summer' && fruitReady && onceThisYear(state, 'open-hand')) {
+  if (chapter === 2 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'toxicLeaves') && onceThisYear(state, 'open-hand')) {
     state.humanAdaptationOpenHandPrepared = (state.toxicLeaves || 0) > 0;
     return displayAdaptationCard(state, 3);
   }
@@ -659,8 +855,7 @@ export function advanceHumanAdaptation(state) {
     });
   }
   if (chapter === 4 && season === 'Spring' && state.year > (state.humanAdaptationLastAttempt['open-hand'] || 0)) return displayAdaptationCard(state, 5);
-  if (chapter === 5) return displayAdaptationCard(state, 6);
-  if (chapter === 6 && season === 'Summer' && fruitReady && onceThisYear(state, 'covered-hands')) {
+  if (chapter === 6 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'growThorns') && onceThisYear(state, 'covered-hands')) {
     if ((state.thornDefense || 0) > 0) return displayAdaptationCard(state, 7);
     const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
     return failedAdaptationAttempt(state, {
@@ -669,8 +864,7 @@ export function advanceHumanAdaptation(state) {
     });
   }
   if (chapter === 7 && season === 'Spring') return displayAdaptationCard(state, 8);
-  if (chapter === 8) return displayAdaptationCard(state, 9);
-  if (chapter === 9 && season === 'Summer' && fruitReady && onceThisYear(state, 'long-reach')) {
+  if (chapter === 9 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'interlaceCrown') && onceThisYear(state, 'long-reach')) {
     if (state.interlacedCrown) return displayAdaptationCard(state, 10);
     const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
     return failedAdaptationAttempt(state, {
@@ -679,8 +873,7 @@ export function advanceHumanAdaptation(state) {
     });
   }
   if (chapter === 10 && season === 'Autumn') return displayAdaptationCard(state, 11);
-  if (chapter === 11) return displayAdaptationCard(state, 12);
-  if (chapter === 12 && season === 'Autumn' && onceThisYear(state, 'saws')) {
+  if (chapter === 12 && season === 'Autumn' && actionWindowElapsed(state, 'primeResin') && onceThisYear(state, 'saws')) {
     if (state.humanResinPrimed) {
       state.humanResinPrimed = false;
       return displayAdaptationCard(state, 13);
@@ -690,13 +883,11 @@ export function advanceHumanAdaptation(state) {
       paragraphs: ['The saw runs cleanly through unprepared wood. Before the humans withdraw, a deep wound crosses your trunk.', 'You lose 2 health and one level of trunk growth. They will return with the same saws next autumn.'],
     });
   }
-  if (chapter === 13) return displayAdaptationCard(state, 14);
-  if (chapter === 14 && rank >= 5 && (state.offspringRecords || []).some(child => !child.dead)) return displayAdaptationCard(state, 15);
-  if (chapter === 15 && season === 'Summer' && fruitReady && activeHumanGroveRoles(state).length === 3) return displayAdaptationCard(state, 16);
+  if (chapter === 13 && season === 'Spring') return displayAdaptationCard(state, 14);
+  if (chapter === 15 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'watchPath') && activeHumanGroveRoles(state).length === 3) return displayAdaptationCard(state, 16);
   if (chapter === 16 && season === 'Autumn') return displayAdaptationCard(state, 17);
-  if (chapter === 17) return displayAdaptationCard(state, 18);
-  if (chapter === 18 && season === 'Autumn' && state.groveRoused) return displayAdaptationCard(state, 19);
-  if (chapter === 19) return displayAdaptationCard(state, 20);
+  if (chapter === 18 && season === 'Autumn' && actionWindowElapsed(state, 'rouseGrove') && state.groveRoused) return displayAdaptationCard(state, 19);
+  if (chapter === 19 && adaptationSeasonSerial(state) >= Number(initializeAdaptationPacing(state).finaleSeasonSerial || 0) + 2) return displayAdaptationCard(state, 20);
   return null;
 }
 
@@ -717,8 +908,9 @@ export function advanceHumanSystem(state, deps = {}) {
     return { decision: buildHumanEncounterDecision(state, activeHumanIncident.meta?.encounter), incidentId: activeHumanIncident.id };
   }
 
-  const storyCard = advanceHumanAdaptation(state);
-  if (storyCard) return { storyCard };
+  const adaptationUpdate = advanceHumanAdaptation(state);
+  if (adaptationUpdate?.kind === 'human-story-reminder') return { storyReminder: adaptationUpdate };
+  if (adaptationUpdate) return { storyCard: adaptationUpdate };
 
   const protection = updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
   if (protection.eligible && !state.victoryAchieved) {

@@ -5,11 +5,14 @@ import {
   HUMAN_RUMORS,
   HUMAN_ADAPTATION_CARDS,
   advanceHumanAdaptation,
+  advanceHumanAdaptationTurnStart,
   advanceHumanSystem,
   advanceOffspringCrises,
   buildHumanEncounterDecision,
   createOffspringRecords,
   createOffspringCrisis,
+  claimFirstFlowerWarning,
+  claimHumanActionPayoff,
   describeOffspring,
   growOffspringRecords,
   getProtectedCompanions,
@@ -52,53 +55,120 @@ test('the approved human adaptation cards preserve the reviewed language', () =>
 });
 
 test('the prepared route advances through all twenty chapters in seasonal order', () => {
-  const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, pollinated: 1, humanAdaptationChapter: 0 });
-  assert.equal(advanceHumanAdaptation(s).chapter, 1);
-  assert.equal(advanceHumanAdaptation(s).chapter, 2);
-  assert.ok(s.announcedActionUnlocks.includes('toxicLeaves'));
-
+  const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, pollinated: 1, humanAdaptationChapter: 0, turnsElapsed: 20 });
+  assert.equal(claimFirstFlowerWarning(s).chapter, 1);
+  assert.equal(advanceHumanAdaptation(s), null);
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
   s.seasonIndex = 1;
-  s.developing = 4;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 2);
+  assert.equal(s.announcedActionUnlocks?.includes('toxicLeaves') || false, false);
   s.toxicLeaves = 1;
+  assert.equal(claimHumanActionPayoff(s, 'toxicLeaves').chapter, 2);
+  assert.equal(claimHumanActionPayoff(s, 'toxicLeaves'), null);
+  s.developing = 4;
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 3);
   assert.equal(advanceHumanAdaptation(s).chapter, 4);
 
   s.year += 1;
   s.seasonIndex = 0;
   assert.equal(advanceHumanAdaptation(s).chapter, 5);
-  assert.equal(advanceHumanAdaptation(s).chapter, 6);
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
   s.seasonIndex = 1;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 6);
   s.thornDefense = 1;
+  assert.equal(claimHumanActionPayoff(s, 'growThorns').chapter, 6);
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 7);
 
+  s.year += 1;
   s.seasonIndex = 0;
   assert.equal(advanceHumanAdaptation(s).chapter, 8);
-  assert.equal(advanceHumanAdaptation(s).chapter, 9);
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
   s.seasonIndex = 1;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 9);
   s.interlacedCrown = true;
+  assert.equal(claimHumanActionPayoff(s, 'interlaceCrown').chapter, 9);
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 10);
   s.seasonIndex = 2;
   assert.equal(advanceHumanAdaptation(s).chapter, 11);
-  assert.equal(advanceHumanAdaptation(s).chapter, 12);
-
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
   s.year += 1;
+  s.seasonIndex = 1;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 12);
   s.humanResinPrimed = true;
+  assert.equal(claimHumanActionPayoff(s, 'primeResin').chapter, 12);
+  s.seasonIndex = 2;
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 13);
   assert.equal(s.humanResinPrimed, false);
-  assert.equal(advanceHumanAdaptation(s).chapter, 14);
 
+  s.year += 1;
+  s.seasonIndex = 0;
+  assert.equal(advanceHumanAdaptation(s).chapter, 14);
   s.lifeStage = LIFE_STAGES[5];
   s.offspringRecords = [{ id: 'child', species: 'Pear', dead: false, stageScore: 600, health: 8, maxHealth: 8 }];
-  assert.equal(advanceHumanAdaptation(s).chapter, 15);
-  s.humanGroveRoles = { watchPath: 'child', staggerHarvest: 'child', closeApproach: 'child' };
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
   s.seasonIndex = 1;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 15);
+  s.humanGroveRoles = { watchPath: 'child', staggerHarvest: 'child', closeApproach: 'child' };
+  assert.equal(claimHumanActionPayoff(s, 'watchPath').chapter, 15);
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 16);
   s.seasonIndex = 2;
   assert.equal(advanceHumanAdaptation(s).chapter, 17);
-  assert.equal(advanceHumanAdaptation(s).chapter, 18);
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptation(s).kind, 'human-story-reminder');
+  s.year += 1;
+  s.seasonIndex = 0;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 18);
   s.groveRoused = true;
+  assert.equal(claimHumanActionPayoff(s, 'rouseGrove').chapter, 18);
+  s.seasonIndex = 2;
+  s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 19);
+  s.year += 1;
+  s.seasonIndex = 0;
   assert.equal(advanceHumanAdaptation(s).chapter, 20);
+});
+
+test('the first ominous baskets appear only after the first real flower', () => {
+  const s = state({ lifeStage: LIFE_STAGES[4], flowers: 0, pollinated: 0, humanAdaptationChapter: 0, turnsElapsed: 12 });
+  assert.equal(claimFirstFlowerWarning(s), null);
+  s.flowers = 1;
+  assert.equal(claimFirstFlowerWarning(s).title, 'Baskets Beneath the Blossoms');
+  assert.equal(claimFirstFlowerWarning(s), null);
+});
+
+test('story counters unlock only after an indirect reminder and a later season', () => {
+  const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, humanAdaptationChapter: 0, turnsElapsed: 8 });
+  claimFirstFlowerWarning(s);
+  s.seasonIndex = 1;
+  s.turnsElapsed += 1;
+  assert.equal(advanceHumanAdaptationTurnStart(s), false);
+  const reminder = advanceHumanAdaptation(s);
+  assert.equal(reminder.kind, 'human-story-reminder');
+  assert.doesNotMatch(reminder.body, /humans?/i);
+  assert.equal(advanceHumanAdaptationTurnStart(s), true);
+  assert.equal(s.humanAdaptationChapter, 2);
 });
 
 test('an unprepared fruit raid causes loss without teaching humans a new tactic', () => {

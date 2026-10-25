@@ -386,7 +386,7 @@ export function createEngine(deps) {
   }
 
   function advanceTurn(state, hooks = {}) {
-    const { onDeath, onAfterSpringViability, onAfterAdvance } = hooks;
+    const { onDeath, onAfterSpringViability, onTurnStarted, onAfterAdvance } = hooks;
     if (state.health <= 0) return onDeath?.() ?? false;
     state.turnsElapsed = (state.turnsElapsed || 0) + 1;
 
@@ -406,6 +406,7 @@ export function createEngine(deps) {
       }
     }
     if (seasonChanged) expireUnpollinatedFlowersOutsideSpring(state, currentSeason(state).name);
+    onTurnStarted?.({ seasonChanged, season: currentSeason(state), year: state.year });
 
     const continueAdvancedTurn = () => {
       if (currentSeason(state).name === 'Spring' && seasonChanged) {

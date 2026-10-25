@@ -12,6 +12,7 @@ import { applyRelationshipDelta, updateAlliesCount, compareConflictPower as comp
 import { recordDamageForState, healthWarningBandForState, deathFlavorForCause } from '../core/survival.js';
 import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from '../core/growth.js';
 import {
+  advanceHumanAdaptationTurnStart,
   advanceHumanSystem,
   growOffspringRecords,
   nurtureOffspring,
@@ -609,7 +610,10 @@ function createHeadlessGame(seed, speciesName) {
       engine.continueAfterEvent(state, {
         processIncidentResponses: done => { processSimulationIncidentResponses(); done?.(); },
         maybeShowHealthWarning: advance => maybeShowHealthWarning(advance),
-        advanceTurn: () => engine.advanceTurn(state, { onDeath: () => engine.handleDeath(state) }),
+        advanceTurn: () => engine.advanceTurn(state, {
+          onDeath: () => engine.handleDeath(state),
+          onTurnStarted: () => advanceHumanAdaptationTurnStart(state),
+        }),
         showTaprootResilience: continueFlow => continueFlow?.(),
       });
 
