@@ -17,8 +17,11 @@ export function buildPopupLogMessage(title, body, maxLength = 220) {
   return `${title}: ${excerpt}${text.length > excerpt.length ? '…' : ''}`;
 }
 
-export function openModalSurface(els, { kind = '', eyebrow = '', sceneArt } = {}) {
+export function openModalSurface(els, { kind = '', sceneArt } = {}) {
   els.modal.dataset.kind = kind;
+  // Message cards begin with their title. Remove the legacy contextual
+  // eyebrow even if an older cached document still contains its element.
+  els.modal.querySelector('#modal-kicker')?.remove();
   // The same surface is reused by encounters, chapters and gathering.
   let heading = els.modal.querySelector('.modal-heading');
   if (!heading) {
@@ -27,16 +30,13 @@ export function openModalSurface(els, { kind = '', eyebrow = '', sceneArt } = {}
     const copy = document.createElement('div');
     copy.className = 'modal-heading-copy';
     els.modalTitle.before(heading);
-    copy.append(els.modal.querySelector('#modal-kicker'), els.modalTitle);
+    copy.append(els.modalTitle);
     heading.append(copy);
   }
   heading.querySelector('.encounter-art')?.remove();
   const art = renderEncounterArt(sceneArt);
   heading.classList.toggle('has-encounter-art', !!art);
   if (art) heading.insertAdjacentHTML('beforeend', art);
-  const kicker = els.modal.querySelector('#modal-kicker');
-  kicker.textContent = eyebrow;
-  kicker.classList.toggle('hidden', !eyebrow);
   els.modal.classList.remove('hidden');
   els.modal.querySelector('.modal-card').scrollTop = 0;
   // Keep keyboard navigation in the active dialog, including choice dialogs.

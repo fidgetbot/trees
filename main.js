@@ -88,8 +88,8 @@ import { canNeighborShadePlayer, clearPlayerRootDominionTarget, getPlayerRootDom
 import { renderActionPanels } from './ui/actions.js?rev=action-flow-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=human-adaptation-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=human-adaptation-v1';
-import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
-import { showChoiceModalUI } from './ui/choice-modal.js?rev=ally-offers-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=title-first-messages-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=title-first-messages-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=mature-grove-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';

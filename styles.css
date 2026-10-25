@@ -1812,7 +1812,6 @@ body:not(.game-started) .layout { display: block; width: min(440px, 100%); paddi
 .modal { padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: #26332666; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
 .modal-card { --panel: #f8f4e7; --panel-alt: #eeeddd; --text: #364635; --muted: #69715e; --accent: #4b6646; --good: #4f7044; --warn: #927025; --bad: #a44c3f; position: relative; width: min(540px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; padding: 30px; border: 1px solid #fff9; border-radius: 26px; background: radial-gradient(ellipse at top right, #e6e9d887, transparent 65%), #f8f4e7; color: var(--text); box-shadow: 0 28px 90px #15211540, inset 0 0 0 5px #fff3; }
-#modal-kicker { margin: 0 0 9px; }
 #modal-title { margin: 0 0 22px; color: #354d36; font: 36px/1.12 Georgia, 'Times New Roman', serif; letter-spacing: -.035em; text-wrap: balance; }
 #modal-body { font-size: var(--ui-font-floor); line-height: 1.6; }
 #modal-body > p:first-child { margin-top: 0; }
@@ -1851,7 +1850,6 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
 .modal[data-kind="ominous"] #modal-button:hover { background: #7e5545; }
 .fungal-rumor { margin: 2px 0 8px; padding: 18px 19px 20px; border: 1px solid #7c876638; border-radius: 14px; background: #f3f0e3a8; }
 #modal-body .fungal-rumor-message { margin: 0; color: #596351; font: italic 20px/1.58 Georgia, 'Times New Roman', serif; }
-.modal[data-kind="ominous"] #modal-kicker { color: #aa9c86; }
 .modal[data-kind="ominous"] .fungal-rumor {
   border-color: #aa927047;
   background:
@@ -1861,7 +1859,6 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
   box-shadow: inset 0 0 30px #0507054d;
 }
 .modal[data-kind="ominous"] #modal-body .fungal-rumor-message { color: #d6ccbb; }
-.modal[data-kind="growth"] #modal-kicker { padding-right: 90px; }
 .modal[data-kind="growth"] #modal-title { padding-right: 100px; margin-bottom: 34px; font-size: 46px; }
 .growth-portrait { position: absolute; top: 18px; right: 24px; width: 94px; height: 112px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(ellipse, #dce3cba6, transparent 72%); pointer-events: none; }
 .growth-portrait img, .growth-portrait > svg { display: block; width: 84%; height: 112px; max-height: 100%; min-height: 0; object-fit: contain; }
@@ -1913,7 +1910,6 @@ body:has(#modal:not(.hidden)) .feedback-container { visibility: hidden; }
 
 /* Seasonal gathering: a quiet field-journal page with inspectable accounting. */
 .modal[data-kind="gathering"] #modal-title { margin-bottom: 15px; padding-right: 75px; font-size: 40px; }
-.modal[data-kind="gathering"] #modal-kicker { padding-right: 75px; }
 .gather-specimen { position: absolute; top: 19px; right: 21px; width: 82px; height: 92px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 4px #56603a12); }
 #modal-body .gather-prose { max-width: 35ch; margin: 0 0 18px; color: #69715e; font: italic 17px/1.5 Georgia, 'Times New Roman', serif; }
 .modal[data-kind="gathering"] .resource-summary { margin: 0; }
@@ -1974,7 +1970,6 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 
 /* Night Falls: the gathering journal's quieter nocturnal companion. */
 .modal[data-kind="night"] #modal-title { margin-bottom: 15px; padding-right: 112px; font-size: 40px; }
-.modal[data-kind="night"] #modal-kicker { padding-right: 112px; }
 .night-specimen { position: absolute; top: 18px; right: 17px; width: 112px; height: 91px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 6px #23333124); }
 #modal-body .night-prose { max-width: 33ch; margin: 0 0 17px; color: #69715e; font: italic 17px/1.5 Georgia, 'Times New Roman', serif; }
 .night-journal { border-top: 1px solid #7c87662e; }
@@ -2024,7 +2019,6 @@ body.theme-light-rounded .modal[data-kind="gathering"] button.actions-earned:hov
 .modal[data-kind="night"] .encounter-art img[data-scene-art="event-late-frost"] { filter: saturate(.48) hue-rotate(147deg) brightness(1.08); }
 @media (max-width: 380px) {
   .modal[data-kind="night"] #modal-title { padding-right: 88px; font-size: 36px; }
-  .modal[data-kind="night"] #modal-kicker { padding-right: 88px; }
   .night-specimen { width: 88px; height: 76px; }
   #modal-body .night-prose { font-size: 15px; }
   .journal-incident { grid-template-columns: 56px minmax(0,1fr); gap: 9px; min-height: 67px; padding-block: 10px; }
@@ -2214,7 +2208,6 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .scene-tools button,
   .focus-picker { font-size: 16px; }
 
-  #modal-kicker,
   .growth-unlocks .botanical-kicker { font-size: 16px; }
   #modal-body { font-size: 20px; }
   #modal-button { font-size: 20px; }

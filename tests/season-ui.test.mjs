@@ -22,6 +22,13 @@ test('opening screen uses Put down roots as its only subtitle', () => {
   assert.doesNotMatch(html, /class="intro-footnote"/);
 });
 
+test('message cards begin with their title and contain no top-label element', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const modalSource = readFileSync(new URL('../ui/modal.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="modal-kicker"/);
+  assert.doesNotMatch(modalSource, /kicker\.textContent|kicker\.classList/);
+});
+
 test('the notebook contains changing defense and grove-preparation readings', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   for (const id of ['thorn-defense', 'toxic-leaves', 'crown-preparation', 'resin-preparation', 'grove-shelter', 'root-dominion', 'watch-path', 'stagger-harvest', 'close-approach', 'grove-response']) {
