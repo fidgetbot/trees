@@ -153,8 +153,17 @@ test('passive support preserves useful explicit offers and sunlight can be reque
   assert.ok(neighborHelpAvailable(s, n, 'nutrients', getNeighborStage) >= 4);
   const decision = buildHelpRequestDecision(s, deps);
   assert.equal(decision.options.length, 4);
+  assert.equal(decision.body, '');
+  assert.ok(decision.options.every(option => option.group === 'Pear Ally'));
+  assert.match(decision.options[0].groupDescription, /^Health 10\/10 · reserves /);
   const sunlight = decision.options.find(option => option.meta.requestKind === 'sunlight');
   assert.ok(sunlight.affordable);
+  assert.match(sunlight.label, /^☀️ Sunlight — \d+ sunlight available to share$/);
+  assert.equal(sunlight.description, null);
+  const blockedDecision = buildHelpRequestDecision(grove([tree(70, { reserves: { sunlight: 0, water: 0, nutrients: 0 } })]), deps);
+  const health = blockedDecision.options.find(option => option.meta.requestKind === 'health');
+  assert.match(health.label, /^❤️ Health — cannot spare health$/);
+  assert.match(health.description, /Its own health needs come first/);
   const before = s.sunlight;
   const received = resolveHelpRequestFromAlly(s, n, { ...deps, requestKind: 'sunlight' });
   assert.equal(s.sunlight, before + received.actualAmount);

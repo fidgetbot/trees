@@ -11,9 +11,16 @@ export function showChoiceModalUI(els, title, body, choices, presentation = {}) 
   const wrap = document.createElement('div');
   wrap.className = 'neighbor-choices';
   let activeGroup = null;
+  let activeGroupContainer = null;
   choices.forEach(choice => {
     if (choice.group && choice.group !== activeGroup) {
       activeGroup = choice.group;
+      activeGroupContainer = null;
+      if (choice.containGroup) {
+        activeGroupContainer = document.createElement('section');
+        activeGroupContainer.className = 'neighbor-choice-group-block';
+        wrap.appendChild(activeGroupContainer);
+      }
       const heading = document.createElement('div');
       heading.className = 'neighbor-choice-group';
       const title = document.createElement('strong');
@@ -26,7 +33,7 @@ export function showChoiceModalUI(els, title, body, choices, presentation = {}) 
         description.textContent = choice.groupDescription;
         heading.appendChild(description);
       }
-      wrap.appendChild(heading);
+      (activeGroupContainer || wrap).appendChild(heading);
     }
     const btn = document.createElement('button');
     btn.className = 'neighbor-choice';
@@ -76,7 +83,7 @@ export function showChoiceModalUI(els, title, body, choices, presentation = {}) 
       els.modalButton.style.display = '';
       choice.onChoose?.();
     };
-    wrap.appendChild(btn);
+    (choice.group && activeGroupContainer ? activeGroupContainer : wrap).appendChild(btn);
   });
 
   els.modalBody.appendChild(wrap);

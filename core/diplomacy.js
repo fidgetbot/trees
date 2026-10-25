@@ -290,13 +290,15 @@ export function buildHelpRequestDecision(state, deps = {}) {
 
   const requestKinds = requestKind ? [requestKind] : ['health', 'sunlight', 'water', 'nutrients'];
   const kindLabel = kind => kind === 'health' ? 'health' : kind;
+  const kindTitle = kind => kindLabel(kind).replace(/^./, letter => letter.toUpperCase());
+  const kindIcon = kind => ({ health: '❤️', sunlight: '☀️', water: '💧', nutrients: '🌱' })[kind] || '';
 
   return createDecision({
     kind: 'ally-help-request',
     title: 'Ask an ally for help',
     body: requestKind
       ? `Choose which allied tree you will ask for ${requestKind}. Each transfer uses one action, with no resource fee. The donor keeps its survival reserves.${requestKind === 'health' ? ' Each health restored uses one donor water and one donor nutrient.' : ''} Unavailable requests cost nothing.`
-      : 'Every safe offer is shown below. Choose an ally and resource directly; unavailable offers remain visible for planning and cost nothing.',
+      : '',
     options: state.neighbors
       .map((neighbor, targetIndex) => ({ neighbor, targetIndex }))
       .filter(({ neighbor }) => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally')
@@ -309,9 +311,11 @@ export function buildHelpRequestDecision(state, deps = {}) {
         else if (neighbor.helpGivenToThem > neighbor.helpRefusedToThem) toneHint = 'warm';
         return {
           id: requestKind ? `neighbor-${targetIndex}` : `neighbor-${targetIndex}-${kind}`,
-          label: `${neighbor.species} — ${available ? `${available} ${kindLabel(kind)} available` : `cannot spare ${kindLabel(kind)}`}`,
-          description: available ? `Receive ${available} ${kindLabel(kind)}; its survival buffer is protected.` : `Its own ${kindLabel(kind)} needs come first; check again after it replenishes.`,
-          group: requestKind ? null : `${neighbor.species} ally`,
+          label: requestKind
+            ? `${neighbor.species} — ${available ? `${available} ${kindLabel(kind)} available` : `cannot spare ${kindLabel(kind)}`}`
+            : `${kindIcon(kind)} ${kindTitle(kind)} — ${available ? `${available} ${kindLabel(kind)} available to share` : `cannot spare ${kindLabel(kind)}`}`,
+          description: available ? null : `Its own ${kindLabel(kind)} needs come first; check again after it replenishes.`,
+          group: requestKind ? null : `${neighbor.species} Ally`,
           groupDescription: requestKind ? null : `Health ${neighbor.health}/${neighbor.maxHealth} · reserves ${neighbor.reserves?.sunlight ?? 12} sunlight, ${neighbor.reserves?.water ?? 12} water, ${neighbor.reserves?.nutrients ?? 12} nutrients`,
           groupOrder: targetIndex,
           disabled: available <= 0,

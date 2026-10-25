@@ -90,6 +90,16 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   font-size: var(--ui-font-floor);
   line-height: 1.35;
 }
+.neighbor-choice-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #8d9d7838;
+  border-radius: 16px;
+  background: #f3f0e6a8;
+}
+.neighbor-choice-group-block .neighbor-choice-group { padding: 0 4px 4px; }
 .neighbor-choice:disabled {
   background: #718096;
   color: #e2e8f0;
