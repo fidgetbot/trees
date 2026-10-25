@@ -4,7 +4,7 @@ import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=action-
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize, getHumanSceneHeight } from './fauna-art.js?rev=true-map-scale-v1';
 import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-flow-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
-import { getPlayerRootDominionTarget, getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=mature-grove-v1';
+import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=mature-grove-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
 
 // Decoded PNGs remain authoritative. Canvas-derived layers can be discarded
@@ -619,10 +619,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
   if(!measureTargetId){
     drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
     hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets,w);
-    // Fungal links retain grove context while focused. Root Dominion is more
-    // forceful and must have both endpoints visible; otherwise its clipped
-    // dashes resemble disconnected brown fragments beneath the focused tree.
-    if(cameraFor(state,playerStageName).rank>=2){drawFungalNetwork(ctx,trees,groundY,getRelationshipState);drawRootDominionNetwork(ctx,drawableTrees,groundY,state);}
+    if(cameraFor(state,playerStageName).rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
   }
   const labelRows=[];
   drawableTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
@@ -855,20 +852,6 @@ function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
   if(!segments.length)return;
   ctx.strokeStyle='rgba(180,220,255,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
   segments.forEach(({from,to})=>{ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.bezierCurveTo(from.x-(from.x-to.x)*.3,groundY+70,to.x+(from.x-to.x)*.3,to.y-20,to.x,to.y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(to.x,to.y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
-}
-
-export function getRootDominionSegment(trees,state){
-  const target=getPlayerRootDominionTarget(state),player=trees.find(tree=>tree.isPlayer),dominated=trees.find(tree=>!tree.neighbor?.offspring&&tree.neighbor?.slot===target?.slot);
-  return player&&dominated?{player,dominated}:null;
-}
-
-function drawRootDominionNetwork(ctx,trees,groundY,state){
-  const segment=getRootDominionSegment(trees,state);
-  if(!segment)return;
-  const{player,dominated}=segment;
-  const direction=dominated.x<player.x?-1:1,mid=(player.x+dominated.x)/2;
-  ctx.save();ctx.strokeStyle='rgba(154,82,46,.9)';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(player.x,groundY+42);ctx.bezierCurveTo(mid-direction*22,groundY+76,mid+direction*18,groundY+92,dominated.x,groundY+56);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='rgba(154,82,46,.72)';ctx.beginPath();ctx.arc(dominated.x,groundY+56,5,0,TAU);ctx.fill();ctx.restore();
 }
 
 export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
