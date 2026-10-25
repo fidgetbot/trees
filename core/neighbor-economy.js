@@ -60,6 +60,16 @@ export function neighborGrowthFactor(neighbor) {
   return minimum === 0 ? 0 : minimum < NEIGHBOR_BUFFER ? 0.5 : 1;
 }
 
+export function collectRootDominionTransfer(neighbor) {
+  if (!neighbor || neighbor.dead || !neighbor.playerRootDominated) return { water: 0, nutrients: 0 };
+  ensureNeighborEconomy(neighbor);
+  const water = Math.min(1, neighbor.reserves.water);
+  const nutrients = Math.min(1, neighbor.reserves.nutrients);
+  neighbor.reserves.water -= water;
+  neighbor.reserves.nutrients -= nutrients;
+  return { water, nutrients };
+}
+
 export function applyNeighborAid(neighbor, kind, amount) {
   ensureNeighborEconomy(neighbor);
   const received = Math.min(Math.max(0, Math.floor(amount)), NEIGHBOR_CAPACITY - neighbor.reserves[kind]);
@@ -154,7 +164,7 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
       neighbor.deathStageScore = neighbor.stageScore;
       neighbor.deathCause = 'prolonged resource shortage';
       neighbor.activeCrises = [];
-      neighbor.playerShading = neighbor.shadingPlayer = false;
+      neighbor.playerShading = neighbor.shadingPlayer = neighbor.playerRootDominated = false;
       if (!deathReported) events.push({ title: `${neighbor.species} lost`, text: 'After prolonged shortages, the tree can no longer sustain its living tissue.', effect: 'damage', subject });
       continue;
     }

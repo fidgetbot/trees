@@ -8,7 +8,8 @@ import { getCanopyArrangement } from '../ui/canvas.js';
 import { renderResourcePhaseBody } from '../ui/resources.js';
 import { getNeighborStage, getRelationshipState, LIFE_STAGES, SEASONAL_ACTIONS } from '../core/constants.js';
 import { currentStageRequirements } from '../core/stages.js';
-import { getShadedOffspring, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, offspringGrowthFromLight, reconcileCanopyHeight, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
+import { growOffspringRecords } from '../core/humans.js';
+import { clearPlayerRootDominionTarget, getPlayerRootDominionTarget, getShadedOffspring, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, offspringGrowthFromLight, reconcileCanopyHeight, ROOT_DOMINION_NUTRIENT_BONUS, ROOT_DOMINION_WATER_BONUS, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from '../core/growth.js';
 
 function gatheringState(overrides = {}) {
   return {
@@ -108,14 +109,16 @@ test('shading steals persistent sunlight and nutrients while slowing the target'
   assert.equal(neighborGrowthFromLight(50, { playerShading: false }), 50);
 });
 
-test('enriching the rhizosphere permanently supports connected allies and warms the bond', () => {
+test('enriching the rhizosphere permanently supports connected allies and offspring', () => {
   const actions = createActions({
     resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
     requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {}, getRelationshipState,
   });
   const ally = { relation: 70, dead: false, stageScore: 600, growthAidReceived: 0, firstAidStageScore: null };
   const neutral = { relation: 0, dead: false, stageScore: 600 };
-  const state = { eventModifiers: { soilBonus: 0 }, neighbors: [ally, neutral] };
+  const child = { id: 'child-1', species: 'Pear', stageScore: 100, health: 8, maxHealth: 8, activeCrises: [], dead: false };
+  const deadChild = { id: 'child-2', species: 'Pear', stageScore: 100, health: 0, maxHealth: 8, activeCrises: [], dead: true };
+  const state = { eventModifiers: { soilBonus: 0 }, neighbors: [ally, neutral], offspringRecords: [child, deadChild] };
   actions.find(action => action.key === 'rhizosphere').effect(state);
   assert.equal(state.eventModifiers.soilBonus, 1.5);
   assert.equal(ally.rhizosphereBonus, 0.5);
@@ -125,6 +128,34 @@ test('enriching the rhizosphere permanently supports connected allies and warms 
   assert.equal(ally.firstAidStageScore, 600);
   assert.equal(neutral.rhizosphereBonus, undefined);
   assert.equal(neutral.relation, 0);
+  assert.equal(child.rhizosphereBonus, 0.5);
+  assert.equal(deadChild.rhizosphereBonus, undefined);
+  growOffspringRecords(state, () => 0);
+  assert.equal(child.stageScore, 137);
+});
+
+test('root dominion persists, transfers real reserves each turn, switches, and can be stopped', () => {
+  const pear = { slot: 0, species: 'Pear', relation: -30, stageScore: 1000, dead: false, reserves: { sunlight: 12, water: 12, nutrients: 12 }, activeCrises: [] };
+  const plum = { slot: 4, species: 'Plum', relation: -30, stageScore: 1000, dead: false, reserves: { sunlight: 12, water: 12, nutrients: 12 }, activeCrises: [] };
+  const state = gatheringState({ sunlight: 10, water: 10, nutrients: 10, neighbors: [pear, plum] });
+  const claimed = applyAggressionToNeighbor(state, pear, 'dominion', { getRelationshipState, getNeighborStage });
+  assert.equal(claimed.persistentRootDominion, true);
+  assert.equal(getPlayerRootDominionTarget(state), pear);
+  assert.equal(pear.reserves.water, 11);
+  assert.equal(pear.reserves.nutrients, 11);
+  const before = { water: pear.reserves.water, nutrients: pear.reserves.nutrients };
+  const gains = engine().collectResources(state);
+  assert.equal(gains.rootDominionWater, ROOT_DOMINION_WATER_BONUS);
+  assert.equal(gains.rootDominionNutrients, ROOT_DOMINION_NUTRIENT_BONUS);
+  assert.equal(pear.reserves.water, before.water - 1);
+  assert.equal(pear.reserves.nutrients, before.nutrients - 1);
+  assert.match(renderResourcePhaseBody({ state, gains }), /Root Dominion \+1/);
+  const switched = applyAggressionToNeighbor(state, plum, 'dominion', { getRelationshipState, getNeighborStage });
+  assert.equal(switched.releasedDominionTarget, pear);
+  assert.equal(pear.playerRootDominated, false);
+  assert.equal(plum.playerRootDominated, true);
+  assert.equal(clearPlayerRootDominionTarget(state), plum);
+  assert.equal(getPlayerRootDominionTarget(state), null);
 });
 
 test('sheltering stores one charge and warms every living neighbor exactly once', () => {

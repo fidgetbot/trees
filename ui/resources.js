@@ -78,13 +78,14 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${state.rootZones ? factor(`Root support +${Math.floor((gains.effectiveRoots ?? state.rootZones) / 2)}`, 'positive') : ''}
           ${gains.taprootBonus ? factor(`Deep roots +${number(gains.taprootBonus)}`, 'positive') : ''}
           ${gains.allyWater ? factor(`Allies +${number(gains.allyWater)}`, 'positive') : ''}
+          ${gains.rootDominionWater ? factor(`Root Dominion +${number(gains.rootDominionWater)}`, 'positive') : ''}
           ${gains.hostileWaterPenalty ? factor(`Hostile roots −${number(gains.hostileWaterPenalty)}`, 'negative') : ''}
           ${seasonalFactor('water', season.factorWater)}
           ${droughtFactor < 1 ? factor(`Drought ×${number(droughtFactor)}`, 'negative') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
           ${maintenance.water ? factor(`Transpiration −${number(maintenance.water)}`, 'negative') : ''}
         </span>
-        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · only available surplus is transferred` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
+        ${comparison('water', deltas.water, baseline.water, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally shares' : 'allies share'} water · only available surplus is transferred` : '', gains.rootDominionWater ? `Root Dominion takes from ${relations.rootDominionTarget?.species || 'the targeted tree'}` : '', relations.hostileNeighbors ? `${relations.hostileNeighbors} hostile neighbor${relations.hostileNeighbors === 1 ? '' : 's'} invade your root zone` : ''])}
         </details>
       </section>
       <section class="res-line gather-nutrients" aria-label="Nutrients gathered">
@@ -99,6 +100,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${gains.taprootNutrients ? factor(`Deep roots +${number(gains.taprootNutrients)}`, 'positive') : ''}
           ${gains.allyNutrients ? factor(`Allies +${number(gains.allyNutrients)}`, 'positive') : ''}
           ${gains.shadeNutrientBonus ? factor(`Shading +${number(gains.shadeNutrientBonus)}`, 'positive') : ''}
+          ${gains.rootDominionNutrients ? factor(`Root Dominion +${number(gains.rootDominionNutrients)}`, 'positive') : ''}
           ${gains.rootCompetitionPenalty ? factor(`Rival roots −${number(gains.rootCompetitionPenalty)}`, 'negative') : ''}
           ${gains.rootCompetitionDefense ? factor(`Deep roots blocked ${number(gains.rootCompetitionDefense)}`, 'positive') : ''}
           ${gains.soilBonus ? factor(`Healthy soil +${number(gains.soilBonus)}`, 'positive') : ''}
@@ -106,7 +108,7 @@ export function renderResourcePhaseBody({ state, gains }) {
           ${gains.dormancySavings ? factor(`Dormancy saved ${number(gains.dormancySavings)}`, 'positive') : ''}
           ${diseaseFactor < 1 ? factor(`Disease ×${number(diseaseFactor)}`, 'negative') : ''}
         </span>
-        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
+        ${comparison('nutrients', deltas.nutrients, baseline.nutrients, [relations.connectedAllies ? `${relations.connectedAllies} connected ${relations.connectedAllies === 1 ? 'ally' : 'allies'}` : '', gains.rootDominionNutrients ? `Root Dominion takes from ${relations.rootDominionTarget?.species || 'the targeted tree'}` : '', relations.rivalNeighbors || relations.hostileNeighbors ? `${relations.rivalNeighbors || 0} rival and ${relations.hostileNeighbors || 0} hostile neighbor roots compete with you` : ''])}
         </details>
       </section>
       <button type="button" class="actions-earned" aria-label="Start this turn with ${actionsAwarded} total actions: ${baseActions} base${bonusActions > 0 ? ` and ${bonusActions} bonus` : ''}">

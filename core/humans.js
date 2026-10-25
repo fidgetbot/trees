@@ -1,5 +1,5 @@
 import { createDecision, findDecisionOption } from './decisions.js';
-import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=action-flow-v1';
+import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=mature-grove-v1';
 import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 
 export const HUMAN_RUMORS = [
@@ -101,7 +101,8 @@ export function growOffspringRecords(state, random = Math.random) {
   for (const [index, child] of state.offspringRecords.entries()) {
     if (child.dead) continue;
     const baseGrowth = 35 + Math.floor(random() * 26);
-    child.stageScore += offspringGrowthFromLight(baseGrowth, child, index, shadeTarget);
+    const rhizosphereGrowth = Math.max(0, Math.floor((child.rhizosphereBonus || 0) * 4));
+    child.stageScore += offspringGrowthFromLight(baseGrowth, child, index, shadeTarget) + rhizosphereGrowth;
     if (child.health < child.maxHealth && random() < 0.16) child.health += 1;
   }
   syncOffspringCounts(state);
@@ -142,6 +143,7 @@ export function describeOffspring(state, lifeStages) {
         maxHealth: child.maxHealth,
         nurtureCount: child.nurtureCount || 0,
         supportReceived: child.supportReceived || 0,
+        rhizosphereBonus: child.rhizosphereBonus || 0,
       };
     });
 }

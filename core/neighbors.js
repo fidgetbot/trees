@@ -34,6 +34,7 @@ export function createStartingNeighbors(speciesNames, lifeStages, random = Math.
       deathStageScore: null,
       playerShading: false,
       shadingPlayer: false,
+      playerRootDominated: false,
       heightGrowth: 0,
       rhizosphereBonus: 0,
     };
@@ -60,6 +61,9 @@ export function advanceNeighborDeathCycle(neighbor, { speciesNames, seedlingThre
   neighbor.timesAskedThemForHelp = 0;
   neighbor.lastAidMemory = '';
   neighbor.rhizosphereBonus = 0;
+  neighbor.playerShading = false;
+  neighbor.shadingPlayer = false;
+  neighbor.playerRootDominated = false;
   neighbor.reserves = { sunlight: 12, water: 12, nutrients: 12 };
   neighbor.strains = { sunlight: 0, water: 0, nutrients: 0 };
   neighbor.shortageTurns = neighbor.aidGrace = neighbor.hardshipCooldown = neighbor.crisisCounter = 0;

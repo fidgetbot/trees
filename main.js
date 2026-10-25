@@ -1,4 +1,4 @@
-import { neighborGrowthFactor, neighborHelpAvailable } from './core/neighbor-economy.js?rev=action-flow-v1';
+import { neighborGrowthFactor, neighborHelpAvailable } from './core/neighbor-economy.js?rev=mature-grove-v1';
 import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=action-flow-v1';
 import {
   SEASONS,
@@ -9,7 +9,7 @@ import {
   RELATIONSHIP_STATES,
   getRelationshipState,
   getNeighborStage,
-} from './core/constants.js?rev=action-flow-v1';
+} from './core/constants.js?rev=mature-grove-v1';
 import {
   SPECIES,
   getCurrentSpeciesSpec,
@@ -21,13 +21,13 @@ import {
 } from './core/species.js?rev=neighbor-economy-v1';
 import {
   computeCurrentLifeStage as computeCurrentLifeStageFromState,
-  turnsForYears,
+  claimGrowthNudge,
   currentStageRequirements as getCurrentStageRequirements,
   getNextStage as getNextStageFromState,
   resetStageProgressCounters as resetStageProgressCountersForState,
-} from './core/stages.js?rev=action-flow-v1';
+} from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=action-flow-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=mature-grove-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -40,7 +40,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=action-flow-v1';
+} from './core/events.js?rev=mature-grove-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -52,7 +52,7 @@ import {
   buildHelpRequestDecision,
   markNeighborDead,
   resolveDiplomacyDecision,
-} from './core/diplomacy.js?rev=action-flow-v1';
+} from './core/diplomacy.js?rev=mature-grove-v1';
 import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
 import {
   advanceHumanSystem,
@@ -63,9 +63,9 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=action-flow-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=action-flow-v1';
-import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=action-flow-v1';
+} from './core/humans.js?rev=mature-grove-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=mature-grove-v1';
+import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
   ensureIncidentState,
   awaitIncidentResponse,
@@ -79,22 +79,22 @@ import {
   queuedResponseIncidents,
   resolveIncident,
 } from './core/incidents.js?rev=structured-event-outcomes-v1';
-import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=action-flow-v1';
-import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=action-flow-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=mature-grove-v1';
+import { canNeighborShadePlayer, clearPlayerRootDominionTarget, getPlayerRootDominionTarget, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerRootDominionTarget, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=mature-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=action-flow-v1';
-import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=action-flow-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=mature-grove-v1';
 import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v2';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
-import { renderResourcePhaseBody } from './ui/resources.js?rev=action-flow-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=mature-grove-v1';
 import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
 import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
-import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=action-flow-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=mature-grove-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=action-flow-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=mature-grove-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=neighbor-economy-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=mature-grove-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -113,17 +113,13 @@ function resetStageProgressCounters() {
 }
 
 function maybeShowGrowthNudge(onContinue = showResourcePhase) {
-  const reqs = currentStageRequirements();
-  if (reqs.length !== 3) return false;
-  const met = reqs.filter(r => r.met);
-  const missing = reqs.filter(r => !r.met);
-  if (met.length !== 2 || missing.length !== 1) return false;
-  if (state.growthNudgeCooldown > 0) return false;
+  const nudge = claimGrowthNudge(state);
+  if (!nudge) return false;
+  const missing = nudge.missing;
 
   const nudgeMap = {
     time: [
-      'Your roots feel restless... something shifts slowly within.',
-      'The seasons work on you in silence. Change is coming.',
+      `Your structure and grove are ready. Only time remains. ${missing.label}. Exact progress remains visible beneath your stage.`,
     ],
     roots: [
       'Your deepest roots probe farther down, seeking something they cannot name.',
@@ -143,7 +139,7 @@ function maybeShowGrowthNudge(onContinue = showResourcePhase) {
     ],
   };
 
-  const options = nudgeMap[missing[0].key] || ['Something in you strains toward its next form.'];
+  const options = nudgeMap[missing.key] || ['Something in you strains toward its next form.'];
   const message = randomChoice(options);
   state.growthNudgeCooldown = 3 + randomInt(2);
   showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
@@ -322,6 +318,8 @@ const ACTIONS = createActions({
   requestHelpFromAllies,
   shadeRivalAction,
   rootDominionAction,
+  stopRootDominionAction,
+  getRootDominionTarget: getPlayerRootDominionTarget,
   nurtureOffspringAction,
   getRelationshipState,
   getNeighborStage,
@@ -981,6 +979,7 @@ function updateAlliesCount() {
 
 function growNeighbors() {
   const activeShadeTarget = normalizePlayerShadeTarget(state);
+  normalizePlayerRootDominionTarget(state);
   state.neighbors.forEach(n => {
     if (n.dead) {
       const transition = advanceNeighborDeathCycle(n, { speciesNames: Object.keys(SPECIES), seedlingThreshold: STAGE_BY_NAME.Seedling.threshold, random: Math.random });
@@ -1279,7 +1278,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
 
   if (decision.kind === 'aggression:dominion') {
     const { sunlight, water, nutrients } = outcome.gains;
-    showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighborName}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, onDone);
+    const released = outcome.releasedDominionTarget ? `<p>Your roots withdraw from the ${outcome.releasedDominionTarget.species}; only one contested root zone can remain active.</p>` : '';
+    showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighborName}. You choke its access to water and nutrients and establish a lasting claim.</p>${released}<p>You immediately gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}. While the claim lasts, you take up to <strong>${outcome.waterPerTurn} water</strong> and <strong>${outcome.nutrientsPerTurn} nutrient</strong> from this tree’s real reserves each turn.</p><p>Use <strong>Stop Root Dominion</strong> or choose another target to release it.</p>`, onDone);
   }
 }
 
@@ -1295,6 +1295,11 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
   const execute = (option) => {
     if (option.meta?.currentShade) {
       showFeedback('You are already shading that tree. Use Stop Shading to release it.', 'info');
+      cancel();
+      return;
+    }
+    if (option.meta?.currentDominion) {
+      showFeedback('Your roots already dominate that tree. Use Stop Root Dominion to release it.', 'info');
       cancel();
       return;
     }
@@ -1406,6 +1411,11 @@ function rootDominionAction(s, context) {
   return runAggressionFlow('dominion', context);
 }
 
+function stopRootDominionAction(s) {
+  s.lastReleasedDominionTarget = clearPlayerRootDominionTarget(s)?.species || null;
+  return null;
+}
+
 function requestHelpFromAllies(s, context = {}) {
   return runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage }), {
     emptyMessage: 'No allies are close enough to help',
@@ -1486,6 +1496,7 @@ function getNeighborTree(idx) {
     slot: base.slot,
     playerShading: Boolean(base.playerShading),
     shadingPlayer: Boolean(base.shadingPlayer),
+    playerRootDominated: Boolean(base.playerRootDominated),
     dead: Boolean(base.dead),
     deathAge: base.deathAge || 0,
     deathCause: base.deathCause || null,

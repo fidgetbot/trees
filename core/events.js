@@ -1,7 +1,7 @@
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js?rev=neighbor-economy-v1';
-import { canNeighborShadePlayer } from './growth.js?rev=action-flow-v1';
+import { canNeighborShadePlayer } from './growth.js?rev=mature-grove-v1';
 
 export function getHerbivoreDefense(state) {
   const thorns = Math.max(0, state.thornDefense || 0);
@@ -356,6 +356,7 @@ export function resolveFruitThreats(state, events) {
 export function processSeasonalReproduction(state, events, getCurrentSeasonName) { /* unchanged */
   migrateLegacyIncidentState(state);
   const season = getCurrentSeasonName();
+  expireUnpollinatedFlowersOutsideSpring(state, season);
   const pendingFruitThreatAtStart = Boolean(findActiveIncident(state, 'fruit-threat', incident => incident.state === 'ongoing'));
   if (pendingFruitThreatAtStart) resolveFruitThreats(state, events);
   if (season === 'Summer' && state.pollinated > 0) {
@@ -386,6 +387,13 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
     state.developing = 0;
     events.push({ text: `${matured} surviving fruit${matured !== 1 ? 's' : ''} hardened into ${matured} seed${matured !== 1 ? 's' : ''}. (+${matured} seed${matured !== 1 ? 's' : ''})`, effect: 'growth' });
   }
+}
+
+export function expireUnpollinatedFlowersOutsideSpring(state, seasonName) {
+  if (seasonName === 'Spring') return 0;
+  const expired = Math.max(0, state.flowers || 0);
+  state.flowers = 0;
+  return expired;
 }
 
 import { createDecision } from './decisions.js';
@@ -959,8 +967,9 @@ export function rollMinorEvents(state, deps) {
     random = Math.random,
   } = deps;
   const events = [];
-  if (state.flowers > 0) {
-    const basePollinatorChance = currentSeasonName === 'Spring' ? 0.55 : currentSeasonName === 'Summer' ? 0.4 : 0.1;
+  expireUnpollinatedFlowersOutsideSpring(state, currentSeasonName);
+  if (currentSeasonName === 'Spring' && state.flowers > 0) {
+    const basePollinatorChance = 0.55;
     const pollinatorChance = getPollinatorChance(basePollinatorChance);
     if (Math.random() < pollinatorChance) {
       const pollinated = Math.min(state.flowers, randomInt(2) + 1);

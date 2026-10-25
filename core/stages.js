@@ -62,6 +62,18 @@ export function currentStageRequirements(state) {
   }
 }
 
+export function claimGrowthNudge(state) {
+  const requirements = currentStageRequirements(state);
+  if (requirements.length !== 3 || (state.growthNudgeCooldown || 0) > 0) return null;
+  const missing = requirements.filter(requirement => !requirement.met);
+  if (requirements.length - missing.length !== 2 || missing.length !== 1) return null;
+  state.growthNudgesShown ||= {};
+  const key = `${computeCurrentLifeStage(state).name}:${missing[0].key}`;
+  if (state.growthNudgesShown[key]) return null;
+  state.growthNudgesShown[key] = true;
+  return { key, missing: missing[0], requirements };
+}
+
 export function getNextStage(state) {
   const current = computeCurrentLifeStage(state);
   return LIFE_STAGES.find(stage => stage.rank === current.rank + 1) || null;

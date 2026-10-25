@@ -88,7 +88,7 @@ Current score thresholds in implementation:
 
 #### Growth nudges
 
-When the player is close to growth, the game can surface flavor nudges indicating what is still missing. These are presentation cues, not separate mechanics.
+When exactly one growth requirement remains, the game can surface one discovery nudge for that stage and requirement. The nudge states the missing requirement and its current progress; it does not repeat every few turns. These are presentation cues, not separate mechanics.
 
 ### Resources
 
@@ -105,7 +105,7 @@ Generated from roots, taproots, fungal/allied support, and soil quality, reduced
 
 The economy is designed to keep every resource strategically relevant without making a well-managed tree die solely because one reserve briefly reaches zero. A shortage restricts affordable actions and triggers escalating, stage-aware guidance; it does not directly damage health. Later-stage upkeep is distributed across sunlight, water, and nutrients rather than falling almost entirely on nutrients.
 
-Enrich Rhizosphere is a repeatable shared-soil investment. Each use permanently adds 1.5 to the player's nutrient uptake, expands nutrient storage, and gives allies connected at the time a permanent growth bonus, support credit, and greater warmth toward the player.
+Enrich Rhizosphere is a repeatable shared-soil investment. Each use permanently adds 1.5 to the player's nutrient uptake, expands nutrient storage, and gives allies connected at the time a permanent growth bonus, support credit, and greater warmth toward the player. Every living offspring also receives 0.5 enriched-soil support per use, worth two additional growth points each season.
 
 Leaves, canopy spread, roots, and taproots provide full gathering value for their early investments, then diminishing marginal returns as those structures become extensive. This preserves meaningful growth while preventing very large crowns and root systems from producing effectively unlimited resources.
 
@@ -126,6 +126,12 @@ Growth actions are intentionally differentiated:
 - **Grow Branch** adds structure and a larger burst of new foliage, making it a stronger but pricier way to improve future sunlight collection
 - **Extend Root** expands the connected network outward and improves both water storage and nutrient gathering, while **Deepen Roots** develops its major axes downward and adds a root zone plus additional deep water, nutrients, health, drought resilience, and protection against rival/hostile root competition. One competition point is blocked by the first deep-root investment and one additional point by each subsequent pair, up to the actual pressure
 - **Grow Leaf** adds one leaf cluster; **Grow Branch** adds a supporting branch and two clusters; **Expand Canopy** adds a branch, three clusters, and a separate canopy-spread bonus. The later actions therefore provide more structural and gathering value per action than the earlier action they supersede
+
+Root Dominion establishes one persistent contested root zone. The initial action damages the target's growth and relationship, then takes up to one water and one nutrient from that tree's real reserves immediately and again during each later gathering phase. Only one target can be dominated at a time; choosing another target releases the old one, and **Stop Root Dominion** ends the effect without spending an action or resources. A dominated tree that dies or is reconciled is released automatically.
+
+Unpollinated blossoms are Spring growth. Any unpollinated flowers still open when Spring ends fall before another season can pollinate them. Pollinated flowers may continue through the existing Summer fruit and Autumn seed sequence, so every later fruit and seed remains traceable to a Spring blossom (including blossoms and pollination created together by Mast Year).
+
+For dense late-game groves, the scene paints unselected offspring from cached, cropped lower-detail layers. A child selected for focus is still rendered from the full-resolution tree components. At most four offspring appear individually in the wide grove scene; additional children remain individually represented in game state and selection interfaces without adding full scene-painting cost.
 
 Action categories currently include:
 - growth and structure

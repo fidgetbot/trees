@@ -1,7 +1,7 @@
 const PLAYER_PRIORITY = [
   'extendRoot', 'growLeaves', 'growBranch', 'growTaller', 'bark', 'taproot',
   'canopy', 'flower', 'massFlower', 'rhizosphere', 'growThorns', 'toxicLeaves',
-  'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear', 'stopShade',
+  'shelterGrove', 'woodSurge', 'resinReserve', 'mastYear', 'stopShade', 'stopRootDominion',
 ];
 
 const TARGET_PRIORITIES = {
@@ -50,6 +50,7 @@ export function isActionRelevantToTarget(action, target, state, getRelationshipS
   if (action.key === 'shadeRival') return neighbor.slot === 1 || neighbor.slot === 3;
   if (action.key === 'stopShade') return Boolean(neighbor.playerShading);
   if (action.key === 'rootDominion') return true;
+  if (action.key === 'stopRootDominion') return Boolean(neighbor.playerRootDominated);
   return false;
 }
 
@@ -89,7 +90,7 @@ export function getContextualActions({ target, usableActions, state, getRelation
 
   let priorities = [];
   if (!target || target.type === 'player-tree') priorities = playerPriority(state);
-  else if (target.type === 'neighbor-tree') priorities = ['stopShade', 'aidAlly', 'requestHelp', 'connect', 'shadeRival', 'rootDominion'];
+  else if (target.type === 'neighbor-tree') priorities = ['stopShade', 'stopRootDominion', 'aidAlly', 'requestHelp', 'connect', 'shadeRival', 'rootDominion'];
   else if (target.type === 'offspring-tree') priorities = ['nurtureOffspring'];
   else priorities = TARGET_PRIORITIES[target.kind] || [];
 
@@ -110,6 +111,7 @@ export function describeNeighborEffects(neighbor, relationship = 'Neutral') {
   const effects = [];
   if (relationship === 'Ally') effects.push('Shares only surplus water and nutrients; keeps a survival buffer');
   if (neighbor.playerShading) effects.push('Growing under your shade; its growth is slowed');
+  if (neighbor.playerRootDominated) effects.push('Its roots are under your dominion; up to 1 water and 1 nutrient are taken each turn');
   if (neighbor.shadingPlayer) effects.push('Crowding your canopy and reducing your available light');
   if (relationship === 'Rival') effects.push('Its roots compete with yours for nutrients');
   if (relationship === 'Hostile') effects.push('Its roots compete for nutrients and reduce your water');

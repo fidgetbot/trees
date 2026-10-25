@@ -1,9 +1,9 @@
-import { advanceNeighborEcology, collectNeighborDonations } from './neighbor-economy.js?rev=action-flow-v1';
-import { createOffspringRecords } from './humans.js?rev=action-flow-v1';
-import { allyResourceWeight, getShadedOffspring, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=action-flow-v1';
+import { advanceNeighborEcology, collectNeighborDonations, collectRootDominionTransfer } from './neighbor-economy.js?rev=mature-grove-v1';
+import { createOffspringRecords } from './humans.js?rev=mature-grove-v1';
+import { allyResourceWeight, getShadedOffspring, normalizePlayerRootDominionTarget, normalizePlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS } from './growth.js?rev=mature-grove-v1';
 import { getActiveIncidents } from './incidents.js?rev=structured-event-outcomes-v1';
 import { TURNS_PER_SEASON } from './constants.js?rev=four-turn-seasons-v1';
-import { normalizeStoredProtection } from './events.js?rev=action-flow-v1';
+import { expireUnpollinatedFlowersOutsideSpring, normalizeStoredProtection } from './events.js?rev=mature-grove-v1';
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
@@ -170,6 +170,7 @@ export function createEngine(deps) {
     const hostileNeighbors = adjacentContested.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Hostile').length;
     return {
       shadedNeighbors: normalizePlayerShadeTarget(state) ? 1 : 0,
+      rootDominionTarget: normalizePlayerRootDominionTarget(state),
       crowdingNeighbors: livingNeighbors.filter(neighbor => neighbor.shadingPlayer).length,
       connectedAllies: alliedNeighbors.length,
       connectedAllyStrength: alliedNeighbors.reduce((sum, neighbor) => sum + allyResourceWeight(neighbor, getNeighborStage), 0),
@@ -203,7 +204,8 @@ export function createEngine(deps) {
     const waterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus);
     const neutralWaterStorage = Math.max(1, state.trunk + Math.floor(effectiveRoots / 2) + taprootBonus);
     const unpressuredWaterGain = Math.max(1, Math.floor(waterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
-    const ownWaterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty);
+    const dominionTransfer = collectRootDominionTransfer(relations.rootDominionTarget);
+    const ownWaterGain = Math.max(0, unpressuredWaterGain - hostileWaterPenalty) + dominionTransfer.water;
     const neutralWaterGain = Math.max(1, Math.floor(neutralWaterStorage * season.factorWater * state.eventModifiers.drought * state.eventModifiers.disease));
 
     const taprootNutrients = effectiveTaproot * 0.5;
@@ -219,7 +221,7 @@ export function createEngine(deps) {
       - (maintenance.sunlight + maintenance.water + maintenance.nutrients);
     const grossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
     const neutralGrossNutrients = Math.max(1, Math.floor((rootNutrients + soilBonus) * state.eventModifiers.disease));
-    const ownNutrientGain = Math.max(0, grossNutrients - rootCompetitionPenalty) + shadeNutrientBonus;
+    const ownNutrientGain = Math.max(0, grossNutrients - rootCompetitionPenalty) + shadeNutrientBonus + dominionTransfer.nutrients;
     const neutralNutrientGain = neutralGrossNutrients;
     const capacities = getResourceCapacities(state);
     const donations = collectNeighborDonations(state, getRelationshipState, getNeighborStage, {
@@ -270,6 +272,8 @@ export function createEngine(deps) {
       rootCompetitionDefense,
       canopyAdvantage,
       shadeNutrientBonus,
+      rootDominionWater: dominionTransfer.water,
+      rootDominionNutrients: dominionTransfer.nutrients,
       soilBonus,
       maintenanceCost,
       baseMaintenanceCost,
@@ -401,6 +405,7 @@ export function createEngine(deps) {
         state.year += 1;
       }
     }
+    if (seasonChanged) expireUnpollinatedFlowersOutsideSpring(state, currentSeason(state).name);
 
     const continueAdvancedTurn = () => {
       if (currentSeason(state).name === 'Spring' && seasonChanged) {
@@ -482,11 +487,14 @@ export function createEngine(deps) {
       if (action.key === 'bark') addLog?.('Your bark and trunk thicken, bracing slender growth against the wind.');
       if (action.key === 'rhizosphere') {
         const supportedAllies = (state.neighbors || []).filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally').length;
-        addLog?.(supportedAllies
-          ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedAllies} connected ${supportedAllies === 1 ? 'ally receives' : 'allies receive'} lasting growth support.`
+        const supportedOffspring = (state.offspringRecords || []).filter(child => !child.dead).length;
+        const supportedTrees = supportedAllies + supportedOffspring;
+        addLog?.(supportedTrees
+          ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedTrees} connected ${supportedTrees === 1 ? 'tree receives' : 'trees receive'} lasting growth support.`
           : 'You enrich the soil community around your roots, improving future nutrient uptake.');
       }
       if (action.key === 'stopShade') addLog?.(`You stop shading the ${state.lastReleasedShadeTarget || 'neighboring tree'} and release the offspring beneath that side.`);
+      if (action.key === 'stopRootDominion') addLog?.(`You withdraw from the roots of the ${state.lastReleasedDominionTarget || 'neighboring tree'}, ending the contested root zone.`);
       if (action.key === 'shelterGrove') {
         const livingNeighbors = (state.neighbors || []).filter(neighbor => !neighbor.dead).length;
         addLog?.(`You store protection against the next severe weather event. ${livingNeighbors} living neighbor${livingNeighbors === 1 ? '' : 's'} gained +2 attitude.`);

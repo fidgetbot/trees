@@ -1,7 +1,7 @@
-import { applyNeighborAid, ensureNeighborEconomy, neighborHelpAvailable } from './neighbor-economy.js?rev=action-flow-v1';
+import { applyNeighborAid, ensureNeighborEconomy, neighborHelpAvailable } from './neighbor-economy.js?rev=mature-grove-v1';
 import { createDecision, findDecisionOption } from './decisions.js?rev=seasonal-canopy-v1';
 import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
-import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerShadeTarget, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=action-flow-v1';
+import { canPlayerShadeNeighbor, getShadedOffspring, neighborHeightLevel, playerHeightLevel, setPlayerRootDominionTarget, setPlayerShadeTarget, ROOT_DOMINION_NUTRIENT_BONUS, ROOT_DOMINION_WATER_BONUS, SHADE_NUTRIENT_BONUS, SHADE_SUNLIGHT_BONUS, SHADED_NEIGHBOR_GROWTH_MULTIPLIER } from './growth.js?rev=mature-grove-v1';
 
 export const SAME_SPECIES_CONNECTION_BONUS = 0.15;
 
@@ -39,6 +39,7 @@ export function applyRelationshipDelta(state, neighbor, delta, getAdjustedRelati
   if (neighbor.relation >= 0) {
     neighbor.playerShading = false;
     neighbor.shadingPlayer = false;
+    neighbor.playerRootDominated = false;
   }
   return adjustedDelta;
 }
@@ -61,6 +62,7 @@ export function markNeighborDead(state, neighbor, cause = 'hardship', deps = {})
   neighbor.activeCrises = [];
   neighbor.playerShading = false;
   neighbor.shadingPlayer = false;
+  neighbor.playerRootDominated = false;
   neighbor.deathCause = cause;
   return { changed: true, relationship, cause };
 }
@@ -439,6 +441,7 @@ export function resolveConnectionAttempt(state, neighbor, deps = {}) {
   if (newState === 'Neutral' || newState === 'Friendly' || newState === 'Ally') {
     neighbor.playerShading = false;
     neighbor.shadingPlayer = false;
+    neighbor.playerRootDominated = false;
   }
 
   return {
@@ -482,6 +485,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
             water: 1,
             nutrients: 1,
             relationShift: alreadyContested ? 'press rivalry' : 'start rivalry',
+            persistent: `up to +${ROOT_DOMINION_WATER_BONUS} water and +${ROOT_DOMINION_NUTRIENT_BONUS} nutrient each turn, taken from this tree's real reserves`,
           };
 
       return {
@@ -495,8 +499,12 @@ export function buildAggressionDecision(state, kind, deps = {}) {
               : shadeAllowed
               ? `Shorter than you — can be shaded.${shadedOffspring.length ? ` Warning: ${shadedOffspring.length} offspring on this side will also lose light.` : ''}`
               : `You'd need to grow taller first.${heightNeeded > 1 ? ` (${heightNeeded} height levels)` : ''}`)
-          : null,
-        disabled: kind === 'shade' && (!shadeAllowed || neighbor.playerShading),
+          : (neighbor.playerRootDominated
+              ? 'Currently dominated. Choose Stop Root Dominion to release this tree’s roots.'
+              : `Establishes an ongoing contested root zone. Choosing a new target releases the current one.`),
+        disabled: kind === 'shade'
+          ? (!shadeAllowed || neighbor.playerShading)
+          : Boolean(neighbor.playerRootDominated),
         targetIndex,
         requiresConfirmation: requiresWarning || shadedOffspring.length > 0,
         confirmation: requiresWarning || shadedOffspring.length > 0 ? {
@@ -509,6 +517,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
           relationName,
           alreadyContested,
           currentShade: Boolean(neighbor.playerShading),
+          currentDominion: Boolean(neighbor.playerRootDominated),
           blockedReason: shadeAllowed ? null : 'too-short',
           playerHeight,
           targetHeight,
@@ -521,7 +530,7 @@ export function buildAggressionDecision(state, kind, deps = {}) {
   return createDecision({
     kind: kind === 'shade' ? 'aggression:shade' : 'aggression:dominion',
     title: kind === 'shade' ? 'Shade which neighbor?' : 'Assert dominion over which neighbor?',
-    body: kind === 'shade' ? 'Choose one living tree immediately to your left or right. Shadeable trees are shorter than you. Choosing a new target releases your previous one.' : 'Choose any neighboring tree to pressure underground.',
+    body: kind === 'shade' ? 'Choose one living tree immediately to your left or right. Shadeable trees are shorter than you. Choosing a new target releases your previous one.' : 'Choose one neighboring tree to pressure underground. The contested root zone lasts until you stop or choose another target.',
     options,
     meta: { actionKind: kind },
   });
@@ -574,17 +583,25 @@ export function applyAggressionToNeighbor(state, neighbor, kind, deps = {}) {
     const stageScoreLoss = alreadyContested ? 50 : 35;
     const relationLoss = alreadyContested ? 6 : 12;
     const sunlightGain = alreadyContested ? 1 : 0;
-    const waterGain = 1;
-    const nutrientGain = 1;
+    ensureNeighborEconomy(neighbor);
+    const waterGain = Math.min(1, neighbor.reserves.water);
+    const nutrientGain = Math.min(1, neighbor.reserves.nutrients);
     neighbor.stageScore = Math.max(0, neighbor.stageScore - stageScoreLoss);
     neighbor.relation = Math.max(-100, neighbor.relation - relationLoss);
+    neighbor.reserves.water -= waterGain;
+    neighbor.reserves.nutrients -= nutrientGain;
     state.sunlight += sunlightGain;
     state.water += waterGain;
     state.nutrients += nutrientGain;
+    const releasedDominionTarget = setPlayerRootDominionTarget(state, neighbor);
     return {
       alreadyContested,
       gains: { sunlight: sunlightGain, water: waterGain, nutrients: nutrientGain },
       relationStateBefore: relationName,
+      persistentRootDominion: true,
+      waterPerTurn: ROOT_DOMINION_WATER_BONUS,
+      nutrientsPerTurn: ROOT_DOMINION_NUTRIENT_BONUS,
+      releasedDominionTarget,
     };
   }
 

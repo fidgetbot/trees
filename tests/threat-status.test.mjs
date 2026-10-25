@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildChemicalDefenseDecision, describeDecisionPrompt, processSeasonalReproduction, resolveChemicalDefenseChoice, resolvePendingStartOfTurnEffects, resolveUnanswerableChemicalThreat } from '../core/events.js';
+import { buildChemicalDefenseDecision, describeDecisionPrompt, expireUnpollinatedFlowersOutsideSpring, processSeasonalReproduction, resolveChemicalDefenseChoice, resolvePendingStartOfTurnEffects, resolveUnanswerableChemicalThreat } from '../core/events.js';
 import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
 import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, openMajorIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
@@ -19,6 +19,17 @@ function state(overrides = {}) {
 function ally() {
   return { species: 'Citrus', relation: 70, stageScore: 3500, helpGivenToThem: 2, helpRefusedToThem: 0, timesAskedThemForHelp: 0, helpReceivedFromThem: 0 };
 }
+
+test('unpollinated flowers expire outside Spring and cannot become fruit later', () => {
+  const s = state({ flowers: 4, pollinated: 0, developing: 0 });
+  assert.equal(expireUnpollinatedFlowersOutsideSpring(s, 'Spring'), 0);
+  assert.equal(s.flowers, 4);
+  const events = [];
+  processSeasonalReproduction(s, events, () => 'Summer');
+  assert.equal(s.flowers, 0);
+  assert.equal(s.pollinated, 0);
+  assert.equal(s.developing, 0);
+});
 
 test('fungal plotline chapters have dedicated escaped narrative markup', () => {
   const body = renderFungalRumorBody({ body: 'A signal <fades> beyond the roots.', presentation: 'ominous' });

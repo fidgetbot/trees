@@ -4,7 +4,7 @@ import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=action-
 import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=small-birds-v1';
 import { resetPaintedGrowthCaches, getPaintedTrunkMark, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=action-flow-v1';
 import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
-import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=action-flow-v1';
+import { getPlayerRootDominionTarget, getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=mature-grove-v1';
 import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
 
 // Decoded PNGs remain authoritative. Canvas-derived layers can be discarded
@@ -14,6 +14,7 @@ export function resetTreeRenderCaches() {
   resetRootGrowthCache();
   resetJoinedRootCaches();
   resetPaintedGrowthCaches();
+  offspringLodLayers.clear();
 }
 
 const TAU = Math.PI * 2;
@@ -29,6 +30,7 @@ const STAGE_ART_PROFILES = Object.freeze({
 export const RESIDENT_WORLD_POSITIONS = Object.freeze([-180,-70,0,72,180]);
 const WORLD_POSITIONS = RESIDENT_WORLD_POSITIONS;
 const CHILD_WORLD_POSITIONS = [-84,88,-252,255];
+const offspringLodLayers = new Map();
 const HABITS = {
   Plum:{spread:1.12,height:.96,bend:.58,bark:'#695740'}, Peach:{spread:1.22,height:.88,bend:.68,bark:'#735443'},
   Apricot:{spread:1.08,height:.94,bend:.6,bark:'#70553f'}, Pear:{spread:.82,height:1.12,bend:.42,bark:'#625441'},
@@ -611,7 +613,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     drawDirectionalCanopyShadows(ctx,drawableTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
   }
   const attachedTargets=[];
-  drawableTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
+  drawableTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal,offspringLod:Boolean(tree.neighbor?.offspring&&focusId!==`offspring-${tree.neighbor.childId}`)})||[])));
   const drawableTreeSet=new Set(drawableTrees);
   const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>({...treeHitTarget(tree,state,playerStageName,camera,groundY),sceneVisible:drawableTreeSet.has(tree)}));
   if(!measureTargetId){
@@ -620,7 +622,7 @@ export function renderForestScene({ctx,canvas,state,currentSeason,playerStageNam
     // Keep relationship geometry in grove coordinates even when specimen art
     // is isolated after focusing. The clipped dotted path then persists under
     // an ally or any tree between the player and that ally.
-    if(cameraFor(state,playerStageName).rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
+    if(cameraFor(state,playerStageName).rank>=2){drawFungalNetwork(ctx,trees,groundY,getRelationshipState);drawRootDominionNetwork(ctx,trees,groundY,state);}
   }
   const labelRows=[];
   drawableTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
@@ -855,6 +857,14 @@ function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
   segments.forEach(({from,to})=>{ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.bezierCurveTo(from.x-(from.x-to.x)*.3,groundY+70,to.x+(from.x-to.x)*.3,to.y-20,to.x,to.y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(to.x,to.y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
 }
 
+function drawRootDominionNetwork(ctx,trees,groundY,state){
+  const target=getPlayerRootDominionTarget(state),player=trees.find(tree=>tree.isPlayer),dominated=trees.find(tree=>!tree.neighbor?.offspring&&tree.neighbor?.slot===target?.slot);
+  if(!player||!dominated)return;
+  const direction=dominated.x<player.x?-1:1,mid=(player.x+dominated.x)/2;
+  ctx.save();ctx.strokeStyle='rgba(154,82,46,.9)';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(player.x,groundY+42);ctx.bezierCurveTo(mid-direction*22,groundY+76,mid+direction*18,groundY+92,dominated.x,groundY+56);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(154,82,46,.72)';ctx.beginPath();ctx.arc(dominated.x,groundY+56,5,0,TAU);ctx.fill();ctx.restore();
+}
+
 export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
   if(isPlayer){
     const target=getPlayerShadeTarget(state),direction=target?(target.slot<2?-1:1):0;
@@ -917,11 +927,28 @@ function drawPaintedSproutFoliage(ctx,species,seed,leafCount,season,shaded=false
   }
 }
 
-function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0,growthReveal=null}){
+function getOffspringLodLayer({neighbor,state,season,index,getRelationshipState}){
+  if(typeof document==='undefined')return null;
+  const stage=neighbor?.stageName||'Sapling',species=neighbor?.species||'Plum',shaded=isTreeShaded(state,neighbor),key=`${species}:${stage}:${season}:${shaded}`;
+  if(offspringLodLayers.has(key))return offspringLodLayers.get(key);
+  const leaves=neighbor?.leafClusters??neighbor?.branches??2,roots=neighbor?.roots??2,rooted=shouldDrawSeedRadicle(stage,roots,leaves),juvenile=getJuvenileStageKey({selectedSpecies:species,presentationStage:stage,leafClusters:leaves,rootZones:roots},stage),structureKey=juvenile||getTreeStructureStageKey(stage,{rootedSeed:rooted}),seed=hash(`${species}:${index}:offspring`);
+  if(!requestTreeStructureAsset(species,structureKey))return null;
+  if(season!=='Winter'&&leaves>0&&!botanicalAsset(species,'foliage',seed,0))return null;
+  const source=document.createElement('canvas');source.width=460;source.height=420;const paint=source.getContext('2d',{willReadFrequently:true}),anchorX=230,anchorY=280;
+  drawTree({ctx:paint,x:anchorX,groundY:anchorY,isPlayer:false,neighbor,state,season,playerStageName:stage,getRelationshipState,index,camera:{zoom:1,rank:cameraFor(state,stage).rank},canopyLean:0,growthReveal:null,offspringLod:false});
+  const pixels=paint.getImageData(0,0,source.width,source.height).data;let left=source.width,top=source.height,right=-1,bottom=-1;
+  for(let y=0;y<source.height;y+=1)for(let x=0;x<source.width;x+=1)if(pixels[(y*source.width+x)*4+3]>8){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y)}
+  if(right<left)return null;
+  const pad=3,width=right-left+1+pad*2,height=bottom-top+1+pad*2,layer=document.createElement('canvas');layer.width=width;layer.height=height;layer.getContext('2d').drawImage(source,left-pad,top-pad,width,height,0,0,width,height);
+  const result={canvas:layer,anchorX:anchorX-left+pad,anchorY:anchorY-top+pad};offspringLodLayers.set(key,result);return result;
+}
+
+function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0,growthReveal=null,offspringLod=false}){
   const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
   const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
   const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
   const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`),shaded=!isPlayer&&isTreeShaded(state,neighbor),wood=getWoodPalette(habit.bark,shaded);
+  if(offspringLod){const layer=getOffspringLodLayer({neighbor,state,season,index,getRelationshipState});if(layer){ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='medium';ctx.drawImage(layer.canvas,x-layer.anchorX*camera.zoom,groundY-layer.anchorY*camera.zoom,layer.canvas.width*camera.zoom,layer.canvas.height*camera.zoom);ctx.restore();return[];}}
   const attachPests=(image,source,geometry,growth)=>isPlayer?drawAttachedPests({
     ctx,state,kinds:getSceneArtKinds(state),image,source,geometry,growth,season,
     getImage:kind=>insectAssets.get(kind),getLeafImage:i=>botanicalAsset(species,'foliage',seed,i),
@@ -1286,8 +1313,9 @@ export function getTreeLabelText(isPlayer,neighbor,state,stage,getRelationshipSt
         stageName=isPlayer?stage:(neighbor?.stageName||'Sapling'),
         allied=!isPlayer&&(neighbor?.offspring||getRelationshipState(neighbor?.relation).name==='Ally'),
         hasHealth=allied&&Number.isFinite(neighbor?.health)&&Number.isFinite(neighbor?.maxHealth),
-        healthText=hasHealth?` · ♥ ${Math.max(0,neighbor.health)}/${neighbor.maxHealth}`:'';
-  return{relationName,allied,primary:isPlayer?`${species} — ${stageName}`:species,secondary:isPlayer?'(You)':`${stageName} · ${relationName}${healthText}`};
+        healthText=hasHealth?` · ♥ ${Math.max(0,neighbor.health)}/${neighbor.maxHealth}`:'',
+        dominionText=!isPlayer&&neighbor?.playerRootDominated?' · Root dominion':'';
+  return{relationName,allied,primary:isPlayer?`${species} — ${stageName}`:species,secondary:isPlayer?'(You)':`${stageName} · ${relationName}${healthText}${dominionText}`};
 }
 
 function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,rows){

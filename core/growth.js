@@ -1,6 +1,8 @@
 export const SHADE_SUNLIGHT_BONUS = 2;
 export const SHADE_NUTRIENT_BONUS = 1;
 export const SHADED_NEIGHBOR_GROWTH_MULTIPLIER = 0.6;
+export const ROOT_DOMINION_WATER_BONUS = 1;
+export const ROOT_DOMINION_NUTRIENT_BONUS = 1;
 
 export function neighborRhizosphereGrowthBonus(neighbor) {
   return Math.max(0, Math.floor((neighbor?.rhizosphereBonus || 0) * 4));
@@ -16,6 +18,36 @@ export function getPlayerShadeTarget(state) {
     && neighbor.playerShading
     && (neighbor.slot === 1 || neighbor.slot === 3)
   )) || null;
+}
+
+export function getPlayerRootDominionTarget(state) {
+  return (state.neighbors || []).find(neighbor => !neighbor.dead && neighbor.playerRootDominated) || null;
+}
+
+export function normalizePlayerRootDominionTarget(state) {
+  const target = getPlayerRootDominionTarget(state);
+  (state.neighbors || []).forEach(neighbor => {
+    if (neighbor !== target) neighbor.playerRootDominated = false;
+  });
+  return target;
+}
+
+export function setPlayerRootDominionTarget(state, target) {
+  let releasedTarget = null;
+  (state.neighbors || []).forEach(neighbor => {
+    if (neighbor !== target && neighbor.playerRootDominated) {
+      releasedTarget ||= neighbor;
+      neighbor.playerRootDominated = false;
+    }
+  });
+  if (target) target.playerRootDominated = true;
+  return releasedTarget;
+}
+
+export function clearPlayerRootDominionTarget(state) {
+  const target = getPlayerRootDominionTarget(state);
+  if (target) target.playerRootDominated = false;
+  return target;
 }
 
 export function offspringGroveSide(child, index = 0) {

@@ -1,4 +1,4 @@
-import { updateActionDockStatus } from './context-actions.js?rev=action-flow-v1';
+import { updateActionDockStatus } from './context-actions.js?rev=mature-grove-v1';
 import { seasonProgress } from './seasons.js?rev=four-turn-seasons-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
@@ -158,11 +158,14 @@ export function updateHudUI({
       const progress = child.nextStageThreshold
         ? `${child.stageScore}/${child.nextStageThreshold} toward ${child.nextStageName}`
         : `${child.stageScore} growth · fully grown`;
+      const rhizosphere = child.rhizosphereBonus > 0
+        ? ` · enriched soil +${Math.floor(child.rhizosphereBonus * 4)} growth/season`
+        : '';
       return `<div class="offspring-stat-card">
         <strong>${child.species} · ${child.stageName}</strong>
         <span>${child.health}/${child.maxHealth} health</span>
         <span>${progress}</span>
-        <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'}</span>
+        <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'}${rhizosphere}</span>
       </div>`;
     }).join('');
   }

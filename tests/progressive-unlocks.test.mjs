@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS, SEASONAL_ACTIONS, TURNS_PER_SEASON } from '../core/constants.js';
 import { ACTION_UNLOCK_EXPLANATIONS, getActionUnlockReason, isActionAnnounceableInSeason, isActionUnlockedForState } from '../core/actions.js';
-import { currentStageRequirements, formatTurnProgress } from '../core/stages.js';
+import { claimGrowthNudge, currentStageRequirements, formatTurnProgress } from '../core/stages.js';
 
 const sapling = LIFE_STAGES.find(stage => stage.name === 'Sapling');
 const youngTree = LIFE_STAGES.find(stage => stage.name === 'Young Tree');
@@ -45,6 +45,15 @@ test('Young Tree and Mature Tree action bundles are dispersed across seasons', (
   assert.equal(unlocked('nurtureOffspring', TURNS_PER_SEASON, matureTree), true);
   assert.equal(unlocked('shelterGrove', TURNS_PER_SEASON * 2, matureTree), true);
   assert.equal(unlocked('rootDominion', TURNS_PER_SEASON * 3, matureTree), true);
+  assert.equal(unlocked('stopRootDominion', TURNS_PER_SEASON * 3, matureTree), true);
+});
+
+test('a Mature time-only growth nudge is claimed once while exact progress remains available', () => {
+  const state = { lifeStage: matureTree, turnsInStage: 4, majorEventsSurvivedInStage: 2, allies: 1, growthNudgeCooldown: 0 };
+  const first = claimGrowthNudge(state);
+  assert.equal(first.missing.key, 'time');
+  assert.equal(claimGrowthNudge(state), null);
+  assert.match(currentStageRequirements(state)[0].label, /4\/48 turns/);
 });
 
 test('Produce Flower cannot unlock while the player is still a Sapling', () => {
