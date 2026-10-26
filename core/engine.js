@@ -168,14 +168,22 @@ export function createEngine(deps) {
     });
     const rivalNeighbors = adjacentContested.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Rival').length;
     const hostileNeighbors = adjacentContested.filter(neighbor => getRelationshipState(neighbor.relation).name === 'Hostile').length;
+    const crowdingSlots = livingNeighbors.filter(neighbor => neighbor.shadingPlayer).map(neighbor => neighbor.slot);
+    const contestedSlots = adjacentContested.map(neighbor => neighbor.slot);
+    const hostileSlots = adjacentContested
+      .filter(neighbor => getRelationshipState(neighbor.relation).name === 'Hostile')
+      .map(neighbor => neighbor.slot);
     return {
       shadedNeighbors: normalizePlayerShadeTarget(state) ? 1 : 0,
       rootDominionTarget: normalizePlayerRootDominionTarget(state),
-      crowdingNeighbors: livingNeighbors.filter(neighbor => neighbor.shadingPlayer).length,
+      crowdingNeighbors: crowdingSlots.length,
+      crowdingSlots,
       connectedAllies: alliedNeighbors.length,
       connectedAllyStrength: alliedNeighbors.reduce((sum, neighbor) => sum + allyResourceWeight(neighbor, getNeighborStage), 0),
       rivalNeighbors,
       hostileNeighbors,
+      contestedSlots,
+      hostileSlots,
     };
   }
 
@@ -231,6 +239,20 @@ export function createEngine(deps) {
     const allyWater = donations.water, allyNutrients = donations.nutrients;
     const waterGain = ownWaterGain + allyWater;
     const nutrientGain = ownNutrientGain + allyNutrients;
+    const canopySunlightLoss = Math.max(0, neutralSunlightGain - crowdedSunlightGain);
+    state.groveRelationshipReport = {
+      turn: state.turnsElapsed || 0,
+      allyWater,
+      allyNutrients,
+      canopySunlightLoss,
+      rootNutrientsLost: rootCompetitionPenalty,
+      rootCompetitionDefense,
+      hostileWaterLost: hostileWaterPenalty,
+      crowdingSlots: relations.crowdingSlots,
+      contestedSlots: relations.contestedSlots,
+      blockedRootSlots: relations.contestedSlots.slice(0, rootCompetitionDefense),
+      hostileSlots: relations.hostileSlots.slice(0, hostileWaterPenalty),
+    };
     const previous = { sunlight: state.sunlight || 0, water: state.water || 0, nutrients: state.nutrients || 0 };
     const beforeCapacity = {
       sunlight: Math.max(0, previous.sunlight + sunlightGain - maintenance.sunlight),

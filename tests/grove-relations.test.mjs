@@ -44,6 +44,39 @@ function engine() {
   });
 }
 
+test('gathering preserves exact relationship totals for the notebook', () => {
+  const ally = {
+    slot: 0,
+    species: 'Peach',
+    relation: 78,
+    stageScore: LIFE_STAGES[5].threshold,
+    dead: false,
+    reserves: { sunlight: 12, water: 16, nutrients: 16 },
+  };
+  const rival = {
+    slot: 3,
+    species: 'Pear',
+    relation: -34,
+    stageScore: LIFE_STAGES[4].threshold,
+    dead: false,
+    shadingPlayer: true,
+  };
+  const state = gatheringState({
+    lifeStage: LIFE_STAGES[4],
+    neighbors: [ally, rival],
+  });
+
+  const gains = engine().collectResources(state);
+
+  assert.equal(state.groveRelationshipReport.allyWater, gains.allyWater);
+  assert.equal(state.groveRelationshipReport.allyNutrients, gains.allyNutrients);
+  assert.equal(state.groveRelationshipReport.canopySunlightLoss, gains.neutralGains.sunlight - Math.max(1, gains.sunlightGain - gains.canopyAdvantage));
+  assert.equal(state.groveRelationshipReport.rootNutrientsLost, gains.rootCompetitionPenalty);
+  assert.equal(state.groveRelationshipReport.rootCompetitionDefense, gains.rootCompetitionDefense);
+  assert.deepEqual(state.groveRelationshipReport.crowdingSlots, [3]);
+  assert.deepEqual(state.groveRelationshipReport.contestedSlots, [3]);
+});
+
 test('shade targets only immediate neighbors and establishes a persistent arrangement', () => {
   const far = { slot: 0, species: 'Pear', relation: 0, stageScore: 1000, dead: false };
   const left = { slot: 1, species: 'Peach', relation: 0, stageScore: 1000, dead: false };

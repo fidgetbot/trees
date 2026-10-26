@@ -68,7 +68,7 @@ import {
   nurtureOffspring,
   updateProtectionProgress,
 } from './core/humans.js?rev=story-ui-cleanup-v1';
-import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=human-pacing-v2';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=relationship-notebook-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
   ensureIncidentState,
@@ -96,7 +96,8 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=remove-root-dominion-overlay-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=story-ui-cleanup-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=relationship-notebook-v1';
+import { renderGroveRelationships } from './ui/grove-relationships.js?rev=relationship-notebook-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=human-adaptation-v1';
 
@@ -2006,6 +2007,7 @@ function updateUI() {
     currentStageRequirements: currentStageRequirements(),
     affordableActions: getAffordableActions(),
     offspringStats: describeOffspring(state, LIFE_STAGES),
+    relationshipHtml: renderGroveRelationships(state, { getRelationshipState, getNeighborStage }),
     speciesBadgeHtml: state.selectedSpecies
       ? renderSpeciesSummary(state.selectedSpecies, SPECIES[state.selectedSpecies], {
           title: state.selectedSpecies,

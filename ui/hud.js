@@ -71,6 +71,7 @@ export function updateHudUI({
   affordableActions,
   speciesBadgeHtml,
   offspringStats = [],
+  relationshipHtml = '',
 }) {
   document.getElementById('score').textContent = state.score;
   const notebookScore = document.getElementById('notebook-score');
@@ -200,6 +201,9 @@ export function updateHudUI({
       </div>`;
     }).join('');
   }
+
+  const groveRelationships = document.getElementById('grove-relationships');
+  if (groveRelationships) groveRelationships.innerHTML = relationshipHtml;
 
   const seasonGuideSummary = document.getElementById('season-guide-summary');
   const seasonGuideGrid = document.getElementById('season-guide-grid');

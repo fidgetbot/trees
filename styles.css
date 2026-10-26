@@ -14,6 +14,127 @@
   --nutrient: #a3e635;
 }
 
+/* Compact relationship ledger in the botanical notebook. */
+#sheet-info .grove-relationships {
+  margin: 0 0 16px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #9c8c6b44;
+}
+#sheet-info .grove-relationships > h3 {
+  margin: 0 0 5px;
+  color: #594b40;
+  font: 500 25px/1.25 Georgia, 'Times New Roman', serif;
+}
+#sheet-info .relationship-intro {
+  margin: 0 0 15px;
+  color: #6b685e;
+  font-size: var(--ui-font-floor);
+  line-height: 1.5;
+}
+#sheet-info .relationship-balance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 18px;
+}
+#sheet-info .relationship-balance > p {
+  min-width: 0;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid #8b876f44;
+  border-radius: 12px;
+  background: #fffdf6b8;
+}
+#sheet-info .relationship-balance span {
+  display: block;
+  margin-bottom: 4px;
+  color: #767265;
+  font-size: var(--ui-font-floor);
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+#sheet-info .relationship-balance strong {
+  display: block;
+  color: #485548;
+  font-size: var(--ui-font-floor);
+  line-height: 1.45;
+}
+#sheet-info .relationship-pressure strong { color: #805847; }
+#sheet-info .relationship-list-title {
+  margin: 17px 0 8px;
+  color: #716b5e;
+  font-size: var(--ui-font-floor);
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+#sheet-info .relationship-card {
+  margin-bottom: 15px;
+  overflow: hidden;
+  border: 1px solid #78836a55;
+  border-radius: 14px;
+  background: #fffdf7c9;
+  box-shadow: 0 3px 10px #584d3918;
+}
+#sheet-info .relationship-card-rival { border-color: #9d715d66; }
+#sheet-info .relationship-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 14px 11px;
+  border-bottom: 1px solid #817e6a38;
+  background: linear-gradient(110deg, #eef1e6c9, #fffdf8a3);
+}
+#sheet-info .relationship-card-rival .relationship-card-header { background: linear-gradient(110deg, #f3e9dfd4, #fffdf8a3); }
+#sheet-info .relationship-card-header > div { min-width: 0; }
+#sheet-info .relationship-card-header h4 {
+  margin: 0 0 2px;
+  color: #4c584a;
+  font: 700 21px/1.2 Georgia, 'Times New Roman', serif;
+}
+#sheet-info .relationship-card-rival .relationship-card-header h4 { color: #745346; }
+#sheet-info .relationship-card-header p {
+  margin: 0;
+  color: #747166;
+  font-size: var(--ui-font-floor);
+  line-height: 1.4;
+}
+#sheet-info .relationship-card-header > strong {
+  flex: 0 0 auto;
+  max-width: 128px;
+  padding-top: 2px;
+  color: #416343;
+  font-size: var(--ui-font-floor);
+  line-height: 1.3;
+  text-align: right;
+}
+#sheet-info .relationship-card-rival .relationship-card-header > strong { color: #7d4c3b; }
+#sheet-info .relationship-card-rows { padding: 3px 14px 6px; }
+#sheet-info .relationship-card-rows > p {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 9px;
+  margin: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid #817e6a22;
+  color: #50554d;
+  font-size: var(--ui-font-floor);
+  line-height: 1.45;
+}
+#sheet-info .relationship-card-rows > p:last-child { border-bottom: 0; }
+#sheet-info .relationship-card-rows b { color: #6b685d; }
+#sheet-info .relationship-card-rows em { color: #426844; font-style: normal; font-weight: 750; }
+#sheet-info .relationship-card-rival .relationship-card-rows em { color: #8a4f3f; }
+#sheet-info .relationship-empty { margin: 0; color: #777064; font-size: var(--ui-font-floor); line-height: 1.5; }
+
+@media (max-width: 430px) {
+  #sheet-info .relationship-card-header > strong { max-width: 105px; }
+  #sheet-info .relationship-card-rows > p { grid-template-columns: 105px minmax(0, 1fr); }
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
