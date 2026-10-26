@@ -295,6 +295,7 @@ test('nurturing supports a specific persistent child', () => {
     maxHealth: 9,
     nurtureCount: 1,
     supportReceived: 0,
+    surplusReceived: 0,
     rhizosphereBonus: 0,
     humanRoles: [],
   });

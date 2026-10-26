@@ -5,6 +5,23 @@ export const NEIGHBOR_CAPACITY = 16;
 export const NEIGHBOR_RESOURCES = ['sunlight', 'water', 'nutrients'];
 const PASSIVE_SHARED_RESOURCES = ['water', 'nutrients'];
 
+export function rhizosphereNutrientSupport(neighbor) {
+  return Math.max(0, Math.floor((Number(neighbor?.rhizosphereBonus) || 0) * 2));
+}
+
+export function enrichNeighborRhizosphere(neighbor, amount = 0.5) {
+  ensureNeighborEconomy(neighbor);
+  neighbor.rhizosphereBonus = (neighbor.rhizosphereBonus || 0) + amount;
+  // Enrichment is living nutrient infrastructure, not only an abstract growth
+  // modifier. The first pulse restores depleted soil; later ecology ticks keep
+  // an allied root zone from falling into a Lean soil crisis.
+  neighbor.reserves.nutrients = Math.min(NEIGHBOR_CAPACITY, neighbor.reserves.nutrients + 2);
+  if (neighbor.reserves.nutrients >= NEIGHBOR_BUFFER) {
+    neighbor.activeCrises = neighbor.activeCrises.filter(crisis => crisis.kind !== 'nutrients');
+  }
+  return neighbor;
+}
+
 // Old games acquire finite reserves once, never on each request or gathering.
 export function ensureNeighborEconomy(neighbor) {
   neighbor.maxHealth ??= 10;
@@ -123,6 +140,8 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
       else if (getRelationshipState(neighbor.relation).name !== 'Ally') resolveIncident(state, incident.id, { summary: 'The alliance has ended. The tree continues its own recovery.' });
     }
     const rank = getNeighborStage(neighbor.stageScore).rank || 0;
+    const allied = getRelationshipState(neighbor.relation).name === 'Ally';
+    const soilSupport = allied ? rhizosphereNutrientSupport(neighbor) : 0;
     const subject = { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor.stageScore).name };
     for (const [kind, duration] of Object.entries(WEATHER_STRAINS[majorKey] || {})) neighbor.strains[kind] = Math.max(neighbor.strains[kind], duration);
     neighbor.hardshipCooldown = Math.max(0, neighbor.hardshipCooldown - 1);
@@ -134,8 +153,12 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
     const income = rank >= 4 ? 4 : 3;
     for (const kind of NEIGHBOR_RESOURCES) {
       const shadeCost = neighbor.playerShading ? (kind === 'sunlight' ? 2 : kind === 'nutrients' ? 1 : 0) : 0;
-      const net = (neighbor.strains[kind] > 0 ? -2 : income - 2) - shadeCost;
+      const baseNet = (neighbor.strains[kind] > 0 ? -2 : income - 2) - shadeCost;
+      const net = baseNet + (kind === 'nutrients' ? soilSupport : 0);
       neighbor.reserves[kind] = Math.max(0, Math.min(NEIGHBOR_CAPACITY, neighbor.reserves[kind] + net));
+      if (kind === 'nutrients' && soilSupport) {
+        neighbor.reserves.nutrients = Math.max(NEIGHBOR_BUFFER, neighbor.reserves.nutrients);
+      }
       neighbor.strains[kind] = Math.max(0, neighbor.strains[kind] - 1);
     }
     const empty = NEIGHBOR_RESOURCES.some(kind => neighbor.reserves[kind] === 0);
@@ -181,11 +204,16 @@ export function advanceNeighborEcology(state, { majorKey, getRelationshipState, 
       if (turn - Math.max(crisis.lastAskedTurn ?? -100, neighbor.lastAidRequestTurns[kind] ?? -100) < 3) continue;
       crisis.lastAskedTurn = turn;
       neighbor.lastAidRequestTurns[kind] = turn;
-      const allied = getRelationshipState(neighbor.relation).name === 'Ally';
       const text = neighbor.shortageTurns >= 2
         ? `The ${neighbor.species} has exhausted its ${kind}. Continued shortage threatens its health; its tissues are still working to recover.`
         : crisis.flavors[0];
-      const event = { kind: allied ? 'ally-aid' : 'neighbor-stress', title: `${neighbor.species}: ${crisis.title}`, text, effect: 'warning', subject };
+      const protectedAllies = (state.neighbors || []).filter(candidate => !candidate.dead
+        && getRelationshipState(candidate.relation).name === 'Ally'
+        && rhizosphereNutrientSupport(candidate) > 0);
+      const protectedNote = kind === 'nutrients' && protectedAllies.length
+        ? ` Your enriched rhizosphere keeps ${protectedAllies.map(candidate => `the ${candidate.species}`).join(' and ')} supplied despite the lean soil.`
+        : '';
+      const event = { kind: allied ? 'ally-aid' : 'neighbor-stress', title: `${neighbor.species}: ${crisis.title}`, text: `${text}${protectedNote}`, effect: 'warning', subject };
       if (allied) {
         event.response = { kind: 'ally-aid', neighborSlot: neighbor.slot, crisisId: crisis.id };
         const existing = findActiveIncident(state, 'ally-aid', i => i.response?.neighborSlot === neighbor.slot && i.response?.crisisId === crisis.id);

@@ -2133,11 +2133,11 @@ document.getElementById('open-info').onclick = () => openDetailSheet('info');
 document.getElementById('resource-info').onclick = () => openDetailSheet('info');
 document.getElementById('close-sheet').onclick = () => detailSheet.close();
 detailSheet.addEventListener('close', () => {
-  // Native dialog dismissal can change the mobile viewport or invalidate the
-  // composited canvas without changing the dock dimensions. Always restore
-  // the selected subject after the dialog has left the browser's top layer.
+  // Repaint after the native top layer leaves, but preserve expensive painted
+  // tree/root caches and the settled camera. Context restoration and tab
+  // visibility still use the full recovery path below.
   requestAnimationFrame(() => {
-    if (!detailSheet.open) recoverSceneArtwork();
+    if (!detailSheet.open && state.started) render();
   });
 });
 detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });

@@ -7,6 +7,8 @@ import { expireUnpollinatedFlowersOutsideSpring, normalizeStoredProtection } fro
 
 export const BASE_ACTIONS_PER_TURN = 3;
 export const MAX_BONUS_ACTIONS_PER_TURN = 3;
+export const OFFSPRING_OVERFLOW_SHARE = 0.5;
+export const OFFSPRING_GROWTH_PER_SHARED_RESOURCE = 2;
 
 export function diminishingStructureYield(value, fullYield = 8, reducedYield = 12) {
   const amount = Math.max(0, Number(value) || 0);
@@ -14,6 +16,36 @@ export function diminishingStructureYield(value, fullYield = 8, reducedYield = 1
   const reduced = Math.min(Math.max(0, amount - fullYield), reducedYield) * 0.5;
   const mature = Math.max(0, amount - fullYield - reducedYield) * 0.2;
   return full + reduced + mature;
+}
+
+export function shareOverflowWithOffspring(state, overflow) {
+  const living = (state.offspringRecords || []).filter(child => !child.dead);
+  const shared = { sunlight: 0, water: 0, nutrients: 0, total: 0, growth: 0, recipients: living.length };
+  if (!living.length) return shared;
+  const kinds = ['sunlight', 'water', 'nutrients'];
+  const available = Object.fromEntries(kinds.map(kind => [kind, Math.floor(Math.max(0, Number(overflow[kind]) || 0))]));
+  const targetShare = Math.floor(kinds.reduce((sum, kind) => sum + available[kind], 0) * OFFSPRING_OVERFLOW_SHARE);
+  for (const kind of kinds) {
+    shared[kind] = Math.floor(available[kind] * OFFSPRING_OVERFLOW_SHARE);
+    shared.total += shared[kind];
+  }
+  for (const kind of kinds) {
+    if (shared.total >= targetShare) break;
+    if (shared[kind] < available[kind]) {
+      shared[kind] += 1;
+      shared.total += 1;
+    }
+  }
+  if (!shared.total) return shared;
+  const offset = Math.max(0, Number(state.turnsElapsed) || 0) % living.length;
+  for (let unit = 0; unit < shared.total; unit += 1) {
+    const child = living[(offset + unit) % living.length];
+    child.surplusReceived = (child.surplusReceived || 0) + 1;
+    child.stageScore += OFFSPRING_GROWTH_PER_SHARED_RESOURCE;
+    shared.growth += OFFSPRING_GROWTH_PER_SHARED_RESOURCE;
+  }
+  state.lastOffspringOverflowSupport = { ...shared, turn: state.turnsElapsed || 0 };
+  return shared;
 }
 
 export function getResourceCapacities(state) {
@@ -264,6 +296,7 @@ export function createEngine(deps) {
       water: Math.max(0, beforeCapacity.water - capacities.water),
       nutrients: Math.max(0, beforeCapacity.nutrients - capacities.nutrients),
     };
+    const offspringOverflow = shareOverflowWithOffspring(state, overflow);
     state.sunlight = Math.min(capacities.sunlight, beforeCapacity.sunlight);
     state.water = Math.min(capacities.water, beforeCapacity.water);
     state.nutrients = Math.min(capacities.nutrients, beforeCapacity.nutrients);
@@ -302,6 +335,7 @@ export function createEngine(deps) {
       maintenance,
       capacities,
       overflow,
+      offspringOverflow,
       storedDelta: {
         sunlight: state.sunlight - previous.sunlight,
         water: state.water - previous.water,
@@ -336,8 +370,10 @@ export function createEngine(deps) {
 
     const gains = collectResources(state);
     const upkeep = gains.maintenance.sunlight + gains.maintenance.water + gains.maintenance.nutrients;
-    const returned = gains.overflow.sunlight + gains.overflow.water + gains.overflow.nutrients;
-    addLog?.(`Gathered +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.${upkeep ? ` Living tissue used ${upkeep} in upkeep.` : ''}${returned ? ` ${returned} beyond your storage capacity returned to the grove.` : ''}`);
+    const overflowTotal = gains.overflow.sunlight + gains.overflow.water + gains.overflow.nutrients;
+    const shared = gains.offspringOverflow?.total || 0;
+    const returned = overflowTotal - shared;
+    addLog?.(`Gathered +${gains.sunlightGain} sunlight, +${gains.waterGain} water, +${gains.nutrientGain} nutrients.${upkeep ? ` Living tissue used ${upkeep} in upkeep.` : ''}${shared ? ` ${shared} excess resource${shared === 1 ? '' : 's'} supported your offspring.` : ''}${returned ? ` ${returned} beyond your storage capacity returned to the grove.` : ''}`);
     updateUI();
     render();
     presentResources?.(gains);
@@ -512,8 +548,10 @@ export function createEngine(deps) {
         const supportedAllies = (state.neighbors || []).filter(neighbor => !neighbor.dead && getRelationshipState(neighbor.relation).name === 'Ally').length;
         const supportedOffspring = (state.offspringRecords || []).filter(child => !child.dead).length;
         const supportedTrees = supportedAllies + supportedOffspring;
+        const allySupport = supportedAllies ? `${supportedAllies} allied ${supportedAllies === 1 ? 'tree receives nutrients and protection' : 'trees receive nutrients and protection'} from Lean soil` : '';
+        const offspringSupport = supportedOffspring ? `${supportedOffspring} offspring ${supportedOffspring === 1 ? 'receives' : 'receive'} lasting growth support` : '';
         addLog?.(supportedTrees
-          ? `You enrich the shared soil. Your nutrient uptake improves, and ${supportedTrees} connected ${supportedTrees === 1 ? 'tree receives' : 'trees receive'} lasting growth support.`
+          ? `You enrich the shared soil. Your nutrient uptake improves; ${[allySupport, offspringSupport].filter(Boolean).join(', and ')}.`
           : 'You enrich the soil community around your roots, improving future nutrient uptake.');
       }
       if (action.key === 'stopShade') addLog?.(`You stop shading the ${state.lastReleasedShadeTarget || 'neighboring tree'} and release the offspring beneath that side.`);

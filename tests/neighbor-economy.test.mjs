@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceNeighborEcology, applyNeighborAid, collectNeighborDonations, neighborGrowthFactor, neighborHelpAvailable } from '../core/neighbor-economy.js';
+import { advanceNeighborEcology, applyNeighborAid, collectNeighborDonations, enrichNeighborRhizosphere, neighborGrowthFactor, neighborHelpAvailable, rhizosphereNutrientSupport } from '../core/neighbor-economy.js';
 import { buildHelpRequestDecision, resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { buildIncidentDecision, resolveIncidentDecision } from '../core/incident-responses.js';
 import { openEventIncident, assertSerializableIncidentState } from '../core/incidents.js';
@@ -38,6 +38,21 @@ test('healthy established allies sustain themselves and isolated stress recovers
   }
   assert.equal(s.neighbors[0].activeCrises.length, 0);
   assert.equal(neighborGrowthFactor(s.neighbors[0]), 1);
+});
+
+test('enriched allied soil adds nutrients and prevents Lean soil while other trees can suffer it', () => {
+  const ally = tree(70, { species: 'Pear', reserves: { sunlight: 12, water: 12, nutrients: 2 } });
+  const neutral = tree(0, { slot: 3, species: 'Cherry', reserves: { sunlight: 12, water: 12, nutrients: 4 } });
+  enrichNeighborRhizosphere(ally);
+  assert.equal(ally.reserves.nutrients, 4);
+  assert.equal(rhizosphereNutrientSupport(ally), 1);
+  const s = grove([ally, neutral]);
+  const events = tick(s, { majorKey: 'FungalBlight' });
+  assert.equal(ally.reserves.nutrients, 4);
+  assert.equal(ally.activeCrises.some(crisis => crisis.title === 'Lean soil'), false);
+  const leanSoil = events.find(event => event.title === 'Cherry: Lean soil');
+  assert.ok(leanSoil);
+  assert.match(leanSoil.text, /enriched rhizosphere keeps the Pear supplied despite the lean soil/i);
 });
 
 test('passive and requested aid debit the same reserve and cannot invade its survival buffer', () => {

@@ -1,4 +1,5 @@
 import { neighborHeightLevel, neighborRhizosphereGrowthBonus, playerHeightLevel } from '../core/growth.js?rev=relationship-notebook-v1';
+import { rhizosphereNutrientSupport } from '../core/neighbor-economy.js?rev=rhizosphere-soil-v1';
 
 const escapeHtml = value => String(value ?? '')
   .replaceAll('&', '&amp;')
@@ -65,6 +66,7 @@ export function describeGroveRelationships(state, { getRelationshipState, getNei
         feeling: allyFeeling(neighbor.relation),
         enrichments,
         rhizosphereGrowth: neighborRhizosphereGrowthBonus(neighbor),
+        rhizosphereNutrients: rhizosphereNutrientSupport(neighbor),
         aidGiven,
         helpReceived,
         favorBalance,
@@ -129,7 +131,7 @@ function allyCard(ally) {
       <strong>${escapeHtml(ally.relationshipText)}</strong>
     </header>
     <div class="relationship-card-rows">
-      <p><b>Shared soil</b><span>${plural(ally.enrichments, 'enrichment')} · <em>+${ally.rhizosphereGrowth} growth each season</em></span></p>
+      <p><b>Shared soil</b><span>${plural(ally.enrichments, 'enrichment')} · <em>+${ally.rhizosphereGrowth} growth each season · +${ally.rhizosphereNutrients} nutrient${ally.rhizosphereNutrients === 1 ? '' : 's'} each turn · protected from Lean soil</em></span></p>
       <p><b>Give and take</b><span>You aided it ${plural(ally.aidGiven, 'time')} · it helped you ${plural(ally.helpReceived, 'time')} · <em>${escapeHtml(balance)}</em></span></p>
       <p><b>Condition</b><span>Health ${ally.health}/${ally.maxHealth} · reserves ${ally.reserves.sunlight} sunlight, ${ally.reserves.water} water, ${ally.reserves.nutrients} nutrients</span></p>
     </div>

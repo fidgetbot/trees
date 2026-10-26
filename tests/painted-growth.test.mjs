@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {getPaintedGrowthPlan,syncGrowthAttachments,growthReveal,growthRevealDuration,growthRevealProgress,isRootGrowthReveal,leafReveal,drawGrowthLeaves} from '../ui/painted-growth.js';
+import {getPaintedGrowthPlan,syncGrowthAttachments,growthReveal,growthRevealDuration,growthRevealProgress,isRootGrowthReveal,leafReveal,drawGrowthLeaves,MAX_PAINTED_LEAF_MODULES} from '../ui/painted-growth.js';
 const geometry={width:40,height:60,groundRatio:.57};
 const state=()=>({selectedSpecies:'Peach',rootZones:2,leafClusters:3,branches:0});
 
@@ -34,11 +34,15 @@ test('foliage loss removes the newest parts and dormant winter draws no foliage'
  s.leafClusters=0;syncGrowthAttachments(s);assert.equal(getPaintedGrowthPlan(s,'Sprout',geometry).leaves.length,0);
 });
 
-test('new growth animates without shrinking old parts or stopping at the old foliage cap',()=>{
+test('new growth animates until mature surplus foliage condenses into bounded denser modules',()=>{
  const reveal={from:{roots:2,leaves:3,branches:1},progress:.4};
  assert.equal(growthReveal(1,'roots',reveal),1);assert.equal(growthReveal(2,'roots',reveal),.4);
  assert.equal(growthReveal(2,'leaves',reveal),1);assert.equal(growthReveal(3,'leaves',reveal),.4);
- const s=state();s.leafClusters=20;syncGrowthAttachments(s);assert.equal(getPaintedGrowthPlan(s,'Sapling',geometry).leaves.length,20);
+ const s=state();s.leafClusters=20;syncGrowthAttachments(s);
+ const condensed=getPaintedGrowthPlan(s,'Sapling',geometry);
+ assert.equal(condensed.leaves.length,MAX_PAINTED_LEAF_MODULES);
+ assert.equal(s.visualGrowth.leafHosts.length,MAX_PAINTED_LEAF_MODULES);
+ assert.ok(condensed.leaves[0].width>geometry.width*.42);
 });
 
 test('root investments receive a longer reveal without slowing other growth',()=>{

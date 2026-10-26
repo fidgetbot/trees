@@ -9,6 +9,14 @@ export function resetPaintedGrowthCaches() {
 }
 
 const count = value => Math.max(0, Math.floor(Number(value) || 0));
+export const MAX_PAINTED_LEAF_MODULES = 18;
+export const MAX_PAINTED_BRANCH_MODULES = 10;
+
+const isJuvenileStage = stage => stage === 'Seed' || stage === 'Sprout' || stage === 'Seedling';
+const paintedLeafCount = (state, stage) => isJuvenileStage(stage)
+  ? count(state.leafClusters)
+  : Math.min(MAX_PAINTED_LEAF_MODULES, count(state.leafClusters));
+const paintedBranchCount = amount => Math.min(MAX_PAINTED_BRANCH_MODULES, Math.max(0, amount));
 
 export function growthRevealDuration(current,previous){
   const rootChanged=(current?.roots||0)>(previous?.roots||0)||(current?.taproots||0)>(previous?.taproots||0);
@@ -49,8 +57,9 @@ export function syncGrowthAttachments(state) {
   }
   state.visualGrowth.juvenilePeak = Math.max(state.visualGrowth.juvenilePeak || 0, count(state.leafClusters));
   const hosts = state.visualGrowth.leafHosts || (state.visualGrowth.leafHosts = []);
-  hosts.length = Math.min(hosts.length, count(state.leafClusters));
-  while (hosts.length < count(state.leafClusters)) {
+  const visibleLeaves = isJuvenileStage(stage) ? count(state.leafClusters) : Math.min(MAX_PAINTED_LEAF_MODULES, count(state.leafClusters));
+  hosts.length = Math.min(hosts.length, visibleLeaves);
+  while (hosts.length < visibleLeaves) {
     const branches = count(state.branches);
     hosts.push(branches ? (fresh ? hosts.length % branches : branches - 1) : -1);
   }
@@ -59,7 +68,7 @@ export function syncGrowthAttachments(state) {
 
 export function getPaintedGrowthPlan(state, stage, geometry) {
   const { width, height } = geometry;
-  const juvenile = stage === 'Seed' || stage === 'Sprout' || stage === 'Seedling';
+  const juvenile = isJuvenileStage(stage);
   const current = {roots:count(state.rootZones),branches:count(state.branches),taproots:count(state.taprootDepth)};
   const base = state.visualGrowth?.structuralBase || current;
   const absorbedRoots = Math.max(count(base.roots), stage === 'Seed' ? 1 : 0);
@@ -80,18 +89,23 @@ export function getPaintedGrowthPlan(state, stage, geometry) {
       v:.76+Math.min(.12,offset*.035),dx:width*(offset%2?.025:-.025),dy:height*(.12+offset*.02),spriteSize:height*(juvenile?.17:.2)});
   }
   const absorbedBranches=count(base.branches);
-  const branches = Array.from({ length: Math.max(0,current.branches-absorbedBranches) }, (_, offset) => {
+  const branches = Array.from({ length: paintedBranchCount(current.branches-absorbedBranches) }, (_, offset) => {
     const index=absorbedBranches+offset,side=index%2?1:-1,tier=Math.floor(offset/6);
     return { id: `branch-${index}`, index, spriteVariant:'shoot', u:side<0?.16:.84, v:.18+(index%6)*.055,
       dx:side*width*(.12+(offset%3)*.025+tier*.015),dy:-height*(.065+(offset%3)*.012),
       spriteSize:width*(juvenile?.16:.22) };
   });
   const hostSlots = new Map();
-  const leaves = Array.from({ length: count(state.leafClusters) }, (_, i) => {
+  const totalLeaves = count(state.leafClusters);
+  const visibleLeaves = paintedLeafCount(state, stage);
+  const foliageDensity = juvenile || totalLeaves <= visibleLeaves
+    ? 1
+    : 1 + Math.min(0.16, Math.log2(totalLeaves / visibleLeaves) * 0.1);
+  const leaves = Array.from({ length: visibleLeaves }, (_, i) => {
     const side = i % 2 ? -1 : 1, tier = Math.floor(i / 6);
     const host = state.visualGrowth?.leafHosts?.[i] ?? -1;
     const hostSlot=hostSlots.get(host)||0;hostSlots.set(host,hostSlot+1);
-    const foliageWidth=width*(juvenile ? .50 : .42);
+    const foliageWidth=width*(juvenile ? .50 : .42)*foliageDensity;
     return { id: `leaf-${i}`, index: i, hostSlot, host: branches.some(branch=>branch.index===host) ? host : -1,
       attachmentSurface: geometry.juvenile ? 'stem' : 'plant',
       u: .5, v: .12 + (i % 6) * .067, side,

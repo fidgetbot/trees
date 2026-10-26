@@ -70,7 +70,7 @@ export const HUMAN_ADAPTATION_CARDS = [
     'Tender shoots harden into something sharper. You discover that growth need not always reach toward light. It can also guard what you have made.',
   ], unlock: { key: 'growThorns', label: 'Grow Thorns' } },
   { title: 'Points Through Cloth', paragraphs: [
-    'Thin gloves push past your bitter leaves, but your thorns pierce the cloth. Hands recoil and torn gloves fall away.',
+    'Thin gloves push past your bitter leaves, but luckily, your thorns pierce the cloth. Hands recoil and torn gloves fall away.',
     'One human studies the fruit beyond reach, then raises a long pole.',
   ] },
   { title: 'Beyond Touch', paragraphs: [
@@ -297,6 +297,7 @@ export function createOffspringRecords(state, count) {
       health: 8,
       nurtureCount: 0,
       supportReceived: 0,
+      surplusReceived: 0,
       activeCrises: [],
       groveSide: state.offspringRecords.length % 2 === 0 ? 'left' : 'right',
       dead: false,
@@ -363,6 +364,7 @@ export function describeOffspring(state, lifeStages) {
         maxHealth: child.maxHealth,
         nurtureCount: child.nurtureCount || 0,
         supportReceived: child.supportReceived || 0,
+        surplusReceived: child.surplusReceived || 0,
         rhizosphereBonus: child.rhizosphereBonus || 0,
         humanRoles: Object.entries(state.humanGroveRoles)
           .filter(([, childId]) => childId === child.id)

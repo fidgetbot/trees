@@ -2,6 +2,7 @@ import { clearPlayerShadeTarget, getPlayerShadeTarget, reconcileCanopyHeight } f
 import { openIncident } from './incidents.js?rev=structured-event-outcomes-v1';
 import { queueFirstFlowerWarning } from './humans.js?rev=reproduction-story-v1';
 import { recordFlowerGrowth } from './reproduction-history.js?rev=reproduction-story-v1';
+import { enrichNeighborRhizosphere } from './neighbor-economy.js?rev=rhizosphere-soil-v1';
 
 export const CATEGORY_NAMES = {
   growth: '🌱 Growth',
@@ -24,7 +25,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   taproot: 'Improves water, nutrients, health, drought resistance, and defense against rival roots.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
   bark: 'This lets you brace one level of spindly height while thickening your trunk, storing more water, gaining health, and resisting drought, storms, insects, fire, and woodpeckers.',
-  rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while permanently helping connected allies and living offspring grow.',
+  rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while feeding connected allies, protecting them from Lean soil, and helping living offspring grow.',
   growThorns: 'This lets tender shoots harden into lasting protective points; every layer strengthens physical defense against fruit threats, conflict, and browsing animals.',
   toxicLeaves: 'This lets you draw slick, irritating oils toward your leaf surfaces; every layer strengthens chemical defense against fruit threats, pests, and herbivores.',
   interlaceCrown: 'This lets flexible shoots close the open ways through your canopy with living knots.',
@@ -190,11 +191,11 @@ export function createActions(deps) {
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Adds a branch and three leaf clusters while broadening the crown for stronger sunlight collection.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 3; s.branches += 1; s.canopySpread += 1; } },
 
     { key: 'bark', name: 'Fortify Trunk', icon: '🛡️', category: 'defense', help: 'Braces height; improves health, water storage, and resistance.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
-    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Adds strong permanent nutrient uptake and storage while accelerating connected allies and offspring.', baseCost: { sunlight: 1, water: 1, nutrients: 2 }, effect: s => {
+    { key: 'rhizosphere', name: 'Enrich Rhizosphere', icon: '🍄', category: 'defense', help: 'Improves your nutrients while feeding allies, protecting them from Lean soil, and helping offspring grow.', baseCost: { sunlight: 1, water: 1, nutrients: 2 }, effect: s => {
       s.eventModifiers.soilBonus = (s.eventModifiers.soilBonus || 0) + 1.5;
       for (const neighbor of s.neighbors || []) {
         if (neighbor.dead || getRelationshipState(neighbor.relation).name !== 'Ally') continue;
-        neighbor.rhizosphereBonus = (neighbor.rhizosphereBonus || 0) + 0.5;
+        enrichNeighborRhizosphere(neighbor, 0.5);
         neighbor.relation = Math.min(100, neighbor.relation + 3);
         neighbor.growthAidReceived = (neighbor.growthAidReceived || 0) + 1;
         if (neighbor.firstAidStageScore == null) neighbor.firstAidStageScore = neighbor.stageScore;

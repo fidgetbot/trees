@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createEngine, diminishingStructureYield, getResourceCapacities, getResourceMaintenance } from '../core/engine.js';
+import { createEngine, diminishingStructureYield, getResourceCapacities, getResourceMaintenance, shareOverflowWithOffspring } from '../core/engine.js';
 import { createActions, getActionAvailability } from '../core/actions.js';
 import { applyAggressionToNeighbor, applyRelationshipDelta, buildAggressionDecision, buildAidDecision, resolveDiplomacyDecision } from '../core/diplomacy.js';
 import { getCanopyArrangement } from '../ui/canvas.js';
@@ -629,6 +629,23 @@ test('resource storage is finite and grows with biological investment', () => {
   assert.ok(gains.overflow.sunlight > 0);
   assert.match(renderResourcePhaseBody({ state, gains }), /Stored \d+\/\d+/);
   assert.match(renderResourcePhaseBody({ state, gains }), /returned to the grove/);
+});
+
+test('half of total whole overflow resource units support living offspring before the remainder returns', () => {
+  const living = [
+    { id: 'a', stageScore: 100, surplusReceived: 0, dead: false },
+    { id: 'b', stageScore: 200, surplusReceived: 0, dead: false },
+  ];
+  const state = { turnsElapsed: 3, offspringRecords: [...living, { id: 'dead', stageScore: 50, dead: true }] };
+  const shared = shareOverflowWithOffspring(state, { sunlight: 5, water: 3, nutrients: 2 });
+  assert.deepEqual(shared, { sunlight: 3, water: 1, nutrients: 1, total: 5, growth: 10, recipients: 2 });
+  assert.deepEqual(living.map(child => child.surplusReceived), [2, 3]);
+  assert.deepEqual(living.map(child => child.stageScore), [104, 206]);
+  const html = renderResourcePhaseBody({
+    state: gatheringState(),
+    gains: { season: { name: 'Spring', factorSun: 1, factorWater: 1 }, exposure: 1, sunlightGain: 1, waterGain: 1, nutrientGain: 1, overflow: { sunlight: 5, water: 3, nutrients: 2 }, offspringOverflow: shared },
+  });
+  assert.match(html, /3 excess stored energy supported your offspring · 2 returned to the grove/);
 });
 
 test('an empty reserve limits spending without directly harming the tree', () => {

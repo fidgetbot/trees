@@ -14,13 +14,18 @@ export function rootLifetime(state){
  const i=Math.max(0,JOIN_STAGES.indexOf(stage));
  return i*6+6*clamp((state.turnsInStage||0)/[32,48,48,48][i]);
 }
+export function compressedRootInvestment(value, full = 12) {
+ const amount=Math.max(0,Number(value)||0);
+ return Math.min(amount,full)+Math.sqrt(Math.max(0,amount-full));
+}
 export function joinedRootClocks(state,reveal=null){
  const p=reveal?clamp(reveal.progress):1;
  const interpolate=(target,before)=>Math.min(target,before)+(target-Math.min(target,before))*p;
  const roots=interpolate(Math.max(0,state.rootZones||0),reveal?.from?.roots??state.rootZones??0);
  const deep=interpolate(Math.max(0,state.taprootDepth||0),reveal?.from?.taproots??state.taprootDepth??0);
- const outward=Math.max(0,roots-deep),age=rootLifetime(state);
- return {spread:age+outward*1.4+deep*.4,deep:age+outward*.65+deep*2.8};
+ const outward=compressedRootInvestment(Math.max(0,roots-deep));
+ const deepVisual=compressedRootInvestment(deep,8),age=rootLifetime(state);
+ return {spread:age+outward*1.4+deepVisual*.4,deep:age+outward*.65+deepVisual*2.8};
 }
 const AXES=[
  {p:[[-21.44396,-2],[-52,12],[-145,34],[-215,64]],w:16.67864,seed:5},

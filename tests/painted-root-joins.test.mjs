@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {JOIN_STAGES,buildJoinedRootGraph,joinedRootClocks,joinedRootBounds,getJoinProfile} from '../ui/painted-root-joins.js';
+import {JOIN_STAGES,buildJoinedRootGraph,joinedRootClocks,joinedRootBounds,getJoinProfile,compressedRootInvestment} from '../ui/painted-root-joins.js';
 import {getTreeStructureGeometry} from '../ui/canvas.js';
 import {JOIN_PROFILES} from '../ui/root-join-profiles.js';
 import {readFileSync} from 'node:fs';
@@ -37,6 +37,15 @@ test('new branches are attached only to reached parent tissue and are thinner',(
   }
  }
 });
+test('late root investments stay visible while their rendered complexity grows sublinearly',()=>{
+ assert.equal(compressedRootInvestment(12),12);
+ assert.equal(compressedRootInvestment(13),13);
+ assert.ok(compressedRootInvestment(100)<22);
+ const ordinary=graph(state('Ancient',{rootZones:20,taprootDepth:5}));
+ const extreme=graph(state('Ancient',{rootZones:200,taprootDepth:50}));
+ assert.ok(extreme.nodes.length>ordinary.nodes.length);
+ assert.ok(extreme.nodes.length<ordinary.nodes.length*3);
+});
 test('reveal uses authoritative state, reaches exact final graph, and survives JSON/older state shapes',()=>{
  const s=state('Mature Tree'),next={...s,rootZones:13,taprootDepth:4},from={roots:12,taproots:3};
  assert.deepEqual(buildJoinedRootGraph(next,{from,progress:0}),graph(s));
@@ -53,7 +62,7 @@ test('joined geometry, bounds and juvenile exclusion share the correct source me
   assert.equal(g.groundRatio,p.cutY/p.sourceHeight);
   assert.ok(Math.abs(g.width/g.height-p.sourceWidth/p.sourceHeight)<1e-10);
   const before=joinedRootBounds(g,s),after=joinedRootBounds(g,{...s,rootZones:100});
-  assert.ok(after.width>before.width);assert.ok(after.height>before.height);
+  assert.ok(after.width>=before.width);assert.ok(after.height>before.height);
  }
  for(const stage of ['Seed','Sprout','Seedling'])assert.equal(getJoinProfile('Cherry',stage),null);
 });

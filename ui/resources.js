@@ -22,8 +22,16 @@ export function renderResourcePhaseBody({ state, gains }) {
   const maintenance = gains.maintenance || { sunlight: 0, water: 0, nutrients: gains.maintenanceCost || 0 };
   const capacities = gains.capacities || { sunlight: state.sunlight, water: state.water, nutrients: state.nutrients };
   const overflow = gains.overflow || { sunlight: 0, water: 0, nutrients: 0 };
+  const offspringOverflow = gains.offspringOverflow || { sunlight: 0, water: 0, nutrients: 0, total: 0, recipients: 0 };
   const storage = kind => `<div class="gather-storage"><span>Stored ${number(state[kind])}/${number(capacities[kind])}</span><meter min="0" max="${Math.max(1, capacities[kind])}" value="${Math.max(0, state[kind])}" aria-label="Stored ${kind}"></meter></div>`;
-  const excess = (kind, label) => overflow[kind] ? `<p class="gather-overflow">${number(overflow[kind])} excess ${label} returned to the grove</p>` : '';
+  const excess = (kind, label) => {
+    const total = overflow[kind] || 0;
+    if (!total) return '';
+    const shared = offspringOverflow[kind] || 0;
+    const returned = total - shared;
+    if (!shared) return `<p class="gather-overflow">${number(total)} excess ${label} returned to the grove</p>`;
+    return `<p class="gather-overflow">${number(shared)} excess ${label} supported your offspring${returned ? ` · ${number(returned)} returned to the grove` : ''}</p>`;
+  };
   const species = (state.selectedSpecies || 'Plum').toLowerCase();
   const art = `assets/botanical/${species === 'plum' ? 'plum-foliage-airy' : `${species}-foliage-v1`}.png`;
 

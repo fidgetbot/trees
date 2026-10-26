@@ -202,7 +202,7 @@ export function updateHudUI({
         <strong>${child.species} · ${child.stageName}</strong>
         <span>${child.health}/${child.maxHealth} health</span>
         <span>${progress}</span>
-        <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'}${rhizosphere}</span>
+        <span>Nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'} · aided ${child.supportReceived} time${child.supportReceived === 1 ? '' : 's'} · received ${child.surplusReceived} surplus resource${child.surplusReceived === 1 ? '' : 's'}${rhizosphere}</span>
         ${humanRoles}
       </div>`;
     }).join('');

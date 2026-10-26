@@ -68,6 +68,7 @@ test('notebook relationship view condenses exact ally support and rival pressure
   assert.equal(view.allies[0].feeling, 'warm and secure');
   assert.equal(view.allies[0].enrichments, 3);
   assert.equal(view.allies[0].rhizosphereGrowth, 6);
+  assert.equal(view.allies[0].rhizosphereNutrients, 3);
   assert.equal(view.allies[0].favorBalance, 1);
 
   assert.equal(view.rivals.length, 1);
@@ -85,7 +86,7 @@ test('rendered notebook omits redundant paragraphs and excluded neighbors', () =
 
   assert.match(html, /\+78 above neutral/);
   assert.match(html, /Young Tree · fungal alliance active · warm and secure/);
-  assert.match(html, /3 enrichments? · <em>\+6 growth each season<\/em>/);
+  assert.match(html, /3 enrichments? · <em>\+6 growth each season · \+3 nutrients each turn · protected from Lean soil<\/em>/);
   assert.match(html, /2 levels taller, resulting in <em>−2 sunlight this turn<\/em>/);
   assert.match(html, /1 pressure · 0 blocked by deep roots, resulting in <em>−1 nutrient each turn<\/em>/);
   assert.doesNotMatch(html, /recent exchange|last gathering|why numbers|78 \/ 100|Plum|Cherry/i);

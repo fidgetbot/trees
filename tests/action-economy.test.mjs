@@ -211,3 +211,29 @@ test('every browser multi-step action receives the authoritative transaction con
     assert.equal(calls.get(key).scaledCost, scaledCost, `${key} lost its scaled cost`);
   }
 });
+
+test('later bundled growth and reproduction actions outperform repeated starter actions', () => {
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, shadeRivalAction() {}, rootDominionAction() {},
+    getRelationshipState: () => ({ name: 'Neutral' }),
+  });
+  const byKey = Object.fromEntries(actions.map(action => [action.key, action]));
+  const total = cost => Object.values(cost).reduce((sum, value) => sum + value, 0);
+
+  assert.ok(total(byKey.growBranch.baseCost) < total(byKey.growLeaves.baseCost) * 2);
+  assert.ok(total(byKey.canopy.baseCost) <= total(byKey.growBranch.baseCost) + total(byKey.growLeaves.baseCost) + 2);
+  assert.equal(total(byKey.taproot.baseCost), total(byKey.extendRoot.baseCost) * 3);
+  assert.ok(total(byKey.massFlower.baseCost) < total(byKey.flower.baseCost) * 3);
+  assert.ok(total(byKey.mastYear.baseCost) < total(byKey.flower.baseCost) * 5);
+
+  const branch = { branches: 0, leafClusters: 0 };
+  byKey.growBranch.effect(branch);
+  assert.deepEqual(branch, { branches: 1, leafClusters: 2 });
+  const canopy = { branches: 0, leafClusters: 0, canopySpread: 0 };
+  byKey.canopy.effect(canopy);
+  assert.deepEqual(canopy, { branches: 1, leafClusters: 3, canopySpread: 1 });
+  const root = { rootZones: 0, taprootDepth: 0, maxHealth: 5, health: 4 };
+  byKey.taproot.effect(root);
+  assert.deepEqual(root, { rootZones: 1, taprootDepth: 1, maxHealth: 6, health: 5 });
+});
