@@ -6,7 +6,8 @@ import { resolveHelpRequestFromAlly } from '../core/diplomacy.js';
 import { getNeighborStage, getRelationshipState } from '../core/constants.js';
 import { assertSerializableIncidentState, awaitIncidentResponse, findActiveIncident, incidentSceneArtKinds, keepIncidentOngoing, openEventIncident, openIncident, openMajorIncident, queuedResponseIncidents, resolveIncident } from '../core/incidents.js';
 import { buildIncidentDecision, resolveIncidentDecision } from '../core/incident-responses.js';
-import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from '../ui/events.js';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody, shouldShowNightBeforeHumanStory } from '../ui/events.js';
+import { formatReproductionMoment } from '../core/reproduction-history.js';
 
 function state(overrides = {}) {
   return {
@@ -29,6 +30,23 @@ test('unpollinated flowers expire outside Spring and cannot become fruit later',
   assert.equal(s.flowers, 0);
   assert.equal(s.pollinated, 0);
   assert.equal(s.developing, 0);
+});
+
+test('fruit growth is dated, counted, and presented before a same-phase human story', () => {
+  const s = state({ year: 4, seasonIndex: 1, turnInSeason: 2, pollinated: 3, developing: 0 });
+  const events = [];
+  const originalRandom = Math.random;
+  Math.random = () => 0.99;
+  try {
+    processSeasonalReproduction(s, events, () => 'Summer');
+  } finally {
+    Math.random = originalRandom;
+  }
+  assert.equal(s.reproductionHistory.fruitGrown, 3);
+  assert.equal(formatReproductionMoment(s.reproductionHistory.lastFruitSet, 'fruit'), 'Summer, Year 4 · Turn 2 · +3 fruits');
+  assert.equal(events[0].kind, 'fruit-growth');
+  assert.equal(shouldShowNightBeforeHumanStory(events, { title: 'Reaching Fingers' }), true);
+  assert.equal(shouldShowNightBeforeHumanStory([], { title: 'Reaching Fingers' }), false);
 });
 
 test('fungal plotline chapters have dedicated escaped narrative markup', () => {

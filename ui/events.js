@@ -73,6 +73,10 @@ export function renderFungalRumorBody({ body = '', paragraphs = null, presentati
   </section>`;
 }
 
+export function shouldShowNightBeforeHumanStory(minorEvents = [], storyCard = null) {
+  return Boolean(storyCard && minorEvents.some(event => event?.kind === 'fruit-growth'));
+}
+
 export function renderIncidentOutcomeBody({ incidentId = '', warning = '', body = '', effects = [] } = {}) {
   return `<section class="incident-followup" data-incident-id="${escapeHtml(incidentId)}">
     ${warning ? `<div class="incident-followup-step incident-followup-warning"><strong>Earlier warning</strong><p>${escapeHtml(warning)}</p></div>` : ''}

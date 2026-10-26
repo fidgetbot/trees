@@ -2,6 +2,7 @@ import { findActiveIncident, migrateLegacyIncidentState, resolveIncident } from 
 import { randomChoice, randomInt } from './random.js';
 import { getFruitLossMultiplier } from './species.js?rev=neighbor-economy-v1';
 import { canNeighborShadePlayer } from './growth.js?rev=mature-grove-v1';
+import { recordFruitGrowth } from './reproduction-history.js?rev=reproduction-story-v1';
 
 export function getHerbivoreDefense(state) {
   const thorns = Math.max(0, state.thornDefense || 0);
@@ -361,10 +362,11 @@ export function processSeasonalReproduction(state, events, getCurrentSeasonName)
   if (pendingFruitThreatAtStart) resolveFruitThreats(state, events);
   if (season === 'Summer' && state.pollinated > 0) {
     const ripened = state.pollinated;
+    recordFruitGrowth(state, ripened);
     state.developing += ripened;
     state.pollinated = 0;
     if (ripened > 0) state.hasProducedFruit = true;
-    events.push({ text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
+    events.push({ kind: 'fruit-growth', title: 'Fruit Grows', text: `${ripened} pollinated flower${ripened !== 1 ? 's' : ''} swelled into fruit in the summer sun. (+${ripened} fruit)`, effect: 'growth' });
   }
   if (season === 'Summer' && state.developing > 0 && !pendingFruitThreatAtStart && Math.random() < 0.45) {
     const availableThreats = Object.values(FRUIT_THREATS).filter(threat => state.humanAdaptationChapter > 0 ? threat.type !== 'human' : true);

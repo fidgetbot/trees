@@ -62,6 +62,10 @@ test('human-story action announcements describe biological possibilities without
   }
 });
 
+test('Deepen Roots uses the concise notebook-era description', () => {
+  assert.equal(ACTION_UNLOCK_EXPLANATIONS.taproot, 'Improves water, nutrients, health, drought resistance, and defense against rival roots.');
+});
+
 test('a Mature time-only growth nudge is claimed once while exact progress remains available', () => {
   const state = { lifeStage: matureTree, turnsInStage: 4, majorEventsSurvivedInStage: 2, allies: 1, growthNudgeCooldown: 0 };
   const first = claimGrowthNudge(state);

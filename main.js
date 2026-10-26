@@ -28,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=story-ui-cleanup-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=reproduction-story-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -41,7 +41,7 @@ import {
   buildHostileEncroachmentDecision,
   describeDecisionPrompt,
   resolveUnanswerableChemicalThreat,
-} from './core/events.js?rev=mature-grove-v1';
+} from './core/events.js?rev=reproduction-story-v1';
 import {
   applyRelationshipDelta as applyRelationshipDeltaForState,
   updateAlliesCount as updateAlliesCountForState,
@@ -67,7 +67,7 @@ import {
   growOffspringRecords,
   nurtureOffspring,
   updateProtectionProgress,
-} from './core/humans.js?rev=story-ui-cleanup-v1';
+} from './core/humans.js?rev=reproduction-story-v1';
 import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=relationship-notebook-v1';
 import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=mature-grove-v1';
 import {
@@ -87,7 +87,7 @@ import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDe
 import { canNeighborShadePlayer, clearPlayerRootDominionTarget, getPlayerRootDominionTarget, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerRootDominionTarget, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=mature-grove-v1';
 import { renderActionPanels } from './ui/actions.js?rev=action-flow-v1';
 import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=human-adaptation-v1';
-import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=human-adaptation-v1';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody, shouldShowNightBeforeHumanStory } from './ui/events.js?rev=reproduction-story-v1';
 import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=title-first-messages-v1';
 import { showChoiceModalUI } from './ui/choice-modal.js?rev=title-first-messages-v1';
 import { renderResourcePhaseBody } from './ui/resources.js?rev=mature-grove-v1';
@@ -96,10 +96,10 @@ import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=f
 import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=remove-root-dominion-overlay-v1';
 import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
 import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
-import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=relationship-notebook-v1';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=reproduction-story-v1';
 import { renderGroveRelationships } from './ui/grove-relationships.js?rev=relationship-notebook-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
-import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=human-adaptation-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=reproduction-story-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -805,6 +805,7 @@ function continueAsSuccessor(choice) {
   state.pollinated = 0;
   state.developing = 0;
   state.seeds = 0;
+  state.reproductionHistory = { flowersGrown: 0, fruitGrown: 0, lastFlowering: null, lastFruitSet: null };
   state.sunlight = Math.max(0, Math.floor(state.sunlight * 0.35));
   state.water = Math.max(0, Math.floor(state.water * 0.35));
   state.nutrients = Math.max(0, Math.floor(state.nutrients * 0.35));
@@ -1916,10 +1917,8 @@ function showEventPhase() {
     });
   };
 
-  const showNightJournal = () => {
-    showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents }), () => {
-      continueAfterNight();
-    }, {
+  const showNightJournal = (onContinue = continueAfterNight) => {
+    showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents }), onContinue, {
       record: false,
       kind: 'night',
       eyebrow: `${currentSeason().name} · Year ${state.year}`,
@@ -1928,13 +1927,23 @@ function showEventPhase() {
   };
 
   if (humanUpdate.storyCard) {
-    showModal(humanUpdate.storyCard.title, renderFungalRumorBody(humanUpdate.storyCard), showNightJournal, {
-      record: false,
-      kind: 'ominous',
-      eyebrow: 'At the grove’s edge',
-      sceneArt: humanUpdate.storyCard.artwork,
-      buttonLabel: 'Continue',
-    });
+    const showHumanStory = (onContinue = showNightJournal) => showModal(
+      humanUpdate.storyCard.title,
+      renderFungalRumorBody(humanUpdate.storyCard),
+      onContinue,
+      {
+        record: false,
+        kind: 'ominous',
+        eyebrow: 'At the grove’s edge',
+        sceneArt: humanUpdate.storyCard.artwork,
+        buttonLabel: 'Continue',
+      },
+    );
+    if (shouldShowNightBeforeHumanStory(minors, humanUpdate.storyCard)) {
+      showNightJournal(() => showHumanStory(continueAfterNight));
+    } else {
+      showHumanStory();
+    }
     return;
   }
   if (humanUpdate.rumor) {

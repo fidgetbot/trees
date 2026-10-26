@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=relationship-notebook-v1" />
+  <link rel="stylesheet" href="styles.css?rev=reproduction-story-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=ominous-rumors-v1" />
 </head>
 <body class="theme-light-rounded">
@@ -225,6 +225,10 @@
                 <span class="stat-name">Seeds</span>
                 <span class="stat-value" id="seeds">0</span>
               </div>
+              <div class="reproduction-history" aria-label="Flower and fruit history">
+                <p><strong>Last flowering</strong><span id="last-flowering">Not yet recorded</span><small id="flowers-grown-total">0 flowers grown over this lifetime</small></p>
+                <p><strong>Last fruit growth</strong><span id="last-fruit-set">Not yet recorded</span><small id="fruit-grown-total">0 fruit grown over this lifetime</small></p>
+              </div>
             </div>
           </div>
           
@@ -265,6 +269,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-    <script type="module" src="main.js?rev=relationship-notebook-v1"></script>
+    <script type="module" src="main.js?rev=reproduction-story-v1"></script>
 </body>
 </html>

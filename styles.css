@@ -2173,6 +2173,11 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
 .game-started #hud-panel #sheet-info .stat-group { border: 0; border-bottom: 1px solid #9c8c6b44; border-radius: 0; background: none; margin-bottom: 16px; padding-bottom: 12px; }
 #sheet-info .stat-group-content { display: block; padding: 0; }
 #sheet-info .stat-row { border-color: #9c8c6b22; }
+#sheet-info .reproduction-history { display: grid; gap: 9px; margin: 10px 0 2px 34px; }
+#sheet-info .reproduction-history p { display: grid; gap: 2px; margin: 0; padding-top: 8px; border-top: 1px solid #9c8c6b22; color: #68615e; line-height: 1.45; }
+#sheet-info .reproduction-history strong { color: #594b40; font-size: var(--ui-font-floor); font-weight: 650; }
+#sheet-info .reproduction-history span { font-size: var(--ui-font-floor); }
+#sheet-info .reproduction-history small { color: #817873; font-size: 14px; }
 #sheet-info :is(#season-guide-summary,#offspring-stats-summary) { margin: 0 0 10px; font-size: var(--ui-font-floor); font-weight: 600; line-height: 1.6; }
 #sheet-info #log { max-height: none; overflow: visible; border: 0; background: none; padding: 0; }
 @media (max-width: 380px) {
@@ -2367,7 +2372,8 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .detail-sheet .prereq-missing,
   .detail-sheet .unavailable-actions > h4,
   .detail-sheet .unavailable-action p,
-  #sheet-info :is(#season-guide-summary, #offspring-stats-summary) { font-size: 16px; }
+  #sheet-info :is(#season-guide-summary, #offspring-stats-summary),
+  #sheet-info .reproduction-history small { font-size: 16px; }
 
   .game-started .context-command-heading small,
   .game-started .context-kicker,

@@ -51,12 +51,17 @@ test('the approved human adaptation cards preserve the reviewed language', () =>
   assert.match(HUMAN_ADAPTATION_CARDS[1].paragraphs[0], /ominously empty baskets/);
   assert.match(HUMAN_ADAPTATION_CARDS[2].paragraphs[0], /taste will be foul/);
   assert.equal(HUMAN_ADAPTATION_CARDS[3].title, 'Reaching Fingers');
-  assert.equal(HUMAN_ADAPTATION_CARDS[3].paragraphs[0], 'As fruit weighs down your branches, the humans return. Bare fingers reach into your branches. Only the new, slick oils on your leaves stand between their hunger and your harvest.');
+  assert.deepEqual(HUMAN_ADAPTATION_CARDS[3].paragraphs, [
+    'As fruit weighs down your branches, the humans return. Bare fingers reach into your leaves. Only the new, slick oils stand between their hunger and your harvest.',
+    'The humans recoil, scratching at reddened palms. At the grove’s edge, they wrap their hands in tough material. Your defense has held… for now.',
+  ]);
+  assert.equal(HUMAN_ADAPTATION_CARDS[4], null);
+  for (const chapter of [3, 7, 10, 13, 16, 19]) assert.ok(HUMAN_ADAPTATION_CARDS[chapter].paragraphs.length <= 2);
   assert.equal(HUMAN_ADAPTATION_CARDS[8].paragraphs[1], 'The devices reach farther than any hand.');
   assert.equal(HUMAN_ADAPTATION_CARDS[20].paragraphs.at(-1).endsWith('and the roots cannot understand why.'), true);
 });
 
-test('the prepared route advances through all twenty chapters in seasonal order', () => {
+test('the prepared route advances through the full seasonal progression', () => {
   const s = state({ lifeStage: LIFE_STAGES[4], flowers: 1, pollinated: 1, humanAdaptationChapter: 0, turnsElapsed: 20 });
   assert.equal(queueFirstFlowerWarning(s), true);
   assert.equal(claimFirstFlowerWarning(s).chapter, 1);
@@ -74,7 +79,8 @@ test('the prepared route advances through all twenty chapters in seasonal order'
   s.developing = 4;
   s.turnsElapsed += 1;
   assert.equal(advanceHumanAdaptation(s).chapter, 3);
-  assert.equal(advanceHumanAdaptation(s).chapter, 4);
+  assert.equal(s.humanAdaptationChapter, 4);
+  assert.equal(advanceHumanAdaptation(s), null);
 
   s.year += 1;
   s.seasonIndex = 0;
@@ -179,12 +185,18 @@ test('story counters unlock only after an indirect reminder and a later season',
 
 test('an unprepared fruit raid causes loss without teaching humans a new tactic', () => {
   const s = state({ lifeStage: LIFE_STAGES[4], seasonIndex: 1, developing: 5, humanAdaptationChapter: 2, toxicLeaves: 0 });
-  assert.equal(advanceHumanAdaptation(s).chapter, 3);
   const failure = advanceHumanAdaptation(s);
   assert.equal(failure.failure, true);
   assert.equal(s.humanAdaptationChapter, 2);
   assert.equal(s.developing, 2);
   assert.equal(advanceHumanAdaptation(s), null);
+});
+
+test('a save paused between the former two-card encounter skips the removed retreat', () => {
+  const s = state({ humanAdaptationChapter: 3, humanAdaptationOpenHandPrepared: true });
+  assert.equal(advanceHumanAdaptation(s), null);
+  assert.equal(s.humanAdaptationChapter, 4);
+  assert.equal('humanAdaptationOpenHandPrepared' in s, false);
 });
 
 test('fungal rumors arrive in order and are not repeated', () => {

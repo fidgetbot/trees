@@ -57,13 +57,10 @@ export const HUMAN_ADAPTATION_CARDS = [
     'Your crown has found a way to guard what it will soon bear.',
   ], unlock: { key: 'toxicLeaves', label: 'Grow Toxic Leaves' } },
   { title: 'Reaching Fingers', paragraphs: [
-    'As fruit weighs down your branches, the humans return. Bare fingers reach into your branches. Only the new, slick oils on your leaves stand between their hunger and your harvest.',
+    'As fruit weighs down your branches, the humans return. Bare fingers reach into your leaves. Only the new, slick oils stand between their hunger and your harvest.',
+    'The humans recoil, scratching at reddened palms. At the grove’s edge, they wrap their hands in tough material. Your defense has held… for now.',
   ] },
-  { title: 'The Itching Retreat', paragraphs: [
-    'Hands push between your leaves. Before long, the humans begin to scratch. Their skin reddens; their reaching becomes frantic and clumsy.',
-    'The baskets are withdrawn.',
-    'As the humans retreat, they begin to wrap their palms in strips of tough material.',
-  ] },
+  null,
   { title: 'Covered Hands', paragraphs: [
     'The humans return wearing thin gloves stitched from the material you saw before.',
     'Covered fingers press experimentally against your leaves. This time, the irritation does not immediately reach their skin.',
@@ -73,9 +70,8 @@ export const HUMAN_ADAPTATION_CARDS = [
     'Tender shoots harden into something sharper. You discover that growth need not always reach toward light. It can also guard what you have made.',
   ], unlock: { key: 'growThorns', label: 'Grow Thorns' } },
   { title: 'Points Through Cloth', paragraphs: [
-    'Thin gloves push safely past your bitter leaves. Covered hands reach toward your fruit.',
-    'Then your thorns strike. Their points pierce the material and find the fingers beneath. Hands recoil; torn gloves are pulled away.',
-    'One human remains below, studying the fruit beyond reach. The human raises a long pole and measures the distance with its eyes.',
+    'Thin gloves push past your bitter leaves, but your thorns pierce the cloth. Hands recoil and torn gloves fall away.',
+    'One human studies the fruit beyond reach, then raises a long pole.',
   ] },
   { title: 'Beyond Touch', paragraphs: [
     'The humans return carrying hooks, poles, and folded cloth. They no longer intend to place their bodies within your defenses.',
@@ -86,10 +82,8 @@ export const HUMAN_ADAPTATION_CARDS = [
     'There is no clear path for a pole or net to penetrate.',
   ], unlock: { key: 'interlaceCrown', label: 'Interlace the Crown' } },
   { title: 'The Net Catches', paragraphs: [
-    'Hooks rise toward your fruit. Cloth spreads beneath your crown.',
-    'The first pole disappears between crossing shoots. The second twists sideways. Their net catches on a hundred small branches and folds around itself.',
-    'The humans leave with little fruit and much torn cloth.',
-    'Before leaving, one opens a pruning hook and tests its sharpness.',
+    'Hooks rise and cloth spreads beneath your crown. Poles twist between crossing shoots; the net catches and folds around itself.',
+    'The humans leave with little fruit. One opens a pruning hook and tests its edge.',
   ] },
   { title: 'Teeth in the Wood', paragraphs: [
     'The wind turns sharp and bitter. Autumn strips away the leaves that hid your shape. Humans return to examine the exposed branches.',
@@ -101,9 +95,7 @@ export const HUMAN_ADAPTATION_CARDS = [
     'The next wound can be flooded before the cutting runs deep.',
   ], unlock: { key: 'primeResin', label: 'Prime Resin Reserves' } },
   { title: 'Gold in the Cut', paragraphs: [
-    'The saw opens your bark. You answer at once.',
-    'Resin floods the wound, clings to the metal teeth, and hardens among them. The blade begins to drag. The humans pull harder, but every stroke grows shorter.',
-    'At last they abandon the fouled saw beneath your branches.',
+    'The saw opens your bark. Resin floods the wound, clogs the teeth, and shortens every stroke until the humans abandon the blade.',
     'Through the fungal network comes one final image: other saws, clean and waiting.',
   ] },
   { title: 'The Tools Multiply', paragraphs: [
@@ -116,10 +108,8 @@ export const HUMAN_ADAPTATION_CARDS = [
     'The life you sheltered can now shelter something in return.',
   ], unlock: { key: 'offspringRoles', label: 'Watch the Path, Stagger the Harvest, Close the Approach' } },
   { title: 'The Grove Watches', paragraphs: [
-    'Your offspring’s warning reaches you while the humans are still distant.',
-    'Fruit ripens at different heights and different times. Low young branches close the easiest approach. By the time the humans reach your trunk, the simple path they remember no longer exists.',
-    'They leave carrying less than they expected.',
-    'From the edge of the grove comes the sound of many human voices, arguing.',
+    'Your offspring warn you while the humans are still distant. Fruit ripens at different heights and times, while young branches close the easiest approach.',
+    'The humans leave carrying less than expected. At the grove’s edge, many voices argue.',
   ] },
   { title: 'An Organized Crew', paragraphs: [
     'The ground trembles beneath more footsteps than before.',
@@ -131,11 +121,8 @@ export const HUMAN_ADAPTATION_CARDS = [
     'You do not prepare one defense. You prepare the grove.',
   ], unlock: { key: 'rouseGrove', label: 'Rouse the Grove' } },
   { title: 'No Clear Fall', paragraphs: [
-    'The humans understand your thorns. They understand your bitter leaves. They have brought blades enough for your resin.',
-    'What they do not understand is the grove.',
-    'Every clear approach ends in a tangle of branches. Roots break the level ground beneath their ladders. Young branches slip around their ropes. Warning pulses travel ahead of every movement.',
-    'The humans argue hotly about where the first cut tree would fall.',
-    'One by one, the tools go quiet.',
+    'Thorns, bitter leaves, and resin no longer surprise them. The grove does.',
+    'Branches tangle every approach, roots break the ground beneath ladders, and warnings outrun every movement. The humans argue over where a first tree could fall. One by one, their tools go quiet.',
   ] },
   { title: 'No Easy Tree', paragraphs: [
     'Seasons pass. The baskets do not return. The saws remain silent.',
@@ -848,11 +835,25 @@ export function advanceHumanAdaptation(state) {
   if (reminder) return reminder;
 
   if (chapter === 2 && season === 'Summer' && fruitReady && actionWindowElapsed(state, 'toxicLeaves') && onceThisYear(state, 'open-hand')) {
-    state.humanAdaptationOpenHandPrepared = (state.toxicLeaves || 0) > 0;
-    return displayAdaptationCard(state, 3);
+    if ((state.toxicLeaves || 0) > 0) {
+      const card = displayAdaptationCard(state, 3);
+      state.humanAdaptationChapter = 4;
+      delete state.humanAdaptationOpenHandPrepared;
+      return card;
+    }
+    const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
+    return failedAdaptationAttempt(state, {
+      key: 'open-hand', chapter: 3, title: 'The Baskets Fill', fruitLoss: loss,
+      paragraphs: [`Bare hands move freely through your crown. The humans take ${loss} fruit before withdrawing.`, 'They have learned nothing new. They will return the same way when fruit hangs from you again.'],
+    });
   }
+  // Saves from the former two-card confrontation advance without replaying the removed retreat card.
   if (chapter === 3) {
-    if (state.humanAdaptationOpenHandPrepared) return displayAdaptationCard(state, 4);
+    if (state.humanAdaptationOpenHandPrepared) {
+      state.humanAdaptationChapter = 4;
+      delete state.humanAdaptationOpenHandPrepared;
+      return null;
+    }
     state.humanAdaptationChapter = 2;
     const loss = Math.max(1, Math.min(state.developing || 0, Math.ceil((state.developing || 0) / 2)));
     return failedAdaptationAttempt(state, {

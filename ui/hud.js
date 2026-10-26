@@ -1,5 +1,6 @@
 import { updateActionDockStatus } from './context-actions.js?rev=human-adaptation-v1';
 import { seasonProgress } from './seasons.js?rev=four-turn-seasons-v1';
+import { ensureReproductionHistory, formatReproductionMoment } from '../core/reproduction-history.js?rev=reproduction-story-v1';
 export function showFeedbackUI(els, message, type = 'success') {
   const feedback = document.createElement('div');
   feedback.className = `feedback ${type}`;
@@ -174,6 +175,11 @@ export function updateHudUI({
   document.getElementById('pollinated').textContent = state.pollinated;
   document.getElementById('developing').textContent = state.developing;
   document.getElementById('seeds').textContent = state.seeds;
+  const reproductionHistory = ensureReproductionHistory(state);
+  setNotebookValue('last-flowering', formatReproductionMoment(reproductionHistory.lastFlowering, 'flower'));
+  setNotebookValue('flowers-grown-total', `${reproductionHistory.flowersGrown} flower${reproductionHistory.flowersGrown === 1 ? '' : 's'} grown over this lifetime`);
+  setNotebookValue('last-fruit-set', formatReproductionMoment(reproductionHistory.lastFruitSet, 'fruit'));
+  setNotebookValue('fruit-grown-total', `${reproductionHistory.fruitGrown} fruit grown over this lifetime`);
   document.getElementById('allies').textContent = state.allies;
   document.getElementById('health').textContent = state.health;
   document.getElementById('max-health').textContent = `/ ${state.maxHealth}`;

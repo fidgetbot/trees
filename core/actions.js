@@ -1,6 +1,7 @@
 import { clearPlayerShadeTarget, getPlayerShadeTarget, reconcileCanopyHeight } from './growth.js?rev=mature-grove-v1';
 import { openIncident } from './incidents.js?rev=structured-event-outcomes-v1';
-import { queueFirstFlowerWarning } from './humans.js?rev=story-ui-cleanup-v1';
+import { queueFirstFlowerWarning } from './humans.js?rev=reproduction-story-v1';
+import { recordFlowerGrowth } from './reproduction-history.js?rev=reproduction-story-v1';
 
 export const CATEGORY_NAMES = {
   growth: '🌱 Growth',
@@ -20,7 +21,7 @@ export const ACTION_UNLOCK_EXPLANATIONS = {
   extendRoot: 'This lets you reach more soil, increasing both water storage and nutrient gathering while improving stability and fungal reach.',
   growLeaves: 'This lets you grow a new leaf that collects more sunlight each turn.',
   growTaller: 'This lets you lengthen your trunk to reach more light and overtop nearby trees, but each unbraced level adds wind damage; Fortify Trunk braces it.',
-  taproot: 'This lets major roots curve deeper into the soil, adding more water storage and nutrient access than ordinary outward growth while improving drought resistance.',
+  taproot: 'Improves water, nutrients, health, drought resistance, and defense against rival roots.',
   canopy: 'This lets you spread a broader crown that captures more sunlight than ordinary leaf growth.',
   bark: 'This lets you brace one level of spindly height while thickening your trunk, storing more water, gaining health, and resisting drought, storms, insects, fire, and woodpeckers.',
   rhizosphere: 'This lets you enrich the shared soil community, increasing your nutrient uptake while permanently helping connected allies and living offspring grow.',
@@ -185,7 +186,7 @@ export function createActions(deps) {
     { key: 'extendRoot', name: 'Extend Root', icon: '🥕', category: 'growth', help: 'Improves water, nutrients, stability, and fungal reach.', baseCost: { sunlight: 1, water: 0, nutrients: 0 }, effect: s => { s.rootZones += 1; } },
     { key: 'growLeaves', name: 'Grow Leaf', icon: '🍃', category: 'growth', help: 'Grows one leaf; improves sunlight gathering.', baseCost: { sunlight: 1, water: 1, nutrients: 1 }, hideAt: 'Young Tree', effect: s => { s.leafClusters += 1; } },
     { key: 'growTaller', name: 'Grow Taller', icon: '↟', category: 'growth', help: 'Improves sunlight and shading reach; increases storm risk until braced.', baseCost: { sunlight: 3, water: 2, nutrients: 1 }, prereq: s => (s.spindlyGrowth || 0) < MAX_UNBRACED_HEIGHT, effect: s => { s.heightGrowth = (s.heightGrowth || 0) + 1; s.spindlyGrowth = (s.spindlyGrowth || 0) + 1; if (getNeighborStage) { const changes = (s.neighbors || []).map(neighbor => reconcileCanopyHeight(s, neighbor, getNeighborStage, getRelationshipState)).filter(Boolean); changes.forEach(change => openIncident(s, { kind:'canopy-notice', title:'The Canopy Shifts', summary:change.message, artwork:'event-relationship', severity:change.kind==='hostile-crowding'?'warning':'neutral', meta:{kind:change.kind,unannounced:true,neighborSlot:change.neighbor?.slot} })); } } },
-    { key: 'taproot', name: 'Deepen Roots', icon: '⬇️', category: 'growth', help: 'Develops major roots downward, improving water, nutrients, health, drought resistance, and defense against rival roots.', baseCost: { sunlight: 2, water: 0, nutrients: 1 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
+    { key: 'taproot', name: 'Deepen Roots', icon: '⬇️', category: 'growth', help: 'Improves water, nutrients, health, drought resistance, and defense against rival roots.', baseCost: { sunlight: 2, water: 0, nutrients: 1 }, effect: s => { s.rootZones += 1; s.taprootDepth += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); } },
     { key: 'canopy', name: 'Expand Canopy', icon: '🌳', category: 'growth', help: 'Adds a branch and three leaf clusters while broadening the crown for stronger sunlight collection.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.leafClusters += 3; s.branches += 1; s.canopySpread += 1; } },
 
     { key: 'bark', name: 'Fortify Trunk', icon: '🛡️', category: 'defense', help: 'Braces height; improves health, water storage, and resistance.', baseCost: { sunlight: 4, water: 2, nutrients: 3 }, effect: s => { s.trunk += 1; s.defense += 1; s.maxHealth += 1; s.health = Math.min(s.maxHealth, s.health + 1); s.spindlyGrowth = Math.max(0, (s.spindlyGrowth || 0) - 1); } },
@@ -241,14 +242,14 @@ export function createActions(deps) {
     { key: 'rootDominion', name: 'Root Dominion', icon: '👑', category: 'diplomacy', help: 'Establishes one lasting contested root zone, drawing up to 1 water and 1 nutrient from the target each turn.', baseCost: { sunlight: 7, water: 4, nutrients: 5 }, prereq: s => s.neighbors.some(n => !n.dead), effect: (s, context) => rootDominionAction(s, context) },
     { key: 'stopRootDominion', name: 'Stop Root Dominion', icon: '↩️', category: 'diplomacy', help: 'Withdraws your roots from the contested soil and ends the ongoing transfer.', announce: false, hidden: s => !getRootDominionTarget(s), baseCost: { sunlight: 0, water: 0, nutrients: 0 }, prereq: s => Boolean(getRootDominionTarget(s)), effect: (s, context) => stopRootDominionAction(s, context) },
 
-    { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates a blossom that can become fruit and seed.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { s.flowers += 1; queueFirstFlowerWarning(s); } },
-    { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Creates three blossoms in one risky surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { s.flowers += 3; queueFirstFlowerWarning(s); } },
+    { key: 'flower', name: 'Produce Flower', icon: '🌸', category: 'reproduction', help: 'Creates a blossom that can become fruit and seed.', baseCost: { sunlight: 3, water: 2, nutrients: 2 }, effect: s => { recordFlowerGrowth(s, 1); s.flowers += 1; queueFirstFlowerWarning(s); } },
+    { key: 'massFlower', name: 'Mass Flowering', icon: '💐', category: 'reproduction', help: 'Creates three blossoms in one risky surge.', baseCost: { sunlight: 6, water: 3, nutrients: 4 }, effect: s => { recordFlowerGrowth(s, 3); s.flowers += 3; queueFirstFlowerWarning(s); } },
     { key: 'nurtureOffspring', name: 'Nurture Offspring', icon: '👶', category: 'reproduction', help: 'Improves one child’s health and growth.', baseCost: { sunlight: 2, water: 2, nutrients: 4 }, prereq: s => (s.offspringRecords || []).some(child => !child.dead), effect: (s, context) => nurtureOffspringAction(s, context) },
     { key: 'watchPath', name: 'Teach: Watch the Path', icon: '👁️', category: 'reproduction', help: 'An offspring learns to warn the grove before humans arrive.', baseCost: { sunlight: 2, water: 2, nutrients: 3 }, prereq: s => canAssignGroveRole(s, 'watchPath'), effect: s => assignGroveRole(s, 'watchPath') },
     { key: 'staggerHarvest', name: 'Teach: Stagger the Harvest', icon: '🗓️', category: 'reproduction', help: 'An offspring helps spread fruit ripening across different heights and times.', baseCost: { sunlight: 3, water: 2, nutrients: 3 }, prereq: s => canAssignGroveRole(s, 'staggerHarvest'), effect: s => assignGroveRole(s, 'staggerHarvest') },
     { key: 'closeApproach', name: 'Teach: Close the Approach', icon: '🌿', category: 'reproduction', help: 'An offspring develops low dense growth across an easy human route.', baseCost: { sunlight: 3, water: 3, nutrients: 4 }, prereq: s => canAssignGroveRole(s, 'closeApproach'), effect: s => assignGroveRole(s, 'closeApproach') },
     { key: 'rouseGrove', name: 'Rouse the Grove', icon: '🌲', category: 'defense', help: 'Coordinates prepared offspring into one grove-wide answer to an organized crew.', baseCost: { sunlight: 5, water: 5, nutrients: 7 }, prereq: s => activeGroveRoleCount(s) === 3 && !s.groveRoused, effect: s => { s.groveRoused = true; } },
-    { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'Creates five blossoms and one pollination in a major surge.', baseCost: { sunlight: 8, water: 4, nutrients: 8 }, effect: s => { s.flowers += 5; s.pollinated += 1; queueFirstFlowerWarning(s); } },
+    { key: 'mastYear', name: 'Mast Year', icon: '🌰', category: 'reproduction', help: 'Creates five blossoms and one pollination in a major surge.', baseCost: { sunlight: 8, water: 4, nutrients: 8 }, effect: s => { recordFlowerGrowth(s, 5); s.flowers += 5; s.pollinated += 1; queueFirstFlowerWarning(s); } },
   ];
 }
 
