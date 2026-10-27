@@ -100,6 +100,7 @@ import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGrou
 import { renderGroveRelationships } from './ui/grove-relationships.js?rev=relationship-notebook-v1';
 import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=action-flow-v1';
 import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=reproduction-story-v1';
+import { autosaveSummary, clearAutosave, loadAutosave, saveAutosave } from './ui/save-game.js?rev=browser-autosave-v1';
 
 function computeCurrentLifeStage() {
   return computeCurrentLifeStageFromState(state);
@@ -338,6 +339,11 @@ const ACTIONS = createActions({
 
 const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
 const els = getBrowserElements(document);
+const savedGame = loadAutosave({
+  createInitialState: () => createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] }),
+  stageByName: STAGE_BY_NAME,
+  speciesNames: Object.keys(SPECIES),
+});
 const ctx = els.canvas.getContext('2d');
 let sceneHitTargets = [];
 let selectedSceneTarget = null;
@@ -647,6 +653,7 @@ function initSpeciesSelect() {
 }
 
 function startGame() {
+  clearAutosave();
   const spec = SPECIES[state.selectedSpecies];
   contextualActionOrderByTarget.clear();
   contextualActionScrollByTarget.clear();
@@ -665,6 +672,26 @@ function startGame() {
     showGamePanels: () => showGamePanelsUI(els),
     random: Math.random,
   });
+}
+
+function continueSavedGame() {
+  if (!savedGame?.state) return;
+  Object.assign(state, savedGame.state);
+  contextualActionOrderByTarget.clear();
+  contextualActionScrollByTarget.clear();
+  selectedSceneTarget = null;
+  lastRenderStage = null;
+  lastGrowthSnapshot = null;
+  showGamePanelsUI(els);
+  initTooltips();
+  initCollapsibleGroups();
+  initPanelCollapseUI(els);
+  updateAlliesCount();
+  updateScore();
+  updateUI();
+  render();
+  renderActions();
+  showFeedback('Saved game restored', 'info');
 }
 
 let engine;
@@ -824,6 +851,7 @@ function showChoiceModal(title, body, choices, presentation = {}) {
 }
 
 function showGameOverScreen(summary) {
+  clearAutosave();
   document.body.classList.remove('game-started');
   document.getElementById('detail-sheet')?.close();
   els.modal?.classList.add('hidden');
@@ -1658,6 +1686,7 @@ function renderActions() {
       showEventPhase();
     },
   });
+  saveAutosave(state);
 }
 // Escalating threats: damage increases after year 10
 function getThreatMultiplier() {
@@ -2151,6 +2180,11 @@ sceneOverlayResizeObserver.observe(els.groveMinimap);
 window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
 
 els.startGame.addEventListener('click', startGame);
+if (savedGame) {
+  document.getElementById('saved-game')?.classList.remove('hidden');
+  document.getElementById('saved-game-summary').textContent = autosaveSummary(savedGame, SEASONS);
+  document.getElementById('continue-game')?.addEventListener('click', continueSavedGame);
+}
 initSceneInteraction();
 initSpeciesSelect();
 render();

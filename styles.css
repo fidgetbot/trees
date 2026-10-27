@@ -2386,3 +2386,17 @@ body.theme-light-rounded #sheet-info .notebook-specimen h3 { margin: 0 0 7px; co
   .neighbor-status span,
   .neighbor-effects > span { font-size: 18px; }
 }
+.saved-game {
+  display: grid;
+  gap: .75rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(80, 104, 73, .24);
+  border-radius: 18px;
+  background: rgba(238, 243, 224, .72);
+}
+.saved-game p { margin: 0; }
+.saved-game p strong,
+.saved-game p span { display: block; }
+.saved-game p span { margin-top: .2rem; color: var(--muted, #596257); font-size: .9rem; }
+.saved-game #continue-game { width: 100%; }

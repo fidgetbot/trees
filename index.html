@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trees</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="styles.css?rev=reproduction-story-v1" />
+  <link rel="stylesheet" href="styles.css?rev=browser-autosave-v1" />
   <link rel="stylesheet" href="theme-light-rounded.css?rev=ominous-rumors-v1" />
 </head>
 <body class="theme-light-rounded">
@@ -13,8 +13,12 @@
     <main class="layout">
       <section class="left-panel panel" id="species-panel">
         <header class="intro-masthead"><span class="intro-wordmark">Trees</span><span class="botanical-kicker">Put down roots.</span></header>
+        <section id="saved-game" class="saved-game hidden" aria-label="Saved game">
+          <p><strong>Your tree is waiting</strong><span id="saved-game-summary"></span></p>
+          <button id="continue-game" type="button">Continue</button>
+        </section>
         <div id="species-list" class="species-list"></div>
-        <button id="start-game" disabled>Start Game</button>
+        <button id="start-game" disabled>Begin a new tree</button>
         <div class="start-build">Trees v<span data-build-version>…</span></div>
       </section>
 
@@ -269,6 +273,6 @@
         document.querySelectorAll('[data-build-version]').forEach(el => { el.textContent = 'unknown'; });
       });
   </script>
-    <script type="module" src="main.js?rev=reproduction-story-v1"></script>
+    <script type="module" src="main.js?rev=browser-autosave-v1"></script>
 </body>
 </html>

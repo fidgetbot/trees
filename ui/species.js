@@ -46,5 +46,5 @@ export function initSpeciesSelectUI(els, speciesName, renderSpeciesCard) {
       ${renderSpeciesCard(speciesName)}
     </div>`;
   els.startGame.disabled = false;
-  els.startGame.textContent = 'Begin';
+  els.startGame.textContent = 'Begin a new tree';
 }
