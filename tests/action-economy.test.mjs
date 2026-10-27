@@ -9,6 +9,8 @@ import {
   MAX_BONUS_ACTIONS_PER_TURN,
 } from '../core/engine.js';
 import { createActions } from '../core/actions.js';
+import { LIFE_STAGES } from '../core/constants.js';
+import { getSpeciesAdjustedCost } from '../core/species.js';
 
 function actionState() {
   return {
@@ -131,6 +133,34 @@ test('confirming a deferred action commits its cost exactly once', () => {
   assert.equal(transaction.complete(), false);
   assert.deepEqual(logs, ['Action: Test Choice.']);
   assert.equal(eventPhases, 0);
+});
+
+test('Shade Neighbor retains and charges its scaled resource cost', () => {
+  const state = actionState();
+  state.lifeStage = LIFE_STAGES.find(stage => stage.name === 'Seedling');
+  let transaction;
+  const actions = createActions({
+    resinReserveAction() {}, woodSurgeAction() {}, attemptConnection() {}, offerAidToAlly() {},
+    requestHelpFromAllies() {}, rootDominionAction() {},
+    shadeRivalAction(_state, context) {
+      transaction = context.transaction;
+      return { deferred: true };
+    },
+    getRelationshipState: () => ({ name: 'Neutral' }),
+  });
+  const shade = actions.find(action => action.key === 'shadeRival');
+  const scaledCost = getSpeciesAdjustedCost(state, shade.key, shade.baseCost, state.lifeStage);
+
+  assert.deepEqual(shade.baseCost, { sunlight: 3, water: 1, nutrients: 2 });
+  assert.deepEqual(scaledCost, { sunlight: 6, water: 2, nutrients: 4 });
+
+  actionEngine().executeAction(state, shade, scaledCost, { spend: spendFrom(state) });
+  assert.equal(transaction.commit(), true);
+  assert.equal(transaction.complete(), true);
+  assert.deepEqual(
+    { actions: state.actions, sunlight: state.sunlight, water: state.water, nutrients: state.nutrients },
+    { actions: 2, sunlight: 6, water: 7, nutrients: 11 },
+  );
 });
 
 test('completed actions rely on their animation and do not emit generic success toasts', () => {

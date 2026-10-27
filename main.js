@@ -28,7 +28,7 @@ import {
   resetStageProgressCounters as resetStageProgressCountersForState,
 } from './core/stages.js?rev=mature-grove-v1';
 import { randomChoice, randomInt } from './core/random.js';
-import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=reproduction-story-v1';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=diplomacy-costs-v1';
 import {
   createMajorEvents,
   rollMajorEvent as rollMajorEventFromList,
@@ -1304,7 +1304,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   if (decision.kind === 'aggression:shade') {
     const released = outcome.releasedShadeTarget ? `<p>Your crown withdraws from the ${outcome.releasedShadeTarget.species}; only one neighboring tree can remain beneath your shade.</p>` : '';
     const offspringWarning = outcome.shadedOffspringCount ? `<p class="threat-status threat-growing"><strong>${outcome.shadedOffspringCount} of your offspring ${outcome.shadedOffspringCount === 1 ? 'is' : 'are'} also on this side.</strong> ${outcome.shadedOffspringCount === 1 ? 'Its' : 'Their'} growth will slow under your shade until you lean in the other direction.</p>` : '';
-    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves while your roots exploit the contested soil.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight</strong> and <strong>+${outcome.nutrientsPerTurn} nutrient every turn</strong>, and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>${offspringWarning}`, onDone);
+    const paid = outcome.paidCost || { sunlight: 0, water: 0, nutrients: 0 };
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves while your roots exploit the contested soil.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight</strong> and <strong>+${outcome.nutrientsPerTurn} nutrient every turn</strong>, and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p><p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p>${offspringWarning}`, onDone);
     return;
   }
 
@@ -1315,8 +1316,8 @@ function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFl
   }
 }
 
-function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null, preferredTargetIndex = null } = {}) {
-  const cancel = () => transaction?.cancel();
+function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null, preferredTargetIndex = null, paidCost = null } = {}) {
+  const cancel = () => transaction?.cancel({ silent: decision.kind === 'ally-help-request' });
   const complete = () => transaction?.complete();
   if (!decision.options.length) {
     if (emptyMessage) showFeedback(emptyMessage, 'warning');
@@ -1343,7 +1344,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
     const proceed = () => {
       const target = state.neighbors[option.targetIndex];
       if (!target || target.dead || option.disabled || (decision.kind === 'ally-help-request' && (getRelationshipState(target.relation).name !== 'Ally' || !neighborHelpAvailable(state, target, option.meta.requestKind, getNeighborStage)))) {
-        showFeedback('That tree cannot spare this aid. Nothing spent.', 'info');
+        showFeedback('That tree cannot spare this aid.', 'info');
         cancel();
         return;
       }
@@ -1356,6 +1357,7 @@ function runDiplomacyDecision(decision, { emptyMessage = null, transaction = nul
         recordDamage,
         random: Math.random,
       });
+      if (paidCost) resolved.outcome.paidCost = paidCost;
       showResolvedDiplomacyDecision(decision, resolved, complete);
     };
 
@@ -1438,6 +1440,7 @@ function runAggressionFlow(kind, context = {}) {
   return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState, getNeighborStage }), {
     transaction: context.transaction,
     preferredTargetIndex: context.preferredTargetIndex,
+    paidCost: context.scaledCost,
   });
 }
 
